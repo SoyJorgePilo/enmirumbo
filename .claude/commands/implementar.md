@@ -1,16 +1,24 @@
 ---
-description: Implementa un change OpenSpec aprobado - rama, código tarea por tarea, revisión y PR
+description: Implementa un change OpenSpec aprobado con el pipeline multiagente - UI, dev, seguridad/test y validador (que commitea y abre el PR)
 argument-hint: <change-id>
 ---
 
-Ejecuta la etapa 5 del proceso (`docs/proceso.md`) para el change $ARGUMENTS:
+Ejecuta la etapa 5 del proceso (`docs/proceso.md`) para el change $ARGUMENTS. Tú orquestas; los agentes ejecutan. No implementes tú lo que le toca a un agente.
+
+**Preparación**
 
 1. Verifica que `openspec/changes/$ARGUMENTS/` existe y pregunta al usuario si la spec ya está aprobada, salvo que lo haya dicho en esta conversación. Sin aprobación no se implementa.
 2. Actualiza el ticket asociado a estado `en-desarrollo`. Crea la rama `feature/$ARGUMENTS` desde `main` actualizado.
-3. Implementa `tasks.md` tarea por tarea, marcando cada `- [x]` al completarla y verificarla. Respeta el alcance de la spec: lo que no está en los deltas no se construye. Commits pequeños por tarea o grupo coherente.
-4. Al terminar: `npm run lint` y `npm run build` en verde (y tests si existen).
-5. Lanza el agente `revisor` con el change-id y el diff `main...HEAD`. Corrige lo que reporte como `cambios requeridos` y vuelve a pasar la revisión.
-6. Con veredicto `aprobado`: push de la rama y abre el PR con `gh pr create`. El cuerpo del PR: qué hace (2-3 frases), referencia al ticket y al change, checklist de criterios de aceptación del ticket, y el resultado de lint/build.
-7. Actualiza el ticket: estado `en-review` y el número de PR. Reporta al usuario el link del PR.
 
-El merge lo hace el usuario (punto de control humano #2). Tras el merge, recuérdale cerrar el ciclo: archivar el change, consolidar specs, ticket a `hecho` y correr `/checkpoint`.
+**Pipeline (los agentes NO commitean; solo el validador toca git)**
+
+3. **Etapa A — `ui`** (solo si el change tiene superficie de interfaz; un change de puro backend/datos la salta): construye componentes, páginas, copy y estados con datos mock según la spec.
+4. **Etapa B — `dev`**: implementa `tasks.md` tarea por tarea — modelo de datos, lógica de servidor, integración de la UI reemplazando los mocks. Pásale el reporte del agente `ui` (formas de datos esperadas).
+5. **Etapa C — `seguridad-test`**: escribe/corre los tests del change y audita la seguridad del diff. Si reporta hallazgos críticos/altos o defectos funcionales, regresa al `dev` (o al `ui` si es de interfaz) con el reporte, y repite la etapa C hasta quedar limpio. Máximo 3 iteraciones; si no converge, detente y consulta al usuario.
+6. **Etapa D — `validador`**: valida todo de forma independiente (spec, ticket, alcance, compuertas). Si rechaza, regresa los hallazgos al agente correspondiente y vuelve a validar. Si aprueba: él mismo commitea, hace push y abre el PR.
+
+**Cierre**
+
+7. Reporta al usuario: link del PR, resumen de lo que hizo cada etapa y cualquier propuesta fuera de alcance que los agentes hayan anotado (candidatas a nuevos tickets).
+
+El merge lo hace el usuario (punto de control humano #2). Tras el merge, recuérdale cerrar el ciclo con `/checkpoint` (archiva el change, consolida specs, ticket a `hecho`, devlog).

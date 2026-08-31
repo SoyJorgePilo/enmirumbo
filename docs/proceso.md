@@ -1,6 +1,8 @@
 # Proceso de desarrollo — NecesitoUno
 
-> Versión 0.1 — borrador para afinar. Este documento ES parte del building in public: describe cómo se construye el producto con un flujo asistido por agentes de IA.
+> Versión 0.2 — borrador para afinar. Este documento ES parte del building in public: describe cómo se construye el producto con un flujo asistido por agentes de IA.
+>
+> Cambios v0.2: el pipeline de implementación pasa de 1 implementador + revisor a 4 agentes especializados (ui, dev, seguridad-test, validador); solo el validador toca git.
 
 ## El flujo en una línea
 
@@ -30,13 +32,16 @@ Convierte el ticket en una propuesta de cambio OpenSpec en `openspec/changes/<id
 **Punto de control humano #1:** la spec se lee y se aprueba antes de escribir código. Aquí es donde más barato es corregir.
 
 ### 5. Implementación multiagente
-Comando: **`/implementar <change-id>`**.
+Comando: **`/implementar <change-id>`**. La sesión principal orquesta; cuatro agentes especializados ejecutan en cadena sobre la rama `feature/<change-id>`:
 
-1. Se crea rama `feature/<change-id>`.
-2. El implementador (sesión principal o subagente) ejecuta `tasks.md` tarea por tarea, marcándolas.
-3. El agente `revisor` revisa el diff contra la spec y los criterios de aceptación (no solo "el código funciona": ¿cumple el escenario?).
-4. Lint + build + tests en verde.
-5. Se abre PR referenciando ticket y change.
+| Etapa | Agente | Hace | Entrega |
+|---|---|---|---|
+| A | `ui` | Capa de interfaz con datos mock: componentes, copy es-MX, estados, mobile-first. Se salta si el change no tiene UI | Reporte con formas de datos esperadas |
+| B | `dev` | Perfil de ingeniero de software: `tasks.md` tarea por tarea — datos, lógica de servidor, integración de la UI real | Tareas marcadas + decisiones técnicas |
+| C | `seguridad-test` | Tests proporcionados al riesgo + auditoría de seguridad del diff (entrada, inyección, secretos, LFPDPPP). Sus hallazgos regresan al dev hasta quedar limpio | Reporte por severidad; crítico/alto bloquea |
+| D | `validador` | Compuerta final: re-verifica spec, ticket, alcance y gates de forma independiente. **Único agente que toca git**: si aprueba, commitea, push y abre el PR | Veredicto + link del PR |
+
+Regla clave: `ui`, `dev` y `seguridad-test` trabajan sobre el working tree sin commitear — nada entra a la historia de git sin pasar por el validador.
 
 **Punto de control humano #2:** el PR lo revisa y mergea una persona. Siempre.
 
@@ -63,9 +68,9 @@ Escribe una entrada en `docs/devlog/` con la plantilla: qué se construyó, qué
 ## El harness (deliberadamente ligero)
 
 - `CLAUDE.md` — contexto y convenciones del proyecto para cualquier sesión de agente.
-- 3 agentes en `.claude/agents/`: `spec-writer`, `revisor`, `cronista`.
+- 6 agentes en `.claude/agents/`: `spec-writer` (specs), `ui`, `dev`, `seguridad-test`, `validador` (pipeline de implementación) y `cronista` (devlog).
 - 3 comandos en `.claude/commands/`: `/spec`, `/implementar`, `/checkpoint`.
-- Sin orquestación pesada: la sesión principal dirige, los agentes son especialistas puntuales. Si el proyecto lo pide más adelante, se escala — no antes (misma filosofía que el PRD aplica a la verificación automática).
+- Sin orquestación pesada: la sesión principal dirige el pipeline como una cadena con reintentos acotados (máx. 3 iteraciones dev↔seguridad); no hay frameworks de orquestación. Si el proyecto lo pide más adelante, se escala — no antes (misma filosofía que el PRD aplica a la verificación automática).
 
 ## Reglas del proyecto
 

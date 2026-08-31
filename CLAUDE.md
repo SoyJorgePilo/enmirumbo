@@ -8,11 +8,14 @@ Directorio web hiperlocal: negocios se registran solos desde el celular (sin cue
 
 ```
 PRD → Backlog (docs/backlog.md) → Ticket (docs/tickets/) → /spec → aprobación humana
-    → /implementar → revisión → PR → merge humano → /checkpoint (devlog)
+    → /implementar (ui → dev → seguridad-test → validador) → PR → merge humano → /checkpoint (devlog)
+Fixes/chores de una frase sin superficie sensible: /rapido (sin spec, con validador y PR)
 ```
 
 - Ningún código de feature sin ticket; ningún ticket sin spec OpenSpec aprobada (`openspec/AGENTS.md`).
-- Los dos puntos de control humanos (aprobar spec, mergear PR) no se saltan nunca.
+- Los dos puntos de control humanos (aprobar spec, mergear PR) no se saltan nunca; el PR requiere el CI de GitHub Actions en verde.
+- Handoffs entre agentes por archivo en `openspec/changes/<id>/reports/`; solo el validador toca git.
+- Cada corrida del pipeline registra su fila en `docs/metricas-pipeline.md`.
 - Tras cada merge: archivar el change, consolidar `openspec/specs/` y escribir devlog.
 
 ## Stack y convenciones

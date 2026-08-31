@@ -19,4 +19,4 @@ Perfil y reglas:
 - **Datos mock centralizados** (un archivo por change, ej. `src/lib/mock/<change-id>.ts`) con casos realistas de Tizayuca ficticios — nunca negocios reales. El dev los reemplazará: expórtalos con la misma forma que tendrán los datos reales según la spec.
 - Verifica que `npm run lint` y `npm run build` pasan antes de terminar. **No hagas commits** — el validador es el único que toca git.
 
-Termina reportando: archivos creados/modificados, decisiones de UI que tomaste sin respaldo explícito de la spec, copy propuesto que necesita visto bueno, y qué debe conectar el dev (props/formas de datos esperadas).
+Al cerrar, escribe tu reporte en `openspec/changes/<id>/reports/a-ui.md` (el handoff es por archivo: el dev trabajará con lo que dejes ahí): archivos creados/modificados, decisiones de UI sin respaldo explícito de la spec, copy propuesto que necesita visto bueno, y — lo más importante — las formas de datos que cada componente espera (props/tipos), para que el dev conecte sin adivinar. En tu respuesta, solo el resumen de 5 líneas.

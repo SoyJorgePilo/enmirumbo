@@ -1,8 +1,8 @@
 # Proceso de desarrollo — NecesitoUno
 
-> Versión 0.2 — borrador para afinar. Este documento ES parte del building in public: describe cómo se construye el producto con un flujo asistido por agentes de IA.
+> Versión 0.3 — borrador para afinar. Este documento ES parte del building in public: describe cómo se construye el producto con un flujo asistido por agentes de IA.
 >
-> Cambios v0.2: el pipeline de implementación pasa de 1 implementador + revisor a 4 agentes especializados (ui, dev, seguridad-test, validador); solo el validador toca git.
+> Cambios v0.3 (tras investigar el estado del arte 2026 — ver ADR-002): CI de GitHub Actions como gate determinista; ruta corta `/rapido` para cambios chicos (ceremonia proporcional al tamaño); handoffs entre agentes por archivo (`reports/`), no por conversación; el dev trabaja en TDD y seguridad-test pasa a auditoría + tests adversariales; bitácora de métricas del pipeline; la etapa UI-first queda marcada como experimento con criterio de salida. Cambios v0.2: el pipeline de implementación pasa de 1 implementador + revisor a 4 agentes especializados (ui, dev, seguridad-test, validador); solo el validador toca git.
 
 ## El flujo en una línea
 
@@ -36,14 +36,25 @@ Comando: **`/implementar <change-id>`**. La sesión principal orquesta; cuatro a
 
 | Etapa | Agente | Hace | Entrega |
 |---|---|---|---|
-| A | `ui` | Capa de interfaz con datos mock: componentes, copy es-MX, estados, mobile-first. Se salta si el change no tiene UI | Reporte con formas de datos esperadas |
-| B | `dev` | Perfil de ingeniero de software: `tasks.md` tarea por tarea — datos, lógica de servidor, integración de la UI real | Tareas marcadas + decisiones técnicas |
-| C | `seguridad-test` | Tests proporcionados al riesgo + auditoría de seguridad del diff (entrada, inyección, secretos, LFPDPPP). Sus hallazgos regresan al dev hasta quedar limpio | Reporte por severidad; crítico/alto bloquea |
-| D | `validador` | Compuerta final: re-verifica spec, ticket, alcance y gates de forma independiente. **Único agente que toca git**: si aprueba, commitea, push y abre el PR | Veredicto + link del PR |
+| A | `ui` ⚗️ | Capa de interfaz con datos mock: componentes, copy es-MX, estados, mobile-first. Se salta si el change no tiene UI | `reports/a-ui.md` con formas de datos esperadas |
+| B | `dev` | Perfil de ingeniero de software en **TDD**: por cada scenario automatizable, primero el test (rojo), luego el código (verde); `tasks.md` tarea por tarea | `reports/b-dev.md` + tareas marcadas |
+| C | `seguridad-test` | Auditoría de seguridad del diff (entrada, inyección, secretos, LFPDPPP) + tests adversariales que el dev no pensó. Sus hallazgos regresan al dev hasta quedar limpio | `reports/c-seguridad.md`; crítico/alto bloquea |
+| D | `validador` | Compuerta final: re-verifica spec, ticket, alcance y gates de forma independiente. **Único agente que toca git**: si aprueba, commitea, push y abre el PR | `reports/d-validacion.md` + link del PR |
 
-Regla clave: `ui`, `dev` y `seguridad-test` trabajan sobre el working tree sin commitear — nada entra a la historia de git sin pasar por el validador.
+Reglas clave:
 
-**Punto de control humano #2:** el PR lo revisa y mergea una persona. Siempre.
+- **Handoff por archivo, no por conversación:** cada agente escribe su reporte en `openspec/changes/<id>/reports/` y el siguiente lo lee de ahí. Lo que no está en un archivo no existe para la siguiente etapa.
+- `ui`, `dev` y `seguridad-test` trabajan sobre el working tree sin commitear — nada entra a la historia de git sin pasar por el validador.
+- El veredicto local del validador no sustituye al CI: el check de GitHub Actions (lint + build + test) debe estar en verde en el PR. El CI es el gate determinista; los agentes pueden equivocarse al reportar, el CI no.
+
+⚗️ **La etapa A (UI-first con mocks) es un experimento:** el estado del arte no la respalda (el patrón dominante es implementación integrada). Se evalúa al cerrar la primera feature con interfaz: si reemplazar los mocks generó retrabajo significativo, la etapa A se fusiona dentro del dev y el agente `ui` pasa a revisor de interfaz post-implementación.
+
+**Punto de control humano #2:** el PR lo revisa y mergea una persona, con el CI en verde. Siempre.
+
+### 5b. Ruta corta — `/rapido`
+La ceremonia debe ser proporcional al cambio: un fix o chore que se describe en una frase no paga spec ni pipeline de 4 agentes.
+
+Comando: **`/rapido <descripción o T-XXX>`**. Elegible solo si: se describe en una frase, no cambia comportamiento de producto definido en specs, y no toca superficies sensibles (formulario público, panel admin, enlaces de gestión, datos personales). La sesión principal implementa directo en una rama `fix/<slug>`, y el `validador` valida, commitea y abre el PR igual que siempre. Si el validador detecta que el diff sí toca superficie sensible o comportamiento especificado, aborta y exige la ruta completa.
 
 ### 6. Cierre
 Al mergear: el change se archiva (`openspec/changes/archive/`) y sus deltas se consolidan en `openspec/specs/` (la verdad actual del sistema); el ticket pasa a `hecho`.
@@ -69,8 +80,13 @@ Escribe una entrada en `docs/devlog/` con la plantilla: qué se construyó, qué
 
 - `CLAUDE.md` — contexto y convenciones del proyecto para cualquier sesión de agente.
 - 6 agentes en `.claude/agents/`: `spec-writer` (specs), `ui`, `dev`, `seguridad-test`, `validador` (pipeline de implementación) y `cronista` (devlog).
-- 3 comandos en `.claude/commands/`: `/spec`, `/implementar`, `/checkpoint`.
+- 4 comandos en `.claude/commands/`: `/spec`, `/implementar`, `/rapido`, `/checkpoint`.
+- CI en GitHub Actions (`.github/workflows/ci.yml`) como único gate no negociable por máquina.
 - Sin orquestación pesada: la sesión principal dirige el pipeline como una cadena con reintentos acotados (máx. 3 iteraciones dev↔seguridad); no hay frameworks de orquestación. Si el proyecto lo pide más adelante, se escala — no antes (misma filosofía que el PRD aplica a la verificación automática).
+
+## Medición del pipeline
+
+El pipeline se mide por retrabajo, no por volumen. Cada corrida de `/implementar` o `/rapido` agrega una fila a `docs/metricas-pipeline.md`: ruta, iteraciones dev↔seguridad, hallazgos del validador, veredicto de primera pasada, y (rellenado después) correcciones post-merge. Si las corridas muestran que una etapa no aporta hallazgos, esa etapa se elimina — el harness también obedece la regla de no crecer sin evidencia.
 
 ## Reglas del proyecto
 

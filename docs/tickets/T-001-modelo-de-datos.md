@@ -15,10 +15,12 @@ Todo el MVP gira alrededor de una sola entidad (el negocio) y dos catálogos (ca
 ## Criterios de aceptación
 
 - [ ] Existe un esquema Prisma con el modelo `Negocio` cubriendo los 5 campos obligatorios y 5 opcionales del PRD §6.1
-- [ ] Categorías (8, lista cerrada del PRD) y colonias (Apéndice A) existen como catálogos con slug estable para URLs SEO
-- [ ] El negocio tiene estado `en_revision | publicado | rechazado` y timestamps de registro y publicación
+- [ ] El WhatsApp es único por negocio (constraint de base de datos, PRD §6.1)
+- [ ] Categorías (8), colonias (Apéndice A) y giros (Apéndice B, asignables 1-3 por negocio por el admin) existen como catálogos con slug estable para URLs SEO
+- [ ] El negocio tiene estado `en_revision | publicado | rechazado`, origen `siembra | organico` (PRD §6.3 y §10) y timestamps de registro y publicación
 - [ ] La colonia admite el caso "Otra" con texto libre pendiente de normalizar
-- [ ] Migración inicial aplicada y seed con categorías y colonias funcionando (`npm run db:seed` o equivalente)
+- [ ] El borrado definitivo es posible (hard delete real, no solo despublicar — operación ARCO del PRD §8)
+- [ ] Migración inicial aplicada y seed con categorías, colonias y giros funcionando (`npm run db:seed` o equivalente)
 - [ ] El diseño deja espacio para: enlace de gestión (token) y revisiones de edición (P1), sin implementarlos
 
 ## Fuera de alcance de este ticket

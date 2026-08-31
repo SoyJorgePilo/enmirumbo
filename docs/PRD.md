@@ -1,8 +1,8 @@
 # PRD — NecesitoUno.com · Directorio de Negocios de Tizayuca (MVP)
 
-**Versión:** 0.7 · **Fecha:** 31 de agosto de 2026 · **Estado:** Borrador
+**Versión:** 0.8 (propuesta) · **Fecha:** 31 de agosto de 2026 · **Estado:** Borrador
 
-> Cambios v0.7: se adopta el nombre NecesitoUno.com — marca neutral que resuelve la pregunta abierta de branding y permite expandir a otras ciudades sin cambiar de nombre. Cambios v0.6: se agrega la categoría y el apartado destacado de clubes y escuelas deportivas — espacio inexistente en la oferta municipal, oportunidad de diferenciación y SEO sin competencia. Cambios v0.5: se integra la investigación de mercado — contexto de Tizayuca con datos INEGI, competencia real (Google Maps y grupos de Facebook), lista de colonias para el formulario, requisitos legales conforme a la LFPDPPP 2025, plan de lanzamiento en fases con umbrales de decisión, ajuste de la métrica de conversión con benchmark, y requisitos de SEO local. Cambios v0.4: autogestión de ediciones con enlace único de gestión; los cambios pasan a revisión antes de publicarse; flujo de recuperación de enlace perdido. Cambios v0.3: formulario ajustado — colonia obligatoria con lista cerrada, palabras clave, checkbox de entregas a domicilio y link opcional de Facebook. Cambios v0.2: verificación manual integrada en la revisión del admin (se elimina el código automático por WhatsApp).
+> Cambios v0.8: se cierran los huecos detectados en la validación técnica previa a la implementación — acceso del admin al panel (contraseña única, sin cuentas); catálogo cerrado de giros como base real de las páginas SEO, asignado por el admin al aprobar (nuevo Apéndice B); flujo de rechazo completo con aviso y retención de 90 días; política de duplicados (una ficha por número de WhatsApp); reglas de la foto; separación de métricas orgánicas vs sembradas con campo de origen; analítica cookieless con eventos definidos y exclusión de bots; normalización de la búsqueda (acentos, coincidencia parcial); reglas de moderación escritas; anti-abuso del formulario sin captcha; operación ARCO y retención; requisitos de accesibilidad; y expectativa realista del Schema LocalBusiness. Cambios v0.7: se adopta el nombre NecesitoUno.com — marca neutral que resuelve la pregunta abierta de branding y permite expandir a otras ciudades sin cambiar de nombre. Cambios v0.6: se agrega la categoría y el apartado destacado de clubes y escuelas deportivas — espacio inexistente en la oferta municipal, oportunidad de diferenciación y SEO sin competencia. Cambios v0.5: se integra la investigación de mercado — contexto de Tizayuca con datos INEGI, competencia real (Google Maps y grupos de Facebook), lista de colonias para el formulario, requisitos legales conforme a la LFPDPPP 2025, plan de lanzamiento en fases con umbrales de decisión, ajuste de la métrica de conversión con benchmark, y requisitos de SEO local. Cambios v0.4: autogestión de ediciones con enlace único de gestión; los cambios pasan a revisión antes de publicarse; flujo de recuperación de enlace perdido. Cambios v0.3: formulario ajustado — colonia obligatoria con lista cerrada, palabras clave, checkbox de entregas a domicilio y link opcional de Facebook. Cambios v0.2: verificación manual integrada en la revisión del admin (se elimina el código automático por WhatsApp).
 
 ## 1. Resumen
 
@@ -54,7 +54,7 @@ Un solo formulario, una sola pantalla, desde el celular. Sin cuenta, sin contras
 
 - Nombre del negocio
 - Categoría (lista cerrada: Restaurantes y fondas, Servicios del hogar, Belleza, Salud, Abarrotes y comercio, Talleres, Clubes y escuelas deportivas, Otro)
-- WhatsApp
+- WhatsApp (10 dígitos; **una sola ficha por número** — si el número ya tiene ficha, el formulario lo dice y ofrece el flujo "Perdí mi enlace"; sucursales múltiples siguen fuera de alcance §6.6)
 - Colonia (lista cerrada — ver Apéndice A — con opción "Otra" + texto libre moderado) — habilita el filtro de búsqueda más natural del directorio
 - Checkbox de consentimiento con aviso de privacidad simplificado visible en el formulario, con link al integral (requisito LFPDPPP, ver §8)
 
@@ -64,7 +64,7 @@ Un solo formulario, una sola pantalla, desde el celular. Sin cuenta, sin contras
 - ¿Haces entregas o vas a domicilio? (checkbox sí/no)
 - Teléfono fijo y dirección o referencias (texto libre + pin opcional en mapa)
 - Horario (texto libre, ej. "L-S 9am-7pm")
-- Una foto (desde la galería del celular) y/o link a su página de Facebook
+- Una foto (desde la galería del celular) y/o link a su página de Facebook. Política de foto: del local, los productos o el trabajo — sin personas reconocibles (el aviso de privacidad no cubre la imagen de terceros); máx. 5 MB de entrada, comprimida en el servidor; el admin rechaza fotos que no cumplan
 
 Al enviar, el negocio ve: "¡Gracias! Tu negocio está en revisión. Te contactaremos por WhatsApp para confirmar tus datos antes de publicarlo."
 
@@ -73,7 +73,7 @@ Al enviar, el negocio ve: "¡Gracias! Tu negocio está en revisión. Te contacta
 - **Página principal:** buscador + categorías como botones grandes.
 - **Listado por categoría con filtro por colonia:** tarjetas con foto, nombre, colonia, etiqueta "A domicilio" cuando aplique y botón verde de WhatsApp. La información esencial visible sin clics extra (lección de los directorios que fracasan por fricción).
 - **Ficha de negocio:** toda la información + botones "Enviar WhatsApp", "Llamar", "Cómo llegar" (abre Google Maps) y link a su Facebook si lo registró. Sello visible de "Negocio verificado".
-- **Búsqueda simple** por nombre y por las palabras clave de "¿Qué ofreces?": quien escriba "plomero" debe encontrar al negocio aunque su categoría sea "Servicios del hogar".
+- **Búsqueda simple** por nombre, palabras clave de "¿Qué ofreces?" y giros asignados (Apéndice B): insensible a mayúsculas y acentos, con coincidencia parcial — "plomero" encuentra "plomería" y "plomeria". Quien escriba "plomero" debe encontrar al negocio aunque su categoría sea "Servicios del hogar".
 
 ### 6.3 Revisión manual = verificación + moderación (P0)
 
@@ -81,7 +81,9 @@ Un solo paso cumple dos funciones:
 
 - Todos los registros entran a una cola de revisión en un panel simple.
 - Antes de aprobar, el admin contacta al número registrado (mensaje de WhatsApp o llamada) para confirmar que el negocio existe y que el número le pertenece. Esta conversación sirve además como evidencia de consentimiento ante la LFPDPPP.
-- El admin aprueba o rechaza; al aprobar, se publica la ficha y se le avisa al negocio por WhatsApp.
+- El admin aprueba o rechaza. **Al aprobar:** asigna 1-3 giros del catálogo cerrado (Apéndice B — base de las páginas SEO y los filtros; las palabras clave libres solo alimentan el buscador), normaliza la colonia si fue "Otra", marca el origen de la ficha (siembra o registro orgánico, para las métricas del §10), se publica la ficha y se le avisa al negocio por WhatsApp. **Al rechazar:** avisa por WhatsApp con el motivo; el negocio puede corregir y volver a enviar; los datos de registros rechazados se eliminan definitivamente a los 90 días.
+- **Acceso al panel:** ruta no indexada protegida con contraseña única definida como variable de entorno y sesión con cookie segura — sin sistema de cuentas (consistente con §6.6). Si el proyecto suma más admins, se revisará.
+- **Reglas de moderación** (se publican también en los términos): se rechazan fichas de actividades ilegales o que requieren licencia no demostrable (medicamentos controlados, armas, préstamos informales), contenido ofensivo, discriminatorio o sexual, fichas de terceros sin autorización del negocio, y fotos que incumplan la política del §6.1.
 - Meta operativa: revisar y responder cada registro en menos de 48 horas.
 - Botón "Reportar" en cada ficha pública para negocios falsos o cerrados.
 
@@ -134,11 +136,13 @@ Los clubes y escuelas deportivas tienen un tratamiento destacado, no solo una ca
 - Móvil primero: todo se diseña para pantalla de celular; escritorio es secundario (81.7% del acceso a internet en México es desde el celular).
 - Rápido en redes lentas: página principal < 2 segundos en 4G; imágenes comprimidas.
 - Español mexicano en todos los textos, con lenguaje coloquial ("Registra tu negocio", no "Crear listado").
+- Accesibilidad base: HTML semántico, contraste AA, áreas táctiles ≥44 px y lenguaje llano — el público usa celulares de gama media y tiene poca paciencia para interfaces confusas.
+- Anti-abuso sin fricción en el formulario público y el botón de reportar: honeypot + límite de envíos por IP (ej. 3 por hora) + alerta al admin si las altas diarias superan lo plausible. Sin captcha — contradiría el principio rector; la revisión manual filtra calidad, esto protege el volumen (el admin es el cuello de botella, ver §11).
 
 **SEO local (para capturar búsquedas "plomero en Tizayuca"):**
 
-- Páginas indexables por categoría y por categoría+colonia (ej. /plomeria-haciendas-de-tizayuca), con URLs limpias y geolocalizadas.
-- Schema Markup LocalBusiness en cada ficha.
+- Páginas indexables por giro y por giro+colonia (ej. /plomeria-haciendas-de-tizayuca), con URLs limpias y geolocalizadas, **generadas desde el catálogo cerrado de giros que el admin asigna al aprobar** (Apéndice B) — las palabras clave libres del negocio no generan páginas (no son estables ni normalizables), solo alimentan el buscador. También hay páginas por categoría.
+- Schema Markup LocalBusiness en cada ficha, con expectativa realista: al publicar colonia (no dirección exacta) y horario en texto libre, el markup será parcial; el horario estructurado queda para fases posteriores (§12).
 - La cola larga "[giro] en Tizayuca" / "[giro] en [colonia]" es la vía realista para que el directorio aparezca en Google sin pelear el Local Pack de Maps.
 - Reclamar y verificar el Google Business Profile del propio directorio.
 
@@ -148,6 +152,7 @@ Los clubes y escuelas deportivas tienen un tratamiento destacado, no solo una ca
 - Aviso de privacidad simplificado en el formulario (checkbox obligatorio) que remite al aviso integral en página propia con los elementos mínimos: identidad y domicilio del responsable, datos tratados, finalidades, medios para limitar uso o divulgación, mecanismo de derechos ARCO y procedimiento de cambios.
 - Términos y condiciones que establezcan: el directorio es un intermediario informativo; deslinde de responsabilidad por la veracidad de la información publicada por los negocios y por las transacciones vecino-negocio; reglas de contenido y derecho de retirar fichas.
 - Publicar colonia (no dirección domiciliaria exacta) por defecto reduce el riesgo; el pin en mapa es opcional y lo decide el negocio.
+- Operación ARCO y retención: las solicitudes de acceso, corrección o eliminación llegan por el WhatsApp del admin y se atienden en ≤20 días hábiles; el panel permite el borrado definitivo (no solo despublicar); los registros rechazados se eliminan a los 90 días y las fichas retiradas a solicitud del negocio, de inmediato.
 - **Pendiente:** revisión legal profesional antes del lanzamiento — el reglamento de la nueva ley y los criterios de la nueva autoridad aún se están consolidando.
 
 ## 9. Plan de lanzamiento (respuesta al arranque en frío)
@@ -165,17 +170,20 @@ El riesgo #1 de todo directorio es el huevo-gallina; ~90% de los marketplaces fr
 
 - Difundir en los grupos de Facebook de vecinos y compra-venta de Tizayuca (ahí ya vive la confianza local); cada ficha publicada se comparte como link individual — el negocio mismo se vuelve distribuidor al compartir su ficha.
 - Explorar alianza con el ayuntamiento de Tizayuca / desarrollo económico municipal (ya lleva registro de establecimientos) para legitimidad y difusión.
-- Instrumentar analítica desde el día 1: vistas de ficha, clics a WhatsApp, altas, visitantes únicos semanales.
+- Instrumentar analítica desde el día 1 con proveedor cookieless (sin banner de cookies; la elección concreta vive en las decisiones técnicas del repo) y eventos definidos: formulario iniciado, formulario enviado, vista de ficha, clic a WhatsApp, clic a llamar, clic a cómo llegar. Los conteos excluyen bots y crawlers — el propio tráfico SEO inflaría las vistas y ensuciaría la conversión del §10.
 
 ## 10. Métricas de éxito (primeros 60 días) y umbrales de decisión
 
 | Métrica | Meta | Umbral de acción |
 |---|---|---|
-| Negocios registrados y aprobados | 50 | Si a los 30 días hay <25, intensificar cambaceo |
+| Negocios publicados (siembra + orgánicos) | 50 | Si a los 30 días hay <25, intensificar cambaceo |
+| Altas orgánicas (se registraron solos, sin cambaceo) | ≥ 15 | Si a los 30 días hay <5, revisar difusión y formulario — esta métrica es la que valida el objetivo (a); la siembra manual no lo valida |
 | % de registros completados sin ayuda | > 70% | Si es menor, simplificar el formulario |
 | Tiempo entre registro y publicación | < 48 horas | Si se supera de forma sostenida, revisar carga del admin |
 | Clics a WhatsApp / vistas de ficha | > 15% (aspiracional) | Si a las 4 semanas está <8-10%, rediseñar la ficha (prominencia del botón, fotos, horarios) antes de escalar adquisición |
 | Visitantes únicos semanales | 300 | Si el tráfico no llega, redoblar distribución en grupos de Facebook |
+
+Cada ficha registra su origen (siembra / orgánico) al aprobarse (§6.3) para poder separar estas métricas.
 
 Nota sobre el 15%: el benchmark disponible más cercano (Google Business Profile) muestra ~4.68% de conversión vista→acción. Nuestra métrica mide un punto más profundo del embudo (el usuario ya eligió la ficha), por lo que 15% es plausible pero debe validarse empíricamente, no asumirse.
 
@@ -194,7 +202,7 @@ Nota sobre el 15%: el benchmark disponible más cercano (Google Business Profile
 
 ## 12. Fases posteriores (no comprometidas)
 
-Solo si el MVP valida: verificación automática (el enlace de gestión se convierte en login formal con código por WhatsApp o SMS, sin rehacer nada), publicación instantánea de ediciones de negocios confiables, reseñas simples, fichas destacadas de pago y categorías patrocinadas (modelo freemium típico de directorios), generación de leads cualificados (donde está el ingreso real de los directorios), expansión a Pachuca y municipios vecinos.
+Solo si el MVP valida: verificación automática (el enlace de gestión se convierte en login formal con código por WhatsApp o SMS, sin rehacer nada), publicación instantánea de ediciones de negocios confiables, horario estructurado (mejora el Schema LocalBusiness, ver §8), reseñas simples, fichas destacadas de pago y categorías patrocinadas (modelo freemium típico de directorios), generación de leads cualificados (donde está el ingreso real de los directorios), expansión a Pachuca y municipios vecinos.
 
 ## Apéndice A — Lista de colonias y fraccionamientos para el formulario
 
@@ -204,6 +212,18 @@ Solo si el MVP valida: verificación automática (el enlace de gestión se convi
 
 Más opción "Otra" con campo de texto libre (el admin la normaliza al aprobar). Validar la lista en campo durante la Fase 0.
 
-## Apéndice B — Fuentes clave de la investigación
+## Apéndice B — Catálogo inicial de giros (para páginas SEO y filtros)
+
+El admin asigna 1-3 giros al aprobar cada ficha; el catálogo es curado (los negocios no lo editan) y se ajusta con lo aprendido en la siembra de Fase 0. Si un negocio no embona en ningún giro, se publica solo con su categoría y el admin anota el giro faltante como candidato al catálogo.
+
+- **Servicios del hogar:** plomería, electricidad, albañilería, herrería, carpintería, pintura, jardinería, fumigación, reparación de lavadoras y refrigeradores, cerrajería, mudanzas
+- **Restaurantes y fondas:** fonda / comida corrida, antojitos, tacos, pizzas, pollos, mariscos, panadería, pastelería
+- **Belleza:** estética, barbería, uñas, maquillaje
+- **Salud:** consultorio médico, dentista, farmacia, veterinaria, psicología
+- **Abarrotes y comercio:** abarrotes, papelería, ferretería, ropa, celulares y accesorios, florería
+- **Talleres:** taller mecánico, hojalatería y pintura, vulcanizadora, bicicletas, motos, electrónica
+- **Clubes y escuelas deportivas:** futbol, box, taekwondo / artes marciales, gimnasio, danza / zumba, natación, basquetbol, atletismo / corredores, ciclismo
+
+## Apéndice C — Fuentes clave de la investigación
 
 INEGI (Censo 2020, ENDUTIH 2024, Censos Económicos 2019), Data México (Secretaría de Economía), Criterio Hidalgo (registro municipal de establecimientos, ene 2026), Statista (uso de WhatsApp en México), estudio Meta-BCG 2024 (mensajería en pymes), BrightLocal (benchmark de conversión de Google Business Profile), LFPDPPP reformada (DOF, marzo 2025), casos: Cornershop, Frogtek/Tiendatek, Aliada, Jüsto, Yumbling, Sección Amarilla.

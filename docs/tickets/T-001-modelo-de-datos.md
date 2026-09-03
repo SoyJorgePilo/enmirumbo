@@ -6,7 +6,7 @@
 **Referencias PRD:** §6.1, §6.3, §6.4, Apéndice A
 **Depende de:** —
 **OpenSpec change:** agregar-modelo-datos
-**PR:** —
+**PR:** [#2](https://github.com/SoyJorgePilo/necesitouno/pull/2)
 
 ## Contexto
 

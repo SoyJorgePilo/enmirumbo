@@ -1,0 +1,77 @@
+// Modelo de datos del directorio (spec: modelo-datos · ticket T-001).
+// SQLite en dev (ADR-001): estado y origen son String con CHECK en la
+// migración inicial; los literales válidos viven en src/lib/negocio.ts.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// ── Catálogos (poblados por prisma/seed.ts, slugs para URLs SEO) ────────────
+
+model Categoria {
+  id       Int       @id @default(autoincrement())
+  nombre   String    @unique
+  slug     String    @unique
+  negocios Negocio[]
+}
+
+model Colonia {
+  id       Int       @id @default(autoincrement())
+  nombre   String    @unique
+  slug     String    @unique
+  negocios Negocio[]
+}
+
+model Giro {
+  id       Int       @id @default(autoincrement())
+  nombre   String    @unique
+  slug     String    @unique
+  negocios Negocio[]
+}
+
+// ── Negocio (PRD §6.1, §6.3, §6.4) ──────────────────────────────────────────
+
+model Negocio {
+  id String @id @default(cuid())
+
+  // Obligatorios del registro (PRD §6.1)
+  nombre           String
+  categoria        Categoria @relation(fields: [categoriaId], references: [id])
+  categoriaId      Int
+  whatsapp         String    @unique // una sola ficha por número
+  consintioAvisoEn DateTime // constancia del checkbox del aviso de privacidad
+
+  // Colonia: del catálogo, u "Otra" con texto libre pendiente de normalizar
+  // (pendiente = coloniaId nulo con coloniaOtra no vacío; ver design.md §2)
+  colonia     Colonia? @relation(fields: [coloniaId], references: [id])
+  coloniaId   Int?
+  coloniaOtra String?
+
+  // Opcionales del registro (PRD §6.1)
+  queOfreces         String? // máx. 200 caracteres (se valida en el formulario)
+  entregaADomicilio  Boolean @default(false)
+  telefonoFijo       String?
+  direccion          String? // dirección o referencias en texto libre
+  latitud            Float? // pin opcional en mapa
+  longitud           Float?
+  horario            String?
+  fotoUrl            String?
+  facebookUrl        String?
+
+  // Ciclo de vida (PRD §6.3 y §10; CHECKs en la migración inicial)
+  estado      String    @default("en_revision") // en_revision | publicado | rechazado
+  origen      String    @default("organico") // siembra | organico
+  registradoEn DateTime @default(now())
+  publicadoEn  DateTime?
+
+  // Giros asignados por el admin al aprobar (PRD §6.3, Apéndice B)
+  giros Giro[]
+
+  // Reservado para el enlace de gestión de P1 (PRD §6.4): nulo y sin lógica en el MVP
+  tokenGestion String? @unique
+}

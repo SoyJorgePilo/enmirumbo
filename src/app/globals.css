@@ -1,26 +1,43 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/*
+ * Tokens de diseño de NecesitoUno Tizayuca (Tailwind v4, config CSS-first).
+ * Las pantallas consumen estos tokens por nombre (bg-fondo, text-tinta,
+ * bg-accion, …); nunca valores hexadecimales sueltos en componentes.
+ *
+ * Paleta de una sola vía: neutrales para todo, verde solo para la acción.
+ * Contraste AA (WCAG 2.1, ≥4.5:1) verificado en cada combinación texto/fondo;
+ * los ratios están anotados junto a cada token.
+ */
+@theme {
+  /* Tipografía: pila de sistema. Cero bytes de fuente descargada, cero layout
+     shift; se ve nativa en cada dispositivo (presupuesto <2s en 4G, PRD §8). */
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  /* --- Neutrales ------------------------------------------------------- */
+  /* Fondo base de las páginas. */
+  --color-fondo: #ffffff;
+  /* Superficies destacadas (footer, tarjetas futuras). */
+  --color-superficie: #f4f4f5;
+  /* Bordes y separadores (decorativo, no lleva texto). */
+  --color-borde: #e4e4e7;
+  /* Texto principal. 17.9:1 sobre fondo, 16.3:1 sobre superficie,
+     9.0:1 sobre accion. */
+  --color-tinta: #171717;
+  /* Texto secundario. 7.7:1 sobre fondo, 7.0:1 sobre superficie. */
+  --color-tinta-suave: #52525b;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+  /* --- Verde de acción -------------------------------------------------- */
+  /* COLOR DE ACCIÓN PRINCIPAL del sitio: el verde de WhatsApp. Se reserva
+     para la acción de contactar/actuar; ningún otro color de esta paleta
+     compite con él (PRD §11). Dos tokens para cumplir AA:
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+     - `accion` (#25D366, verde marca WhatsApp): SOLO superficies y acentos
+       (fondos de botón con texto en tinta, sellos, detalles). NUNCA como
+       color de texto sobre fondo claro: apenas da 1.9:1.
+     - `accion-fuerte`: la variante oscura accesible. Para texto/enlaces
+       verdes y botones de fondo verde con texto blanco. 5.4:1 sobre fondo,
+       4.9:1 sobre superficie; blanco sobre él: 5.4:1. */
+  --color-accion: #25d366;
+  --color-accion-fuerte: #0f7a41;
 }

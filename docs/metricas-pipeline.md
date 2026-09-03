@@ -7,6 +7,7 @@
 | Fecha | Change/fix | Ruta | Iter. C (dev↔seg) | Hallazgos validador | 1a pasada | PR | Post-merge |
 |---|---|---|---|---|---|---|---|
 | 2026-09-03 | agregar-modelo-datos | completa (sin etapa A: change sin UI) | 0 | 0 bloqueantes (1 editorial: línea redundante en `.gitignore`) | sí | [#2](https://github.com/SoyJorgePilo/necesitouno/pull/2) | |
+| 2026-09-03 | agregar-layout-base | completa | 0 | 0 bloqueantes (M-1 operativo de c-seguridad atendido con staging explícito) | sí | [#3](https://github.com/SoyJorgePilo/necesitouno/pull/3) | — |
 
 ## Qué mirar cada ~5 corridas
 

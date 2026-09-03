@@ -22,6 +22,7 @@ Este proyecto documenta cada decisión técnica relevante como un **Architecture
 | [ADR-005](ADR-005-analitica.md) | Analítica cookieless | propuesta — se decide en E7 |
 | [ADR-006](ADR-006-almacenamiento-imagenes.md) | Almacenamiento de las fotos de negocios | propuesta — se decide en E1-3 |
 | [ADR-007](ADR-007-hosting.md) | Hosting y deploy | propuesta — se decide en E0-3 |
+| [ADR-008](ADR-008-modelo-por-agente.md) | Modelo de IA por agente del pipeline | aceptada |
 
 ## Tecnologías descartadas de plano en el MVP (el porqué no, en corto)
 

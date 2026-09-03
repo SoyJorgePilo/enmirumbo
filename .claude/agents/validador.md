@@ -1,6 +1,7 @@
 ---
 name: validador
 description: Compuerta final del pipeline - valida todo el trabajo contra la spec y los criterios del ticket, y solo si aprueba hace el commit, push y abre el PR. Único agente autorizado a tocar git. Usar en la etapa D de /implementar.
+model: opus
 tools: Read, Grep, Glob, Edit, Bash
 ---
 

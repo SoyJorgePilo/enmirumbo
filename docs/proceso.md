@@ -1,8 +1,8 @@
 # Proceso de desarrollo — NecesitoUno
 
-> Versión 0.3 — borrador para afinar. Este documento ES parte del building in public: describe cómo se construye el producto con un flujo asistido por agentes de IA.
+> Versión 0.4 — borrador para afinar. Este documento ES parte del building in public: describe cómo se construye el producto con un flujo asistido por agentes de IA.
 >
-> Cambios v0.3 (tras investigar el estado del arte 2026 — ver ADR-002): CI de GitHub Actions como gate determinista; ruta corta `/rapido` para cambios chicos (ceremonia proporcional al tamaño); handoffs entre agentes por archivo (`reports/`), no por conversación; el dev trabaja en TDD y seguridad-test pasa a auditoría + tests adversariales; bitácora de métricas del pipeline; la etapa UI-first queda marcada como experimento con criterio de salida. Cambios v0.2: el pipeline de implementación pasa de 1 implementador + revisor a 4 agentes especializados (ui, dev, seguridad-test, validador); solo el validador toca git.
+> Cambios v0.4: cada agente declara su modelo en el frontmatter, asignado por costo del error (ADR-008) — el modelo deja de ser una variable de ambiente y pasa a ser una constante versionada del pipeline. Cambios v0.3 (tras investigar el estado del arte 2026 — ver ADR-002): CI de GitHub Actions como gate determinista; ruta corta `/rapido` para cambios chicos (ceremonia proporcional al tamaño); handoffs entre agentes por archivo (`reports/`), no por conversación; el dev trabaja en TDD y seguridad-test pasa a auditoría + tests adversariales; bitácora de métricas del pipeline; la etapa UI-first queda marcada como experimento con criterio de salida. Cambios v0.2: el pipeline de implementación pasa de 1 implementador + revisor a 4 agentes especializados (ui, dev, seguridad-test, validador); solo el validador toca git.
 
 ## El flujo en una línea
 
@@ -22,7 +22,7 @@ Fuente de verdad de producto. Solo cambia con una nueva versión (v0.8, v0.9…)
 Cuando una historia se va a trabajar, se convierte en ticket con la plantilla (`docs/tickets/_TEMPLATE.md`): contexto, criterios de aceptación verificables, dependencias y referencias al PRD. Estados: `pendiente → en-spec → en-desarrollo → en-review → hecho`.
 
 ### 4. Spec — SDD con OpenSpec (`openspec/`)
-Comando: **`/spec T-XXX`** (agente `spec-writer`).
+Comando: **`/spec T-XXX`** (agente `spec-writer`, modelo `opus`).
 
 Convierte el ticket en una propuesta de cambio OpenSpec en `openspec/changes/<id>/`:
 - `proposal.md` — por qué, qué cambia, impacto
@@ -34,16 +34,17 @@ Convierte el ticket en una propuesta de cambio OpenSpec en `openspec/changes/<id
 ### 5. Implementación multiagente
 Comando: **`/implementar <change-id>`**. La sesión principal orquesta; cuatro agentes especializados ejecutan en cadena sobre la rama `feature/<change-id>`:
 
-| Etapa | Agente | Hace | Entrega |
-|---|---|---|---|
-| A | `ui` ⚗️ | Capa de interfaz con datos mock: componentes, copy es-MX, estados, mobile-first. Se salta si el change no tiene UI | `reports/a-ui.md` con formas de datos esperadas |
-| B | `dev` | Perfil de ingeniero de software en **TDD**: por cada scenario automatizable, primero el test (rojo), luego el código (verde); `tasks.md` tarea por tarea | `reports/b-dev.md` + tareas marcadas |
-| C | `seguridad-test` | Auditoría de seguridad del diff (entrada, inyección, secretos, LFPDPPP) + tests adversariales que el dev no pensó. Sus hallazgos regresan al dev hasta quedar limpio | `reports/c-seguridad.md`; crítico/alto bloquea |
-| D | `validador` | Compuerta final: re-verifica spec, ticket, alcance y gates de forma independiente. **Único agente que toca git**: si aprueba, commitea, push y abre el PR | `reports/d-validacion.md` + link del PR |
+| Etapa | Agente | Modelo | Hace | Entrega |
+|---|---|---|---|---|
+| A | `ui` ⚗️ | `sonnet` | Capa de interfaz con datos mock: componentes, copy es-MX, estados, mobile-first. Se salta si el change no tiene UI | `reports/a-ui.md` con formas de datos esperadas |
+| B | `dev` | `opus` | Perfil de ingeniero de software en **TDD**: por cada scenario automatizable, primero el test (rojo), luego el código (verde); `tasks.md` tarea por tarea | `reports/b-dev.md` + tareas marcadas |
+| C | `seguridad-test` | `opus` | Auditoría de seguridad del diff (entrada, inyección, secretos, LFPDPPP) + tests adversariales que el dev no pensó. Sus hallazgos regresan al dev hasta quedar limpio | `reports/c-seguridad.md`; crítico/alto bloquea |
+| D | `validador` | `opus` | Compuerta final: re-verifica spec, ticket, alcance y gates de forma independiente. **Único agente que toca git**: si aprueba, commitea, push y abre el PR | `reports/d-validacion.md` + link del PR |
 
 Reglas clave:
 
 - **Handoff por archivo, no por conversación:** cada agente escribe su reporte en `openspec/changes/<id>/reports/` y el siguiente lo lee de ahí. Lo que no está en un archivo no existe para la siguiente etapa.
+- **El modelo es parte del pipeline, no del ambiente:** cada agente declara su modelo en el frontmatter, asignado por costo del error (ADR-008). Sin eso, el mismo change costaría y rendiría distinto según con qué modelo se abrió la terminal ese día, y las métricas compararían corridas que no son comparables.
 - `ui`, `dev` y `seguridad-test` trabajan sobre el working tree sin commitear — nada entra a la historia de git sin pasar por el validador.
 - El veredicto local del validador no sustituye al CI: el check de GitHub Actions (lint + build + test) debe estar en verde en el PR. El CI es el gate determinista; los agentes pueden equivocarse al reportar, el CI no.
 
@@ -60,7 +61,7 @@ Comando: **`/rapido <descripción o T-XXX>`**. Elegible solo si: se describe en 
 Al mergear: el change se archiva (`openspec/changes/archive/`) y sus deltas se consolidan en `openspec/specs/` (la verdad actual del sistema); el ticket pasa a `hecho`.
 
 ### 7. Checkpoint building in public
-Comando: **`/checkpoint`** (agente `cronista`).
+Comando: **`/checkpoint`** (agente `cronista`, modelo `sonnet`).
 
 Escribe una entrada en `docs/devlog/` con la plantilla: qué se construyó, qué decisión hubo, qué se aprendió, captura/demo si aplica. El devlog es la materia prima para los posts públicos (Facebook/LinkedIn/X) — se escribe pensando en que un extracto se pueda publicar tal cual.
 
@@ -79,7 +80,7 @@ Escribe una entrada en `docs/devlog/` con la plantilla: qué se construyó, qué
 ## El harness (deliberadamente ligero)
 
 - `CLAUDE.md` — contexto y convenciones del proyecto para cualquier sesión de agente.
-- 6 agentes en `.claude/agents/`: `spec-writer` (specs), `ui`, `dev`, `seguridad-test`, `validador` (pipeline de implementación) y `cronista` (devlog).
+- 6 agentes en `.claude/agents/`: `spec-writer` (specs), `ui`, `dev`, `seguridad-test`, `validador` (pipeline de implementación) y `cronista` (devlog). Cada uno declara su modelo: `opus` en las cuatro etapas de juicio (`spec-writer`, `dev`, `seguridad-test`, `validador`) y `sonnet` en las dos de ejecución supervisada (`ui`, `cronista`) — ver [ADR-008](decisiones/ADR-008-modelo-por-agente.md).
 - 4 comandos en `.claude/commands/`: `/spec`, `/implementar`, `/rapido`, `/checkpoint`.
 - CI en GitHub Actions (`.github/workflows/ci.yml`) como único gate no negociable por máquina.
 - Sin orquestación pesada: la sesión principal dirige el pipeline como una cadena con reintentos acotados (máx. 3 iteraciones dev↔seguridad); no hay frameworks de orquestación. Si el proyecto lo pide más adelante, se escala — no antes (misma filosofía que el PRD aplica a la verificación automática).

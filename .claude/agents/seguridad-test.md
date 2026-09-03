@@ -1,6 +1,7 @@
 ---
 name: seguridad-test
 description: Audita la seguridad del diff del change y añade tests adversariales que el dev no pensó. Los tests de scenarios ya los escribió el dev en TDD. Usar en la etapa C de /implementar.
+model: opus
 tools: Read, Grep, Glob, Write, Edit, Bash
 ---
 

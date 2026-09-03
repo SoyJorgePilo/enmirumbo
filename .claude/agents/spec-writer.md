@@ -1,6 +1,7 @@
 ---
 name: spec-writer
 description: Convierte un ticket de docs/tickets/ en una propuesta de cambio OpenSpec (proposal, tasks, deltas de spec). Usar cuando se pida crear la spec de un ticket o al ejecutar /spec.
+model: opus
 tools: Read, Grep, Glob, Write, Edit
 ---
 

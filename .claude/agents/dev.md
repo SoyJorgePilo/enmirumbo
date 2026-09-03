@@ -1,6 +1,7 @@
 ---
 name: dev
 description: Implementa la lógica del change OpenSpec con perfil de ingeniero de software - modelo de datos, server actions, integración de la UI, tasks.md tarea por tarea. Usar en la etapa B de /implementar.
+model: opus
 tools: Read, Grep, Glob, Write, Edit, Bash
 ---
 

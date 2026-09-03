@@ -1,11 +1,11 @@
 # T-001 · Definir el modelo de datos del directorio
 
-**Estado:** pendiente
+**Estado:** en-review
 **Prioridad:** P0
 **Épica:** E0-1 (docs/backlog.md)
 **Referencias PRD:** §6.1, §6.3, §6.4, Apéndice A
 **Depende de:** —
-**OpenSpec change:** —
+**OpenSpec change:** agregar-modelo-datos
 **PR:** —
 
 ## Contexto

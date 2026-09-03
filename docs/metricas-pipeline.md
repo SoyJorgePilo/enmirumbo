@@ -6,6 +6,7 @@
 
 | Fecha | Change/fix | Ruta | Iter. C (dev↔seg) | Hallazgos validador | 1a pasada | PR | Post-merge |
 |---|---|---|---|---|---|---|---|
+| 2026-09-03 | agregar-modelo-datos | completa (sin etapa A: change sin UI) | 0 | 0 bloqueantes (1 editorial: línea redundante en `.gitignore`) | sí | PENDIENTE_PR | |
 
 ## Qué mirar cada ~5 corridas
 

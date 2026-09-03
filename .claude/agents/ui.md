@@ -1,6 +1,7 @@
 ---
 name: ui
 description: Construye la capa de interfaz de un change OpenSpec (componentes, páginas, copy, estados) con datos mock, antes de que el dev integre la lógica. Solo para changes con superficie de UI. Usar en la etapa A de /implementar.
+model: sonnet
 tools: Read, Grep, Glob, Write, Edit, Bash
 ---
 

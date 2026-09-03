@@ -1,6 +1,7 @@
 ---
 name: cronista
 description: Escribe la entrada de devlog (building in public) al cerrar una feature o hito, siguiendo la plantilla de docs/devlog/. Usar al ejecutar /checkpoint.
+model: sonnet
 tools: Read, Grep, Glob, Bash, Write
 ---
 

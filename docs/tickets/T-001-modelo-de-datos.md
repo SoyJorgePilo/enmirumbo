@@ -1,6 +1,6 @@
 # T-001 · Definir el modelo de datos del directorio
 
-**Estado:** en-review
+**Estado:** hecho
 **Prioridad:** P0
 **Épica:** E0-1 (docs/backlog.md)
 **Referencias PRD:** §6.1, §6.3, §6.4, Apéndice A

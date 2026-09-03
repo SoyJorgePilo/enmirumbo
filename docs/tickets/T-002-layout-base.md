@@ -1,6 +1,6 @@
 # T-002 · Construir el layout base mobile-first
 
-**Estado:** en-review
+**Estado:** hecho
 **Prioridad:** P0
 **Épica:** E0-2 (docs/backlog.md)
 **Referencias PRD:** §6.2, §8 (rendimiento y accesibilidad), §11 (marca "NecesitoUno Tizayuca")

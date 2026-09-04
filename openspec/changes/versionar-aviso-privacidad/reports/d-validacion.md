@@ -98,3 +98,22 @@ Diff completo de los 8 archivos de código de producción y del módulo nuevo; l
 2. **Revisión legal (E6-3).** Si el abogado reescribe el texto, misma regla.
 3. **Re-solicitar el consentimiento a las fichas ya publicadas** cuando estrene la `2` es decisión legal humana, fuera de este change. Hoy todas las fichas existentes se quedan con la versión nula: "no consta" es la verdad, no un defecto.
 4. **CI de GitHub Actions en verde en el PR.** Mi validación local no lo sustituye. El merge lo hace un humano.
+
+---
+
+## 10. Segunda fusión con `main` (T-010, analítica cookieless) — post-PR
+
+`main` avanzó con el PR #14 mientras este PR se abría, así que hubo que fusionar otra vez y re-validar. **El veredicto no cambia.**
+
+**Dos conflictos, resueltos conservando ambos lados:**
+
+1. **`tests/foto-adversarial.test.ts`** — git lo trata como **binario**: la suite lleva a propósito un byte NUL y un `U+202E` (override de derecha a izquierda) entre sus nombres de archivo hostiles, así que la fusión de texto no aplica y git no puede combinar nada. Se rehicieron a mano los tres hunks de este change (el campo oculto de la versión en el fixture del formulario) sobre la versión de `main`, que movió las páginas públicas al grupo de rutas `(publico)`. Verificado con un diff de los tres lados (base / nuestro / suyo): la única diferencia contra `main` son nuestros tres hunks.
+2. **`docs/metricas-pipeline.md`** — las dos filas nuevas, en orden de merge.
+
+**Un fallo real que la fusión destapó:** `tests/legales-paginas.test.ts` comprobaba que la versión no estuviera escrita a mano leyendo `src/app/aviso-de-privacidad/page.tsx`, ruta que T-010 movió a `src/app/(publico)/…`. El test **falló** en vez de pasar en falso (leía el archivo con `readFileSync`, así que la ruta inexistente reventó): buen diseño del dev, porque un `existsSync` silencioso habría dejado el guardián de "una sola fuente" apagado sin que nadie lo notara. Ruta corregida.
+
+**El contenido publicado del aviso NO cambió** en esta fusión —T-010 solo tocó comentarios y rutas de `textos.ts`—, así que el guardián siguió en verde con la huella ya anclada, sin decisión de versión que tomar. Es el contraste útil con la primera fusión: el guardián salta cuando cambia lo que el titular lee y se calla cuando cambia el andamio.
+
+**Gates re-ejecutados sobre el árbol fusionado:** `npm run lint` ✅ · `npm test` ✅ **73 archivos / 1986 tests** · `npm run build` ✅ · `migrate deploy` ✅ 7 migraciones en orden · drift ✅ vacío · verificación en servidor real repetida entera (alta, desfase, los tres casos del panel, campo oculto en el HTML) ✅.
+
+**Observación nueva (informativa, no de este change):** la sección "Cookies y datos de navegación" del aviso dice "Si más adelante agregamos alguna herramienta para medir visitas, lo decimos aquí antes de encenderla". T-010 ya trae esa herramienta, apagada mientras no se configure (`ScriptAnalitica` devuelve `null` sin configuración). Encenderla obliga a editar ese párrafo y, con este change dentro, **a estrenar la versión 2 del aviso**. Que ese cable quede tenso es exactamente lo que T-012 venía a conseguir; conviene que quien despliegue la analítica lo sepa antes y no después.

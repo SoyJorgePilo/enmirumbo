@@ -310,12 +310,12 @@ describe("paginas-legales · el dueño abre el aviso de privacidad", () => {
   // Scenario: la versión que se muestra es la vigente
   it("la versión sale del literal del módulo, no escrita a mano en la página", () => {
     for (const ruta of [
-      "src/app/aviso-de-privacidad/page.tsx",
+      "src/app/(publico)/aviso-de-privacidad/page.tsx",
       "src/components/legales/documento-legal.tsx",
     ]) {
       expect(fuente(ruta), ruta).not.toMatch(/Versión\s+\d/);
     }
-    expect(fuente("src/app/aviso-de-privacidad/page.tsx")).toContain("VERSION_AVISO");
+    expect(fuente("src/app/(publico)/aviso-de-privacidad/page.tsx")).toContain("VERSION_AVISO");
     expect(htmlAviso).toContain(`Versión ${VERSION_AVISO} · Última actualización:`);
   });
 

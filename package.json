@@ -10,6 +10,7 @@
     "test": "vitest run",
     "db:seed": "prisma db seed",
     "db:seed:demo": "tsx prisma/seed-demo.ts",
+    "db:backfill:busqueda": "tsx prisma/backfill-busqueda.ts",
     "postinstall": "prisma generate"
   },
   "dependencies": {

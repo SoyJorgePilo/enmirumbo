@@ -32,15 +32,15 @@ function sql(migracion: string): string {
 
 /** Cada sentencia de un archivo de migración, sin comentarios ni vacíos. */
 function sentencias(migracion: string): string[] {
+  // Los comentarios se quitan ANTES de partir por ";": un comentario puede
+  // contener punto y coma (pasa en la migración del buscador) y partirlo a la
+  // mitad deja fragmentos que no son SQL.
   return sql(migracion)
+    .split("\n")
+    .filter((linea) => !linea.trimStart().startsWith("--"))
+    .join("\n")
     .split(";")
-    .map((sentencia) =>
-      sentencia
-        .split("\n")
-        .filter((linea) => !linea.trimStart().startsWith("--"))
-        .join("\n")
-        .trim(),
-    )
+    .map((sentencia) => sentencia.trim())
     .filter((sentencia) => sentencia !== "");
 }
 

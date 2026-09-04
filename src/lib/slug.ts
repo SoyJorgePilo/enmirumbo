@@ -5,11 +5,18 @@
  * "Plomería" → "plomeria"
  * "Haciendas de Tizayuca" → "haciendas-de-tizayuca"
  * "Fonda / comida corrida" → "fonda-comida-corrida"
+ *
+ * El quitado de acentos vive en `src/lib/texto.ts` (change
+ * `agregar-buscador`, tasks.md #1) porque el buscador necesita exactamente el
+ * mismo: así el `slug` de un giro del catálogo se puede comparar contra un
+ * término de búsqueda ya normalizado, sin denormalizar nada (design.md §3).
  */
+// Import relativo (no `@/…`): este módulo lo carga también `prisma/seed.ts`
+// con `tsx`, fuera del resolvedor de alias de Next.
+import { quitarAcentos } from "./texto";
+
 export function slugify(nombre: string): string {
-  return nombre
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "") // quita acentos y diéresis (marcas combinantes)
+  return quitarAcentos(nombre)
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-") // todo lo que no sea letra o dígito → guion
     .replace(/^-+|-+$/g, ""); // sin guiones en los extremos

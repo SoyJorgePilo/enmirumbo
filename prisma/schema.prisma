@@ -63,6 +63,15 @@ model Negocio {
   fotoUrl            String?
   facebookUrl        String?
 
+  // Texto derivado SOLO para el buscador (change `agregar-buscador`,
+  // design.md §1): copia sin acentos ni mayúsculas de `nombre` y `queOfreces`,
+  // porque SQLite no compara ignorando acentos. Nunca se editan a mano ni se
+  // muestran: los calcula `datosDeBusqueda` (src/lib/busqueda.ts) en cada
+  // escritura. El default "" existe solo para poder migrar filas ya guardadas;
+  // `npm run db:backfill:busqueda` las rellena.
+  nombreNormalizado     String @default("")
+  queOfrecesNormalizado String @default("")
+
   // Ciclo de vida (PRD §6.3 y §10; CHECKs en la migración inicial)
   estado      String    @default("en_revision") // en_revision | publicado | rechazado
   origen      String    @default("organico") // siembra | organico

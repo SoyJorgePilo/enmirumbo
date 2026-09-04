@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { Buscador } from "@/components/directorio/buscador";
+import { CategoriasGrid } from "@/components/directorio/categorias-grid";
 import { SLUG_CATEGORIA_DEPORTE, listarCategorias } from "@/lib/directorio";
 import { CLASE_BOTON_PRIMARIO, CLASE_BOTON_SECUNDARIO } from "@/lib/estilos-boton";
 
@@ -19,6 +21,16 @@ import { CLASE_BOTON_PRIMARIO, CLASE_BOTON_SECUNDARIO } from "@/lib/estilos-boto
  * tu negocio gratis" (mandato literal de la spec) y, en el resto del sitio,
  * para el botón de WhatsApp — dos verdes distintos en la misma pantalla
  * competirían entre sí (PRD §11).
+ *
+ * El buscador (change `agregar-buscador`, requirement "Buscador en la home
+ * que funciona sin JavaScript de cliente") va arriba de "Busca por
+ * categoría" y no agrega ningún encabezado: la home conserva su único `h1`
+ * y sus tres `h2` (categorías, deporte, registro).
+ *
+ * La grilla de categorías vive en `CategoriasGrid` porque `/buscar` DEBE
+ * ofrecer los mismos ocho botones "iguales a los de la home" en sus estados
+ * sin resultados: con un solo marcado, "iguales" es una propiedad del código
+ * y no algo que haya que recordar.
  */
 export const dynamic = "force-dynamic";
 
@@ -37,20 +49,11 @@ export default async function Home() {
         </p>
       </section>
 
+      <Buscador />
+
       <section className="flex flex-col gap-4">
         <h2 className="text-xl font-bold tracking-tight">Busca por categoría</h2>
-        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {categorias.map((categoria) => (
-            <li key={categoria.slug}>
-              <Link
-                href={`/${categoria.slug}`}
-                className="flex min-h-16 items-center justify-center rounded-xl border border-borde bg-superficie px-3 py-4 text-center text-sm font-semibold text-tinta transition-colors hover:bg-borde"
-              >
-                {categoria.nombre}
-              </Link>
-            </li>
-          ))}
-        </ul>
+        <CategoriasGrid categorias={categorias} />
       </section>
 
       <section className="flex flex-col gap-3 rounded-xl border border-borde bg-superficie p-5">

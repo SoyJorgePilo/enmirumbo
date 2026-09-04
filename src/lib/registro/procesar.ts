@@ -19,6 +19,7 @@
  * solo eventos y conteos (design.md §7).
  */
 
+import { datosDeBusqueda } from "@/lib/busqueda";
 import {
   ESTADO_NEGOCIO_DEFAULT,
   ESTADO_NEGOCIO_RECHAZADO,
@@ -231,6 +232,10 @@ export async function procesarRegistro(
         where: { id: existente.id, estado: ESTADO_NEGOCIO_RECHAZADO },
         data: {
           ...datos,
+          // El reenvío pisa nombre y "¿qué ofreces?": el texto normalizado
+          // del buscador se recalcula con ellos, o la ficha reenviada se
+          // seguiría encontrando por el contenido del envío rechazado.
+          ...datosDeBusqueda(datos.nombre, datos.queOfreces),
           registradoEn: ahora,
           estado: ESTADO_NEGOCIO_DEFAULT,
           rechazadoEn: null,
@@ -251,12 +256,17 @@ export async function procesarRegistro(
     return { exito: true };
   }
 
-  // 5. Alta. El estado, el origen y la constancia del consentimiento los fija
-  //    el servidor: nada de esto puede venir del cliente.
+  // 5. Alta. El estado, el origen, la constancia del consentimiento y el
+  //    texto normalizado del buscador los fija el servidor: nada de esto
+  //    puede venir del cliente. `datos` solo trae los campos que
+  //    `validarRegistro` construyó uno por uno, así que un envío con
+  //    `nombreNormalizado=...` no llega hasta aquí (spec registro-negocio,
+  //    "El alta deja la ficha lista para el buscador").
   try {
     await contexto.prisma.negocio.create({
       data: {
         ...datos,
+        ...datosDeBusqueda(datos.nombre, datos.queOfreces),
         consintioAvisoEn: ahora,
         estado: ESTADO_NEGOCIO_DEFAULT,
         origen: ORIGEN_NEGOCIO_DEFAULT,

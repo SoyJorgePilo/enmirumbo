@@ -294,11 +294,10 @@ const CAMPO_PUBLICO_DECLARADO: Record<string, string> = {
   //
   // T-008 renombró la columna a `fotoClave` (ya no es una URL, es la clave
   // opaca que genera el servidor), así que la declaración se muda con ella —
-  // el mismo criterio con el que T-009 declaró aquí `categoriaNombre`. Lo que
-  // T-008 NO puede hacer solo es actualizar el texto del aviso, que hoy dice
-  // que "el formulario todavía no pide fotos": eso ya no es verdad y necesita
-  // enmienda de la spec `paginas-legales` aprobada por un humano (ver el
-  // reporte de validación de T-008).
+  // el mismo criterio con el que T-009 declaró aquí `categoriaNombre`. Y con
+  // la enmienda aprobada del delta `paginas-legales`, el aviso ya no promete
+  // la política de la foto: la escribe (qué se puede retratar, qué no, y qué
+  // pasa si no cumple).
   fotoClave: "una foto de tu negocio",
 };
 

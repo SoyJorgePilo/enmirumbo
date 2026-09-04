@@ -6,6 +6,8 @@
 
 La ruta raíz (`/`) DEBE mostrar las 8 categorías del catálogo (PRD §6.1) como botones grandes, en el orden del catálogo, cada uno con el nombre de la categoría tal como está en la base y enlazado a su listado. La sección DEBE encabezarse con el texto literal "Busca por categoría". Los botones DEBEN medir al menos 44px en su dimensión menor y verse completos en un viewport de 390px. Las categorías DEBEN quedar debajo del buscador (PRD §6.2: "buscador + categorías como botones grandes"), sin que ninguno de los dos pierda protagonismo: son las dos entradas del Flujo B y ambas se ven sin hacer scroll en un celular de 390px. Ningún control de la home DEBE quedar sin destino.
 
+ENMENDADO (encargo del fundador: "los botones se ven planos"): cada botón PUEDE llevar un icono decorativo (`aria-hidden`) junto al nombre; el nombre sigue siendo el contenido accesible.
+
 #### Scenario: las ocho categorías visibles
 
 - **WHEN** un vecino abre la home en su celular
@@ -29,6 +31,8 @@ La ruta raíz (`/`) DEBE mostrar las 8 categorías del catálogo (PRD §6.1) com
 ### Requirement: Bloque "Deporte en Tizayuca" destacado en la home
 
 La home DEBE incluir un bloque propio titulado literalmente "Deporte en Tizayuca" (PRD §6.5), presentado al mismo nivel visual que el bloque de categorías comerciales —mismo peso de encabezado y misma jerarquía, ni más chico ni escondido abajo— con una frase de acompañamiento y una entrada al listado de la categoría "Clubes y escuelas deportivas". Que esa categoría aparezca también entre los 8 botones es intencional: el bloque no la reemplaza, la destaca.
+
+ENMENDADO (encargo del fundador, cohesión visual con el bloque de categorías): el bloque PUEDE llevar un icono decorativo `aria-hidden` junto al encabezado; el texto del encabezado es literalmente "Deporte en Tizayuca".
 
 #### Scenario: el bloque de deporte se ve al mismo nivel que las categorías
 

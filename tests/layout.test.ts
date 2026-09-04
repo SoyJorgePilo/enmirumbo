@@ -36,6 +36,7 @@ import NotFoundPage from "../src/app/not-found";
 import Home from "../src/app/(publico)/page";
 import TerminosPage from "../src/app/(publico)/terminos/page";
 import { Footer } from "../src/components/footer";
+import { Header } from "../src/components/header";
 import {
   LONGITUD_MINIMA_SECRETO,
   VARIABLE_CONTRASENA,
@@ -115,6 +116,7 @@ const globalsCss = readFileSync(join(raiz, "src/app/globals.css"), "utf8");
 const layoutTsx = readFileSync(join(raiz, "src/app/layout.tsx"), "utf8");
 const headerTsx = readFileSync(join(raiz, "src/components/header.tsx"), "utf8");
 
+const htmlHeader = renderToStaticMarkup(createElement(Header));
 const htmlFooter = renderToStaticMarkup(createElement(Footer));
 const html404 = renderToStaticMarkup(createElement(NotFoundPage));
 // Páginas legales (change `agregar-paginas-legales`): sus enlaces cruzados
@@ -453,11 +455,24 @@ describe("layout-base · los grupos de rutas no cambian ninguna URL", () => {
   });
 });
 
-describe("layout-base · header con marca y posicionamiento (scenario 1)", () => {
-  it('el header lleva el wordmark "NecesitoUno" y el posicionamiento "Tizayuca"', () => {
-    expect(headerTsx).toMatch(/NecesitoUno/);
-    expect(headerTsx).toMatch(/Tizayuca/);
+// ENMENDADO (encargo del fundador, fix `fix/contorno-controles`): el header
+// se queda solo con el wordmark; "Tizayuca" ya no va ahí. El posicionamiento
+// hiperlocal se mueve a otras superficies del producto (home, footer,
+// metadata), que se comprueban en sus propias suites (home más abajo en este
+// archivo; metadata en el describe "documento es-MX con metadata").
+describe("layout-base · header con el wordmark (scenario 1)", () => {
+  it('el header lleva el wordmark "NecesitoUno" y ya NO el posicionamiento "Tizayuca"', () => {
+    // Sobre el HTML renderizado, no el código fuente: el código sí menciona
+    // "Tizayuca" en su comentario (documenta a dónde se movió el
+    // posicionamiento), lo que importa es qué ve el vecino.
+    expect(htmlHeader).toContain("NecesitoUno");
+    expect(htmlHeader).not.toContain("Tizayuca");
     expect(layoutTsx).toMatch(/<Header \/>/);
+  });
+
+  it('el posicionamiento hiperlocal sigue visible en el footer ("NecesitoUno Tizayuca")', () => {
+    expect(htmlFooter).toContain("NecesitoUno Tizayuca");
+    expect(htmlFooter).toContain("Hecho para los vecinos de Tizayuca, Hidalgo.");
   });
 });
 
@@ -788,6 +803,22 @@ describe("layout-base · contraste AA de los tokens (scenario 8)", () => {
   it("blanco sobre accion-fuerte cumple AA (botón verde con texto blanco)", () => {
     expect(ratio("#ffffff", tokens["accion-fuerte"])).toBeGreaterThanOrEqual(4.5);
   });
+
+  // Par NO-TEXTUAL (WCAG 2.1, 1.4.11): el contorno de los controles de
+  // formulario, no un par texto/fondo — el umbral es 3:1, no 4.5:1. Corrección
+  // reportada por el fundador (fix `fix/contorno-controles`, spec
+  // `layout-base`, requirement "Accesibilidad base del PRD §8").
+  const paresNoTextuales: Array<[string, string]> = [
+    ["borde-control", "fondo"],
+    ["borde-control", "superficie"],
+  ];
+
+  it.each(paresNoTextuales)(
+    "%s sobre %s cumple el contraste no-textual (≥3:1)",
+    (borde, fondo) => {
+      expect(ratio(tokens[borde], tokens[fondo])).toBeGreaterThanOrEqual(3);
+    },
+  );
 
   it("el verde marca como texto NO cumple AA — la razón de los dos tokens sigue vigente", () => {
     expect(ratio(tokens["accion"], tokens["fondo"])).toBeLessThan(4.5);

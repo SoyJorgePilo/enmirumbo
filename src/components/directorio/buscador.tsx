@@ -42,7 +42,7 @@ export function Buscador({ valorInicial = "" }: BuscadorProps) {
           name="q"
           defaultValue={valorInicial}
           placeholder="ej. plomero, tacos, futbol infantil"
-          className="min-h-11 w-full rounded-lg border border-borde bg-fondo px-4 text-base text-tinta placeholder:text-tinta-suave focus:outline-none focus:ring-2 focus:ring-accion-fuerte"
+          className="min-h-11 w-full rounded-lg border border-borde-control bg-fondo px-4 text-base text-tinta placeholder:text-tinta-suave focus:outline-none focus:ring-2 focus:ring-accion-fuerte"
         />
       </div>
       {/*

@@ -7,7 +7,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { seedCatalogos } from "../prisma/seed";
 import { sembrarNegociosDemo } from "../prisma/seed-demo";
-import ListadoCategoriaPage from "../src/app/[categoria]/page";
+import ListadoCategoriaPage from "../src/app/[destino]/page";
 import FichaNegocioPage from "../src/app/negocio/[ficha]/page";
 import NotFoundPage from "../src/app/not-found";
 import Home from "../src/app/page";
@@ -31,7 +31,11 @@ async function renderListado(
   colonia?: string,
 ): Promise<string> {
   const elemento = await ListadoCategoriaPage({
-    params: Promise.resolve({ categoria }),
+    // Renombrado a `destino` por el change `agregar-seo-local` (design.md §1):
+    // el mismo segmento dinámico resuelve categoría, giro y giro+colonia. Los
+    // casos de esta suite no cambian: la URL `/servicios-del-hogar` es la
+    // misma y responde lo mismo.
+    params: Promise.resolve({ destino: categoria }),
     searchParams: Promise.resolve(colonia === undefined ? {} : { colonia }),
   });
   return renderToStaticMarkup(createElement(() => elemento));
@@ -517,7 +521,7 @@ describe("directorio-publico · Server Components sin JS de cliente", () => {
     const archivos = [
       join(raiz, "src/app/page.tsx"),
       join(raiz, "src/app/not-found.tsx"),
-      join(raiz, "src/app/[categoria]/page.tsx"),
+      join(raiz, "src/app/[destino]/page.tsx"),
       join(raiz, "src/app/negocio/[ficha]/page.tsx"),
       ...readdirSync(join(raiz, "src/components/directorio")).map((nombre) =>
         join(raiz, "src/components/directorio", nombre),
@@ -552,7 +556,14 @@ describe("directorio-publico · Server Components sin JS de cliente", () => {
       join(raiz, "src/components/directorio/tarjeta-negocio.tsx"),
       "utf8",
     );
-    const listado = readFileSync(join(raiz, "src/app/[categoria]/page.tsx"), "utf8");
+    // El marcado del listado salió de la página a su componente cuando la raíz
+    // pasó a resolver tres tipos de URL (change `agregar-seo-local`).
+    const listado =
+      readFileSync(join(raiz, "src/components/directorio/listado-categoria.tsx"), "utf8") +
+      readFileSync(
+        join(raiz, "src/components/directorio/navegacion-colonias.tsx"),
+        "utf8",
+      );
     // La grilla de categorías salió de la home a su propio componente (change
     // `agregar-buscador`) para que `/buscar` ofrezca los MISMOS ocho botones.
     const categorias = readFileSync(

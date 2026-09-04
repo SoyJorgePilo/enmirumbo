@@ -15,12 +15,21 @@
  * falta, y eso solo va al log del servidor, jamás a la respuesta.
  */
 
+import { URL_SITIO_LOCAL, VARIABLE_URL_SITIO, urlSitio } from "@/lib/sitio";
+
 /** Contraseña única del panel (PRD §6.3): sin cuentas, sin correo. */
 export const VARIABLE_CONTRASENA = "PANEL_CONTRASENA";
 /** Secreto con el que se firman las cookies de sesión (HMAC-SHA256). */
 export const VARIABLE_SECRETO_SESION = "PANEL_SESION_SECRETO";
-/** URL pública del sitio, para el link absoluto de la ficha (design.md §7). */
-export const VARIABLE_URL_SITIO = "SITIO_URL";
+
+/**
+ * La URL pública del sitio se mudó a `src/lib/sitio.ts` (change
+ * `agregar-seo-local`, design.md §5): el panel ya no es el único que la
+ * necesita —también el sitemap, las canónicas y la vista previa al
+ * compartir—, y su comportamiento no cambió. Se reexporta para que quien
+ * llamaba al panel siga llamando igual.
+ */
+export { URL_SITIO_LOCAL, VARIABLE_URL_SITIO, urlSitio };
 
 /**
  * Longitud mínima del secreto de firma. 32 caracteres es lo que produce
@@ -28,9 +37,6 @@ export const VARIABLE_URL_SITIO = "SITIO_URL";
  * fuerza bruta con el token público en la mano.
  */
 export const LONGITUD_MINIMA_SECRETO = 32;
-
-/** Dirección local de desarrollo, el único default admitido (design.md §7). */
-export const URL_SITIO_LOCAL = "http://localhost:3000";
 
 /** Lo poco que este módulo necesita del entorno. */
 export type EntornoPanel = Record<string, string | undefined>;
@@ -105,36 +111,3 @@ export function reiniciarAvisoDeConfiguracion(): void {
   yaSeAvisoSinConfigurar = false;
 }
 
-const normalizar = (valor?: string) => valor?.trim().toLowerCase() ?? "";
-
-function esProduccion(env: EntornoPanel): boolean {
-  return (
-    normalizar(env.NODE_ENV) === "production" ||
-    normalizar(env.VERCEL_ENV) === "production"
-  );
-}
-
-/**
- * Origen público del sitio, sin diagonal final, para armar el link absoluto
- * de la ficha en el aviso de aprobación (design.md §7).
- *
- * En el servidor no hay forma confiable de deducir el dominio (los
- * encabezados de host los escribe quien pide), así que se lee del entorno.
- * Fuera de producción, sin variable, se usa la dirección local; en producción
- * se devuelve `null` para que el panel falle a la vista en vez de mandarle a
- * un negocio real un link a `localhost`.
- */
-export function urlSitio(env: EntornoPanel = process.env): string | null {
-  const declarada = valor(env, VARIABLE_URL_SITIO).trim();
-  if (declarada !== "") {
-    try {
-      const interpretada = new URL(declarada);
-      if (interpretada.protocol === "http:" || interpretada.protocol === "https:") {
-        return interpretada.origin;
-      }
-    } catch {
-      // URL ilegible: se trata como si no estuviera declarada.
-    }
-  }
-  return esProduccion(env) ? null : URL_SITIO_LOCAL;
-}

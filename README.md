@@ -31,6 +31,12 @@ npm run build
 npm test
 ```
 
+### Variables de entorno
+
+Copia `.env.example` como `.env` (`cp .env.example .env`); ahí está documentada cada variable. Una es requisito de despliegue y conviene tenerla a la vista:
+
+- **`SITIO_URL`** — la URL pública del sitio, sin diagonal final. De ella salen el `sitemap.xml`, las URLs canónicas de cada página, la vista previa al compartir por WhatsApp o Facebook y el link de la ficha que el admin manda al aprobar. En local, sin declararla, se usa `http://localhost:3000`. **En producción, sin ella, el sitio falla a la vista y no a escondidas:** el sitemap responde vacío, no se publican canónicas ni imagen de vista previa absolutas, `robots.txt` omite la línea del sitemap y queda un aviso en el log del servidor — antes que publicar direcciones a `localhost` que Google intentaría rastrear.
+
 ## Estado
 
 🚧 **Pre-MVP** — construyendo las fundaciones. Sigue el avance en el [devlog](docs/devlog/).

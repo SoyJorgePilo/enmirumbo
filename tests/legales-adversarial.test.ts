@@ -273,6 +273,12 @@ describe("adversarial · enlaces y markup de las superficies legales", () => {
  */
 const CAMPO_PUBLICO_DECLARADO: Record<string, string> = {
   nombre: "el nombre de tu negocio",
+  // El change `agregar-seo-local` sumó el nombre de la categoría a la
+  // proyección pública (lo necesita el `knowsAbout` del JSON-LD de la ficha).
+  // No hubo que tocar el aviso: ya declaraba la categoría como pública en
+  // "Qué queda público y qué no", junto al nombre y la colonia. Lo que faltaba
+  // era declararla AQUÍ, que es justo lo que este guardián existe para exigir.
+  categoriaNombre: "la categoría",
   coloniaNombre: "tu colonia",
   queOfreces: '"¿Qué ofreces?"',
   horario: "tu horario",

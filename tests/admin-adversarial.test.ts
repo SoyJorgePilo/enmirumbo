@@ -18,7 +18,7 @@ import { aprobarRegistroAccion } from "../src/app/admin/registros/[id]/accion-ap
 import { rechazarRegistroAccion } from "../src/app/admin/registros/[id]/accion-rechazar";
 import DetalleRegistroAdminPage from "../src/app/admin/registros/[id]/page";
 import RegistroRechazadoPage from "../src/app/admin/registros/[id]/rechazado/page";
-import ListadoCategoriaPage from "../src/app/[categoria]/page";
+import ListadoCategoriaPage from "../src/app/[destino]/page";
 import FichaNegocioPage from "../src/app/negocio/[ficha]/page";
 import type { PrismaClient } from "../src/generated/prisma/client";
 import {
@@ -688,7 +688,7 @@ describe("adversarial · el rastro del rechazo no llega a ninguna página públi
 
     const html = await render(
       ListadoCategoriaPage({
-        params: Promise.resolve({ categoria: categoriaSlug }),
+        params: Promise.resolve({ destino: categoriaSlug }),
         searchParams: Promise.resolve({}),
       }) as Promise<React.ReactElement>,
     );

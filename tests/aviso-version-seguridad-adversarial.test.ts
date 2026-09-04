@@ -681,6 +681,12 @@ describe("adversarial · el panel pinta la versión guardada sin ejecutarla", ()
     reconsintioAvisoVersion: "</dd><script>alert(2)</script>",
     rechazadoEn: null,
     motivoRechazo: null,
+    // Rastro de la despublicación (T-015, ya en `main`): esta ficha nunca se
+    // despublicó. Va aquí porque `RegistroAdminDetalle` los exige, no porque
+    // este caso los ejercite.
+    despublicadoEn: null,
+    motivoDespublicacion: null,
+    girosIds: [],
   };
 
   it("una versión hostil guardada en la base sale escapada, no como marcado", () => {

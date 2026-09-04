@@ -46,14 +46,18 @@ import {
  * versión que todavía no salió a producción no ampara ninguna constancia (la
  * columna `consintioAvisoVersion` ni siquiera existe todavía en la base), así
  * que su huella se puede volver a anclar. Fue el caso de la `1`: T-012 la
- * estrena y, dentro del mismo change, se volvió a anclar dos veces: por la
+ * estrena y, dentro del mismo change, se volvió a anclar tres veces: por la
  * enmienda aprobada del elemento (2) de la LFPDPPP —la foto en la lista de
- * datos opcionales— y por la corrección del hallazgo MEDIO-1 de la etapa C
- * (la marca de borrador entró a la huella). Después del merge, cambiar el
- * texto es estrenar versión.
+ * datos opcionales—, por la corrección del hallazgo MEDIO-1 de la etapa C (la
+ * marca de borrador entró a la huella) y, al fusionar `main` antes del PR,
+ * por la enmienda del PR #12 (la política de fotos en "Qué queda público").
+ * Esa tercera vez fue el primer caso REAL del guardián fuera de su propio
+ * change: la fusión puso la suite en rojo y obligó a decidir versión, que es
+ * exactamente para lo que se construyó. Después del merge a `main`, cambiar
+ * el texto es estrenar versión: ya no hay excepción.
  */
 const HUELLAS_POR_VERSION: ReadonlyArray<readonly [string, string]> = [
-  ["1", "2b234583a54406a910c7ffe377351d98152fccc13536d291676ffedce34a87b6"],
+  ["1", "08ce983c2ce4f4733e42aca21cf7c01f75b3a6cc78c72fdb8055c8bc61062d5f"],
 ];
 
 /**

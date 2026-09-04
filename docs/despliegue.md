@@ -73,7 +73,7 @@ DATABASE_URL="postgresql://postgres:postgres@localhost:51214/template1?sslmode=d
 
 Para pararlo: `npm run db:local:detener`.
 
-**Tres cosas que conviene saber de esa base local:**
+**Cuatro cosas que conviene saber de esa base local:**
 
 1. **Es de usar y tirar.** `npm test` borra y vuelve a crear su esquema en cada
    corrida. Lo que hay dentro son catálogos y negocios ficticios; se repone con
@@ -284,7 +284,10 @@ lo que hace que las guardas anti-producción reconozcan dónde están.
   tu máquina. Aun así: no lo intentes.
 - **`npx prisma migrate reset`** o cualquier `db push`: borran datos.
 - **Editar filas a mano** para hacer trabajo del panel. Aprobar, rechazar,
-  despublicar y borrar tienen su pantalla; el flujo ARCO completo es T-015.
+  despublicar y borrar tienen su pantalla (T-015). Lo que todavía NO tiene
+  pantalla es el acceso y la rectificación —entregarle al negocio una copia de
+  sus datos, corregirlos o quitar un campo—: es el renglón **E3-7** del backlog
+  y hasta entonces se atiende a mano, con cuidado y dejando constancia.
 
 ## 6. Tareas programadas (cron)
 
@@ -322,9 +325,15 @@ meses sin barrer y nadie se entera. En Vercel, los fallos de cron salen en
 Respuesta normal de cada una (solo conteos, nunca datos de nadie):
 
 ```json
-{"eliminados": 0, "fallidos": 0}
+{"eliminados": 0, "fallidos": 0, "cuposLimpiados": 0}
 {"barrido": true, "revisadas": 12, "huerfanas": 0, "borradas": 0, "enPeriodoDeGracia": 0, "ignoradas": 0, "noBorrables": 0}
 ```
+
+`cuposLimpiados` es lo otro que hace la purga: las marcas del cupo anti-abuso
+del panel (§3.5) que ya salieron de su ventana, más las que se podan cuando la
+tabla pasa de 5 000 filas. Va aparte a propósito: si esa limpieza falla, queda
+en el log pero **no** tumba la purga de los 90 días, que es la que tiene un
+compromiso publicado detrás.
 
 Si `fallidos` no es cero —algún registro que ya cumplió el plazo no se pudo
 eliminar—, la purga responde **500** aunque haya eliminado los demás. Es a
@@ -368,9 +377,11 @@ de datos no está en esta máquina (que es lo que distingue un *staging* real de
 un `npm run dev`).
 
 Cuando el almacenamiento no está configurado y el sistema está desplegado, el
-alta de un negocio **sigue funcionando**: lo que falla es la foto, y el vecino
-ve el aviso de que no se guardó, en vez de una ficha que promete una imagen que
-no existe. Lo único que se pierde son las fotos, y se pierde **en voz alta**.
+alta **sin foto sigue funcionando** con normalidad. El alta **con** foto se
+rechaza entera: el vecino ve *"No pudimos preparar tu foto. Intenta con otra."*
+y **no queda ninguna ficha creada** — ni siquiera una sin imagen. Es a
+propósito: media ficha guardada a espaldas de quien la mandó sería peor que
+pedirle que lo intente de nuevo. Se falla **en voz alta**, no a medias.
 
 **Y el borrado definitivo (ARCO) se niega a mentir.** Si una ficha tiene foto y
 el almacenamiento no se deja alcanzar —una llave rotada y no propagada, un
@@ -527,7 +538,11 @@ del lanzamiento:
    Declarado también en `PENDIENTES_OPERATIVOS_LEGALES`.
 2. **El encargado del tratamiento** sin nombrar en el aviso (ADR-004). Está
    declarado como pendiente operativo en el código; lo cierra E6-3.
-3. **El flujo ARCO completo (acceso y rectificación) en el panel:** T-015.
+3. **Acceso y rectificación desde el panel (lo que queda del flujo ARCO):**
+   renglón **E3-7** del backlog. Cancelación y oposición —despublicar y borrar—
+   ya son acciones del panel desde T-015 (E3-6); entregarle al negocio una copia
+   de sus datos y editarlos o quitar un campo de su ficha sigue haciéndose a
+   mano contra la base.
 4. **La CSP lleva `'unsafe-inline'` en `script-src`** (§8). Quitarlo exige un
    `nonce` por petición, y eso obliga a renderizar por petición **todas** las
    páginas, incluidas las legales, que hoy salen de la CDN. Se prefirió una CSP
@@ -562,6 +577,6 @@ del lanzamiento:
    driver sobre el que está montado todo este change (PostgreSQL por `pg`,
    sin motor binario). Cambiar la arquitectura para silenciar un aviso de una
    herramienta de desarrollo sería el peor negocio posible.
-8. **Las llamadas reales a Supabase Storage no están cubiertas por pruebas
+9. **Las llamadas reales a Supabase Storage no están cubiertas por pruebas
    automáticas**, solo el adaptador contra un `fetch` simulado. La red de
    verdad se comprueba en los pasos 10 y 11 de la prueba de humo (§9).

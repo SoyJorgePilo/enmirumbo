@@ -1,6 +1,6 @@
 # T-010 · Conectar la analítica cookieless
 
-**Estado:** en-review
+**Estado:** hecho
 **Prioridad:** P0
 **Épica:** E7-1, E7-2 (docs/backlog.md)
 **Referencias PRD:** §9-10 (analítica desde el día 1, eventos definidos, exclusión de bots, sin banner), ADR-005

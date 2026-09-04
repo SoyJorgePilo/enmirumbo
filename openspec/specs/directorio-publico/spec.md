@@ -482,7 +482,7 @@ El directorio DEBE mostrar la colonia del negocio y NO DEBE mostrar ningún dato
 #### Scenario: sin datos internos en la respuesta
 
 - **WHEN** se inspecciona el HTML de un listado o de una ficha
-- **THEN** no aparecen el estado, el origen, la fecha de registro, la fecha de consentimiento ni el token de gestión del negocio
+- **THEN** no aparecen el estado, el origen, la fecha de registro, la constancia del consentimiento —ni su fecha, ni su versión, ni la reaceptación— ni el token de gestión del negocio
 
 ### Requirement: Desde la ficha se llega a las páginas de sus giros
 

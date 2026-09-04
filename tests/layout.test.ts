@@ -32,6 +32,19 @@ function archivosDe(dir: string, extensiones: string[]): string[] {
 
 const fuentesTsx = archivosDe(join(raiz, "src"), [".tsx"]);
 const fuentesTodas = archivosDe(join(raiz, "src"), [".ts", ".tsx", ".css"]);
+
+/**
+ * Rutas que existen de verdad: cada `page.tsx` bajo `src/app`. Sirve de lista
+ * blanca de hrefs, así que agregar un enlace a una página que aún no existe
+ * (los legales de E6, por ejemplo) rompe la suite.
+ */
+const rutasExistentes = new Set(
+  archivosDe(join(raiz, "src/app"), ["page.tsx"]).map((ruta) => {
+    const relativa = ruta.slice(join(raiz, "src/app").length + 1);
+    const segmentos = relativa.split("/").slice(0, -1);
+    return `/${segmentos.join("/")}`;
+  }),
+);
 const globalsCss = readFileSync(join(raiz, "src/app/globals.css"), "utf8");
 const layoutTsx = readFileSync(join(raiz, "src/app/layout.tsx"), "utf8");
 const headerTsx = readFileSync(join(raiz, "src/components/header.tsx"), "utf8");
@@ -53,6 +66,9 @@ describe("layout-base · footer sin enlaces muertos (scenario 2)", () => {
     expect(htmlFooter).not.toMatch(/<a[\s>]/);
   });
 
+  // layout-base (MODIFIED por agregar-formulario-registro) · Scenario: sin
+  // enlaces muertos. La lista blanca ya no es la constante "/": son las rutas
+  // que existen en `src/app` (hoy "/", "/registro" y "/registro/gracias").
   it("todo href del código de interfaz apunta a una ruta existente", () => {
     const hrefs = fuentesTsx.flatMap((ruta) =>
       [...readFileSync(ruta, "utf8").matchAll(/href="([^"]*)"/g)].map(
@@ -60,8 +76,11 @@ describe("layout-base · footer sin enlaces muertos (scenario 2)", () => {
       ),
     );
     expect(hrefs.length).toBeGreaterThan(0);
+    expect(rutasExistentes).toContain("/registro");
     for (const href of hrefs) {
-      expect(href).toBe("/");
+      expect(rutasExistentes, `href a una ruta inexistente: ${href}`).toContain(
+        href,
+      );
     }
   });
 });
@@ -152,9 +171,24 @@ describe("layout-base · documento es-MX con metadata (scenario 10)", () => {
 });
 
 describe("layout-base · sin JS de cliente (scenario 11)", () => {
-  it('ningún archivo de src/ declara "use client"', () => {
-    for (const ruta of fuentesTodas) {
-      expect(readFileSync(ruta, "utf8")).not.toMatch(/["']use client["']/);
+  // El requirement es del layout ("el layout, el header y el footer"), no de
+  // todo el sitio: el formulario de registro sí tiene dos componentes de
+  // cliente justificados y acotados (spec registro-negocio, design.md §1),
+  // que su propia suite vigila (tests/registro-pagina.test.ts).
+  // La lista es por exclusión, no fija: cualquier archivo nuevo de `src/` que
+  // no sea del registro entra solo a la vigilancia (nota menor de la etapa C).
+  const rutasDelRegistro = [
+    join(raiz, "src/app/registro"),
+    join(raiz, "src/components/registro"),
+  ];
+  const fuentesLayoutBase = fuentesTodas.filter(
+    (ruta) => !rutasDelRegistro.some((carpeta) => ruta.startsWith(carpeta)),
+  );
+
+  it('ningún archivo de la capacidad layout-base declara "use client"', () => {
+    expect(fuentesLayoutBase.length).toBeGreaterThanOrEqual(6);
+    for (const ruta of fuentesLayoutBase) {
+      expect(readFileSync(ruta, "utf8"), ruta).not.toMatch(/["']use client["']/);
     }
   });
 });
@@ -165,6 +199,25 @@ describe("layout-base · home provisional (scenario 12)", () => {
     expect(normalizado(htmlHome)).toContain(
       "Muy pronto vas a poder encontrar aquí los negocios y servicios de Tizayuca.",
     );
+  });
+});
+
+// layout-base MODIFIED por el change agregar-formulario-registro.
+describe("layout-base · entrada al registro desde la home", () => {
+  const homeTsx = readFileSync(join(raiz, "src/app/page.tsx"), "utf8");
+  const botonPrimario = readFileSync(join(raiz, "src/lib/estilos-boton.ts"), "utf8");
+
+  // Scenario: entrada al registro desde la home
+  it('la home enlaza a /registro con el texto literal "Registra tu negocio gratis"', () => {
+    expect(normalizado(htmlHome)).toContain("Registra tu negocio gratis");
+    expect(htmlHome).toMatch(/<a[^>]+href="\/registro"/);
+  });
+
+  // Scenario: entrada al registro desde la home (estilo de acción y área táctil)
+  it("usa el verde de acción y reserva al menos 44px de área táctil", () => {
+    expect(homeTsx).toContain("CLASE_BOTON_PRIMARIO");
+    expect(botonPrimario).toMatch(/\bbg-accion\b/);
+    expect(botonPrimario).toMatch(/\bmin-h-11\b/);
   });
 });
 

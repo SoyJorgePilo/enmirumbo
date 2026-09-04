@@ -24,6 +24,7 @@ import { procesarRegistro } from "../src/lib/registro/procesar";
 import { MENSAJES_ERROR_FOTO, MENSAJES_ERROR_REGISTRO } from "../src/lib/registro/textos";
 import { peticion, reiniciarPeticion } from "./admin-mocks";
 import { crearClientePrueba } from "./db";
+import { almacenDeMentiras } from "./fotos-fixtures";
 import { archivoDeFormulario, jpegConExifYGps, jpegDePrueba } from "./fotos-fixtures";
 import { VERSION_AVISO } from "../src/lib/legales/version";
 import { CAMPO_VERSION_AVISO } from "../src/lib/registro/textos";
@@ -641,14 +642,12 @@ describe("rutas de servido: nada distingue un 404 de otro", () => {
   ])("clave hostil (%s): 404 sin tocar la base ni el almacén", async (_caso, clave) => {
     let lecturas = 0;
     let consultas = 0;
-    const almacenEspia = {
-      guardar: async () => {},
+    const almacenEspia = almacenDeMentiras({
       leer: async () => {
         lecturas++;
         return null;
       },
-      borrar: async () => {},
-    };
+    });
     // Espías sobre las DOS cosas que la clave hostil no debe llegar a tocar:
     // el disco y la base. Que no llegue al disco lo garantizaría por sí sola
     // la consulta fallida; que no llegue siquiera a la base es lo que promete

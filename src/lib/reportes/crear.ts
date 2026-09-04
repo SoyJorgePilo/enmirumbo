@@ -27,7 +27,7 @@
  * - el cupo por IP se pide con `apartarCupoDeReportes`, que pregunta y aparta
  *   sin ceder el turno a la mitad;
  * - el tope por negocio NO se consulta con un `count` para decidir después:
- *   la condición viaja DENTRO del `INSERT`, en una sola sentencia que SQLite
+ *   la condición viaja DENTRO del `INSERT`, en una sola sentencia que la base
  *   ejecuta atómicamente, y se mira cuántas filas escribió para saber si
  *   entró o si el negocio ya estaba en el tope.
  *
@@ -37,23 +37,29 @@
 import { randomUUID } from "node:crypto";
 
 import { ESTADO_NEGOCIO_PUBLICADO } from "@/lib/negocio";
+import { sinBytesNulos } from "@/lib/texto";
 
 import { ESTADO_REPORTE_PENDIENTE } from "./estados";
 import { TOPE_REPORTES_PENDIENTES_POR_NEGOCIO, apartarCupoDeReportes } from "./limite";
 import { esMotivoReporteValido } from "./motivos";
 import { LIMITE_COMENTARIO_REPORTE } from "./textos";
 
-/**
- * Lo poco que este módulo necesita de Prisma (facilita probarlo).
- *
- * `$executeRaw` es la forma **con parámetros ligados** (plantilla etiquetada:
- * cada `${…}` viaja como parámetro, no como texto concatenado), no la
- * `Unsafe`. Está en el tipo porque el alta tiene que ser una sola sentencia
- * condicionada, y eso no se puede expresar con `reporte.create`.
- */
+/** Lo que el alta necesita DENTRO de la transacción. */
+export type TransaccionReportes = {
+  $queryRaw(consulta: TemplateStringsArray, ...valores: unknown[]): Promise<unknown>;
+  /**
+   * La forma **con parámetros ligados** (plantilla etiquetada: cada `${…}`
+   * viaja como parámetro, no como texto concatenado), no la `Unsafe`. Está en
+   * el tipo porque el alta tiene que ser una sentencia condicionada, y eso no
+   * se puede expresar con `reporte.create`.
+   */
+  $executeRaw(consulta: TemplateStringsArray, ...valores: unknown[]): Promise<number>;
+};
+
+/** Lo poco que este módulo necesita de Prisma (facilita probarlo). */
 export type ClienteReportes = {
   negocio: { findUnique(args: unknown): Promise<unknown> };
-  $executeRaw(consulta: TemplateStringsArray, ...valores: unknown[]): Promise<number>;
+  $transaction<T>(operacion: (tx: TransaccionReportes) => Promise<T>): Promise<T>;
 };
 
 export type EntradaReporte = {
@@ -120,7 +126,11 @@ export async function crearReporte(
   }
   const motivo = entrada.motivo;
 
-  const comentario = entrada.comentario.trim();
+  // El byte nulo se cae aquí, en el borde: no aporta nada a lo que el vecino
+  // quiso escribir y PostgreSQL no lo admite en una columna de texto, así que
+  // dejarlo pasar convertiría un comentario raro en un error del servidor
+  // (change `preparar-deploy-produccion`).
+  const comentario = sinBytesNulos(entrada.comentario).trim();
   if (comentario.length > LIMITE_COMENTARIO_REPORTE) {
     return { resultado: "error", error: "comentario" };
   }
@@ -156,9 +166,29 @@ export async function crearReporte(
     return { resultado: "cupo-agotado" };
   }
 
-  // 5. Alta con el tope DENTRO de la sentencia: una sola operación que inserta
-  //    solo si el negocio sigue por debajo de sus reportes pendientes. Si el
-  //    tope ya estaba alcanzado no escribe nada y devuelve 0 filas.
+  // 5. Alta con el tope DENTRO de la sentencia: inserta solo si el negocio
+  //    sigue por debajo de sus reportes pendientes. Si el tope ya estaba
+  //    alcanzado no escribe nada y devuelve 0 filas.
+  //
+  //    EL CERROJO NO ES DECORACIÓN (hallazgo A3 de la etapa C del change
+  //    `preparar-deploy-produccion`). Esta sentencia nació contra SQLite, que
+  //    serializaba TODAS las escrituras con un lock de base: por eso bastaba.
+  //    PostgreSQL corre en READ COMMITTED y el sub-`SELECT COUNT(*)` es una
+  //    lectura de instantánea que **no toma ningún lock sobre las filas que
+  //    cuenta**: dos peticiones simultáneas que empiecen antes de que la otra
+  //    confirme cuentan las mismas 9 pendientes y las dos insertan. Con
+  //    `max: 5` conexiones por instancia y muchas instancias vivas en
+  //    serverless, eso no es teórico: es el ataque que el requirement
+  //    describe.
+  //
+  //    Se serializa por FICHA con un cerrojo consultivo de transacción, que se
+  //    suelta solo al confirmar. Se eligió sobre `SELECT … FOR UPDATE` del
+  //    negocio porque no toca ninguna fila real: no compite con las
+  //    transiciones del panel (aprobar, despublicar, borrar) ni las bloquea,
+  //    y la granularidad es exactamente la que se quiere —una ficha—.
+  //    `hashtext` puede colisionar entre dos fichas distintas; lo peor que
+  //    pasa entonces es que dos reportes de negocios distintos se serialicen,
+  //    que no cambia ningún resultado.
   //
   //    El `id` lo pone la aplicación porque el `@default(cuid())` del schema lo
   //    genera el cliente de Prisma, no la base: un `INSERT` directo no pasa por
@@ -169,14 +199,19 @@ export async function crearReporte(
   //    reportante, porque no existe ninguna.
   let filas: number;
   try {
-    filas = await prisma.$executeRaw`
-      INSERT INTO "Reporte" ("id", "negocioId", "motivo", "comentario", "estado", "creadoEn", "atendidoEn")
-      SELECT ${randomUUID()}, ${entrada.negocioId}, ${motivo}, ${comentario === "" ? null : comentario}, ${ESTADO_REPORTE_PENDIENTE}, ${ahora}, NULL
-      WHERE (
-        SELECT COUNT(*) FROM "Reporte"
-        WHERE "negocioId" = ${entrada.negocioId} AND "estado" = ${ESTADO_REPORTE_PENDIENTE}
-      ) < ${TOPE_REPORTES_PENDIENTES_POR_NEGOCIO}
-    `;
+    filas = await prisma.$transaction(async (tx) => {
+      // El `::text` no es cosmética: `pg_advisory_xact_lock` devuelve `void` y
+      // el cliente no sabe deserializar ese tipo.
+      await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${entrada.negocioId})::bigint)::text AS cerrojo`;
+      return tx.$executeRaw`
+        INSERT INTO "Reporte" ("id", "negocioId", "motivo", "comentario", "estado", "creadoEn", "atendidoEn")
+        SELECT ${randomUUID()}, ${entrada.negocioId}, ${motivo}, ${comentario === "" ? null : comentario}, ${ESTADO_REPORTE_PENDIENTE}, ${ahora}, NULL
+        WHERE (
+          SELECT COUNT(*) FROM "Reporte"
+          WHERE "negocioId" = ${entrada.negocioId} AND "estado" = ${ESTADO_REPORTE_PENDIENTE}
+        ) < ${TOPE_REPORTES_PENDIENTES_POR_NEGOCIO}
+      `;
+    });
   } catch (error) {
     console.error(`[reportes] no se pudo guardar el reporte: ${resumenDeError(error)}`);
     return { resultado: "error", error: "servidor" };

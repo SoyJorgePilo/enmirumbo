@@ -433,7 +433,6 @@ describe("el barrido no se lleva por delante una foto viva", () => {
     const resultado = await barrerFotosHuerfanas({
       prisma: baseFalsa([]),
       almacen,
-      directorio,
       ahora: AHORA,
     });
 
@@ -454,7 +453,6 @@ describe("el barrido no se lleva por delante una foto viva", () => {
     const resultado = await barrerFotosHuerfanas({
       prisma: baseFalsa([clave]),
       almacen,
-      directorio,
       ahora: AHORA,
     });
 
@@ -477,7 +475,6 @@ describe("el barrido no se lleva por delante una foto viva", () => {
     const resultado = await barrerFotosHuerfanas({
       prisma: baseFalsa([]),
       almacen,
-      directorio,
       soloInformar: true,
       ahora: AHORA,
     });
@@ -515,7 +512,6 @@ describe("el barrido no se lleva por delante una foto viva", () => {
     const resultado = await barrerFotosHuerfanas({
       prisma: baseFalsa([]),
       almacen,
-      directorio,
       ahora: AHORA,
     });
 
@@ -536,7 +532,6 @@ describe("el barrido no se lleva por delante una foto viva", () => {
     const resultado = await barrerFotosHuerfanas({
       prisma: baseFalsa([], 0),
       almacen,
-      directorio,
       ahora: AHORA,
     });
 

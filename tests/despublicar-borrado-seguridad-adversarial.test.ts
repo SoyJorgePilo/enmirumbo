@@ -39,6 +39,11 @@ import {
   borrarNegocio,
   despublicarFicha,
 } from "../src/lib/admin/transiciones";
+import {
+  columnasDeTabla,
+  consultarConPrisma,
+  tablasDelEsquema,
+} from "./catalogo-db";
 import { crearClientePrueba } from "./db";
 import { peticion, reiniciarPeticion, urlDeRedireccion } from "./admin-mocks";
 
@@ -285,7 +290,7 @@ describe("adversarial · después del borrado no queda residuo en ninguna tabla"
   /**
    * Barrido agnóstico del esquema: recorre TODAS las tablas y TODAS sus
    * columnas de la base ya migrada y busca el identificador y el WhatsApp del
-   * negocio borrado. A diferencia del invariante de `PRAGMA foreign_key_list`,
+   * negocio borrado. A diferencia del invariante de las claves foráneas,
    * este test también caza una tabla futura que guarde el id en una columna
    * suelta (sin clave foránea declarada), que es justo la forma en que un dato
    * personal sobrevive a un borrado ARCO sin que nadie se entere.
@@ -303,24 +308,20 @@ describe("adversarial · después del borrado no queda residuo en ninguna tabla"
 
     expect(await borrarNegocio(prisma, ficha.id)).toEqual({ resultado: "borrado" });
 
-    const tablas = await prisma.$queryRawUnsafe<Array<{ name: string }>>(
-      `SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name <> '_prisma_migrations'`,
-    );
+    const consultar = consultarConPrisma(prisma);
+    const tablas = await tablasDelEsquema(consultar);
     expect(tablas.length).toBeGreaterThan(0);
 
     const rastros: string[] = [];
-    for (const { name } of tablas) {
-      const columnas = await prisma.$queryRawUnsafe<Array<{ name: string }>>(
-        `PRAGMA table_info("${name}")`,
-      );
-      for (const columna of columnas) {
-        const filas = await prisma.$queryRawUnsafe<Array<Record<string, unknown>>>(
-          `SELECT 1 FROM "${name}" WHERE CAST("${columna.name}" AS TEXT) IN (?, ?, ?) LIMIT 1`,
+    for (const tabla of tablas) {
+      for (const columna of await columnasDeTabla(consultar, tabla)) {
+        const filas = await consultar(
+          `SELECT 1 FROM "${tabla}" WHERE CAST("${columna}" AS TEXT) IN ($1, $2, $3) LIMIT 1`,
           ficha.id,
           ficha.whatsapp,
           "El dueño ficticio pidió que la bajáramos",
         );
-        if (filas.length > 0) rastros.push(`${name}.${columna.name}`);
+        if (filas.length > 0) rastros.push(`${tabla}.${columna}`);
       }
     }
 
@@ -439,7 +440,7 @@ describe("adversarial · carreras entre el borrado y las otras transiciones", ()
     expect(resultado).toEqual({ resultado: "no-encontrado" });
     expect(await prisma.negocio.findUnique({ where: { id: ficha.id } })).toBeNull();
     const vinculos = await prisma.$queryRawUnsafe<Array<{ B: string }>>(
-      `SELECT "B" FROM "_GiroToNegocio" WHERE "B" = ?`,
+      `SELECT "B" FROM "_GiroToNegocio" WHERE "B" = $1`,
       ficha.id,
     );
     expect(vinculos).toEqual([]);

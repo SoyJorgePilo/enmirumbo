@@ -173,7 +173,6 @@ describe("las guardas del barrido en sus bordes exactos", () => {
     const resultado = await barrerFotosHuerfanas({
       prisma: baseCon(vivas),
       almacen,
-      directorio,
       ahora: AHORA,
       ...opciones,
     });

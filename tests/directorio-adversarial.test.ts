@@ -906,19 +906,34 @@ describe("adversarial · la guarda del seed de demo falla cerrada (M4 corregido)
     }
   });
 
-  it("otros esquemas remotos también se bloquean", () => {
+  it("cualquier base que no esté en esta máquina se bloquea", () => {
     for (const url of [
       "postgres://x@y/z",
+      "postgresql://usuario:clave@db.supabase.co:5432/postgres",
       "mysql://x@y/z",
       "prisma://acelerado.example/z",
       "libsql://base.example",
       "https://base.example/db",
+      // La era SQLite quedó atrás (ADR-004): un `file:` ya no es "la base
+      // local", es una dirección que este proyecto no sabe usar.
+      "file:./prisma/dev.db",
+      "  FILE:./prisma/dev.db  ",
+      // Y lo que ni siquiera se puede interpretar cuenta como remoto: ante la
+      // duda, la respuesta cara es la segura.
+      "no-es-una-url",
       "  POSTGRESQL://X@Y/Z  ",
     ]) {
       expect(motivoParaNoSembrar({ DATABASE_URL: url }), url).not.toBeNull();
     }
-    // Un archivo local sí puede, venga como venga escrito
-    expect(motivoParaNoSembrar({ DATABASE_URL: "  FILE:./prisma/dev.db  " })).toBeNull();
+    // Un PostgreSQL de esta máquina sí puede, venga como venga escrito
+    for (const url of [
+      "postgresql://postgres:postgres@localhost:51214/template1",
+      "postgres://postgres@127.0.0.1:5432/necesitouno",
+      "postgresql://postgres@[::1]:5432/necesitouno",
+      "  POSTGRESQL://postgres@LOCALHOST:5432/necesitouno  ",
+    ]) {
+      expect(motivoParaNoSembrar({ DATABASE_URL: url }), url).toBeNull();
+    }
     expect(motivoParaNoSembrar({})).toBeNull();
   });
 

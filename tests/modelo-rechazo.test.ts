@@ -1,7 +1,3 @@
-import { readFileSync, readdirSync, rmSync } from "node:fs";
-import path from "node:path";
-
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { seedCatalogos } from "../prisma/seed";
@@ -9,103 +5,15 @@ import { PrismaClient } from "../src/generated/prisma/client";
 import { crearClientePrueba } from "./db";
 
 // Spec: modelo-datos (MODIFIED por agregar-panel-admin) · Requirement "Estado
-// de revisión, origen y timestamps del ciclo de vida": los campos nuevos
-// `rechazadoEn` y `motivoRechazo`, su migración sobre una base con datos y su
-// limpieza al volver a revisión.
+// de revisión, origen y timestamps del ciclo de vida": los campos
+// `rechazadoEn` y `motivoRechazo` y su limpieza al volver a revisión.
+//
+// Lo que ANTES probaba este archivo replicando migraciones a mano —que los
+// dos campos nacen nulos en las filas que ya existían— vive ahora en
+// `tests/modelo-migraciones.test.ts`, contra el árbol consolidado en
+// PostgreSQL (change `preparar-deploy-produccion`, design.md §4).
 //
 // Datos 100% ficticios (repo público + LFPDPPP): números 771000 9xxx.
-
-const raiz = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
-const carpetaMigraciones = path.join(raiz, "prisma/migrations");
-
-/** Carpetas de migración en el orden en que Prisma las aplica (por nombre). */
-function migracionesEnOrden(): string[] {
-  return readdirSync(carpetaMigraciones, { withFileTypes: true })
-    .filter((entrada) => entrada.isDirectory())
-    .map((entrada) => entrada.name)
-    .sort();
-}
-
-function sql(migracion: string): string {
-  return readFileSync(path.join(carpetaMigraciones, migracion, "migration.sql"), "utf8");
-}
-
-/** Cada sentencia de un archivo de migración, sin comentarios ni vacíos. */
-function sentencias(migracion: string): string[] {
-  // Los comentarios se quitan ANTES de partir por ";": un comentario puede
-  // contener punto y coma (pasa en la migración del buscador) y partirlo a la
-  // mitad deja fragmentos que no son SQL.
-  return sql(migracion)
-    .split("\n")
-    .filter((linea) => !linea.trimStart().startsWith("--"))
-    .join("\n")
-    .split(";")
-    .map((sentencia) => sentencia.trim())
-    .filter((sentencia) => sentencia !== "");
-}
-
-describe("modelo-datos · migración de rechazadoEn y motivoRechazo", () => {
-  // Scenario: migración sobre una base con datos
-  it("se aplica sobre una base con negocios en los tres estados sin perder filas", async () => {
-    const archivo = path.join(raiz, "prisma/test-migracion-rechazo.db");
-    rmSync(archivo, { force: true });
-    const db = new PrismaClient({
-      adapter: new PrismaBetterSqlite3({ url: "file:./prisma/test-migracion-rechazo.db" }),
-    });
-    const ejecutar = (instruccion: string) => db.$executeRawUnsafe(instruccion);
-
-    try {
-      const [inicial, ...posteriores] = migracionesEnOrden();
-      expect(posteriores.length).toBeGreaterThanOrEqual(1);
-
-      // Base "vieja": solo la migración inicial, con datos ya dentro.
-      for (const instruccion of sentencias(inicial)) await ejecutar(instruccion);
-      await ejecutar(
-        `INSERT INTO "Categoria" ("nombre", "slug") VALUES ('Talleres', 'talleres')`,
-      );
-      for (const [id, nombre, whatsapp, estado] of [
-        ["viejo-publicado", "Taller Ficticio Uno", "7710009001", "publicado"],
-        ["viejo-revision", "Taller Ficticio Dos", "7710009002", "en_revision"],
-        ["viejo-rechazado", "Taller Ficticio Tres", "7710009003", "rechazado"],
-      ]) {
-        await ejecutar(
-          `INSERT INTO "Negocio" ("id","nombre","categoriaId","whatsapp","consintioAvisoEn","estado","registradoEn")
-           VALUES ('${id}','${nombre}',1,'${whatsapp}','2026-08-01 10:00:00','${estado}','2026-08-01 10:00:00')`,
-        );
-      }
-
-      // Y ahora la migración nueva, sobre esa base que ya tiene datos.
-      for (const migracion of posteriores) {
-        for (const instruccion of sentencias(migracion)) await ejecutar(instruccion);
-      }
-
-      const filas = await db.$queryRawUnsafe<Array<Record<string, unknown>>>(
-        'SELECT "id","nombre","whatsapp","estado","rechazadoEn","motivoRechazo" FROM "Negocio" ORDER BY "id"',
-      );
-
-      expect(filas).toHaveLength(3);
-      expect(filas.map((fila) => fila.estado)).toEqual([
-        "publicado",
-        "rechazado",
-        "en_revision",
-      ]);
-      expect(filas.map((fila) => fila.nombre)).toEqual([
-        "Taller Ficticio Uno",
-        "Taller Ficticio Tres",
-        "Taller Ficticio Dos",
-      ]);
-      // Los dos campos nuevos quedan nulos en todas las filas que ya existían.
-      for (const fila of filas) {
-        expect(fila.rechazadoEn).toBeNull();
-        expect(fila.motivoRechazo).toBeNull();
-      }
-    } finally {
-      await db.$disconnect();
-      rmSync(archivo, { force: true });
-      rmSync(`${archivo}-journal`, { force: true });
-    }
-  });
-});
 
 describe("modelo-datos · rastro del rechazo en el cliente Prisma", () => {
   let prisma: PrismaClient;

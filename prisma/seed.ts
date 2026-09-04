@@ -3,10 +3,9 @@
  * Se corre con `npm run db:seed` (o `prisma db seed`). Solo datos de catálogo:
  * nunca negocios ni datos personales (repo público + LFPDPPP).
  */
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
-
 import { PrismaClient } from "../src/generated/prisma/client";
 import { slugify } from "../src/lib/slug";
+import { crearClienteDeScript } from "./cliente-script";
 
 // Las 8 categorías del formulario (PRD §6.1)
 export const CATEGORIAS = [
@@ -145,10 +144,7 @@ export async function seedCatalogos(prisma: PrismaClient): Promise<void> {
 // al importarse desde los tests no corre nada.
 const ejecutadoDirecto = process.argv[1]?.endsWith("seed.ts") ?? false;
 if (ejecutadoDirecto) {
-  const adapter = new PrismaBetterSqlite3({
-    url: process.env.DATABASE_URL ?? "file:./prisma/dev.db",
-  });
-  const prisma = new PrismaClient({ adapter });
+  const prisma = crearClienteDeScript();
   seedCatalogos(prisma)
     .then(async () => {
       const conteos = {

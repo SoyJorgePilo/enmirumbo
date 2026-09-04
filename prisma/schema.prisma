@@ -1,6 +1,15 @@
 // Modelo de datos del directorio (spec: modelo-datos · ticket T-001).
-// SQLite en dev (ADR-001): estado y origen son String con CHECK en la
-// migración inicial; los literales válidos viven en src/lib/negocio.ts.
+//
+// PostgreSQL en TODOS los entornos —desarrollo, pruebas, CI y producción—
+// (ADR-004, ejecutado en T-013 / change `preparar-deploy-produccion`,
+// design.md §2 opción C). Un solo `provider`, un solo árbol de migraciones y
+// un solo dialecto: el que corre en Supabase es el que corre en la laptop.
+// Enmienda ADR-001, que había elegido SQLite para desarrollo.
+//
+// `estado`, `origen`, `Reporte.motivo` y `Reporte.estado` son String con
+// CHECK escritos A MANO en la migración inicial: Prisma no los expresa en el
+// esquema. Los literales válidos viven en src/lib/negocio.ts,
+// src/lib/reportes/motivos.ts y src/lib/reportes/estados.ts.
 
 generator client {
   provider = "prisma-client"
@@ -8,7 +17,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
 }
 
 // ── Catálogos (poblados por prisma/seed.ts, slugs para URLs SEO) ────────────
@@ -87,7 +96,8 @@ model Negocio {
 
   // Texto derivado SOLO para el buscador (change `agregar-buscador`,
   // design.md §1): copia sin acentos ni mayúsculas de `nombre` y `queOfreces`,
-  // porque SQLite no compara ignorando acentos. Nunca se editan a mano ni se
+  // porque la base no compara ignorando acentos (ni SQLite entonces, ni
+  // PostgreSQL sin extensiones hoy). Nunca se editan a mano ni se
   // muestran: los calcula `datosDeBusqueda` (src/lib/busqueda.ts) en cada
   // escritura. El default "" existe solo para poder migrar filas ya guardadas;
   // `npm run db:backfill:busqueda` las rellena.
@@ -137,7 +147,9 @@ model Negocio {
  * guarda no se puede filtrar).
  *
  * `motivo` y `estado` son texto con CHECK en la migración, igual que
- * `estado`/`origen` del negocio (ADR-001: SQLite no tiene enums). Los valores
+ * `estado`/`origen` del negocio. Texto con CHECK y no un enum de PostgreSQL a
+ * propósito: agregar un valor a un enum es DDL que bloquea la tabla y el
+ * vocabulario ya vive en TypeScript. Los valores
  * válidos viven en `src/lib/reportes/motivos.ts` y `src/lib/reportes/estados.ts`.
  */
 model Reporte {
@@ -157,4 +169,40 @@ model Reporte {
 
   // La cola del panel pregunta siempre "pendientes de este negocio".
   @@index([negocioId, estado])
+}
+
+// ── Cupos anti-abuso compartidos (PRD §8) ───────────────────────────────────
+
+/**
+ * Un intento contado contra un cupo, en la base y no en la memoria del proceso
+ * (change `preparar-deploy-produccion`, iteración 2, hallazgo A4 de la etapa
+ * C). En un hosting serverless (ADR-007) cada instancia tiene su propia
+ * memoria: un contador en RAM le da al atacante tantos intentos como
+ * instancias consiga levantar, y se evapora cuando la instancia se recicla.
+ *
+ * HOY LO USA UN SOLO CUPO: los intentos de acceso al panel, que es lo único
+ * que protege `PANEL_CONTRASENA` —la única credencial del sitio, sin cuentas,
+ * sin MFA y sin recuperación—. Los cupos del formulario público y de los
+ * reportes NO viven aquí: el aviso de privacidad publicado promete que la IP
+ * de un vecino se usa "solo en su memoria" y que "no la guardamos en la base
+ * de datos", y ese texto no se toca en este change (ver `docs/despliegue.md`
+ * §10 y `PENDIENTES_OPERATIVOS_LEGALES`).
+ *
+ * `clave` NO es una IP: es un HMAC-SHA256 de la IP con el secreto de sesión
+ * del panel, truncado. No se puede volver atrás sin el secreto y no sirve para
+ * cruzar con nada. Las filas se borran al salir de su ventana cuando se vuelve
+ * a contar esa clave, y la tarea programada diaria recoge las demás y poda la
+ * tabla si pasa de su techo (`limpiarCuposCaducados`).
+ */
+model IntentoDeCupo {
+  id String @id @default(cuid())
+
+  /** Cupo + procedencia, ya derivada: nunca un dato directo de nadie. */
+  clave String
+
+  /** Cuándo ocurrió. La ventana deslizante se cuenta sobre esto. */
+  ocurrioEn DateTime @default(now())
+
+  // La única pregunta que se hace: "cuántos de esta clave desde tal momento".
+  @@index([clave, ocurrioEn])
 }

@@ -13,15 +13,18 @@
  * fotos de todos los negocios publicados. Se escribe a mano, después de haber
  * mirado el `--dry-run`.
  *
- * En producción esto le toca a un cron; queda anotado para T-013, junto con la
- * purga de registros rechazados a los 90 días (PRD §8), que es el otro
- * barrido periódico del sistema.
+ * En producción esto lo dispara un cron —la ruta `/api/tareas/barrer-fotos-huerfanas`,
+ * que corre la MISMA lógica— junto con la purga de registros rechazados a los
+ * 90 días (PRD §8), el otro barrido periódico del sistema. Este comando queda
+ * para operar a mano: el `--dry-run` y el `--forzar` no tienen equivalente por
+ * HTTP a propósito.
+ *
+ * Mira el almacén configurado, sea el disco local o Supabase Storage: el
+ * barrido se lo pregunta al puerto, no al sistema de archivos.
  */
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
-
-import { PrismaClient } from "../src/generated/prisma/client";
-import { directorioDeFotos } from "../src/lib/fotos/almacen";
+import { almacenDeFotos } from "../src/lib/fotos/almacen";
 import { barrerFotosHuerfanas } from "../src/lib/fotos/huerfanas";
+import { crearClienteDeScript } from "./cliente-script";
 
 const ejecutadoDirecto =
   process.argv[1]?.endsWith("barrer-fotos-huerfanas.ts") ?? false;
@@ -36,13 +39,11 @@ if (ejecutadoDirecto) {
 
   const soloInformar = process.argv.includes("--dry-run");
   const forzar = process.argv.includes("--forzar");
-  const adapter = new PrismaBetterSqlite3({
-    url: process.env.DATABASE_URL ?? "file:./prisma/dev.db",
-  });
-  const prisma = new PrismaClient({ adapter });
+  const prisma = crearClienteDeScript();
 
-  console.log(`Barriendo fotos sin dueño en ${directorioDeFotos()}`);
-  barrerFotosHuerfanas({ prisma, soloInformar, forzar })
+  const almacen = almacenDeFotos();
+  console.log(`Barriendo fotos sin dueño en ${almacen.descripcion()}`);
+  barrerFotosHuerfanas({ prisma, almacen, soloInformar, forzar })
     .then((resultado) => {
       console.log(resultado.mensaje);
       if (resultado.enPeriodoDeGracia > 0) {

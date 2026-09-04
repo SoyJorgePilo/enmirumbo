@@ -28,6 +28,7 @@ import {
 import { marcarReporteAtendido } from "../src/lib/admin/reportes";
 import { NOMBRE_COOKIE_SESION, crearValorDeSesion } from "../src/lib/admin/sesion";
 import { construirSegmentoFicha } from "../src/lib/ficha-url";
+import { crearReporte } from "../src/lib/reportes/crear";
 import {
   NOMBRE_COOKIE_BORRADOR,
   codificarBorrador,
@@ -554,13 +555,41 @@ describe("adversarial · el comentario nunca se interpreta como marcado en el pa
     expect(seccion).not.toContain(">Reporte atendido.<");
   });
 
-  it("un comentario con un byte nulo y marcado se pinta escapado, dentro del parrafo", async () => {
-    const payload = "cerro\u0000<script>alert(1)</script>\u0000ya";
-    const seccion = seccionDeReportes(await panelCon(payload));
+  // PostgreSQL no admite el byte nulo en una columna de texto (change
+  // `preparar-deploy-produccion`): dejarlo llegar a la base convertiría un
+  // comentario raro en un error del servidor. Se cae en el BORDE
+  // (`sinBytesNulos`, src/lib/reportes/crear.ts) y lo demás no cambia: lo que
+  // el vecino escribió se guarda tal cual y el panel lo pinta escapado.
+  it("un comentario con un byte nulo se guarda sin él y se pinta escapado", async () => {
+    const enviado = "cerro\u0000<script>alert(1)</script>\u0000ya";
+
+    reiniciarCupoDeReportes();
+    expect(
+      await crearReporte(prisma, {
+        negocioId: idPublicado,
+        motivo: "cerrado",
+        comentario: enviado,
+        trampa: "",
+        ip: null,
+      }),
+    ).toEqual({ resultado: "creado" });
+
+    const fila = await prisma.reporte.findFirstOrThrow({
+      where: { negocioId: idPublicado },
+    });
+    expect(fila.comentario).toBe("cerro<script>alert(1)</script>ya");
+
+    conSesion();
+    const seccion = seccionDeReportes(
+      await render(
+        DetalleRegistroAdminPage({
+          params: Promise.resolve({ id: idPublicado }),
+          searchParams: Promise.resolve({}),
+        } as never),
+      ),
+    );
     expect(seccion).not.toContain("<script");
     expect(seccion).toContain("&lt;script&gt;alert(1)&lt;/script&gt;");
-    const fila = await prisma.reporte.findFirstOrThrow({ where: { negocioId: idPublicado } });
-    expect(fila.comentario).toBe(payload);
   });
 
   it("un comentario que imita otro motivo no cambia la etiqueta del reporte", async () => {
@@ -691,18 +720,18 @@ describe("adversarial · atender reportes solo desde el panel y sin sorpresas", 
 // ── 6. La migración: los CHECK forzados con INSERT crudo ────────────────────
 //
 // El dev prueba los CHECK a través de Prisma. Aquí se van por debajo, con SQL
-// crudo, que es como llegaría un script de operación o un `sqlite3` a mano.
+// crudo, que es como llegaría un script de operación o un `psql` a mano.
 
 describe("adversarial · los CHECK de la migración aguantan un INSERT crudo", () => {
   async function insertar(motivo: string, estado: string): Promise<"ok" | "rechazado"> {
     try {
       await prisma.$executeRawUnsafe(
-        `INSERT INTO "Reporte" ("id","negocioId","motivo","estado","creadoEn") VALUES (?,?,?,?,?)`,
+        `INSERT INTO "Reporte" ("id","negocioId","motivo","estado","creadoEn") VALUES ($1,$2,$3,$4,$5)`,
         `crudo-${Math.random().toString(36).slice(2)}`,
         idPublicado,
         motivo,
         estado,
-        Date.now(),
+        new Date(),
       );
       return "ok";
     } catch {
@@ -746,12 +775,12 @@ describe("adversarial · los CHECK de la migración aguantan un INSERT crudo", (
   it("la base rechaza un reporte huérfano (negocio inexistente)", async () => {
     await expect(
       prisma.$executeRawUnsafe(
-        `INSERT INTO "Reporte" ("id","negocioId","motivo","estado","creadoEn") VALUES (?,?,?,?,?)`,
+        `INSERT INTO "Reporte" ("id","negocioId","motivo","estado","creadoEn") VALUES ($1,$2,$3,$4,$5)`,
         "crudo-huerfano",
         "negocio-que-no-existe",
         "cerrado",
         "pendiente",
-        Date.now(),
+        new Date(),
       ),
     ).rejects.toThrow();
     expect(await prisma.reporte.count()).toBe(0);

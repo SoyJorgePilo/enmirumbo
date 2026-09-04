@@ -112,11 +112,39 @@ export const PENDIENTES_OPERATIVOS_LEGALES = [
     hoy: "Se hace a mano contra la base: el panel no edita los datos de un negocio ni se los entrega. La cancelación sí quedó resuelta: despublicar y borrar ya son acciones del panel (T-015).",
     ticket: "E3-6 (acceso y rectificación en el panel; E8-2 lo resolvería del lado del negocio)",
   },
+  // SALIÓ con el change `preparar-deploy-produccion` (T-013) el renglón de la
+  // purga de rechazados a los 90 días: ya no es un pendiente operativo porque
+  // el sistema la ejecuta solo (`src/lib/purga/rechazados.ts`, disparada por
+  // una tarea programada diaria). Lo que ENTRA en su lugar es lo que ADR-004
+  // exige antes del lanzamiento y sigue sin cumplirse.
   {
     compromiso:
-      "Eliminar definitivamente los datos de los registros rechazados a los 90 días.",
-    hoy: "No hay purga: `rechazadoEn` fecha el rechazo, pero nada la ejecuta.",
-    ticket: "E0-3 (purga de rechazados)",
+      'El aviso dice que los datos los tratan "los proveedores que hacen funcionar el sitio (hospedaje y base de datos)", sin nombrarlos.',
+    hoy: "ADR-004 exige nombrar al encargado del tratamiento —hoy sería Supabase, ADR-007 para el hospedaje— antes del lanzamiento, y eso solo puede escribirse cuando la cuenta exista. El texto legal aprobado no se toca hasta entonces.",
+    ticket: "E6-3 (revisión legal profesional, con la cuenta ya creada)",
+  },
+  // ENTRA en la iteración 2 del change `preparar-deploy-produccion` (hallazgo
+  // A4 de la etapa C). Es el caso raro y por eso hay que declararlo: aquí el
+  // texto publicado NO promete de más, promete de menos que lo que el sistema
+  // necesita para defenderse, y por eso el sistema se queda corto a propósito.
+  {
+    compromiso:
+      'El aviso dice que la dirección IP de quien envía el formulario se usa "por menos de una hora, solo en su memoria" y que "no la guardamos en la base de datos".',
+    hoy: "El sistema lo cumple: los cupos del formulario público y de los reportes cuentan en la memoria de cada proceso. El precio es que en un hosting serverless ese conteo es POR INSTANCIA, así que acota el abuso casual y no una campaña. Moverlos a un almacén compartido (como ya se hizo con los intentos de acceso al panel, que guardan un HMAC y no la IP) haría falsa esa frase del aviso, así que hace falta que la revisión legal apruebe primero la redacción nueva.",
+    ticket: "E6-3 (redacción del aviso) y después E0-3 (mover los dos cupos)",
+  },
+  // ENTRA en la iteración 3 del change `preparar-deploy-produccion` (hallazgo
+  // R3 de la etapa C). Es un tratamiento NUEVO que el aviso publicado no
+  // menciona, y que no contradice nada de lo que dice —la frase de la IP habla
+  // del formulario de registro, con otra finalidad y otro destinatario—, pero
+  // que tampoco está declarado en ninguna parte. Se declara aquí, que es el
+  // mecanismo del proyecto para eso, para que la revisión legal lo vea como
+  // asunto propio y decida si el aviso necesita una línea.
+  {
+    compromiso:
+      "El aviso no menciona que el sistema guarde nada de quien intenta entrar al panel /admin, que es una página pública: cualquiera puede abrirla y enviar el formulario.",
+    hoy: "Al enviar ese formulario, el servidor guarda UNA FILA por intento con: un HMAC-SHA256 de la IP (nunca la IP, y sin el secreto del despliegue no se puede revertir), la hora, y nada más. Finalidad: frenar la fuerza bruta contra la única credencial del sitio, que es la medida de seguridad que el art. 19 LFPDPPP exige al responsable. Duración: la ventana del límite (10 minutos); lo que sale de ella se borra al volver a contar esa clave y, si nadie vuelve, lo recoge la tarea programada diaria — nada sobrevive más de una hora. Alcanza a cualquiera que envíe ese formulario, no solo al admin.",
+    ticket: "E6-3 (la revisión legal decide si el aviso necesita una línea)",
   },
 ] as const;
 

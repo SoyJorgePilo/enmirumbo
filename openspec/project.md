@@ -7,7 +7,7 @@ Directorio web donde los negocios de Tizayuca se registran solos (sin cuentas ni
 ## Stack
 
 - Next.js (App Router) + TypeScript + Tailwind CSS
-- Prisma + SQLite (desarrollo); DB de producción por decidir en E0-3 (ver `docs/decisiones/ADR-001-stack.md`)
+- Prisma + PostgreSQL en todos los entornos: desarrollo, pruebas, CI y producción (ADR-004; enmienda a ADR-001). La base local se levanta con `npm run db:local`; en producción es Supabase — ver `docs/despliegue.md`
 - Sin sistema de cuentas: el registro es anónimo con revisión, la edición usa enlaces secretos de gestión (P1)
 
 ## Convenciones

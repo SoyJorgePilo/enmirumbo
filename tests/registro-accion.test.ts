@@ -534,7 +534,7 @@ describe("procesarRegistro (Server Action de registro)", () => {
         get(objetivo, propiedad, receptor) {
           if (propiedad === "create") {
             return async () => {
-              throw new Error("SQLITE_BUSY: database is locked");
+              throw new Error("57014: canceling statement due to lock timeout");
             };
           }
           return Reflect.get(objetivo, propiedad, receptor);

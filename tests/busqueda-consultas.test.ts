@@ -272,6 +272,10 @@ describe("directorio-publico · orden y proyección de la búsqueda (tasks #8)",
     const [negocio] = await buscarNegociosPublicados("taqueria");
     expect(Object.keys(negocio).sort()).toEqual(
       [
+        // `categoriaSlug` lo sumó el change `agregar-analitica-cookieless`:
+        // en los resultados conviven categorías distintas y el evento de la
+        // tarjeta tiene que mandar la del negocio.
+        "categoriaSlug",
         "coloniaNombre",
         "coloniaSlug",
         "entregaADomicilio",

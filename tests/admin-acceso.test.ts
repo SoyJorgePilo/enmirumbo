@@ -308,12 +308,25 @@ describe("revision-admin · fail-safe sin configuración", () => {
 // verificable del código, no la memoria de quien programa.
 describe("revision-admin · toda ruta y toda acción del panel invocan la guarda", () => {
   /**
-   * Las dos únicas excepciones, y por qué: la pantalla de acceso ES el
-   * destino de la guarda (pedirle sesión sería un bucle) y la acción de salir
-   * solo caduca una cookie del propio navegador. El test comprueba además que
-   * ninguna de las dos toca la base ni las consultas del panel.
+   * Las únicas excepciones, y por qué: la pantalla de acceso ES el destino de
+   * la guarda (pedirle sesión sería un bucle), la acción de salir solo caduca
+   * una cookie del propio navegador, y el layout del panel —agregado por el
+   * change `agregar-analitica-cookieless` para cortar el referente— no
+   * renderiza contenido ni lee nada: solo declara metadata y deja pasar a sus
+   * hijos, que sí exigen sesión cada uno. La quinta es la ruta comodín que
+   * responde 404 a cualquier URL del panel que no existe (observación O-1):
+   * no hay nada que proteger detrás de una ruta inexistente, y pedir sesión
+   * para decir "no existe" delataría más de lo que oculta. El test comprueba
+   * además que ninguna de las excepciones toca la base ni las consultas del
+   * panel.
    */
-  const EXCEPCIONES = ["src/app/admin/page.tsx", "src/app/admin/accion-acceso.ts", "src/app/admin/accion-salir.ts"];
+  const EXCEPCIONES = [
+    "src/app/admin/page.tsx",
+    "src/app/admin/accion-acceso.ts",
+    "src/app/admin/accion-salir.ts",
+    "src/app/admin/layout.tsx",
+    "src/app/admin/[...resto]/page.tsx",
+  ];
 
   function archivosDe(dir: string): string[] {
     return readdirSync(dir, { withFileTypes: true }).flatMap((entrada) => {
@@ -344,6 +357,7 @@ describe("revision-admin · toda ruta y toda acción del panel invocan la guarda
     for (const ruta of EXCEPCIONES) {
       const codigo = readFileSync(join(raiz, ruta), "utf8");
       expect(codigo, ruta).not.toContain("obtenerPrisma");
+      expect(codigo, ruta).not.toContain("prisma.");
       expect(codigo, ruta).not.toContain("@/lib/admin/consultas");
       expect(codigo, ruta).not.toContain("@/lib/admin/transiciones");
     }

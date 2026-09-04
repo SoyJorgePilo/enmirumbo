@@ -20,8 +20,8 @@ vi.mock("@/lib/legales/textos", async () => {
   return { ...real, PLACEHOLDERS_LEGALES: [], HAY_PLACEHOLDERS_PENDIENTES: false };
 });
 
-import AvisoDePrivacidadPage from "../src/app/aviso-de-privacidad/page";
-import TerminosPage from "../src/app/terminos/page";
+import AvisoDePrivacidadPage from "../src/app/(publico)/aviso-de-privacidad/page";
+import TerminosPage from "../src/app/(publico)/terminos/page";
 import { TEXTO_MARCA_BORRADOR } from "../src/lib/legales/textos";
 
 describe("paginas-legales · la marca de borrador se apaga sola", () => {

@@ -9,9 +9,9 @@ import {
   motivoParaNoSembrar,
   sembrarNegociosDemo,
 } from "../prisma/seed-demo";
-import ListadoCategoriaPage from "../src/app/[categoria]/page";
-import FichaNegocioPage from "../src/app/negocio/[ficha]/page";
-import Home from "../src/app/page";
+import ListadoCategoriaPage from "../src/app/(publico)/[categoria]/page";
+import FichaNegocioPage from "../src/app/(publico)/negocio/[ficha]/page";
+import Home from "../src/app/(publico)/page";
 import type { PrismaClient } from "../src/generated/prisma/client";
 import {
   listarCategorias,

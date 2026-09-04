@@ -120,6 +120,8 @@ export default async function ListadoCategoriaPage({
               <TarjetaNegocio
                 nombre={negocio.nombre}
                 coloniaNombre={negocio.coloniaNombre}
+                categoriaSlug={negocio.categoriaSlug}
+                coloniaSlug={negocio.coloniaSlug}
                 entregaADomicilio={negocio.entregaADomicilio}
                 fotoUrl={negocio.fotoUrl}
                 hrefFicha={`/negocio/${construirSegmentoFicha(negocio.nombre, negocio.id)}`}

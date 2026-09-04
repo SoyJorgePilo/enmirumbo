@@ -93,6 +93,8 @@ export default async function FichaNegocioPage({
 
       <BotonesContacto
         nombre={negocio.nombre}
+        categoriaSlug={negocio.categoriaSlug}
+        coloniaSlug={negocio.coloniaSlug}
         hrefWhatsapp={construirEnlaceWhatsapp(negocio.whatsapp)}
         hrefLlamar={hrefLlamar}
         hrefComoLlegar={hrefComoLlegar}

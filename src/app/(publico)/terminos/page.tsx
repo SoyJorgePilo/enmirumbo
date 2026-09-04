@@ -8,7 +8,7 @@ import { DESCRIPCION_TERMINOS, TERMINOS, TITULO_TERMINOS } from "@/lib/legales/t
  * términos y condiciones en /terminos"; tasks.md #12). Server Component
  * dentro del layout global, sin directiva de cliente ni bundle propio.
  * Indexable: metadata propia y ninguna directiva que pida a los buscadores
- * no indexarla (ver la nota de `src/app/aviso-de-privacidad/page.tsx`).
+ * no indexarla (ver la nota de `src/app/(publico)/aviso-de-privacidad/page.tsx`).
  */
 export const metadata: Metadata = {
   title: TITULO_TERMINOS,

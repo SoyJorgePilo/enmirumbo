@@ -18,8 +18,8 @@ import { aprobarRegistroAccion } from "../src/app/admin/registros/[id]/accion-ap
 import { rechazarRegistroAccion } from "../src/app/admin/registros/[id]/accion-rechazar";
 import DetalleRegistroAdminPage from "../src/app/admin/registros/[id]/page";
 import RegistroRechazadoPage from "../src/app/admin/registros/[id]/rechazado/page";
-import ListadoCategoriaPage from "../src/app/[categoria]/page";
-import FichaNegocioPage from "../src/app/negocio/[ficha]/page";
+import ListadoCategoriaPage from "../src/app/(publico)/[categoria]/page";
+import FichaNegocioPage from "../src/app/(publico)/negocio/[ficha]/page";
 import type { PrismaClient } from "../src/generated/prisma/client";
 import {
   LONGITUD_MINIMA_SECRETO,
@@ -553,6 +553,14 @@ describe("adversarial · la guarda se invoca antes de leer o escribir nada", () 
     "src/app/admin/page.tsx",
     "src/app/admin/accion-acceso.ts",
     "src/app/admin/accion-salir.ts",
+    // Layout del panel (change `agregar-analitica-cookieless`): no renderiza
+    // contenido ni accede a datos; solo declara la política de referente y
+    // deja pasar a sus hijos, que sí exigen sesión cada uno.
+    "src/app/admin/layout.tsx",
+    // Ruta comodín del panel: solo llama a `notFound()` para que las URLs
+    // inexistentes de /admin también hereden esa política (O-1). No lee ni
+    // escribe nada, y responde 404 igual para todos, con o sin sesión.
+    "src/app/admin/[...resto]/page.tsx",
   ];
 
   function archivosDe(dir: string): string[] {

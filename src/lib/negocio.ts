@@ -21,14 +21,15 @@ export const ESTADO_NEGOCIO_PUBLICADO: EstadoNegocio = "publicado";
 export const ESTADO_NEGOCIO_RECHAZADO: EstadoNegocio = "rechazado";
 export const ORIGEN_NEGOCIO_DEFAULT: OrigenNegocio = "organico";
 
-/** Lo poco que el borrado definitivo necesita de Prisma. */
+/**
+ * Lo poco que el borrado definitivo necesita de Prisma. Estructural y laxo (el
+ * mismo molde que `ClienteTransiciones`) para que el panel pueda pasarle su
+ * propio cliente y las pruebas, uno de mentiras.
+ */
 export type ClienteBorrado = {
   negocio: {
-    findUnique(args: {
-      where: { id: string };
-      select: { fotoClave: true };
-    }): Promise<{ fotoClave: string | null } | null>;
-    delete(args: { where: { id: string } }): Promise<unknown>;
+    findUnique(args: unknown): Promise<unknown>;
+    deleteMany(args: unknown): Promise<{ count: number }>;
   };
 };
 
@@ -43,22 +44,32 @@ export type ClienteBorrado = {
  * peor. Y si los archivos ya no estaban, la operación se completa igual (spec
  * `modelo-datos`, scenario "borrado con el archivo ya ausente").
  *
- * Devuelve `false` si ese identificador no existía; no lanza por eso.
+ * `deleteMany` y no `delete` (T-015, `agregar-despublicar-y-borrado-arco`):
+ * desde que esta función tiene un botón detrás —el borrado ARCO del panel—,
+ * borrar dos veces es un caso real (otra pestaña, un doble toque), y una
+ * excepción dentro de una Server Action es un HTTP 500. `deleteMany` sobre una
+ * fila que ya no está devuelve `count: 0` en vez de lanzar P2025, así que la
+ * idempotencia la sostiene la consulta y no una comprobación previa que otra
+ * petición puede invalidar en el intervalo.
+ *
+ * Devuelve `false` si ese identificador ya no existía; no lanza por eso.
  */
 export async function borrarNegocioDefinitivamente(
   prisma: ClienteBorrado,
   id: string,
   almacen: AlmacenFotos = almacenDeFotos(),
 ): Promise<boolean> {
-  const negocio = await prisma.negocio.findUnique({
+  // La clave se lee ANTES de borrar la fila: después ya no hay de dónde
+  // sacarla, y un archivo sin fila es justo lo que barre `fotos/huerfanas.ts`.
+  const negocio = (await prisma.negocio.findUnique({
     where: { id },
     select: { fotoClave: true },
-  });
-  if (!negocio) return false;
+  })) as { fotoClave?: string | null } | null;
 
-  await prisma.negocio.delete({ where: { id } });
+  const { count } = await prisma.negocio.deleteMany({ where: { id } });
+  if (count === 0) return false;
 
-  if (negocio.fotoClave) {
+  if (negocio?.fotoClave) {
     await almacen.borrar(negocio.fotoClave);
   }
   return true;

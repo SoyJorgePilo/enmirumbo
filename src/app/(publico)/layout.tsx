@@ -14,6 +14,14 @@ import { ScriptAnalitica } from "@/components/analitica/script-analitica";
  * fuera del grupo y por eso no se mide, que es el efecto lateral aceptado en
  * el diseño.
  *
+ * Matiz medido al fusionar el SEO local (T-009), para que nadie lo lea de
+ * más: eso vale para las URLs que no casan con NINGUNA ruta (`/a/b/c`). Las
+ * que casan con el segmento dinámico de la raíz y llaman a `notFound()` desde
+ * dentro —`/loquesea`, `/negocio/inexistente`— resuelven su 404 dentro del
+ * grupo y sí se miden. Da igual para la privacidad (la ruta es pública y la
+ * cadena de consulta va excluida) y para el §10 (un 404 no es una vista de
+ * ficha).
+ *
  * No repinta `<html>`, `<body>`, header ni footer: todo eso sigue en
  * `src/app/layout.tsx`. Server Component sin JavaScript propio.
  */

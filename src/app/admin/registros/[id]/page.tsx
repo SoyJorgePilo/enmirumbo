@@ -2,15 +2,22 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { aprobarRegistroAccion } from "@/app/admin/registros/[id]/accion-aprobar";
+import { despublicarRegistroAccion } from "@/app/admin/registros/[id]/accion-despublicar";
 import { rechazarRegistroAccion } from "@/app/admin/registros/[id]/accion-rechazar";
 import { BotonWhatsapp } from "@/components/admin/boton-whatsapp";
+import { ControlBorrar } from "@/components/admin/control-borrar";
 import { DetalleRegistro } from "@/components/admin/detalle-registro";
 import { FormularioAprobar } from "@/components/admin/formulario-aprobar";
+import { FormularioDespublicar } from "@/components/admin/formulario-despublicar";
 import { FormularioRechazar } from "@/components/admin/formulario-rechazar";
 import { obtenerRegistroParaPanel } from "@/lib/admin/consultas";
 import { requerirSesionAdmin } from "@/lib/admin/guarda";
-import { BOTON_WHATSAPP_VERIFICACION, mensajeVerificacion } from "@/lib/admin/textos";
-import { ESTADO_NEGOCIO_DEFAULT } from "@/lib/negocio";
+import {
+  BOTON_WHATSAPP_VERIFICACION,
+  MENSAJE_YA_NO_PUBLICADA,
+  mensajeVerificacion,
+} from "@/lib/admin/textos";
+import { ESTADO_NEGOCIO_DEFAULT, ESTADO_NEGOCIO_PUBLICADO } from "@/lib/negocio";
 import { obtenerPrisma } from "@/lib/prisma";
 
 export const metadata: Metadata = { robots: { index: false, follow: false } };
@@ -53,11 +60,31 @@ export default async function DetalleRegistroAdminPage({
 
   const errorAprobar = primeraCadena(sp.errorAprobar);
   const errorRechazar = primeraCadena(sp.errorRechazar);
-  const girosSeleccionados = listaCadenas(sp.giro).map(Number);
+  // `motivo` (no escribió nada) y `longitud` (se pasó de la cota) son los dos
+  // errores que devuelve `despublicarFicha`; cualquier otro valor en la URL se
+  // ignora en vez de pintar un error inventado.
+  const errorDespublicarCrudo = primeraCadena(sp.errorDespublicar);
+  const errorDespublicar =
+    errorDespublicarCrudo === "motivo" || errorDespublicarCrudo === "longitud"
+      ? errorDespublicarCrudo
+      : undefined;
+  // La despublicación llegó tarde: otra pestaña ya la había bajado, o la ficha
+  // nunca llegó a publicarse. El literal es propio (no el de "ya resuelto") y
+  // el detalle es donde el admin ve en qué estado quedó de verdad.
+  const yaNoEstabaPublicada =
+    primeraCadena(sp.avisoDespublicar) === "ya-no-publicada";
+  // Republicar es aprobar de nuevo (design.md §2): si no hay error que
+  // conservar, los giros que ya llegan del registro (asignados en una
+  // publicación anterior, ver `RegistroAdminDetalle.girosIds`) se
+  // premarcan, para que el admin no los borre sin darse cuenta.
+  const girosSeleccionados = sp.giro
+    ? listaCadenas(sp.giro).map(Number)
+    : (registro.girosIds ?? []);
   const coloniaSeleccionada = primeraCadena(sp.colonia);
   const origenSeleccionado = primeraCadena(sp.origen) === "siembra" ? "siembra" : "organico";
 
   const enRevision = registro.estado === ESTADO_NEGOCIO_DEFAULT;
+  const publicado = registro.estado === ESTADO_NEGOCIO_PUBLICADO;
   const [giros, colonias] = enRevision
     ? await Promise.all([
         prisma.giro.findMany({ orderBy: { id: "asc" } }),
@@ -67,7 +94,21 @@ export default async function DetalleRegistroAdminPage({
 
   return (
     <article className="flex flex-col gap-8 py-4">
+      {yaNoEstabaPublicada && (
+        <p
+          role="status"
+          className="rounded-xl border border-tinta p-4 text-base font-semibold text-tinta"
+        >
+          {MENSAJE_YA_NO_PUBLICADA}
+        </p>
+      )}
+
       <DetalleRegistro registro={registro} />
+
+      {/* Reportes sin atender (agregar-boton-reportar, T-011): se integran
+          aquí, entre los datos y las acciones, cuando esa capacidad exista
+          (requirement "El detalle ofrece las acciones que corresponden al
+          estado, con el contexto a la vista"). */}
 
       <BotonWhatsapp
         whatsapp={registro.whatsapp}
@@ -95,6 +136,15 @@ export default async function DetalleRegistroAdminPage({
           />
         </>
       )}
+
+      {publicado && (
+        <FormularioDespublicar
+          action={despublicarRegistroAccion.bind(null, id)}
+          error={errorDespublicar}
+        />
+      )}
+
+      <ControlBorrar id={id} />
     </article>
   );
 }

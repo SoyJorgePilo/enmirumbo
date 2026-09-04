@@ -23,9 +23,12 @@ Next.js (App Router) · TypeScript · Tailwind CSS · Prisma + SQLite — ver [A
 
 ```bash
 npm install
-npm run dev      # http://localhost:3000
+npm run db:seed        # catálogos (categorías, colonias, giros)
+npm run db:seed:demo   # negocios FICTICIOS para ver el directorio en local
+npm run dev            # http://localhost:3000
 npm run lint
 npm run build
+npm test
 ```
 
 ## Estado

@@ -10,6 +10,7 @@
 | 2026-09-03 | agregar-layout-base | completa | 0 | 0 bloqueantes (M-1 operativo de c-seguridad atendido con staging explícito) | sí | [#3](https://github.com/SoyJorgePilo/necesitouno/pull/3) | — |
 | 2026-09-03 | deuda-post-merge | corta | — | 1 alto corregido (`.env.example` ignorado por `.gitignore`) | no | [#4](https://github.com/SoyJorgePilo/necesitouno/pull/4) | |
 | 2026-09-03 | agregar-formulario-registro | completa | 1 (1 alto + 6 medios, corregidos y re-verificados en la iteración) | 0 bloqueantes (3 notas informativas: no-op en un test, convención de teléfonos ficticios, fusión de scenarios al archivar) | sí | [#5](https://github.com/SoyJorgePilo/necesitouno/pull/5) | |
+| 2026-09-03 | agregar-directorio-publico | completa | 1 (0 críticos/altos; 2 medios corregidos —`tel:` sin normalizar y guarda del seed— y re-verificados) | 0 bloqueantes (1 decisión de producto tomada: el fijo no marcable como texto; 5 notas: format-detection, convención de fijos ficticios —reincidente—, marcador de foto en la ficha, salto h1→h3 en el listado, conteo real 14 req/54 sc) | sí | [#6](https://github.com/SoyJorgePilo/necesitouno/pull/6) | |
 
 ## Qué mirar cada ~5 corridas
 

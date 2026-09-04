@@ -6,7 +6,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { seedCatalogos } from "../prisma/seed";
-import BuscarPage from "../src/app/buscar/page";
+import BuscarPage from "../src/app/(publico)/buscar/page";
 import type { PrismaClient } from "../src/generated/prisma/client";
 import {
   LONGITUD_MAXIMA_CONSULTA,
@@ -100,6 +100,9 @@ const EN_REVISION = {
 const CONTRATO_PUBLICO_DEL_LISTADO = [
   "id",
   "nombre",
+  // Sumado por el change `agregar-analitica-cookieless`: el slug de la
+  // categoría del negocio, que la tarjeta necesita para el evento de medición.
+  "categoriaSlug",
   "coloniaNombre",
   "coloniaSlug",
   "entregaADomicilio",
@@ -614,7 +617,7 @@ describe("adversarial C · lo que llega a la base está acotado pase lo que pase
 });
 
 describe("adversarial C · el eco de ?q está acotado y sigue siendo texto", () => {
-  const CORTE = 80; // LONGITUD_MAXIMA_CONSULTA_MOSTRADA de src/app/buscar/page.tsx
+  const CORTE = 80; // LONGITUD_MAXIMA_CONSULTA_MOSTRADA de src/app/(publico)/buscar/page.tsx
 
   const valorDelCampo = (html: string) =>
     html.match(/<input[^>]*\bvalue="([^"]*)"/)?.[1] ?? "";

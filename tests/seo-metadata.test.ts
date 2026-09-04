@@ -2,8 +2,8 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { seedCatalogos } from "../prisma/seed";
 import { sembrarNegociosDemo } from "../prisma/seed-demo";
-import { generateMetadata as metadataDestino } from "../src/app/[destino]/page";
-import { generateMetadata as metadataFicha } from "../src/app/negocio/[ficha]/page";
+import { generateMetadata as metadataDestino } from "../src/app/(publico)/[destino]/page";
+import { generateMetadata as metadataFicha } from "../src/app/(publico)/negocio/[ficha]/page";
 import { metadata as metadataLayout } from "../src/app/layout";
 import type { PrismaClient } from "../src/generated/prisma/client";
 import { construirSegmentoFicha } from "../src/lib/ficha-url";

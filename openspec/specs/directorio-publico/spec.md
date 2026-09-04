@@ -157,6 +157,8 @@ El listado por categoría DEBE ofrecer un filtro por colonia (PRD §6.2) que fun
 
 Cada negocio del listado DEBE presentarse en una tarjeta con: **su foto cuando la tiene** y, cuando no, un marcador de posición neutro que no prometa una imagen; el nombre del negocio; su colonia; la etiqueta "A domicilio" solo cuando el negocio registró que hace entregas o va a domicilio; y un botón verde de WhatsApp que abre directo la conversación con ese negocio, sin pasar por la ficha (PRD §6.2). El resto de la tarjeta DEBE llevar a la ficha del negocio. El botón de WhatsApp DEBE tener un área táctil de al menos 44px y una etiqueta accesible que diga a qué negocio se le escribe. La foto DEBE llevar un texto alternativo que nombre al negocio ("Foto de <nombre del negocio>"), mientras que el marcador de posición sigue siendo decorativo y no se anuncia. Con foto o sin ella, la tarjeta DEBE ocupar el mismo espacio y no DEBE saltar cuando la imagen termina de cargar.
 
+El botón de WhatsApp de la tarjeta DEBE declarar el evento `whatsapp-tarjeta` con las propiedades `categoria` y `colonia`, mediante atributos de marcado y sin JavaScript propio, según el contrato único de medición que fija la capacidad `layout-base` (requirement "La medición no lleva datos personales ni el texto que escribe la gente"): los valores son slugs del catálogo, y `otra` cuando la colonia no es del catálogo. La `categoria` DEBE ser la del negocio, no la de la página, para que el dato sea correcto también en la página de resultados, donde conviven negocios de categorías distintas. El evento DEBE quedar declarado aunque la medición no esté configurada: los atributos son marcado inerte y no cambian el comportamiento del botón.
+
 #### Scenario: contenido de la tarjeta
 
 - **WHEN** el vecino ve el listado de una categoría donde hay un negocio con foto y otro sin ella
@@ -191,6 +193,21 @@ Cada negocio del listado DEBE presentarse en una tarjeta con: **su foto cuando l
 
 - **WHEN** alguien recorre el listado con lector de pantalla
 - **THEN** cada botón de WhatsApp se anuncia indicando el negocio al que le escribe, no solo como "WhatsApp"
+
+#### Scenario: el clic desde la tarjeta se mide con su categoría y su colonia
+
+- **WHEN** el vecino toca el botón de WhatsApp de un negocio de "Belleza" en la colonia "Haciendas de Tizayuca", con la medición configurada
+- **THEN** se registra el evento `whatsapp-tarjeta` con `categoria` = `belleza` y `colonia` = `haciendas-de-tizayuca`, y nada más del negocio
+
+#### Scenario: en la página de resultados manda la categoría del negocio
+
+- **WHEN** el vecino busca "plomero" y toca el WhatsApp de un negocio de "Servicios del hogar" en los resultados
+- **THEN** el evento lleva `categoria` = `servicios-del-hogar` (la del negocio), no un valor de la página de búsqueda
+
+#### Scenario: el botón se comporta igual sin medición
+
+- **WHEN** el sitio corre sin la analítica configurada y el vecino toca el botón de WhatsApp de una tarjeta
+- **THEN** abre la conversación exactamente igual, y los atributos del evento están en el HTML sin ejecutar nada
 
 ### Requirement: La ficha muestra la foto del negocio cuando la tiene
 
@@ -392,6 +409,8 @@ Cada negocio publicado DEBE tener una ficha en URL propia y estable, con el nomb
 
 La ficha DEBE ofrecer los botones del PRD §6.2, cada uno solo si el negocio registró el dato: "Enviar WhatsApp" (siempre presente y como única acción principal, con el verde de acción del sitio), "Llamar" solo si registró teléfono fijo, "Cómo llegar" solo si capturó dirección o referencias (abre Google Maps con esa referencia y su colonia en Tizayuca) y el enlace a la página que registró, solo si la registró. El enlace a la página registrada NO DEBE afirmar que lleva a Facebook: DEBE mostrar el dominio real al que apunta (hallazgo M4 de T-003). Ningún otro botón DEBE competir en jerarquía visual con el de WhatsApp. Los botones DEBEN mostrar la acción, no el número de teléfono como texto. El botón "Llamar" solo se genera si el teléfono fijo se normaliza a 10 dígitos nacionales; si no es normalizable, la ficha muestra el dato capturado como texto plano ("Teléfono: …") sin enlace de llamada (decisión ratificada al cerrar T-004: no se pierde lo registrado y ningún código de marcado hostil llega a un `tel:`).
 
+Los tres botones de contacto de la ficha DEBEN declarar su evento con atributos de marcado y sin JavaScript propio, según el contrato único de medición de `layout-base`: "Enviar WhatsApp" el evento `whatsapp-ficha`, "Llamar" el evento `llamar` y "Cómo llegar" el evento `como-llegar`, los tres con las propiedades `categoria` y `colonia` del negocio como slugs del catálogo (PRD §9). Como el enlace `tel:` de "Llamar" no abre pestaña nueva, su evento DEBE declararse en un elemento envolvente y no en el propio enlace, para que el proveedor no pueda aplazar la marcación. El enlace a la página registrada NO se instrumenta.
+
 #### Scenario: WhatsApp como acción principal
 
 - **WHEN** el vecino abre cualquier ficha publicada
@@ -416,6 +435,35 @@ La ficha DEBE ofrecer los botones del PRD §6.2, cada uno solo si el negocio reg
 
 - **WHEN** un negocio registró como página un link que no es de Facebook (por ejemplo `https://mi-negocio.example/perfil`)
 - **THEN** la ficha muestra el enlace indicando el dominio real al que lleva (`mi-negocio.example`) y en ningún lado dice que es su Facebook
+
+#### Scenario: los tres contactos de la ficha se miden por separado
+
+- **WHEN** el vecino toca "Enviar WhatsApp", "Llamar" o "Cómo llegar" en la ficha de un negocio de "Talleres" en la colonia "Huicalco", con la medición configurada
+- **THEN** se registra `whatsapp-ficha`, `llamar` o `como-llegar` según el botón, cada uno con `categoria` = `talleres` y `colonia` = `huicalco`
+
+#### Scenario: el enlace a la página del negocio no se mide
+
+- **WHEN** se revisa el HTML de una ficha de un negocio que registró página
+- **THEN** ese enlace no lleva ningún atributo de evento
+
+#### Scenario: los eventos de la ficha se distinguen de los de la tarjeta
+
+- **WHEN** se comparan los clics a WhatsApp desde el listado y desde la ficha
+- **THEN** llegan con nombres de evento distintos (`whatsapp-tarjeta` y `whatsapp-ficha`), de modo que la métrica del PRD §10 se puede calcular contra las vistas de ficha sin mezclarlos
+
+### Requirement: La vista de ficha se mide sola, sin instrumentación propia
+
+La "vista de ficha" del PRD §9 DEBE medirse con la vista de página que el proveedor registra por sí mismo al cargarse la ficha: el sitio NO DEBE agregar ningún evento, contador ni JavaScript propio para contarla. Como la ficha vive en una URL propia y estable (`/negocio/<slug>-<id>`), esa vista es el denominador de la métrica del PRD §10 "clics a WhatsApp / vistas de ficha", cuyo numerador es el evento `whatsapp-ficha`. La URL que viaja al proveedor es la ruta pública de la ficha, la misma que cualquiera comparte por WhatsApp; ningún dato adicional del negocio la acompaña.
+
+#### Scenario: abrir una ficha cuenta como vista
+
+- **WHEN** un vecino abre la ficha de un negocio publicado con la medición configurada
+- **THEN** queda registrada una vista de esa página, sin que el sitio haya mandado ningún evento propio
+
+#### Scenario: la ficha no agrega instrumentación
+
+- **WHEN** se revisa el código de la ficha
+- **THEN** no hay ningún evento de "vista", ni contador en la base, ni JavaScript de cliente agregado para medir
 
 ### Requirement: Se publica la colonia, nunca el domicilio exacto ni los datos internos de la ficha
 
@@ -742,7 +790,7 @@ El contenido que escribió el negocio DEBE quedar escapado dentro del bloque de 
 
 ### Requirement: Directorio en Server Components, mobile-first y usable sin JavaScript
 
-La home, los listados por categoría, las páginas de giro y de giro+colonia, las fichas, el buscador y la página de resultados DEBEN ser Server Components y NO DEBEN agregar JavaScript de cliente propio (PRD §8, presupuesto de <2s en 4G). El JSON-LD de la ficha NO cuenta como JavaScript de cliente: es un bloque de datos, no código ejecutable. Todas las páginas DEBEN verse completas en un viewport de 390px sin scroll horizontal, con áreas táctiles de al menos 44px en todo elemento tocable, y DEBEN seguir siendo navegables con el JavaScript de cliente deshabilitado, incluidos el filtro por colonia, la búsqueda y la navegación entre las páginas de giro y de giro+colonia.
+La home, los listados por categoría, las páginas de giro y de giro+colonia, las fichas, el buscador y la página de resultados DEBEN ser Server Components y NO DEBEN agregar JavaScript de cliente propio (PRD §8, presupuesto de <2s en 4G). El JSON-LD de la ficha NO cuenta como JavaScript de cliente: es un bloque de datos, no código ejecutable. Tampoco cuenta el script del proveedor de analítica cookieless, que es de un tercero y lo inyecta el tronco de las páginas públicas (capacidad `layout-base`): estas páginas solo declaran eventos con atributos de marcado, sin código propio alrededor. Todas las páginas DEBEN verse completas en un viewport de 390px sin scroll horizontal, con áreas táctiles de al menos 44px en todo elemento tocable, y DEBEN seguir siendo navegables con el JavaScript de cliente deshabilitado, incluidos el filtro por colonia, la búsqueda y la navegación entre las páginas de giro y de giro+colonia.
 
 #### Scenario: sin JS de cliente
 

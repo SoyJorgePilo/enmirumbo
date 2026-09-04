@@ -7,9 +7,9 @@ import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { seedCatalogos } from "../prisma/seed";
-import AvisoDePrivacidadPage from "../src/app/aviso-de-privacidad/page";
-import FichaNegocioPage from "../src/app/negocio/[ficha]/page";
-import TerminosPage from "../src/app/terminos/page";
+import AvisoDePrivacidadPage from "../src/app/(publico)/aviso-de-privacidad/page";
+import FichaNegocioPage from "../src/app/(publico)/negocio/[ficha]/page";
+import TerminosPage from "../src/app/(publico)/terminos/page";
 import { Footer } from "../src/components/footer";
 import { DocumentoLegalView } from "../src/components/legales/documento-legal";
 import { AvisoConsentimiento } from "../src/components/registro/aviso-consentimiento";
@@ -219,8 +219,8 @@ describe("adversarial · enlaces y markup de las superficies legales", () => {
   it("ninguna superficie legal pinta HTML sin escapar", () => {
     for (const archivo of [
       "src/components/legales/documento-legal.tsx",
-      "src/app/aviso-de-privacidad/page.tsx",
-      "src/app/terminos/page.tsx",
+      "src/app/(publico)/aviso-de-privacidad/page.tsx",
+      "src/app/(publico)/terminos/page.tsx",
       "src/components/footer.tsx",
       "src/components/registro/aviso-consentimiento.tsx",
       "src/lib/legales/textos.ts",
@@ -285,6 +285,10 @@ const CAMPO_PUBLICO_DECLARADO: Record<string, string> = {
   // era declararla AQUÍ, que es justo lo que este guardián existe para exigir.
   categoriaNombre: "la categoría",
   coloniaNombre: "tu colonia",
+  // Agregado por el change `agregar-analitica-cookieless`: la proyección
+  // pública ahora lee el slug de la categoría (para la propiedad `categoria`
+  // del evento de medición). El aviso ya la enumera como pública desde E6.
+  categoriaSlug: "la categoría",
   queOfreces: '"¿Qué ofreces?"',
   horario: "tu horario",
   entregaADomicilio: "si haces entregas",

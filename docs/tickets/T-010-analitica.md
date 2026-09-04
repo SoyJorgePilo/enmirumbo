@@ -1,12 +1,12 @@
 # T-010 · Conectar la analítica cookieless
 
-**Estado:** pendiente
+**Estado:** hecho
 **Prioridad:** P0
 **Épica:** E7-1, E7-2 (docs/backlog.md)
 **Referencias PRD:** §9-10 (analítica desde el día 1, eventos definidos, exclusión de bots, sin banner), ADR-005
 **Depende de:** T-004 (directorio), T-003 (formulario)
-**OpenSpec change:** —
-**PR:** —
+**OpenSpec change:** `agregar-analitica-cookieless`
+**PR:** [#14](https://github.com/SoyJorgePilo/necesitouno/pull/14)
 
 ## Contexto
 
@@ -14,12 +14,12 @@ Las métricas del PRD §10 deciden el destino del MVP y hay que medir desde el p
 
 ## Criterios de aceptación
 
-- [ ] El script de Umami se inyecta en el layout SOLO si las variables (`NEXT_PUBLIC_UMAMI_SRC`, `NEXT_PUBLIC_UMAMI_WEBSITE_ID` o las que la spec defina) están configuradas; sin ellas, cero bytes agregados
-- [ ] Eventos del PRD §9 instrumentados con los atributos data-* de Umami (sin JS propio): clic a WhatsApp (tarjeta y ficha, con categoría/colonia como propiedades), clic a Llamar/Cómo llegar, envío del formulario (la pantalla de gracias como proxy de conversión), y las vistas de página que Umami mide solo
-- [ ] Ningún dato personal viaja en eventos ni propiedades (ni nombres de negocio, ni números — solo slugs de categoría/colonia)
-- [ ] El panel del admin (`/admin`) queda EXCLUIDO de la medición
-- [ ] El peso agregado respeta el presupuesto (<2s en 4G): script de Umami diferido, nada más
-- [ ] `.env.example` documenta las variables y el paso de crear la cuenta (con el link)
+- [x] El script de Umami se inyecta en el layout SOLO si las variables (`NEXT_PUBLIC_UMAMI_SRC`, `NEXT_PUBLIC_UMAMI_WEBSITE_ID` o las que la spec defina) están configuradas; sin ellas, cero bytes agregados
+- [x] Eventos del PRD §9 instrumentados con los atributos data-* de Umami (sin JS propio): clic a WhatsApp (tarjeta y ficha, con categoría/colonia como propiedades), clic a Llamar/Cómo llegar, envío del formulario (la pantalla de gracias como proxy de conversión), y las vistas de página que Umami mide solo
+- [x] Ningún dato personal viaja en eventos ni propiedades (ni nombres de negocio, ni números — solo slugs de categoría/colonia)
+- [x] El panel del admin (`/admin`) queda EXCLUIDO de la medición
+- [x] El peso agregado respeta el presupuesto (<2s en 4G): script de Umami diferido, nada más
+- [x] `.env.example` documenta las variables y el paso de crear la cuenta (con el link)
 
 ## Fuera de alcance de este ticket
 

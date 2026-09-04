@@ -23,7 +23,25 @@ import { construirSegmentoFicha } from "@/lib/ficha-url";
  * Es dinámica por leer `searchParams` (igual que el resto del directorio,
  * `force-dynamic` no hace falta: `searchParams` ya opta a render dinámico).
  */
+/**
+ * Título ESTÁTICO a propósito (hallazgo M-2 de la etapa C del change
+ * `agregar-analitica-cookieless`): el tracker de analítica manda
+ * `document.title` en cada envío, además de la URL. Si esta página estrenara
+ * el patrón habitual «Resultados para "…" — NecesitoUno», el texto que
+ * escribió el vecino saldría al proveedor por el título, esquivando por
+ * completo la exclusión de la cadena de consulta (`data-exclude-search`), que
+ * la aprobación de la spec declaró innegociable.
+ *
+ * El eco de la consulta sigue estando donde le sirve al vecino —el `h1` y el
+ * campo del buscador—, que no viajan a ningún lado. Quien vaya a darle
+ * metadata propia a las páginas del directorio (E5, SEO local) tiene que
+ * respetar esta excepción: `/buscar` no es indexable, así que un título
+ * dinámico no aporta nada de SEO y sí filtraría texto libre.
+ */
+export const TITULO_BUSCAR = "Buscar — NecesitoUno Tizayuca";
+
 export const metadata: Metadata = {
+  title: TITULO_BUSCAR,
   robots: { index: false, follow: true },
 };
 
@@ -145,6 +163,8 @@ export default async function BuscarPage({
             <TarjetaNegocio
               nombre={negocio.nombre}
               coloniaNombre={negocio.coloniaNombre}
+              categoriaSlug={negocio.categoriaSlug}
+              coloniaSlug={negocio.coloniaSlug}
               entregaADomicilio={negocio.entregaADomicilio}
               fotoClave={negocio.fotoClave}
               prioridad={indice === 0}

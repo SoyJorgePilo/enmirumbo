@@ -1,6 +1,6 @@
 # T-005 · Construir el panel de revisión del admin
 
-**Estado:** en-review
+**Estado:** hecho
 **Prioridad:** P0
 **Épica:** E3-1, E3-2, E3-3, E3-5 (docs/backlog.md)
 **Referencias PRD:** §6.3, §7 Flujo A (tramo del admin), §8 (LFPDPPP, retención de rechazados)

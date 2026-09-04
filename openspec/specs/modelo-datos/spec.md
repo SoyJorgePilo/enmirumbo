@@ -52,19 +52,35 @@ El sistema DEBE permitir vincular giros del catálogo a un negocio (relación mu
 
 ### Requirement: Estado de revisión, origen y timestamps del ciclo de vida
 
-El negocio DEBE tener un estado con valores `en_revision | publicado | rechazado` (default `en_revision`), un origen con valores `siembra | organico` (PRD §6.3 y §10; default `organico`, el admin lo ajusta al aprobar), un timestamp de registro asignado automáticamente al crearse y un timestamp de publicación que permanece nulo hasta que la ficha se publica.
+El negocio DEBE tener un estado con valores `en_revision | publicado | rechazado` (default `en_revision`), un origen con valores `siembra | organico` (PRD §6.3 y §10; default `organico`, el admin lo ajusta al aprobar), un timestamp de registro asignado automáticamente al crearse y un timestamp de publicación que permanece nulo hasta que la ficha se publica. Además DEBE guardar el rastro del rechazo: un timestamp de rechazo y el motivo en texto, ambos nulos mientras el negocio no haya sido rechazado. La fecha del rechazo es lo que habilita la eliminación de los registros rechazados a los 90 días que exige el PRD §8 (la purga en sí no está implementada). Si un negocio rechazado corrige y vuelve a enviar su registro, ambos campos DEBEN volver a quedar nulos, para que la purga no se lleve un registro que ya está otra vez en la cola. La migración DEBE poder aplicarse sobre una base que ya tiene negocios, sin perder ni alterar sus datos. El seed de negocios de demostración DEBE poblar ambos campos en su negocio `rechazado`, para que el panel y la purga futura tengan un caso realista que probar.
 
 #### Scenario: negocio recién creado
 - **WHEN** se crea un negocio
-- **THEN** su estado es `en_revision`, su timestamp de registro tiene la fecha de creación y su timestamp de publicación es nulo
+- **THEN** su estado es `en_revision`, su timestamp de registro tiene la fecha de creación, y su timestamp de publicación, su timestamp de rechazo y su motivo de rechazo son nulos
 
 #### Scenario: publicación
 - **WHEN** un negocio pasa a estado `publicado` y se le asigna la fecha de publicación
 - **THEN** ambos valores quedan persistidos y consultables
 
+#### Scenario: rechazo con fecha y motivo
+- **WHEN** un negocio pasa a estado `rechazado` con la fecha del rechazo y el motivo que escribió el admin
+- **THEN** ambos valores quedan persistidos y consultables, y el negocio sigue existiendo en la base (no se borra en ese momento)
+
+#### Scenario: el rastro del rechazo se limpia al volver a revisión
+- **WHEN** un negocio rechazado vuelve al estado `en_revision`
+- **THEN** su timestamp de rechazo y su motivo quedan nulos otra vez
+
 #### Scenario: valores fuera del conjunto
 - **WHEN** se intenta guardar un estado u origen fuera de los valores definidos
 - **THEN** la base de datos rechaza la escritura (constraint CHECK en la migración)
+
+#### Scenario: migración sobre una base con datos
+- **WHEN** se aplica la migración sobre una base que ya tiene negocios publicados, en revisión y rechazados
+- **THEN** todas las filas siguen ahí con sus datos intactos y los dos campos nuevos quedan nulos en todas
+
+#### Scenario: el seed de demostración incluye un rechazo con motivo
+- **WHEN** se corre el seed de negocios de demostración
+- **THEN** su negocio `rechazado` trae fecha de rechazo y motivo poblados, con un motivo ficticio
 
 ### Requirement: La colonia admite "Otra" con texto libre pendiente de normalizar
 
@@ -106,14 +122,53 @@ El modelo `Negocio` DEBE incluir un campo opcional y único para el token del en
 - **WHEN** se registra un negocio en el MVP
 - **THEN** su token de gestión es nulo y ninguna funcionalidad del sistema lo lee ni lo escribe
 
+### Requirement: El negocio guarda una versión normalizada de su nombre y de "¿Qué ofreces?" para el buscador
+
+El sistema DEBE persistir, junto a cada negocio, una versión normalizada de su nombre y de su "¿Qué ofreces?" —minúsculas, sin acentos ni signos— pensada solo para que el buscador pueda encontrar sin importar acentos ni mayúsculas (PRD §6.2), porque la base de datos no compara así por sí sola. Esos valores DEBEN ser siempre un reflejo de los campos que les dan origen: se escriben cada vez que se guarda un negocio, con la misma función de normalización que usa el buscador, y ningún flujo DEBE poder dejarlos desincronizados. Un negocio sin "¿Qué ofreces?" DEBE quedar con su versión normalizada vacía, no nula. Estos valores son internos del buscador: NO DEBEN mostrarse en ninguna vista pública ni aparecer en las consultas del directorio.
+
+#### Scenario: alta con acentos y mayúsculas
+
+- **WHEN** se guarda un negocio llamado "Plomería Güicho" que ofrece "Destape de drenajes y BOMBAS de agua"
+- **THEN** quedan persistidas sus versiones normalizadas sin acentos ni mayúsculas ("plomeria guicho" y "destape de drenajes y bombas de agua"), además de los textos originales tal como los escribió el negocio
+
+#### Scenario: negocio sin "¿Qué ofreces?"
+
+- **WHEN** se guarda un negocio que no llenó "¿Qué ofreces?"
+- **THEN** su versión normalizada de ese campo queda vacía y ninguna consulta del buscador falla por eso
+
+#### Scenario: las fichas que ya existían quedan encontrables
+
+- **WHEN** se agregan estas versiones normalizadas sobre una base que ya tenía negocios guardados y se corre el relleno correspondiente
+- **THEN** todos esos negocios quedan con sus versiones normalizadas calculadas, de modo que el buscador los encuentra igual que a los registrados después
+
+#### Scenario: el relleno se puede repetir
+
+- **WHEN** se corre el relleno dos veces seguidas
+- **THEN** los valores quedan iguales y no se altera ningún otro dato del negocio
+
+#### Scenario: valores consistentes con su origen
+
+- **WHEN** se revisan todos los negocios guardados
+- **THEN** la versión normalizada de cada uno corresponde exactamente a la normalización de su nombre y de su "¿Qué ofreces?" actuales
+
 ### Requirement: Seed de negocios ficticios para desarrollo, separado del de catálogos
 
-El proyecto DEBE poder poblar la base de desarrollo con negocios de mentira para ver el directorio funcionando, mediante un comando propio y distinto del seed de catálogos. El seed de catálogos NO DEBE crear negocios: sus conteos siguen siendo solo los de categorías, colonias y giros. El seed de demostración DEBE ser idempotente (correrlo dos veces no duplica fichas) y DEBE crear un conjunto que cubra los casos que el directorio necesita probar: negocios publicados en varias categorías (incluida "Clubes y escuelas deportivas") y varias colonias, alguno con entregas a domicilio y alguno sin ellas, alguno con todos los campos opcionales y alguno con solo los obligatorios, uno publicado con colonia "Otra" sin normalizar, uno en `en_revision` y uno `rechazado`. Los datos DEBEN ser inventados y reconocibles como tales: nombres ficticios, números de WhatsApp de la serie reservada para pruebas (`771999xxxx`) y ninguna dirección de un negocio real (repo público + LFPDPPP, PRD §8). El comando DEBE avisar en su salida que lo que sembró son datos de mentira y NO DEBE ejecutarse contra un entorno de producción.
+El proyecto DEBE poder poblar la base de desarrollo con negocios de mentira para ver el directorio funcionando, mediante un comando propio y distinto del seed de catálogos. El seed de catálogos NO DEBE crear negocios: sus conteos siguen siendo solo los de categorías, colonias y giros. El seed de demostración DEBE ser idempotente (correrlo dos veces no duplica fichas) y DEBE crear un conjunto que cubra los casos que el directorio necesita probar: negocios publicados en varias categorías (incluida "Clubes y escuelas deportivas") y varias colonias, alguno con entregas a domicilio y alguno sin ellas, alguno con todos los campos opcionales y alguno con solo los obligatorios, uno publicado con colonia "Otra" sin normalizar, uno en `en_revision` y uno `rechazado`. Además DEBE cubrir los casos que el buscador necesita probar mientras el panel del admin no siembra datos: al menos un negocio publicado **con giros asignados**, y entre ellos uno cuyo giro NO aparezca ni en su nombre ni en su "¿Qué ofreces?" (única forma de demostrar que la búsqueda por giro funciona de verdad), más al menos un negocio publicado cuyas palabras clave lleven acentos. Los negocios que siembra DEBEN quedar con sus versiones normalizadas de búsqueda escritas, como cualquier otro camino de escritura. Los datos DEBEN ser inventados y reconocibles como tales: nombres ficticios, números de WhatsApp de la serie reservada para pruebas (`771999xxxx`) y ninguna dirección de un negocio real (repo público + LFPDPPP, PRD §8). El comando DEBE avisar en su salida que lo que sembró son datos de mentira y NO DEBE ejecutarse contra un entorno de producción.
 
 #### Scenario: sembrar negocios de demostración
 
 - **WHEN** se corre el comando de seed de demostración sobre una base con los catálogos ya poblados
 - **THEN** quedan creados los negocios ficticios, con al menos uno publicado en la categoría de deporte, al menos uno con entregas a domicilio, uno con colonia "Otra" sin normalizar, uno en `en_revision` y uno `rechazado`
+
+#### Scenario: fixtures para la búsqueda por giro
+
+- **WHEN** se revisan los negocios que siembra el comando
+- **THEN** al menos uno publicado tiene giros del catálogo asignados, y al menos uno de esos giros no aparece ni en el nombre ni en el "¿Qué ofreces?" de ese negocio
+
+#### Scenario: fixtures con acentos
+
+- **WHEN** se revisan los negocios que siembra el comando
+- **THEN** al menos uno publicado tiene acentos en su nombre o en sus palabras clave, y sus versiones normalizadas quedan escritas sin acentos
 
 #### Scenario: el seed de catálogos no crea negocios
 
@@ -123,7 +178,7 @@ El proyecto DEBE poder poblar la base de desarrollo con negocios de mentira para
 #### Scenario: seed de demostración idempotente
 
 - **WHEN** se corre el seed de demostración dos veces seguidas
-- **THEN** el número de negocios no cambia entre la primera y la segunda corrida
+- **THEN** el número de negocios no cambia entre la primera y la segunda corrida, y ningún negocio termina con giros repetidos
 
 #### Scenario: datos ficticios y nada real
 

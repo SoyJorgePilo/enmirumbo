@@ -109,16 +109,48 @@ El servidor DEBE validar cada campo recibido, sin confiar en la validación del 
 
 ### Requirement: Una sola ficha por número de WhatsApp
 
-Si el WhatsApp normalizado ya tiene ficha en el sistema (en cualquier estado), el registro DEBE rechazarse y el formulario DEBE decirlo con el texto literal "Este número ya tiene una ficha registrada. Si es tu negocio, no hace falta registrarlo otra vez: te vamos a pasar por WhatsApp el enlace para editarlo." El flujo "Perdí mi enlace" es P1 (PRD §6.4) y aquí solo se menciona, sin enlace ni botón.
+Si el WhatsApp normalizado ya tiene ficha en estado `en_revision` o `publicado`, el registro DEBE rechazarse y el formulario DEBE decirlo con el texto literal "Este número ya tiene una ficha registrada. Si es tu negocio, no hace falta registrarlo otra vez: te vamos a pasar por WhatsApp el enlace para editarlo." El flujo "Perdí mi enlace" es P1 (PRD §6.4) y aquí solo se menciona, sin enlace ni botón.
 
-#### Scenario: número ya registrado
+Si la ficha de ese número está en estado `rechazado`, el envío NO DEBE tratarse como duplicado: el negocio "puede corregir y volver a enviar" (PRD §6.3). En ese caso el sistema DEBE actualizar esa misma ficha con los datos del nuevo envío, regresarla a `en_revision`, dejar nulos la fecha y el motivo del rechazo anterior (si no, la purga de rechazados a los 90 días se llevaría un registro que ya está otra vez en la cola) y reiniciar el reloj de la espera, de modo que el indicador de 48 horas del panel cuente desde el reenvío. La constancia del consentimiento (`consintioAvisoEn`) es la única excepción: NO DEBE sustituirse en el reenvío, porque es la evidencia LFPDPPP del titular y un formulario anónimo podría estar siendo reenviado por un tercero; el checkbox de consentimiento sigue siendo obligatorio en cada envío. El dueño DEBE ver la misma pantalla de gracias que un registro nuevo. El sistema NO DEBE revelarle en ningún momento que su ficha estaba rechazada ni el motivo del rechazo: ese dato solo vive dentro del panel, y el formulario público es anónimo (cualquiera podría escribir un número ajeno). El reenvío sigue siendo un envío del formulario público: DEBE pasar por las mismas validaciones, por el campo trampa y por el límite de envíos por IP, y NO DEBE poder alterar el origen, los giros, el token de gestión ni la fecha de publicación de la ficha.
 
-- **WHEN** el dueño envía un WhatsApp que ya tiene ficha
-- **THEN** no se crea un segundo negocio y ve el mensaje "Este número ya tiene una ficha registrada. Si es tu negocio, no hace falta registrarlo otra vez: te vamos a pasar por WhatsApp el enlace para editarlo." junto al campo de WhatsApp
+#### Scenario: número con ficha publicada
+
+- **WHEN** el dueño envía un WhatsApp que ya tiene ficha publicada
+- **THEN** no se crea un segundo negocio ni se toca la ficha existente, y ve el mensaje "Este número ya tiene una ficha registrada. Si es tu negocio, no hace falta registrarlo otra vez: te vamos a pasar por WhatsApp el enlace para editarlo." junto al campo de WhatsApp
+
+#### Scenario: número con ficha en revisión
+
+- **WHEN** el dueño envía un WhatsApp cuya ficha sigue esperando revisión
+- **THEN** ve el mismo mensaje de número ya registrado y su ficha en cola no cambia
+
+#### Scenario: reenvío tras un rechazo
+
+- **WHEN** un negocio cuya ficha fue rechazada corrige sus datos y vuelve a enviar el formulario con el mismo número
+- **THEN** ve la pantalla de gracias con el mensaje "¡Gracias! Tu negocio está en revisión. Te contactaremos por WhatsApp para confirmar tus datos antes de publicarlo.", su ficha queda con los datos nuevos en estado `en_revision`, sin fecha ni motivo de rechazo, y vuelve a aparecer en la cola del panel como recién llegada
+
+#### Scenario: la constancia del consentimiento no se sustituye en el reenvío
+
+- **WHEN** una ficha rechazada se reenvía con el checkbox de consentimiento marcado
+- **THEN** el reenvío se acepta y la ficha conserva la fecha de consentimiento del registro original, sin sobrescribirla con la del reenvío
+
+#### Scenario: el formulario no delata el rechazo
+
+- **WHEN** alguien envía el formulario con un número cuya ficha estaba rechazada
+- **THEN** en ningún momento ve el motivo del rechazo ni ningún dato de la ficha anterior
+
+#### Scenario: el reenvío no se autopublica
+
+- **WHEN** un reenvío incluye campos extra como estado `publicado`, origen `siembra`, giros o fecha de publicación
+- **THEN** esos valores se ignoran y la ficha queda en `en_revision`, con el origen que ya tenía, sin giros nuevos y sin fecha de publicación
+
+#### Scenario: el reenvío pasa por las mismas defensas
+
+- **WHEN** un reenvío llega con el campo trampa lleno, con la IP sin cupo o con un campo inválido
+- **THEN** se trata exactamente igual que cualquier otro envío del formulario y la ficha rechazada no cambia
 
 #### Scenario: duplicado escrito con otro formato
 
-- **WHEN** un negocio ya registrado como "7711234567" se intenta registrar de nuevo como "+52 771 123 4567"
+- **WHEN** un negocio ya publicado como "7711234567" se intenta registrar de nuevo como "+52 771 123 4567"
 - **THEN** el sistema lo detecta como el mismo número y muestra el mismo mensaje, sin crear una segunda ficha
 
 #### Scenario: carrera entre dos envíos simultáneos
@@ -128,7 +160,7 @@ Si el WhatsApp normalizado ya tiene ficha en el sistema (en cualquier estado), e
 
 ### Requirement: Consentimiento con aviso simplificado visible y constancia
 
-El formulario DEBE mostrar el aviso de privacidad simplificado dentro de la propia página (visible sin salir del formulario, PRD §6.1 y §8) y un checkbox obligatorio con el texto literal "Acepto el aviso de privacidad y confirmo que este negocio es mío o que tengo permiso para registrarlo." Sin ese checkbox no DEBE haber envío. Al guardar, el sistema DEBE registrar la constancia como un timestamp puesto por el servidor (`consintioAvisoEn`), nunca un valor enviado por el cliente. Mientras la página del aviso integral (E6) no exista, el aviso simplificado NO DEBE contener enlaces a páginas inexistentes; en su lugar indica que el aviso completo se publicará. El texto del aviso simplificado DEBE ser: "Aviso de privacidad (resumen): NecesitoUno Tizayuca usa los datos que escribes aquí solo para revisar tu negocio, contactarte por WhatsApp y publicar tu ficha en el directorio. Publicamos tu colonia, no tu domicilio exacto, salvo que tú escribas la dirección. No vendemos ni compartimos tus datos con nadie más. Puedes pedirnos que corrijamos o borremos tu ficha cuando quieras, por el mismo WhatsApp con el que te contactemos; lo atendemos en máximo 20 días hábiles. Cuando publiquemos el aviso completo, aquí va a estar el enlace."
+El formulario DEBE mostrar el aviso de privacidad simplificado dentro de la propia página (visible sin salir del formulario, PRD §6.1 y §8) y un checkbox obligatorio con el texto literal "Acepto el aviso de privacidad y confirmo que este negocio es mío o que tengo permiso para registrarlo." Sin ese checkbox no DEBE haber envío. Al guardar un alta nueva, el sistema DEBE registrar la constancia como un timestamp puesto por el servidor (`consintioAvisoEn`), nunca un valor enviado por el cliente; en el reenvío de una ficha rechazada esa constancia se conserva y no se sustituye (ver el requirement "Una sola ficha por número de WhatsApp"). Mientras la página del aviso integral (E6) no exista, el aviso simplificado NO DEBE contener enlaces a páginas inexistentes; en su lugar indica que el aviso completo se publicará. El texto del aviso simplificado DEBE ser: "Aviso de privacidad (resumen): NecesitoUno Tizayuca usa los datos que escribes aquí solo para revisar tu negocio, contactarte por WhatsApp y publicar tu ficha en el directorio. Publicamos tu colonia, no tu domicilio exacto, salvo que tú escribas la dirección. No vendemos ni compartimos tus datos con nadie más. Puedes pedirnos que corrijamos o borremos tu ficha cuando quieras, por el mismo WhatsApp con el que te contactemos; lo atendemos en máximo 20 días hábiles. Cuando publiquemos el aviso completo, aquí va a estar el enlace."
 
 #### Scenario: aviso visible sin salir del formulario
 
@@ -249,3 +281,22 @@ El envío del formulario y toda su validación DEBEN funcionar aunque el JavaScr
 
 - **WHEN** se revisa el JavaScript de cliente que carga la página de registro
 - **THEN** corresponde solo al ejemplo dinámico por categoría y al estado de envío del botón, no al resto de la página
+
+### Requirement: El alta deja la ficha lista para el buscador
+
+Al guardar un registro, el servidor DEBE escribir también la versión normalizada del nombre y de "¿Qué ofreces?" que usa el buscador (capacidad `modelo-datos`), con la misma función de normalización que usa la búsqueda, de modo que en cuanto el admin publique la ficha el vecino la encuentre escribiendo con o sin acentos. Ese valor lo calcula el servidor a partir de lo que capturó el dueño: ningún valor enviado por el cliente DEBE poder fijarlo ni alterarlo, igual que el estado, el origen y la constancia del consentimiento. El dueño NO DEBE ver ni llenar nada nuevo en el formulario: los campos visibles del registro siguen siendo exactamente los mismos.
+
+#### Scenario: registro con acentos, encontrable después
+
+- **WHEN** el dueño registra "Plomería Güicho" con "destape de drenajes" en "¿Qué ofreces?", y más adelante su ficha se publica
+- **THEN** un vecino que busca "plomeria" o "plomero" encuentra ese negocio
+
+#### Scenario: el cliente no puede fijar el texto de búsqueda
+
+- **WHEN** un envío incluye campos extra que pretenden fijar el texto normalizado de búsqueda
+- **THEN** esos valores se ignoran y el negocio queda con el texto normalizado calculado a partir de su nombre y su "¿Qué ofreces?" reales
+
+#### Scenario: el formulario no cambia para el dueño
+
+- **WHEN** el dueño abre la página de registro
+- **THEN** ve los mismos campos obligatorios y opcionales de siempre, sin ningún campo nuevo relacionado con la búsqueda

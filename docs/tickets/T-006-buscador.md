@@ -1,6 +1,6 @@
 # T-006 · Construir el buscador del directorio
 
-**Estado:** en-review
+**Estado:** hecho
 **Prioridad:** P0
 **Épica:** E2-1 (el buscador de la home), E2-4 (docs/backlog.md)
 **Referencias PRD:** §6.2 (búsqueda simple, normalización), §7 Flujo B

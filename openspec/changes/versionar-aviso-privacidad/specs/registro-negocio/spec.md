@@ -81,7 +81,11 @@ Si el WhatsApp normalizado ya tiene ficha en estado `en_revision` o `publicado`,
 
 Si la ficha de ese número está en estado `rechazado`, el envío NO DEBE tratarse como duplicado: el negocio "puede corregir y volver a enviar" (PRD §6.3). En ese caso el sistema DEBE actualizar esa misma ficha con los datos del nuevo envío, regresarla a `en_revision`, dejar nulos la fecha y el motivo del rechazo anterior (si no, la purga de rechazados a los 90 días se llevaría un registro que ya está otra vez en la cola) y reiniciar el reloj de la espera, de modo que el indicador de 48 horas del panel cuente desde el reenvío.
 
-La constancia del consentimiento es la excepción: ni la fecha (`consintioAvisoEn`) ni la versión aceptada (`consintioAvisoVersion`) DEBEN sustituirse en el reenvío, porque son la evidencia LFPDPPP del titular y un formulario anónimo podría estar siendo reenviado por un tercero; el checkbox de consentimiento sigue siendo obligatorio en cada envío. Cuando la versión vigente del aviso es **distinta** de la de esa constancia original —o cuando la constancia original no tiene versión, por ser anterior al versionado—, el sistema DEBE registrar aparte la reaceptación: la fecha del reenvío y la versión vigente (`reconsintioAvisoEn` y `reconsintioAvisoVersion`), sobrescribiendo la reaceptación anterior si la hubiera. Si la versión vigente es la misma de la constancia original, los campos de reaceptación NO DEBEN tocarse. Esto solo puede ocurrir sobre un envío aceptado, así que la reaceptación siempre corresponde a una casilla marcada con ese texto enfrente (ver el requirement "Nadie consiente una versión del aviso que no tuvo enfrente").
+La constancia del consentimiento es la excepción: ni la fecha (`consintioAvisoEn`) ni la versión aceptada (`consintioAvisoVersion`) DEBEN sustituirse en el reenvío, porque son la evidencia LFPDPPP del titular y un formulario anónimo podría estar siendo reenviado por un tercero; el checkbox de consentimiento sigue siendo obligatorio en cada envío. Cuando la versión vigente del aviso es **posterior** a la de esa constancia original, el sistema DEBE registrar aparte la reaceptación: la fecha del reenvío y la versión vigente (`reconsintioAvisoEn` y `reconsintioAvisoVersion`), sobrescribiendo la reaceptación anterior si la hubiera. En cualquier otro caso los campos de reaceptación NO DEBEN tocarse: ni cuando la versión vigente es la misma de la constancia, ni cuando es **anterior** (un despliegue revertido), ni cuando la constancia original **no tiene versión** por ser anterior al versionado. Esto solo puede ocurrir sobre un envío aceptado, así que la reaceptación siempre corresponde a una casilla marcada con ese texto enfrente (ver el requirement "Nadie consiente una versión del aviso que no tuvo enfrente").
+
+> **Enmienda aprobada durante la implementación de T-012** (hallazgos MEDIO-3 y MEDIO-4 de la etapa C, aprobados por el orquestador). La regla decía "cuando la versión vigente es **distinta**… —o cuando la constancia original no tiene versión, por ser anterior al versionado—". Dos consecuencias la volvían falsa como evidencia:
+> 1. **Versión anterior:** tras revertir un despliegue, un reenvío anotaba como reaceptación una versión más **vieja** que la de la constancia, y el panel la rotulaba como más nueva. La comparación es de orden (la versión es un entero creciente, design.md §1), no una desigualdad.
+> 2. **Sin versión:** las fichas anteriores al versionado —hoy, todas— estrenaban reaceptación en su primer reenvío. Como el formulario es anónimo, eso convertía a cualquiera que conociera el número en autor de evidencia de consentimiento sobre la ficha de otro. "No consta" no es comparable: no se anota nada y la ficha sigue mostrando "versión no registrada", que es la verdad.
 
 El dueño DEBE ver la misma pantalla de gracias que un registro nuevo. El sistema NO DEBE revelarle en ningún momento que su ficha estaba rechazada ni el motivo del rechazo: ese dato solo vive dentro del panel, y el formulario público es anónimo (cualquiera podría escribir un número ajeno). El reenvío sigue siendo un envío del formulario público: DEBE pasar por las mismas validaciones, por el campo trampa y por el límite de envíos por IP, y NO DEBE poder alterar el origen, los giros, el token de gestión ni la fecha de publicación de la ficha.
 
@@ -113,7 +117,12 @@ El dueño DEBE ver la misma pantalla de gracias que un registro nuevo. El sistem
 #### Scenario: reenvío de una ficha anterior al versionado
 
 - **WHEN** se reenvía una ficha cuya constancia no tiene versión registrada
-- **THEN** su constancia sigue sin versión (no se le inventa una) y queda registrada la reaceptación con la fecha del reenvío y la versión vigente
+- **THEN** su constancia sigue sin versión (no se le inventa una) y NO se registra reaceptación: sin versión de partida no hay nada con qué comparar, y el panel sigue mostrando "versión no registrada"
+
+#### Scenario: reenvío después de revertir el despliegue
+
+- **WHEN** una ficha rechazada cuya constancia es de la versión `2` se reenvía cuando la versión vigente volvió a ser la `1`
+- **THEN** el reenvío se acepta con normalidad y no se anota reaceptación: la versión vigente no es posterior a la de la constancia, y registrar lo contrario afirmaría un cambio que no ocurrió
 
 #### Scenario: el formulario no delata el rechazo
 

@@ -8,7 +8,9 @@ El negocio DEBE guardar, junto a la fecha del consentimiento (`consintioAvisoEn`
 
 Las dos DEBEN viajar juntas: ningún camino de escritura DEBE poder guardar una sin la otra. La versión DEBE quedar nula únicamente en las fichas registradas **antes** de que existiera el versionado; a esas filas NO DEBE asignárseles una versión de relleno, porque nadie puede afirmar hoy qué texto tuvieron enfrente. El campo es una cadena, sin valor por defecto en la base de datos.
 
-El negocio DEBE poder guardar además una **reaceptación**: la fecha (`reconsintioAvisoEn`) y la versión (`reconsintioAvisoVersion`) de la última vez que se aceptó una versión del aviso **distinta** de la de su constancia original. Ambas nulas mientras eso no ocurra, y ambas también inseparables. La reaceptación NO sustituye a la constancia original: la complementa.
+El negocio DEBE poder guardar además una **reaceptación**: la fecha (`reconsintioAvisoEn`) y la versión (`reconsintioAvisoVersion`) de la última vez que se aceptó una versión del aviso **posterior** a la de su constancia original. Ambas nulas mientras eso no ocurra, y ambas también inseparables. La reaceptación NO sustituye a la constancia original: la complementa.
+
+> **Enmienda aprobada durante la implementación de T-012** (hallazgos MEDIO-3 y MEDIO-4 de la etapa C): decía "**distinta** de la de su constancia original". Ver la enmienda del requirement "Una sola ficha por número de WhatsApp" en el delta de `registro-negocio`, que la explica: una versión distinta puede ser más vieja (despliegue revertido) y una constancia sin versión no es comparable con ninguna.
 
 #### Scenario: alta con su versión
 
@@ -33,7 +35,9 @@ El negocio DEBE poder guardar además una **reaceptación**: la fecha (`reconsin
 #### Scenario: el seed de demostración siembra la versión
 
 - **WHEN** se corre el seed de negocios ficticios
-- **THEN** todos nacen con la versión vigente del aviso en su constancia, y al menos uno queda con una reaceptación poblada, para que el panel tenga ese caso que mostrar
+- **THEN** nacen con la versión vigente del aviso en su constancia, salvo dos que existen para dar al panel sus otros dos casos: una ficha anterior al versionado (sin versión y sin reaceptación) y una con la constancia de una versión anterior y su reaceptación poblada
+
+> **Enmienda aprobada durante la implementación de T-012:** el scenario pedía "todos con la versión vigente **y** al menos uno con reaceptación", que no se puede cumplir a la vez sin sembrar un dato falso — la reaceptación solo existe cuando la vigente es posterior a la de la constancia, así que la ficha que la lleva no puede tener la vigente. El seed usa para eso una versión anterior ficticia, tan inventada como el negocio que la lleva.
 
 #### Scenario: la versión aceptada es un dato interno
 

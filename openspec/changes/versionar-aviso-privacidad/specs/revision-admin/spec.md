@@ -6,7 +6,9 @@
 
 El detalle de un registro DEBE mostrar todo lo que el negocio capturó —nombre, categoría, WhatsApp, colonia (de catálogo o texto libre), qué ofrece, si hace entregas o va a domicilio, teléfono fijo, dirección o referencias, horario y la página que registró— más los datos internos que el admin necesita para operar: estado, origen, fecha de registro y constancia del consentimiento del aviso de privacidad (evidencia ante la LFPDPPP, PRD §8).
 
-La constancia DEBE mostrarse completa: la fecha y, entre paréntesis, la versión del aviso que se aceptó, con la forma "3 de septiembre de 2026 (versión 1)". Si la ficha es anterior al versionado y no tiene versión registrada, DEBE decirlo con el texto literal "versión no registrada" en lugar de la versión, nunca inventar una. Cuando la ficha además tiene una reaceptación —porque se reenvió cuando ya estaba vigente otra versión— el detalle DEBE mostrarla como un dato propio, con la etiqueta literal "Aceptó una versión más nueva del aviso" y el mismo formato de fecha y versión; si no la tiene, esa línea no aparece.
+La constancia DEBE mostrarse completa: la fecha y, entre paréntesis, la versión del aviso que se aceptó, con la forma "3 de septiembre de 2026 (versión 1)". Si la ficha es anterior al versionado y no tiene versión registrada, DEBE decirlo con el texto literal "versión no registrada" en lugar de la versión, nunca inventar una. Cuando la ficha además tiene una reaceptación —porque se reenvió cuando ya estaba vigente una versión posterior— el detalle DEBE mostrarla como un dato propio, con la etiqueta literal "El reenvío aceptó la versión 1 del aviso" (donde `1` es la versión reaceptada) y, como valor, la fecha de ese reenvío; si no la tiene, esa línea no aparece.
+
+> **Enmienda aprobada durante la implementación de T-012** (hallazgo MEDIO-4 de la etapa C, aprobado por el orquestador). La etiqueta decía "Aceptó una versión más nueva del aviso". Quien reenvía el formulario público es un actor **no autenticado** —el propio change conserva la constancia original precisamente porque "quien reenvía puede no ser el titular"—, así que la línea no puede atribuirle el acto al titular. La etiqueta nueva describe el hecho comprobable (un reenvío aceptó la versión N) sin decir quién lo hizo. También deja de afirmar "más nueva" por su cuenta: eso ahora lo garantiza la regla de escritura, que solo anota la reaceptación cuando la versión vigente es posterior.
 
 Estos datos personales completos DEBEN verse únicamente dentro del panel con sesión válida: NO DEBEN aparecer en ninguna página pública ni en el log del servidor. Si el registro no existe, el detalle DEBE responder como no encontrado, sin sugerir nada.
 
@@ -20,10 +22,10 @@ Estos datos personales completos DEBEN verse únicamente dentro del panel con se
 - **WHEN** el admin abre el detalle de una ficha registrada antes de que el aviso tuviera versión
 - **THEN** ve la fecha del consentimiento con "versión no registrada", sin ninguna versión inventada
 
-#### Scenario: registro que aceptó una versión más nueva
+#### Scenario: registro cuyo reenvío aceptó una versión posterior
 
-- **WHEN** el admin abre el detalle de una ficha que se reenvió cuando ya estaba vigente otra versión del aviso
-- **THEN** ve la constancia original con su fecha y su versión, y además la línea "Aceptó una versión más nueva del aviso" con la fecha del reenvío y la versión nueva
+- **WHEN** el admin abre el detalle de una ficha que se reenvió cuando ya estaba vigente una versión posterior del aviso
+- **THEN** ve la constancia original con su fecha y su versión, y además la línea "El reenvío aceptó la versión 2 del aviso" con la fecha de ese reenvío, sin que se le atribuya el acto al titular
 
 #### Scenario: detalle de un registro con solo obligatorios
 

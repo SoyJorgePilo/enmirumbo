@@ -348,7 +348,7 @@ Después de aprobar, el panel DEBE confirmar con el texto literal "Ya quedó pub
 
 ### Requirement: Rechazar exige motivo, lo guarda con su fecha y ofrece avisar por WhatsApp
 
-Desde el detalle, el admin DEBE poder rechazar el registro escribiendo obligatoriamente el motivo, bajo el rótulo literal "¿Por qué lo rechazas?" y con el botón "Rechazar". El sistema DEBE guardar el estado `rechazado`, la fecha del rechazo y el motivo (los datos de los registros rechazados se eliminan a los 90 días, PRD §8: la fecha es lo que habilitará esa purga). Sin motivo, el rechazo NO DEBE ejecutarse y DEBE mostrarse el texto literal "Escribe por qué lo rechazas". Después de rechazar, el panel DEBE confirmar con "Registro rechazado." y ofrecer un botón "Avisarle por WhatsApp" con el mensaje prellenado, literalmente: "Hola, revisamos el registro de «<nombre del negocio>» en NecesitoUno Tizayuca y por ahora no lo pudimos publicar: <motivo>. Si lo corriges, lo puedes volver a enviar desde el mismo formulario con este mismo número." Un negocio rechazado NO DEBE aparecer en ninguna página pública.
+Desde el detalle, el admin DEBE poder rechazar el registro escribiendo obligatoriamente el motivo, bajo el rótulo literal "¿Por qué lo rechazas?" y con el botón "Rechazar". El sistema DEBE guardar el estado `rechazado`, la fecha del rechazo y el motivo (los datos de los registros rechazados se eliminan a los 90 días, PRD §8: la fecha es lo que la purga programada usa para saber cuándo toca). Sin motivo, el rechazo NO DEBE ejecutarse y DEBE mostrarse el texto literal "Escribe por qué lo rechazas". Después de rechazar, el panel DEBE confirmar con "Registro rechazado." y ofrecer un botón "Avisarle por WhatsApp" con el mensaje prellenado, literalmente: "Hola, revisamos el registro de «<nombre del negocio>» en NecesitoUno Tizayuca y por ahora no lo pudimos publicar: <motivo>. Si lo corriges, lo puedes volver a enviar desde el mismo formulario con este mismo número." Un negocio rechazado NO DEBE aparecer en ninguna página pública.
 
 #### Scenario: rechazo con motivo
 
@@ -491,6 +491,8 @@ Este botón es la última pieza de un trámite humano que la spec deja documenta
 
 El borrado definitivo DEBE eliminar el registro completo, esté en el estado que esté (`en_revision`, `publicado` o `rechazado`): su fila, sus vínculos con giros, sus reportes y los archivos de su foto. Después del borrado, ninguna consulta DEBE devolver sus datos, su ficha pública DEBE responder el mismo 404 que un negocio inexistente y su renglón DEBE desaparecer de la cola. El borrado DEBE ser **idempotente**: si el registro ya no existe —porque se borró desde otra pestaña o se recargó la pantalla—, NO DEBE producirse ningún error del servidor y el panel DEBE decirlo con el texto literal "Esta ficha ya no existe."
 
+Hay un caso en el que el borrado NO se ejecuta y el panel DEBE decirlo en vez de confirmar: la ficha tiene foto y el almacenamiento no se deja alcanzar (requirement "El borrado definitivo se niega a decir que borró lo que no borró", `despliegue`). Ahí la ficha sigue existiendo completa y el admin DEBE leer el texto literal "La ficha no se borró: no pude alcanzar el almacén de fotos. Revisa la configuración y vuelve a intentar." Una ficha sin foto se borra con normalidad aunque el almacenamiento esté caído.
+
 Terminado el borrado, el panel DEBE llevar al admin a una pantalla que confirme con el texto literal "Ya se borró para siempre." y ofrezca volver a la cola. Esa pantalla NO DEBE mostrar ningún dato del negocio borrado, y ni el nombre, ni el WhatsApp, ni el identificador, ni ningún otro dato personal DEBEN viajar en la URL ni escribirse en el log del servidor: lo que se acaba de borrar de la base no puede quedar guardado en un registro de accesos.
 
 #### Scenario: borrar un negocio publicado con todo colgando
@@ -517,6 +519,11 @@ Terminado el borrado, el panel DEBE llevar al admin a una pantalla que confirme 
 
 - **WHEN** el admin termina de borrar un registro
 - **THEN** ve "Ya se borró para siempre." y una salida a la cola, y ni la pantalla, ni la URL, ni el log del servidor traen el nombre, el WhatsApp ni ningún dato de ese negocio
+
+#### Scenario: el almacén de fotos no responde
+
+- **WHEN** el admin confirma el borrado de una ficha con foto y el almacenamiento no se deja alcanzar
+- **THEN** lee "La ficha no se borró: no pude alcanzar el almacén de fotos. Revisa la configuración y vuelve a intentar.", la ficha sigue existiendo completa y esa pantalla tampoco trae ningún dato del negocio
 
 #### Scenario: la foto también se va
 

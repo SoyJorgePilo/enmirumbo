@@ -88,6 +88,9 @@ describe("registro-negocio · página en una sola pantalla", () => {
     "Dirección o referencias (opcional)",
     "Horario (opcional)",
     "Link de tu Facebook (opcional)",
+    // 11ª etiqueta, del change `agregar-foto-negocio`: el requirement
+    // "Campos obligatorios y opcionales del formulario" la enumera literal.
+    "Foto de tu negocio (opcional)",
   ])('muestra la etiqueta literal "%s"', (etiqueta) => {
     expect(normalizado(htmlRegistro)).toContain(etiqueta);
   });

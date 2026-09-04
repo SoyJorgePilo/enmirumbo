@@ -16,9 +16,13 @@
  * deja la base igual.
  */
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import sharp from "sharp";
 
 import { PrismaClient } from "../src/generated/prisma/client";
 import { datosDeBusqueda } from "../src/lib/busqueda";
+import { almacenDeFotos, type AlmacenFotos } from "../src/lib/fotos/almacen";
+import { esClaveFotoValida, generarClaveFoto } from "../src/lib/fotos/clave";
+import { procesarFoto } from "../src/lib/fotos/procesar";
 import type { EstadoNegocio } from "../src/lib/negocio";
 import {
   type EntornoScriptDb,
@@ -56,6 +60,14 @@ export type NegocioDemo = {
    * design.md §3).
    */
   giros?: string[];
+  /**
+   * Le genera una foto al vuelo (un rectángulo de color, nunca un archivo
+   * versionado ni la foto de un negocio real). Sirve para ver en desarrollo
+   * tanto la tarjeta con imagen como el marcador de posición del que no tiene
+   * (spec `modelo-datos`, requirement "El seed de demostración deja fichas con
+   * foto…").
+   */
+  conFoto?: boolean;
 };
 
 /**
@@ -149,6 +161,9 @@ export const NEGOCIOS_DEMO: NegocioDemo[] = [
     // sin prometer Facebook (hallazgo M4 de T-003).
     facebookUrl: "https://halcones-ficticios.example.mx/perfil",
     giros: ["futbol"],
+    // El de la foto. Su categoría tiene otro negocio publicado SIN foto (el
+    // club de natación), así que ese listado enseña los dos casos juntos.
+    conFoto: true,
   },
   {
     nombre: "Club de Natación Delfines de Mentiras",
@@ -273,14 +288,61 @@ export function motivoParaNoSembrar(env: EntornoSeedDemo): string | null {
   return null;
 }
 
+/** Paleta neutra del sitio (globals.css): nada de colores nuevos. */
+const COLORES_FOTO_DEMO = [
+  { r: 199, g: 191, b: 174 },
+  { r: 174, g: 188, b: 199 },
+  { r: 184, g: 199, b: 174 },
+  { r: 199, g: 174, b: 187 },
+];
+
+function colorParaNombre(nombre: string) {
+  let suma = 0;
+  for (let i = 0; i < nombre.length; i++) suma = (suma * 31 + nombre.charCodeAt(i)) >>> 0;
+  return COLORES_FOTO_DEMO[suma % COLORES_FOTO_DEMO.length];
+}
+
+/**
+ * "Foto" de demostración: un rectángulo de color generado AL VUELO y pasado
+ * por el mismo pipeline de producción (`procesarFoto`), para que lo que se ve
+ * en desarrollo sea exactamente lo que el sitio serviría.
+ *
+ * Nunca un archivo de imagen versionado, nunca la foto de un negocio ni de
+ * una persona real (repo público + LFPDPPP, PRD §8).
+ */
+async function guardarFotoDemo(
+  almacen: AlmacenFotos,
+  clave: string,
+  nombre: string,
+): Promise<void> {
+  const original = await sharp({
+    create: { width: 1600, height: 1200, channels: 3, background: colorParaNombre(nombre) },
+  })
+    .png()
+    .toBuffer();
+
+  const procesada = await procesarFoto(original);
+  if (!procesada.ok) {
+    throw new Error(`No se pudo generar la foto de demostración: ${procesada.motivo}`);
+  }
+  await almacen.guardar(clave, "tarjeta", procesada.variantes.tarjeta);
+  await almacen.guardar(clave, "ficha", procesada.variantes.ficha);
+}
+
 /**
  * Siembra (o actualiza) los negocios ficticios. Idempotente por WhatsApp.
  * Necesita los catálogos ya poblados (`npm run db:seed`): si falta una
  * categoría o una colonia, avisa con un mensaje que dice qué hacer.
+ *
+ * También es idempotente en las fotos: si el negocio ya tenía una clave
+ * válida se reutiliza (se reescriben sus dos variantes), y si dejó de tener
+ * foto se borran las que tenía. Correrlo dos veces deja una sola foto por
+ * negocio sembrado y ningún archivo suelto.
  */
 export async function sembrarNegociosDemo(
   prisma: PrismaClient,
   env: EntornoSeedDemo = process.env,
+  almacen: AlmacenFotos = almacenDeFotos(),
 ): Promise<ResultadoSeedDemo> {
   const motivo = motivoParaNoSembrar(env);
   if (motivo) {
@@ -326,6 +388,21 @@ export async function sembrarNegociosDemo(
     const girosAlCrear = { connect: slugsDeGiros.map((slug) => ({ slug })) };
     const girosAlActualizar = { set: slugsDeGiros.map((slug) => ({ slug })) };
 
+    // Foto: se reutiliza la clave que ya tuviera (idempotencia) y se limpia la
+    // anterior si este negocio dejó de llevar foto.
+    const previo = await prisma.negocio.findUnique({
+      where: { whatsapp: demo.whatsapp },
+      select: { fotoClave: true },
+    });
+    const claveAnterior = previo?.fotoClave ?? null;
+    let fotoClave: string | null = null;
+    if (demo.conFoto) {
+      fotoClave = esClaveFotoValida(claveAnterior) ? claveAnterior : generarClaveFoto();
+      await guardarFotoDemo(almacen, fotoClave, demo.nombre);
+    } else if (claveAnterior) {
+      await almacen.borrar(claveAnterior);
+    }
+
     const datos = {
       nombre: demo.nombre,
       categoriaId: categoria.id,
@@ -340,6 +417,7 @@ export async function sembrarNegociosDemo(
       direccion: demo.direccion ?? null,
       horario: demo.horario ?? null,
       facebookUrl: demo.facebookUrl ?? null,
+      fotoClave,
       estado: demo.estado,
       // Datos de siembra, no de un registro real del formulario.
       origen: "siembra",

@@ -49,6 +49,12 @@ export type RegistroAdminDetalle = {
   direccion: string | null;
   horario: string | null;
   facebookUrl: string | null;
+  /**
+   * Referencia interna de la foto tal como está guardada. El panel la pinta
+   * pasándola por `urlDeFoto(..., "panel")`; sin sesión, esa dirección no
+   * sirve nada (spec `revision-admin`).
+   */
+  fotoClave: string | null;
   estado: EstadoNegocio;
   origen: OrigenNegocio;
   registradoEn: Date;
@@ -83,6 +89,7 @@ type FilaDetalle = FilaCola & {
   direccion: string | null;
   horario: string | null;
   facebookUrl: string | null;
+  fotoClave: string | null;
   estado: string;
   origen: string;
   publicadoEn: Date | null;
@@ -178,6 +185,7 @@ export async function obtenerRegistroParaPanel(
       direccion: true,
       horario: true,
       facebookUrl: true,
+      fotoClave: true,
       estado: true,
       origen: true,
       publicadoEn: true,
@@ -204,6 +212,7 @@ export async function obtenerRegistroParaPanel(
     direccion: fila.direccion,
     horario: fila.horario,
     facebookUrl: fila.facebookUrl,
+    fotoClave: fila.fotoClave,
     estado: fila.estado as EstadoNegocio,
     origen: fila.origen as OrigenNegocio,
     registradoEn: fila.registradoEn,

@@ -113,7 +113,10 @@ describe("adversarial: modelo de datos", () => {
       nombre: '<script>alert("xss")</script> Tienda Ficticia 🌮 اليمين',
       queOfreces: "x".repeat(10_000), // sin límite en SQLite: el máx. 200 vive en E1
       direccion: "Calle Ficticia '; DROP TABLE Negocio;--",
-      fotoUrl: "javascript:alert(1)", // el modelo no valida esquemas de URL
+      // La columna guarda la clave que genera el servidor; el modelo no
+      // valida su forma (de eso se encarga el validador de render, M1 de
+      // T-004), así que una cadena hostil se persiste tal cual.
+      fotoClave: "javascript:alert(1)",
       facebookUrl: "file:///etc/passwd",
     };
     const { id } = await prisma.negocio.create({

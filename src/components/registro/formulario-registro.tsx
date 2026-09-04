@@ -6,7 +6,13 @@ import { useActionState, useEffect, useState } from "react";
 import { registrarNegocio } from "@/app/registro/accion";
 import { BotonEnviar } from "@/components/registro/boton-enviar";
 import { ejemploParaCategoriaElegida } from "@/lib/registro/ejemplos";
-import { COLONIA_OTRA_VALOR, LIMITES_LONGITUD } from "@/lib/registro/textos";
+import {
+  ACCEPT_FOTO,
+  COLONIA_OTRA_VALOR,
+  LIMITES_LONGITUD,
+  TEXTO_CASILLA_SIN_FOTO,
+  TEXTO_POLITICA_FOTO,
+} from "@/lib/registro/textos";
 import {
   ESTADO_INICIAL_REGISTRO,
   type ElementoCatalogo,
@@ -46,6 +52,7 @@ export const ORDEN_CAMPOS_PARA_FOCO = [
   "direccion",
   "horario",
   "facebookUrl",
+  "foto",
   "consentimiento",
 ] as const satisfies ReadonlyArray<keyof ErroresFormularioRegistro>;
 
@@ -79,9 +86,21 @@ function MensajeError({ id, texto }: { id: string; texto?: string }) {
 }
 
 /**
- * Formulario de registro (registro-negocio spec): una sola pantalla, los 10
- * campos + el checkbox de consentimiento, con los cuatro estados (vacío,
- * error por campo, enviando, éxito).
+ * Formulario de registro (registro-negocio spec): una sola pantalla, los 11
+ * campos (incluida la foto) + el checkbox de consentimiento + la casilla
+ * "Dejar mi ficha sin foto", con los cuatro estados (vacío, error por campo,
+ * enviando, éxito).
+ *
+ * El archivo de la foto viaja en este mismo envío, y el `multipart/form-data`
+ * lo pone **React**, no nosotros: en un `<form>` cuya `action` es una función,
+ * react-dom fija `method` y `encType` él mismo y sobrescribe (con aviso en
+ * consola) cualquiera que se declare a mano — ver
+ * `node_modules/react-dom/cjs/react-dom-server.node.development.js`, "Cannot
+ * specify a encType or method for a form that specifies a function as the
+ * action". Por eso aquí no hay atributo `encType`: ponerlo era un no-op que
+ * además ensuciaba el log de una página pública (hallazgo M-2 de la auditoría
+ * de seguridad). Lo que SÍ hay que conservar es el `name="foto"` del input,
+ * que es lo que hace que el archivo llegue al `FormData` de la Server Action.
  *
  * Es Client Component porque el estado de errores usa `useActionState`
  * (design.md §1, "el helper de estado de acción de esta versión de
@@ -344,6 +363,51 @@ export function FormularioRegistro({
           className={claseCampo(Boolean(errores.facebookUrl))}
         />
         <MensajeError id="facebookUrl-error" texto={errores.facebookUrl} />
+      </div>
+
+      {/* ── Foto (requirement "El campo de foto explica la política del PRD
+          §6.1 y abre la galería del celular"): la política se ve ANTES de
+          elegir el archivo, el `accept` abre la galería de fotos en el
+          celular y NO hay `defaultValue` posible en un campo de archivo —
+          por eso, a diferencia del resto de los opcionales, este siempre
+          vuelve vacío (scenario "hay que volver a elegir la foto"). Sin JS
+          nuevo: nada de vista previa ni recorte en el cliente (requirement
+          "El registro funciona sin JavaScript de cliente"). */}
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="foto" className="text-sm font-semibold text-tinta">
+          Foto de tu negocio (opcional)
+        </label>
+        <p className="text-sm text-tinta-suave">{TEXTO_POLITICA_FOTO}</p>
+        <input
+          type="file"
+          id="foto"
+          name="foto"
+          accept={ACCEPT_FOTO}
+          className="block min-h-11 w-full cursor-pointer rounded-lg border border-borde bg-fondo px-3 py-2.5 text-sm text-tinta file:mr-3 file:min-h-11 file:cursor-pointer file:rounded-lg file:border-0 file:bg-superficie file:px-4 file:py-2.5 file:text-sm file:font-semibold file:text-tinta"
+          aria-invalid={Boolean(errores.foto)}
+          aria-describedby={errores.foto ? "foto-error" : undefined}
+        />
+        <MensajeError id="foto-error" texto={errores.foto} />
+
+        {/*
+          Siempre visible para cualquiera, con el mismo texto (requirement
+          "El campo de foto..."): ni un registro nuevo ni un reenvío tras
+          rechazo delatan si el número ya tenía ficha. No se repuebla al
+          rebotar un error (igual que el checkbox de consentimiento): no hay
+          literal de la spec que pida lo contrario.
+        */}
+        <label
+          htmlFor="quitarFoto"
+          className="flex min-h-11 cursor-pointer items-center gap-3 text-sm font-semibold text-tinta"
+        >
+          <input
+            type="checkbox"
+            id="quitarFoto"
+            name="quitarFoto"
+            className="h-5 w-5 shrink-0 rounded border-borde"
+          />
+          {TEXTO_CASILLA_SIN_FOTO}
+        </label>
       </div>
 
       {aviso}

@@ -102,7 +102,7 @@ const CONTRATO_PUBLICO_DEL_LISTADO = [
   "coloniaSlug",
   "entregaADomicilio",
   "whatsapp",
-  "fotoUrl",
+  "fotoClave",
 ];
 
 let prisma: PrismaClient;

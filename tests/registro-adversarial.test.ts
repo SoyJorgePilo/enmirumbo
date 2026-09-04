@@ -470,10 +470,11 @@ describe("adversarial · registro de negocios", () => {
     expect(creado.consintioAvisoEn).toBeInstanceOf(Date);
   });
 
-  it("ignora también fotoUrl, latitud, longitud, registradoEn y giros mandados por el cliente", async () => {
+  it("ignora también fotoClave, latitud, longitud, registradoEn y giros mandados por el cliente", async () => {
     await procesar(
       envio({
         whatsapp: "7719992073",
+        fotoClave: "clave-inventada-por-el-cliente",
         fotoUrl: "javascript:alert(1)",
         latitud: "19.83",
         longitud: "-98.97",
@@ -487,7 +488,7 @@ describe("adversarial · registro de negocios", () => {
       where: { whatsapp: "7719992073" },
       include: { giros: true },
     });
-    expect(creado.fotoUrl).toBeNull();
+    expect(creado.fotoClave).toBeNull();
     expect(creado.latitud).toBeNull();
     expect(creado.longitud).toBeNull();
     expect(creado.giros).toHaveLength(0);

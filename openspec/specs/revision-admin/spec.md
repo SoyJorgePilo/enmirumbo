@@ -62,7 +62,7 @@ Si falta la variable de entorno de la contraseña, si está vacía, o si falta e
 
 ### Requirement: Toda pantalla y toda acción del panel exigen sesión válida
 
-Cada página del panel y cada transición de estado (aprobar, rechazar) DEBEN verificar la sesión antes de leer o escribir nada. Sin sesión válida, la respuesta DEBE ser una redirección a la pantalla de acceso, sin mostrar ni un dato del registro —ni en la pantalla, ni en el HTML, ni en la URL de destino— y sin ejecutar ningún cambio en la base. Las transiciones de estado NO DEBEN existir en ninguna superficie pública: el formulario de registro, los listados y las fichas no DEBEN poder cambiar el estado, el origen, los giros ni la colonia de un negocio.
+Cada página del panel y cada acción sobre un registro —aprobar, rechazar, despublicar, borrar definitivamente y la pantalla que confirma el borrado— DEBEN verificar la sesión antes de leer o escribir nada. Sin sesión válida, la respuesta DEBE ser una redirección a la pantalla de acceso, sin mostrar ni un dato del registro —ni en la pantalla, ni en el HTML, ni en la URL de destino—, sin confirmar si ese identificador existe y sin ejecutar ningún cambio en la base. Ninguna de estas acciones DEBE existir en una superficie pública: el formulario de registro, los listados, las fichas y el formulario de reporte NO DEBEN poder cambiar el estado, el origen, los giros ni la colonia de un negocio, ni despublicarlo, ni borrarlo.
 
 #### Scenario: cola sin sesión
 
@@ -84,10 +84,25 @@ Cada página del panel y cada transición de estado (aprobar, rechazar) DEBEN ve
 - **WHEN** llega directamente al servidor una petición de rechazar un registro sin cookie de sesión válida
 - **THEN** el registro no cambia de estado y no se guarda ningún motivo de rechazo
 
+#### Scenario: despublicar sin sesión
+
+- **WHEN** llega directamente al servidor una petición de despublicar un negocio sin cookie de sesión válida
+- **THEN** el negocio sigue `publicado`, no se guarda motivo ni fecha de despublicación, su ficha sigue en el directorio y la respuesta no trae datos del negocio
+
+#### Scenario: borrar sin sesión
+
+- **WHEN** llega directamente al servidor una petición de borrado, con la palabra de confirmación y todo, sin cookie de sesión válida
+- **THEN** el registro sigue existiendo completo y la respuesta no trae ningún dato suyo
+
+#### Scenario: la pantalla de confirmación del borrado sin sesión
+
+- **WHEN** alguien sin sesión abre la URL de la pantalla de confirmación del borrado de un registro concreto
+- **THEN** llega a la pantalla de acceso, sin ver el nombre del negocio ni ningún otro dato, y sin que la respuesta confirme si ese identificador existe
+
 #### Scenario: ninguna transición desde lo público
 
-- **WHEN** se revisan las superficies públicas (formulario de registro, listados y fichas)
-- **THEN** ninguna permite cambiar estado, origen, giros ni colonia de un negocio
+- **WHEN** se revisan las superficies públicas (formulario de registro, listados, fichas y formulario de reporte)
+- **THEN** ninguna permite cambiar estado, origen, giros ni colonia de un negocio, ni despublicarlo, ni borrarlo
 
 ### Requirement: El panel no se indexa ni se enlaza desde el sitio público
 
@@ -107,6 +122,8 @@ Las páginas del panel DEBEN pedir a los buscadores que no las indexen ni sigan 
 
 La cola DEBE ser la pantalla principal del panel, encabezada con el texto literal "Registros por revisar", y listar únicamente los negocios en estado `en_revision`, ordenados del más antiguo al más reciente (el que lleva más tiempo esperando, arriba), porque la meta operativa es responder cada registro en menos de 48 horas (PRD §10). Cada renglón DEBE mostrar el nombre del negocio, su colonia (la del catálogo o el texto libre que capturó), desde cuándo espera y una entrada al detalle con el texto "Revisar". Los negocios `publicado` y `rechazado` NO DEBEN aparecer en la cola. Con la cola vacía DEBE mostrarse el texto literal "No hay registros esperando. Todo al día."
 
+**La espera se cuenta desde que el registro entró a la cola**, que es la más reciente entre su fecha de registro y su fecha de despublicación: una ficha que estuvo publicada meses y se despublicó hoy lleva esperando desde hoy, no desde que se registró. Ese mismo reloj DEBE mandar el orden de la cola, para que la espera que se muestra y la posición del renglón no se contradigan. Los negocios que llegaron a la cola por una despublicación DEBEN distinguirse de los registros nuevos con la etiqueta literal "Ya estaba publicada, la despublicaste" en su renglón, para que el admin no los confunda con altas por revisar; el criterio de espera sigue siendo el mismo para todos, sin secciones aparte.
+
 #### Scenario: orden de la cola
 
 - **WHEN** el admin abre la cola con tres registros pendientes que llegaron en días distintos
@@ -122,9 +139,19 @@ La cola DEBE ser la pantalla principal del panel, encabezada con el texto litera
 - **WHEN** no hay ningún registro en `en_revision`
 - **THEN** el admin ve "No hay registros esperando. Todo al día." en lugar de una lista vacía
 
+#### Scenario: una ficha despublicada aparece marcada y con su espera nueva
+
+- **WHEN** el admin despublica un negocio que se había registrado hace ocho meses y vuelve a la cola
+- **THEN** ese renglón dice que lleva esperando desde la despublicación (no desde su registro), trae la etiqueta "Ya estaba publicada, la despublicaste" y se ordena por esa espera nueva
+
+#### Scenario: una ficha despublicada y luego reenviada cuenta desde el reenvío
+
+- **WHEN** una ficha despublicada se rechaza, el negocio corrige sus datos y vuelve a enviar el formulario
+- **THEN** su renglón cuenta la espera desde el reenvío, que es lo más reciente que le pasó, y no desde la despublicación anterior
+
 ### Requirement: Indicador visible de los registros con más de 48 horas esperando
 
-Todo registro de la cola que lleve más de 48 horas desde su registro DEBE mostrarse con un indicador visible junto a su renglón, con el texto literal "Lleva más de 48 horas", y la cola DEBE decir cuántos están en esa condición (PRD §10: si el tiempo entre registro y publicación se pasa de 48 horas de forma sostenida, hay que revisar la carga del admin). El indicador NO DEBE depender solo del color: DEBE ser legible como texto.
+Todo registro de la cola que lleve más de 48 horas **desde que entró a la cola** —su fecha de registro o, si es más reciente, la fecha en que se despublicó— DEBE mostrarse con un indicador visible junto a su renglón, con el texto literal "Lleva más de 48 horas", y la cola DEBE decir cuántos están en esa condición (PRD §10: si el tiempo entre registro y publicación se pasa de 48 horas de forma sostenida, hay que revisar la carga del admin). El indicador NO DEBE depender solo del color: DEBE ser legible como texto.
 
 #### Scenario: registro atrasado
 
@@ -136,6 +163,11 @@ Todo registro de la cola que lleve más de 48 horas desde su registro DEBE mostr
 - **WHEN** un registro lleva 3 horas en la cola
 - **THEN** su renglón no muestra el indicador
 
+#### Scenario: una ficha recién despublicada no nace atrasada
+
+- **WHEN** el admin despublica un negocio registrado hace ocho meses y abre la cola enseguida
+- **THEN** ese renglón no muestra "Lleva más de 48 horas" ni entra en el conteo de atrasados
+
 #### Scenario: el indicador se lee, no solo se ve
 
 - **WHEN** el admin revisa la cola en un celular o con lector de pantalla
@@ -143,7 +175,7 @@ Todo registro de la cola que lleve más de 48 horas desde su registro DEBE mostr
 
 ### Requirement: Detalle del registro con todos los datos capturados, solo dentro del panel
 
-El detalle de un registro DEBE mostrar todo lo que el negocio capturó —nombre, categoría, WhatsApp, colonia (de catálogo o texto libre), qué ofrece, si hace entregas o va a domicilio, teléfono fijo, dirección o referencias, horario, la página que registró y **la foto que subió**— más los datos internos que el admin necesita para operar: estado, origen, fecha de registro y constancia del consentimiento del aviso de privacidad (evidencia ante la LFPDPPP, PRD §8). La foto DEBE verse lo bastante grande para poder juzgarla contra la política del PRD §6.1 (del local, los productos o el trabajo; sin personas reconocibles) antes de aprobar o rechazar, bajo el rótulo literal "Foto del negocio"; si el registro no trae foto, DEBE decirlo con el texto literal "Sin foto". El motivo de rechazo libre que ya existe basta para explicarle al negocio por qué su foto no cumplió: el panel NO DEBE tener catálogo de motivos ni acciones específicas sobre la foto.
+El detalle de un registro DEBE mostrar todo lo que el negocio capturó —nombre, categoría, WhatsApp, colonia (de catálogo o texto libre), qué ofrece, si hace entregas o va a domicilio, teléfono fijo, dirección o referencias, horario, la página que registró y **la foto que subió**— más los datos internos que el admin necesita para operar: estado, origen, fecha de registro y constancia del consentimiento del aviso de privacidad (evidencia ante la LFPDPPP, PRD §8). **Si la ficha estuvo publicada y se despublicó, el detalle DEBE mostrar además cuándo y por qué se despublicó**, con los rótulos literales "Cuándo la despublicaste" y "Por qué la despublicaste"; si nunca se despublicó, esos rótulos NO DEBEN aparecer. La foto DEBE verse lo bastante grande para poder juzgarla contra la política del PRD §6.1 (del local, los productos o el trabajo; sin personas reconocibles) antes de aprobar o rechazar, bajo el rótulo literal "Foto del negocio"; si el registro no trae foto, DEBE decirlo con el texto literal "Sin foto". El motivo de rechazo libre que ya existe basta para explicarle al negocio por qué su foto no cumplió: el panel NO DEBE tener catálogo de motivos ni acciones específicas sobre la foto.
 
 Estos datos personales completos —incluida la foto— DEBEN verse únicamente dentro del panel con sesión válida: NO DEBEN aparecer en ninguna página pública ni en el log del servidor, y la dirección con la que el panel muestra la foto de un registro no publicado NO DEBE servir nada sin sesión válida. Si el registro no existe, el detalle DEBE responder como no encontrado, sin sugerir nada.
 
@@ -156,6 +188,16 @@ Estos datos personales completos —incluida la foto— DEBEN verse únicamente 
 
 - **WHEN** el admin abre el detalle de un registro que solo llenó los 5 obligatorios
 - **THEN** ve esos datos, los opcionales aparecen como no capturados y donde iría la foto dice "Sin foto", sin inventar contenido
+
+#### Scenario: detalle de una ficha despublicada
+
+- **WHEN** el admin abre el detalle de un negocio que despublicó ayer con el motivo "El negocio cerró"
+- **THEN** ve "Cuándo la despublicaste" con la fecha de ayer y "Por qué la despublicaste" con "El negocio cerró", además de la fecha de su última publicación
+
+#### Scenario: detalle de una ficha que nunca se despublicó
+
+- **WHEN** el admin abre el detalle de un registro que nunca estuvo despublicado
+- **THEN** no ve los rótulos de la despublicación ni ningún hueco vacío en su lugar
 
 #### Scenario: la foto del registro en revisión no sale del panel
 
@@ -195,6 +237,8 @@ El detalle DEBE ofrecer un botón que abra la conversación de WhatsApp con el n
 
 Desde el detalle, el admin DEBE poder aprobar el registro en una sola acción que: asigna de 1 a 3 giros del catálogo (Apéndice B) o ninguno si ninguno embona; normaliza la colonia eligiendo una del catálogo cuando el negocio la escribió como "Otra"; marca el origen de la ficha (`siembra` u `organico`, PRD §10); y publica la ficha dejándola en estado `publicado` con su fecha de publicación. La cota de 1 a 3 giros se hace cumplir aquí, no en la base. Los rótulos DEBEN ser, literalmente: "Giros (de 1 a 3, o ninguno si no embona)", "¿En qué colonia está?", "¿De dónde salió?" con las opciones "Se registró solo" (origen `organico`) y "Lo sembramos nosotros" (origen `siembra`), y el botón "Aprobar y publicar". Los errores DEBEN ser, literalmente: "Elige máximo 3 giros" y "Elige la colonia de este negocio". Al aprobar, la ficha DEBE quedar visible en el directorio público de inmediato.
 
+**Aprobar es también el camino para volver a publicar una ficha despublicada.** Cuando el registro ya trae giros asignados (porque estuvo publicado), el formulario DEBE llegar con esos giros ya marcados, para que republicar no los borre sin que el admin se dé cuenta; el admin puede desmarcarlos o cambiarlos como en cualquier aprobación. Al publicar de nuevo, la fecha de publicación DEBE actualizarse a la de esta publicación, y el rastro de la despublicación anterior NO DEBE limpiarse.
+
 #### Scenario: aprobación completa
 
 - **WHEN** el admin elige 2 giros, marca el origen "Se registró solo" y toca "Aprobar y publicar" en un registro cuya colonia ya es del catálogo
@@ -224,6 +268,11 @@ Desde el detalle, el admin DEBE poder aprobar el registro en una sola acción qu
 
 - **WHEN** el admin aprueba un registro que consiguió por cambaceo y marca "Lo sembramos nosotros"
 - **THEN** la ficha queda con origen `siembra`, para poder separar las métricas del PRD §10
+
+#### Scenario: republicar conserva los giros
+
+- **WHEN** el admin abre el formulario de aprobar de una ficha que despublicó y que tenía 3 giros asignados
+- **THEN** los 3 giros llegan marcados, y si aprueba sin tocarlos la ficha se publica con esos mismos 3 giros, con la fecha de publicación de hoy y sin perder la fecha ni el motivo de la despublicación anterior
 
 #### Scenario: aprobar no edita los datos del negocio
 
@@ -273,9 +322,188 @@ Desde el detalle, el admin DEBE poder rechazar el registro escribiendo obligator
 - **WHEN** un vecino busca en el directorio un negocio que fue rechazado
 - **THEN** no aparece en ningún listado y su ficha responde como no encontrada, igual que la de un negocio inexistente
 
+### Requirement: Despublicar una ficha publicada, con motivo obligatorio y condicionada al estado
+
+Desde el detalle de un negocio en estado `publicado`, el admin DEBE poder **despublicarlo** en una sola acción que exige escribir el motivo, bajo el rótulo literal "¿Por qué la despublicas?" y con el botón literal "Despublicar". La acción DEBE dejar el negocio en estado `en_revision` y guardar la fecha de la despublicación y el motivo. Sin motivo, la despublicación NO DEBE ejecutarse y DEBE mostrarse el texto literal "Escribe por qué la despublicas". Al despublicar, la ficha DEBE dejar de estar en el directorio público de inmediato (ver la capacidad `directorio-publico`).
+
+Como ese motivo es lo que viaja dentro del WhatsApp que se le manda al negocio, NO DEBE recortarse en silencio: un motivo de más de 500 caracteres DEBE rechazarse sin escribir nada en la base, con el texto literal "El motivo no puede pasar de 500 caracteres. Recórtalo un poco: así, completo, es como le va a llegar al negocio." El campo DEBE avisar de antemano a dónde va lo que se escriba, con el texto literal "Este motivo se le enviará al negocio por WhatsApp.", para que una nota interna no salga por accidente hacia un tercero.
+
+La escritura DEBE ir **condicionada al estado**: solo surte efecto sobre un negocio que sigue en `publicado`. Si la ficha ya no estaba publicada —porque el admin la despublicó desde otra pestaña, tocó el botón dos veces, o el registro nunca llegó a publicarse—, la segunda acción NO DEBE aplicarse ni sobrescribir la primera, y el panel DEBE decirlo con el texto literal "Esta ficha ya no estaba publicada." Recargar la pantalla posterior a la despublicación NO DEBE repetirla.
+
+Despublicar NO DEBE destruir nada: los giros asignados, la colonia normalizada, el origen, la fecha de la última publicación y todos los datos que capturó el negocio DEBEN quedar tal como estaban. Despublicar tampoco DEBE tocar el motivo ni la fecha de un rechazo anterior.
+
+#### Scenario: despublicar con motivo
+
+- **WHEN** el admin abre el detalle de un negocio publicado, escribe "El dueño nos pidió por WhatsApp que la bajáramos" y toca "Despublicar"
+- **THEN** el negocio queda en estado `en_revision` con esa fecha y ese motivo guardados, y su ficha deja de estar en el directorio
+
+#### Scenario: despublicar sin motivo
+
+- **WHEN** el admin toca "Despublicar" con el motivo vacío
+- **THEN** no cambia nada en la base, el negocio sigue publicado y ve "Escribe por qué la despublicas"
+
+#### Scenario: motivo más largo que la cota
+
+- **WHEN** el admin manda un motivo de 501 caracteres, saltándose el límite del campo
+- **THEN** no se guarda nada, el negocio sigue publicado y ve "El motivo no puede pasar de 500 caracteres. Recórtalo un poco: así, completo, es como le va a llegar al negocio."
+
+#### Scenario: el admin sabe a dónde va lo que escribe
+
+- **WHEN** el admin abre el formulario de despublicar
+- **THEN** junto al rótulo "¿Por qué la despublicas?" lee "Este motivo se le enviará al negocio por WhatsApp."
+
+#### Scenario: despublicar algo que ya no estaba publicado
+
+- **WHEN** llega una petición de despublicar sobre un negocio que ya está en `en_revision` o en `rechazado`
+- **THEN** no se guarda ningún motivo ni fecha de despublicación, no cambia su estado y el panel muestra "Esta ficha ya no estaba publicada."
+
+#### Scenario: doble despublicación
+
+- **WHEN** el admin despublica una ficha y vuelve a mandar la misma acción desde una pestaña que tenía abierta
+- **THEN** la ficha conserva la fecha y el motivo de la primera despublicación y ve "Esta ficha ya no estaba publicada."
+
+#### Scenario: despublicar no borra el trabajo hecho
+
+- **WHEN** se despublica un negocio que tenía 3 giros asignados, colonia del catálogo, origen `siembra` y fecha de publicación
+- **THEN** conserva sus 3 giros, su colonia, su origen y su fecha de última publicación, y ninguno de los datos que capturó el negocio cambia
+
+#### Scenario: recargar después de despublicar
+
+- **WHEN** el admin recarga la pantalla que confirma la despublicación
+- **THEN** no se vuelve a ejecutar ninguna acción
+
+### Requirement: Al despublicar se ofrece avisarle al negocio por WhatsApp
+
+Después de despublicar, el panel DEBE confirmar con el texto literal "Ya la despublicaste." y ofrecer un botón "Avisarle por WhatsApp" que abra la conversación con ese negocio y un mensaje ya escrito, literalmente: "Hola, te escribo de NecesitoUno Tizayuca. Bajamos del directorio la ficha de «<nombre del negocio>»: <motivo>. Si quieres que la volvamos a publicar o tienes alguna duda, contéstame por aquí." El motivo que viaja en el mensaje es el que el admin acaba de escribir. El envío siempre lo hace la persona: el sistema NO DEBE mandar mensajes por su cuenta (PRD §6.6). Si el número guardado no se puede interpretar como un número mexicano de 10 dígitos, NO DEBE pintarse un enlace roto: el panel muestra el número tal como está guardado, sin botón.
+
+Esa pantalla DEBE existir únicamente para una despublicación que de verdad ocurrió: si el registro no está en `en_revision`, o no tiene fecha de despublicación, o su motivo está vacío, la pantalla NO DEBE mostrarse y el admin DEBE volver al detalle, sin que la respuesta filtre nada. Un mensaje con el motivo en blanco es un WhatsApp incorrecto hacia un tercero, que es justo lo que el panel existe para evitar.
+
+#### Scenario: aviso de despublicación
+
+- **WHEN** el admin acaba de despublicar "Tacos del Güero" con el motivo "El negocio cerró"
+- **THEN** ve "Ya la despublicaste." y un botón "Avisarle por WhatsApp" que abre la conversación con ese negocio, con el mensaje "Hola, te escribo de NecesitoUno Tizayuca. Bajamos del directorio la ficha de «Tacos del Güero»: El negocio cerró. Si quieres que la volvamos a publicar o tienes alguna duda, contéstame por aquí." ya escrito, sin enviarse
+
+#### Scenario: número que no se puede interpretar al avisar de la despublicación
+
+- **WHEN** el negocio despublicado tiene guardado un número que no se normaliza a 10 dígitos
+- **THEN** el panel muestra el número tal cual, sin botón de WhatsApp y sin enlace roto
+
+#### Scenario: la pantalla de confirmación no se abre sobre un alta nueva
+
+- **WHEN** alguien con la sesión del panel abre la pantalla de "Ya la despublicaste." de un registro que llegó por el formulario público y nunca estuvo publicado
+- **THEN** no la ve: vuelve al detalle de ese registro, sin ningún mensaje de WhatsApp cargado y sin que la respuesta traiga datos del negocio
+
+### Requirement: El borrado definitivo se confirma en dos pasos, escribiendo una palabra
+
+El borrado definitivo es irreversible y no tiene papelera, así que NO DEBE poder ejecutarse desde el detalle con un solo toque. El detalle DEBE ofrecer un control con el texto literal "Borrar definitivamente" que **solo lleva a una pantalla de confirmación propia**: ese primer paso NO DEBE borrar nada ni cambiar nada en la base, y ninguna petición GET DEBE borrar jamás un registro.
+
+La pantalla de confirmación DEBE mostrar, en este orden:
+
+- el encabezado literal "¿Seguro que quieres borrar esta ficha?";
+- el nombre del negocio y la advertencia literal "Esto borra para siempre el registro de «<nombre del negocio>», sus giros y sus reportes. No hay papelera y no se puede deshacer.";
+- el recordatorio del trámite, literalmente: "Antes de borrar: confirma por WhatsApp, desde el número con el que se registró, que quien lo pide es el dueño del negocio. Tienes 20 días hábiles para contestarle.";
+- un campo de texto con el rótulo literal "Escribe BORRAR para confirmar";
+- el botón literal "Sí, borrar para siempre" y una salida con el texto literal "Mejor no, regresar" que devuelve al detalle sin tocar nada.
+
+El borrado solo DEBE ejecutarse si lo que se escribió en el campo es la palabra `BORRAR` —sin distinguir mayúsculas de minúsculas y tolerando espacios de sobra al principio o al final, pero ninguna otra palabra—. Si no coincide, NO DEBE borrarse nada y DEBE mostrarse el texto literal "Para borrar, escribe BORRAR en el campo."
+
+Este botón es la última pieza de un trámite humano que la spec deja documentado, porque el software solo ejecuta el paso final: la solicitud ARCO llega por el WhatsApp del directorio o por el correo publicado en el aviso de privacidad → el admin verifica la titularidad confirmando que quien pide viene del mismo número de WhatsApp con el que se registró el negocio (mismo criterio humano de la verificación del alta, PRD §6.3) → el admin ejecuta la despublicación o el borrado según lo que se haya pedido → el admin responde en la misma conversación, dentro de los 20 días hábiles que promete el aviso de privacidad (PRD §8).
+
+#### Scenario: llegar a la confirmación no borra nada
+
+- **WHEN** el admin toca "Borrar definitivamente" en el detalle de un registro
+- **THEN** llega a la pantalla de confirmación con el encabezado "¿Seguro que quieres borrar esta ficha?", la advertencia con el nombre del negocio y el recordatorio del trámite, y el registro sigue existiendo con todos sus datos
+
+#### Scenario: confirmar con la palabra correcta
+
+- **WHEN** el admin escribe "BORRAR" y toca "Sí, borrar para siempre"
+- **THEN** el registro se borra de forma definitiva y el panel lo confirma
+
+#### Scenario: la palabra no coincide
+
+- **WHEN** el admin escribe "borra" o deja el campo vacío y toca "Sí, borrar para siempre"
+- **THEN** no se borra nada y ve "Para borrar, escribe BORRAR en el campo."
+
+#### Scenario: minúsculas y espacios de sobra
+
+- **WHEN** el admin escribe " borrar " y toca "Sí, borrar para siempre"
+- **THEN** el borrado se ejecuta igual, porque solo se ignoran mayúsculas y espacios sobrantes
+
+#### Scenario: arrepentirse
+
+- **WHEN** el admin toca "Mejor no, regresar"
+- **THEN** vuelve al detalle del registro, que sigue completo y sin cambios
+
+#### Scenario: ningún GET borra
+
+- **WHEN** se abre la pantalla de confirmación, se recarga y se navega hacia atrás y hacia adelante sin enviar el formulario
+- **THEN** el registro sigue existiendo, porque abrir esa pantalla no ejecuta nada
+
+### Requirement: El borrado definitivo se lleva todo y no deja rastro de datos personales
+
+El borrado definitivo DEBE eliminar el registro completo, esté en el estado que esté (`en_revision`, `publicado` o `rechazado`): su fila, sus vínculos con giros, sus reportes y los archivos de su foto. Después del borrado, ninguna consulta DEBE devolver sus datos, su ficha pública DEBE responder el mismo 404 que un negocio inexistente y su renglón DEBE desaparecer de la cola. El borrado DEBE ser **idempotente**: si el registro ya no existe —porque se borró desde otra pestaña o se recargó la pantalla—, NO DEBE producirse ningún error del servidor y el panel DEBE decirlo con el texto literal "Esta ficha ya no existe."
+
+Terminado el borrado, el panel DEBE llevar al admin a una pantalla que confirme con el texto literal "Ya se borró para siempre." y ofrezca volver a la cola. Esa pantalla NO DEBE mostrar ningún dato del negocio borrado, y ni el nombre, ni el WhatsApp, ni el identificador, ni ningún otro dato personal DEBEN viajar en la URL ni escribirse en el log del servidor: lo que se acaba de borrar de la base no puede quedar guardado en un registro de accesos.
+
+#### Scenario: borrar un negocio publicado con todo colgando
+
+- **WHEN** el admin confirma el borrado de un negocio publicado que tenía giros asignados y reportes
+- **THEN** desaparecen su fila, sus vínculos con giros y sus reportes, y ninguna consulta posterior devuelve ni el negocio ni sus reportes
+
+#### Scenario: borrar en cualquier estado
+
+- **WHEN** el admin borra un registro en `en_revision` y otro en `rechazado`
+- **THEN** los dos desaparecen igual, sin importar su estado
+
+#### Scenario: la ficha borrada responde 404
+
+- **WHEN** alguien abre la URL que tenía la ficha de un negocio borrado
+- **THEN** ve la página 404 en español, exactamente igual que si el negocio nunca hubiera existido
+
+#### Scenario: borrar dos veces
+
+- **WHEN** el admin borra un registro y vuelve a mandar la misma confirmación desde una pestaña que tenía abierta
+- **THEN** no hay error del servidor, nada más se borra y ve "Esta ficha ya no existe."
+
+#### Scenario: la confirmación del borrado no filtra nada
+
+- **WHEN** el admin termina de borrar un registro
+- **THEN** ve "Ya se borró para siempre." y una salida a la cola, y ni la pantalla, ni la URL, ni el log del servidor traen el nombre, el WhatsApp ni ningún dato de ese negocio
+
+#### Scenario: la foto también se va
+
+- **WHEN** se borra un negocio cuya foto es un archivo guardado por el sitio
+- **THEN** el archivo deja de existir, ninguna URL lo sigue sirviendo y la foto de los demás negocios queda intacta
+
+### Requirement: El detalle ofrece las acciones que corresponden al estado, con el contexto a la vista
+
+El detalle DEBE mostrar las acciones aplicables al estado del registro y ninguna más: un registro `en_revision` ofrece aprobar y rechazar; un registro `publicado` ofrece "Despublicar"; cualquier registro, en cualquier estado, ofrece "Borrar definitivamente". Las acciones destructivas DEBEN ir después de los datos y del contexto de la decisión —incluidos los reportes sin atender del negocio, cuando el directorio tenga reportes—, para que el admin lea antes de actuar, y "Borrar definitivamente" DEBE distinguirse visualmente de las demás como lo que es: la acción irreversible.
+
+#### Scenario: detalle de una ficha publicada
+
+- **WHEN** el admin abre el detalle de un negocio en estado `publicado`
+- **THEN** ve el formulario de despublicar con su rótulo "¿Por qué la despublicas?" y el control "Borrar definitivamente", y no ve los formularios de aprobar ni de rechazar
+
+#### Scenario: detalle de un registro en revisión
+
+- **WHEN** el admin abre el detalle de un registro en `en_revision`
+- **THEN** ve los formularios de aprobar y rechazar y el control "Borrar definitivamente", y no ve el formulario de despublicar
+
+#### Scenario: detalle de un registro rechazado
+
+- **WHEN** el admin abre el detalle de un registro `rechazado`
+- **THEN** la única acción que ve es "Borrar definitivamente"
+
+#### Scenario: decidir con los reportes a la vista
+
+- **WHEN** el admin abre el detalle de un negocio publicado que tiene reportes sin atender
+- **THEN** ve esos reportes y, en la misma pantalla y debajo de ellos, las acciones de despublicar y borrar, sin tener que navegar a otro lado para actuar
+
 ### Requirement: Una transición solo se aplica sobre un registro que sigue en revisión
 
 Aprobar y rechazar solo DEBEN surtir efecto sobre registros en estado `en_revision`. Si el registro ya fue resuelto —porque el admin lo abrió dos veces, tocó el botón dos veces o lo resolvió desde otra pestaña—, la segunda transición NO DEBE aplicarse ni sobrescribir la primera, y el panel DEBE decirlo con el texto literal "Este registro ya lo habías resuelto." Recargar la pantalla posterior a una transición NO DEBE repetirla.
+
+Como cualquier registro se puede borrar en cualquier momento, una aprobación también puede encontrarse con que la fila ya no existe. Ese caso NO DEBE terminar en un error del servidor ni resucitar la fila borrada: se resuelve como registro no encontrado, con la ficha borrada bien borrada.
 
 #### Scenario: doble aprobación
 
@@ -292,19 +520,29 @@ Aprobar y rechazar solo DEBEN surtir efecto sobre registros en estado `en_revisi
 - **WHEN** el admin recarga la pantalla que confirma la aprobación o el rechazo
 - **THEN** no se vuelve a ejecutar ninguna transición
 
+#### Scenario: la ficha se borra a media aprobación
+
+- **WHEN** el admin aprueba un registro desde una pestaña mientras lo borra definitivamente desde otra
+- **THEN** la aprobación no revienta con un error del servidor, el panel la resuelve como registro no encontrado y la fila borrada no vuelve a existir
+
 ### Requirement: El panel se opera desde el celular y sin JavaScript de cliente innecesario
 
-El panel DEBE ser mobile-first: cola, detalle y formularios de aprobar y rechazar DEBEN verse completos y usables en un viewport de 390px, sin scroll horizontal, con áreas táctiles de al menos 44px y contraste AA (PRD §8). Las pantallas del panel DEBEN ser Server Components y sus formularios DEBEN funcionar sin JavaScript de cliente, igual que el registro público.
+El panel DEBE ser mobile-first: cola, detalle, formularios de aprobar, rechazar y despublicar, y la pantalla de confirmación del borrado DEBEN verse completos y usables en un viewport de 390px, sin scroll horizontal, con áreas táctiles de al menos 44px y contraste AA (PRD §8). Las pantallas del panel DEBEN ser Server Components y sus formularios DEBEN funcionar sin JavaScript de cliente, igual que el registro público.
 
 #### Scenario: revisar desde el celular
 
-- **WHEN** el admin abre la cola, el detalle de un registro y los formularios de aprobar y rechazar en un viewport de 390px
+- **WHEN** el admin abre la cola, el detalle de un registro y los formularios de aprobar, rechazar y despublicar en un viewport de 390px
 - **THEN** todo se ve completo y legible, sin scroll horizontal, y cada control tocable mide al menos 44px en su dimensión menor
 
 #### Scenario: el panel funciona sin JavaScript
 
-- **WHEN** el admin entra, aprueba y rechaza con el JavaScript de cliente deshabilitado
-- **THEN** las tres acciones funcionan igual, porque cada una es un envío de formulario del servidor
+- **WHEN** el admin entra, aprueba, rechaza, despublica y borra con el JavaScript de cliente deshabilitado
+- **THEN** las cinco acciones funcionan igual, porque cada una es un envío de formulario del servidor
+
+#### Scenario: la confirmación del borrado también se opera en el celular
+
+- **WHEN** el admin abre la pantalla de confirmación del borrado en un viewport de 390px con el JavaScript de cliente deshabilitado
+- **THEN** ve el texto completo sin scroll horizontal, puede escribir la palabra y borrar
 
 #### Scenario: sin JS de cliente propio
 

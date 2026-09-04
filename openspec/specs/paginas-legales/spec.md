@@ -338,7 +338,11 @@ La línea suelta "Aviso de privacidad" es el enlace a `/aviso-de-privacidad`.
 
 Todo dato que solo una persona puede aportar (nombre o razón social del responsable, domicilio, correo de contacto/ARCO, WhatsApp del directorio, fecha de publicación y jurisdicción) DEBE aparecer en la página como un placeholder visible entre corchetes con la indicación de que falta completarlo, nunca como un dato inventado, un espacio en blanco o texto de relleno. Mientras quede al menos un placeholder sin completar, ambas páginas DEBEN mostrar arriba, de forma visible, la marca de borrador con el texto literal "Ojo: este texto todavía es un borrador. Nos faltan los datos que ves entre corchetes y la revisión legal antes de que el directorio se lance." Los placeholders pendientes DEBEN estar declarados en un solo lugar del código, de modo que la verificación automática pueda listarlos y el checklist de lanzamiento no dependa de que alguien los busque a ojo.
 
-Los datos que faltan no son lo único pendiente antes de retirar la marca de borrador. El aviso compromete una operación —atender las solicitudes ARCO en ≤20 días hábiles, despublicar y borrar de forma definitiva, y eliminar los datos de los registros rechazados a los 90 días— que hoy se hace a mano contra la base: el panel solo aprueba y rechaza, y ninguna purga automática existe. Junto a los placeholders DEBE declararse, en el mismo módulo y en la misma forma recorrible, la lista de esos **pendientes operativos**, cada uno con el ticket que lo resuelve, para que la revisión legal y el checklist de lanzamiento los vean sin buscarlos a ojo. Esta lista NO se publica en las páginas: el texto legal dice lo que el responsable se compromete a hacer, no el estado del backlog; lo que las páginas no DEBEN hacer es prometer automatismos que no existen.
+Los datos que faltan no son lo único pendiente antes de retirar la marca de borrador. El aviso compromete una operación —atender las solicitudes ARCO en ≤20 días hábiles y eliminar los datos de los registros rechazados a los 90 días— y junto a los placeholders DEBE declararse, en el mismo módulo y en la misma forma recorrible, la lista de los **pendientes operativos** que siguen sin resolverse, cada uno con el ticket que lo resuelve, para que la revisión legal y el checklist de lanzamiento los vean sin buscarlos a ojo. Esta lista NO se publica en las páginas: el texto legal dice lo que el responsable se compromete a hacer, no el estado del backlog; lo que las páginas no DEBEN hacer es prometer automatismos que no existen.
+
+Un pendiente DEBE salir de esa lista **solo en la parte que el panel ya puede hacer de verdad, no entero**, porque un checklist de lanzamiento que miente por omisión es peor que un renglón de más. De las cuatro letras de ARCO, el panel resuelve la cancelación y la oposición —despublicar una ficha y borrar un registro de forma definitiva son acciones suyas—, así que esa parte ya no DEBE aparecer como pendiente; **el acceso y la rectificación sí DEBEN seguir declarados**, con su ticket, porque el aviso los promete ("escríbenos y los quitamos", "rectificarlos si están mal") y el panel no tiene ninguna pantalla para entregarle al negocio una copia de sus datos, corregirlos ni quitar un campo de su ficha: eso sigue haciéndose a mano contra la base. También sigue en la lista, con su ticket, la purga de los registros rechazados a los 90 días, que no existe.
+
+Los textos publicados del aviso y de los términos no dependen de esta lista y siguen siendo verdad: la despublicación y el borrado se ejecutan a mano y a petición del titular, después de que el admin verifica la titularidad por WhatsApp; el titular sigue sin tener "un botón que lo haga solo".
 
 #### Scenario: el domicilio del responsable todavía no existe
 
@@ -358,7 +362,22 @@ Los datos que faltan no son lo único pendiente antes de retirar la marca de bor
 #### Scenario: los pendientes operativos también están declarados
 
 - **WHEN** la revisión legal o el checklist de lanzamiento revisan qué falta antes de retirar la marca de borrador
-- **THEN** encuentran, junto a la lista de placeholders y en el mismo módulo, la lista de pendientes operativos —el flujo ARCO en el panel y la purga de los rechazados a los 90 días—, cada uno con su ticket, y ninguno de ellos aparece publicado en las páginas legales
+- **THEN** encuentran, junto a la lista de placeholders y en el mismo módulo, la lista de pendientes operativos —el acceso y la rectificación en el panel y la purga de los rechazados a los 90 días—, cada uno con su ticket, y ninguno de ellos aparece publicado en las páginas legales
+
+#### Scenario: el pendiente ARCO quedó acotado, no retirado
+
+- **WHEN** la revisión legal busca en esa lista qué falta de los derechos ARCO
+- **THEN** lee que lo pendiente son el acceso y la rectificación —entregarle al negocio una copia de sus datos, corregirlos o quitar un campo de su ficha—, con la nota de que despublicar y borrar ya son acciones del panel, y ningún pendiente sigue diciendo que falta despublicar o borrar
+
+#### Scenario: la purga sigue pendiente
+
+- **WHEN** se revisa la misma lista
+- **THEN** sigue apareciendo la eliminación de los datos de los registros rechazados a los 90 días, con su ticket
+
+#### Scenario: el texto legal no cambia porque el panel estrene acciones
+
+- **WHEN** se comparan `/aviso-de-privacidad` y `/terminos` con el texto aprobado en esta spec después de que el panel estrena despublicar y borrar
+- **THEN** coinciden párrafo por párrafo: siguen diciendo que todo se atiende a mano y a petición, con confirmación en un máximo de 20 días hábiles
 
 ### Requirement: Las dos páginas legales son indexables y tienen metadata propia
 

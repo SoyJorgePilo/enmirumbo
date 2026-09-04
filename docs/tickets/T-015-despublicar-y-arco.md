@@ -1,6 +1,6 @@
 # T-015 · Dar al admin las acciones sobre fichas publicadas: despublicar y borrado ARCO
 
-**Estado:** en-review
+**Estado:** hecho
 **Prioridad:** P0 (criterio de lanzamiento: el aviso de privacidad ya promete ambas cosas)
 **Épica:** E3-6 y hallazgo de T-011 (docs/backlog.md)
 **Referencias PRD:** §6.3 (moderación, retiro de fichas), §8 (ARCO ≤20 días hábiles, borrado definitivo)

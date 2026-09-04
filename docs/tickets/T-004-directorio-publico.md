@@ -1,6 +1,6 @@
 # T-004 · Construir el directorio público: categorías, listados y ficha
 
-**Estado:** en-review
+**Estado:** hecho
 **Prioridad:** P0
 **Épica:** E2-1 (parcial: categorías y bloque deporte, sin buscador), E2-2, E2-3, E4-1 (docs/backlog.md)
 **Referencias PRD:** §6.2, §6.5, §7 Flujo B, §8 (rendimiento, publicar colonia y no domicilio exacto)

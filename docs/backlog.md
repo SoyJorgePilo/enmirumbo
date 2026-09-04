@@ -16,7 +16,8 @@
 |---|---|
 | E1-1 | Formulario de una pantalla con 5 obligatorios y 5 opcionales, ejemplos de "¿Qué ofreces?" adaptados a la categoría elegida |
 | E1-2 | Checkbox de consentimiento con aviso simplificado visible y link al integral |
-| E1-3 | Subida de una foto desde galería, comprimida en el servidor |
+| E1-3 | Subida de una foto desde galería, comprimida en el servidor; incluye validar `fotoUrl` antes de renderizarla en el directorio (hallazgo M1 de T-004) |
+| E1-6 | El aviso simplificado del formulario debe decir que el WhatsApp y el teléfono quedan públicos en la ficha (hallazgo M3 de T-004, LFPDPPP) |
 | E1-4 | Envío → estado `en_revision` → pantalla de gracias con mensaje del PRD |
 | E1-5 | Colonia "Otra" con texto libre marcado para normalización del admin |
 
@@ -55,6 +56,7 @@
 | E5-2 | Schema Markup LocalBusiness en cada ficha |
 | E5-3 | Sitemap, metadata y Open Graph (las fichas se comparten por WhatsApp/Facebook: la vista previa importa) |
 | E5-4 | Rendimiento: <2s en 4G, imágenes comprimidas (medir con Lighthouse) |
+| E5-5 | robots.txt y fricción contra la cosecha masiva del directorio (hallazgo M5 de T-004) |
 
 ## E6 · Legal (P0 — PRD §8)
 
@@ -83,3 +85,5 @@
 ---
 
 **Fuera de alcance** (PRD §6.6): cuentas/login, pagos, reseñas, pedidos, app nativa, multi-sucursal, otras ciudades, verificación automática.
+
+**Deuda menor registrada** (candidata a una ruta corta): hallazgos bajos B1-B4 de la auditoría de T-004 (`openspec/changes/archive/agregar-directorio-publico/reports/c-seguridad.md`), `<meta name="format-detection" content="telephone=no">` en el layout, unificar los teléfonos ficticios de seeds/tests a la convención `771999xxxx`, y el salto h1→h3 en las tarjetas del listado.

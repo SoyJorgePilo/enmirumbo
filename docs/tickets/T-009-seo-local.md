@@ -6,7 +6,7 @@
 **Referencias PRD:** §8 (SEO local, páginas por giro generadas del catálogo cerrado), §6.5 (oportunidad SEO de deporte sin competencia), §6.2, §10 (tráfico orgánico como métrica)
 **Depende de:** T-004 (directorio), T-005 (giros asignados por el admin), T-006 (buscador)
 **OpenSpec change:** `agregar-seo-local`
-**PR:** —
+**PR:** [#10](https://github.com/SoyJorgePilo/necesitouno/pull/10)
 
 ## Contexto
 

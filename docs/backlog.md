@@ -39,7 +39,12 @@
 | E3-3 | Aprobar (publica la ficha) / rechazar (con motivo); normalizar colonia "Otra" |
 | E3-4 | Botón "Reportar" en ficha pública → entra a la cola del admin |
 | E3-5 | Indicador de pendientes >48h (meta operativa del PRD) |
-| E3-6 | Borrado definitivo desde el panel (derechos ARCO, PRD §8 — hoy se atendería a mano contra la base; el PRD compromete ≤20 días hábiles, necesario antes del lanzamiento) |
+| E3-6 | Borrado definitivo desde el panel (derechos ARCO, PRD §8 — hoy se atendería a mano contra la base; el PRD compromete ≤20 días hábiles, necesario antes del lanzamiento) — **hecho en T-015** para cancelación y oposición (despublicar y borrar) |
+| E3-7 | Acceso y rectificación desde el panel: entregarle al negocio una copia de sus datos y editarlos o quitar un campo de su ficha. Es lo que queda del renglón ARCO de `PENDIENTES_OPERATIVOS_LEGALES` después de T-015; hoy se hace a mano contra la base (E8-2 lo resolvería del lado del negocio) |
+| E3-8 | Buscador de fichas dentro del panel (por nombre o WhatsApp): hoy llegar al detalle de una ficha publicada sin reporte de por medio obliga a copiar el id del final de la URL pública, incómodo desde el celular (duda 1 de T-015) |
+| E3-9 | Bitácora de las acciones destructivas del admin (quién despublicó o borró y cuándo) + segundo factor de acceso al panel. Con un solo admin es tolerable; en cuanto haya dos, es lo primero que hace falta para poder demostrar el plazo ARCO (BAJO 4 de la auditoría de T-015) |
+| E3-10 | Que `rechazarRegistro` deje de recortar el motivo en silencio a 500 caracteres: ese texto viaja dentro del WhatsApp que se le manda al negocio, así que un recorte llega como una frase cortada a media palabra. `despublicarFicha` ya lo rechaza con error de formulario en vez de recortarlo (T-015); emparejar los dos exige enmendar la spec de T-005 (BAJO 5 de la auditoría de T-015) |
+| E3-11 | El detalle repinta los giros previos si el admin los desmarca todos y la aprobación falla por otra validación: `sp.giro ? … : registro.girosIds` debe discriminar por `sp.errorAprobar` (nota del validador de T-015) |
 
 ## E4 · Deporte en Tizayuca (P0 — PRD §6.5)
 

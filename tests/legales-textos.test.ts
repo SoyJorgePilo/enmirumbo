@@ -122,8 +122,51 @@ describe("paginas-legales · los pendientes operativos están declarados y no pu
       expect(pendiente.ticket, pendiente.compromiso).toMatch(/^E\d-\d/);
     }
     const tickets = PENDIENTES_OPERATIVOS_LEGALES.map((p) => p.ticket).join(" ");
-    expect(tickets).toContain("E3-6"); // flujo ARCO en el panel
     expect(tickets).toContain("E0-3"); // purga de los rechazados a los 90 días
+  });
+
+  // Scenario: el pendiente del flujo ARCO ya no aparece (change
+  // `agregar-despublicar-y-borrado-arco`, T-015).
+  //
+  // "Ya no aparece" es exactamente lo que el panel ya sabe hacer: despublicar
+  // y borrar. El renglón NO se retiró entero (hallazgo MEDIO 2 de la etapa C)
+  // porque juntaba las cuatro letras de ARCO, y el panel sigue sin poder
+  // atender el ACCESO ni la RECTIFICACIÓN, que el aviso también promete. Un
+  // pendiente que se borra antes de estar resuelto es justo lo que esta lista
+  // existe para evitar.
+  it("despublicar y borrar ya no se declaran como pendientes", () => {
+    const lista = PENDIENTES_OPERATIVOS_LEGALES.map(
+      (pendiente) => `${pendiente.compromiso} ${pendiente.hoy}`,
+    ).join(" ");
+    // Ningún COMPROMISO pendiente puede ser ya despublicar o borrar.
+    for (const pendiente of PENDIENTES_OPERATIVOS_LEGALES) {
+      expect(pendiente.compromiso, pendiente.ticket).not.toMatch(
+        /despublicar|borrar de forma definitiva|borrado definitivo/i,
+      );
+    }
+    expect(lista).not.toContain("el panel solo aprueba y rechaza");
+  });
+
+  // Enmienda de la etapa C (MEDIO 2): lo que el panel todavía NO hace sigue
+  // declarado, para que la revisión legal no concluya que ya no falta nada.
+  it("el acceso y la rectificación siguen declarados como pendientes", () => {
+    const arco = PENDIENTES_OPERATIVOS_LEGALES.find((pendiente) =>
+      /acceso y rectificación/i.test(pendiente.compromiso),
+    );
+    expect(arco, "falta el pendiente de acceso y rectificación").toBeDefined();
+    expect(arco!.hoy).toContain("a mano contra la base");
+    // Y dice, para que nadie lo lea de más, qué parte SÍ quedó resuelta.
+    expect(arco!.hoy).toMatch(/T-015/);
+    expect(arco!.ticket).toMatch(/^E\d-\d/);
+  });
+
+  // Scenario: la purga sigue pendiente
+  it("la purga de los rechazados a los 90 días sigue declarada, con su ticket", () => {
+    const purga = PENDIENTES_OPERATIVOS_LEGALES.find((pendiente) =>
+      pendiente.ticket.startsWith("E0-3"),
+    );
+    expect(purga?.compromiso).toContain("90 días");
+    expect(purga?.hoy).toContain("No hay purga");
   });
 
   it("no se publican en las páginas: el texto legal no cuenta el backlog", () => {

@@ -99,11 +99,18 @@ export const TEXTO_MARCA_BORRADOR =
  * atendemos a mano, cuando tú lo pides").
  */
 export const PENDIENTES_OPERATIVOS_LEGALES = [
+  // ACOTADO por el change `agregar-despublicar-y-borrado-arco` (T-015). El
+  // renglón original juntaba las cuatro letras de ARCO con la despublicación y
+  // el borrado; el panel ya hace **cancelación y oposición** (despublicar y
+  // borrar), así que esa parte salió. Lo que sigue haciéndose a mano contra la
+  // base son el **acceso** y la **rectificación**, que el aviso también promete
+  // ("escríbenos y los quitamos", "rectificarlos si están mal") y para los que
+  // el panel no tiene ninguna pantalla (hallazgo MEDIO 2 de la etapa C).
   {
     compromiso:
-      "Atender las solicitudes ARCO (acceso, rectificación, cancelación y oposición), despublicar una ficha y borrar un registro de forma definitiva.",
-    hoy: "Se hace a mano contra la base: el panel solo aprueba y rechaza.",
-    ticket: "E3-6 (flujo ARCO en el panel)",
+      "Atender las solicitudes de acceso y rectificación: entregarle al negocio una copia de sus datos y corregirlos, o quitar un campo de su ficha, cuando lo pida.",
+    hoy: "Se hace a mano contra la base: el panel no edita los datos de un negocio ni se los entrega. La cancelación sí quedó resuelta: despublicar y borrar ya son acciones del panel (T-015).",
+    ticket: "E3-6 (acceso y rectificación en el panel; E8-2 lo resolvería del lado del negocio)",
   },
   {
     compromiso:
@@ -262,8 +269,14 @@ export const AVISO_PRIVACIDAD: DocumentoLegal = {
       // §8, lo mismo que `/terminos`, y lo único que el modelo puede fechar
       // (`rechazadoEn`; una ficha en revisión no tiene reloj de purga)—, y
       // aquí no se promete ningún automatismo: todo se atiende a mano y a
-      // petición mientras E3-6 (flujo ARCO en el panel) y E0-3 (purga) no
-      // existan. Ver `PENDIENTES_OPERATIVOS_LEGALES`.
+      // petición.
+      //
+      // Actualizado por T-015 (`agregar-despublicar-y-borrado-arco`): de los
+      // tres renglones de esta lista, "despubliquemos tu ficha" y "borremos
+      // todo" ya son dos acciones del panel; "quitar un campo de la ficha"
+      // sigue siendo edición a mano contra la base, igual que la purga de los
+      // rechazados a los 90 días. Los dos pendientes que quedan están
+      // declarados en `PENDIENTES_OPERATIVOS_LEGALES`.
       bloques: [
         {
           tipo: "lista",

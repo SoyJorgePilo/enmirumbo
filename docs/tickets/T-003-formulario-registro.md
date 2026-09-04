@@ -1,6 +1,6 @@
 # T-003 · Construir el formulario de registro de negocios
 
-**Estado:** en-review
+**Estado:** hecho
 **Prioridad:** P0
 **Épica:** E1-1, E1-2, E1-4, E1-5 (docs/backlog.md)
 **Referencias PRD:** §6.1, §6.5 (mismo formulario para deporte), §7 Flujo A, §8 (anti-abuso sin captcha, LFPDPPP)

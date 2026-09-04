@@ -27,10 +27,12 @@ import ColaAdminPage from "../src/app/admin/cola/page";
 import AccesoAdminPage from "../src/app/admin/page";
 import DetalleRegistroAdminPage from "../src/app/admin/registros/[id]/page";
 import RegistroAprobadoPage from "../src/app/admin/registros/[id]/aprobado/page";
+import AvisoDePrivacidadPage from "../src/app/aviso-de-privacidad/page";
 import { metadata } from "../src/app/layout";
 import FichaNegocioPage from "../src/app/negocio/[ficha]/page";
 import NotFoundPage from "../src/app/not-found";
 import Home from "../src/app/page";
+import TerminosPage from "../src/app/terminos/page";
 import { Footer } from "../src/components/footer";
 import {
   LONGITUD_MINIMA_SECRETO,
@@ -75,10 +77,11 @@ const fuentesTodas = archivosDe(join(raiz, "src"), [".ts", ".tsx", ".css"]);
 /**
  * Rutas ESTÁTICAS que existen de verdad: cada `page.tsx` bajo `src/app` que no
  * tenga segmentos dinámicos. Sirve de lista blanca de hrefs, así que agregar
- * un enlace a una página que aún no existe (los legales de E6, por ejemplo)
- * rompe la suite. Las rutas dinámicas (`/[destino]`, `/negocio/[ficha]`) se
- * validan aparte, resolviendo el destino contra el catálogo y contra los
- * negocios publicados.
+ * un enlace a una página que aún no existe rompe la suite. Desde el change
+ * `agregar-paginas-legales` la lista reconoce `/aviso-de-privacidad` y
+ * `/terminos`, que ya existen. Las rutas dinámicas (`/[destino]`,
+ * `/negocio/[ficha]`) se validan aparte, resolviendo el destino contra el
+ * catálogo y contra los negocios publicados.
  */
 const rutasExistentes = new Set(
   archivosDe(join(raiz, "src/app"), ["page.tsx"])
@@ -95,6 +98,10 @@ const headerTsx = readFileSync(join(raiz, "src/components/header.tsx"), "utf8");
 
 const htmlFooter = renderToStaticMarkup(createElement(Footer));
 const html404 = renderToStaticMarkup(createElement(NotFoundPage));
+// Páginas legales (change `agregar-paginas-legales`): sus enlaces cruzados
+// entran a la misma revisión que los del resto del sitio.
+const htmlAvisoPrivacidad = renderToStaticMarkup(createElement(AvisoDePrivacidadPage));
+const htmlTerminos = renderToStaticMarkup(createElement(TerminosPage));
 const normalizado = (html: string) => html.replace(/\s+/g, " ");
 
 // La home y las páginas del directorio leen la base (Server Components
@@ -369,8 +376,35 @@ describe("layout-base · header con marca y posicionamiento (scenario 1)", () =>
 });
 
 describe("layout-base · footer sin enlaces muertos (scenario 2)", () => {
-  it("el footer no tiene ningún enlace mientras no existan las páginas legales", () => {
-    expect(htmlFooter).not.toMatch(/<a[\s>]/);
+  // MODIFIED por el change `agregar-paginas-legales`: el hueco que T-002
+  // reservó lo ocupan los dos enlaces legales (E6), cada uno hacia una página
+  // que existe de verdad. Antes este caso exigía cero enlaces.
+  it("el footer enlaza las dos páginas legales, y las dos existen", () => {
+    const delFooter = [...htmlFooter.matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a>/g)].map((m) => ({
+      href: m[1].match(/href="([^"]*)"/)?.[1],
+      texto: m[2].replace(/<[^>]+>/g, "").trim(),
+      etiqueta: m[0],
+    }));
+    expect(delFooter).toHaveLength(2);
+    expect(delFooter.map((enlace) => enlace.texto)).toEqual([
+      "Aviso de privacidad",
+      "Términos y condiciones",
+    ]);
+    expect(delFooter.map((enlace) => enlace.href)).toEqual([
+      "/aviso-de-privacidad",
+      "/terminos",
+    ]);
+    for (const enlace of delFooter) {
+      expect(rutasExistentes, enlace.href).toContain(enlace.href);
+    }
+    // Y sigue sin enlaces muertos.
+    expect(problemasDeEnlaces(htmlFooter)).toEqual([]);
+  });
+
+  // Scenario: los enlaces del footer se pueden tocar en el celular
+  it("cada enlace del footer reserva al menos 44px de área táctil", () => {
+    const footerTsx = readFileSync(join(raiz, "src/components/footer.tsx"), "utf8");
+    expect(footerTsx.match(/\bmin-h-11\b/g)).toHaveLength(2);
   });
 
   // layout-base (MODIFIED por agregar-formulario-registro) · Scenario: sin
@@ -412,6 +446,9 @@ describe("layout-base · enlaces internos y externos de las páginas servidas", 
     // Páginas nuevas del change `agregar-seo-local`
     expect(problemasDeEnlaces(htmlGiro)).toEqual([]);
     expect(problemasDeEnlaces(htmlGiroColonia)).toEqual([]);
+    // Las dos páginas legales se enlazan entre sí: ninguna es un enlace muerto.
+    expect(problemasDeEnlaces(htmlAvisoPrivacidad)).toEqual([]);
+    expect(problemasDeEnlaces(htmlTerminos)).toEqual([]);
   });
 
   // directorio-publico · Requirements "Página indexable por giro…" y "Desde la
@@ -499,6 +536,8 @@ describe("layout-base · enlaces internos y externos de las páginas servidas", 
       htmlFicha,
       html404,
       htmlFooter,
+      htmlAvisoPrivacidad,
+      htmlTerminos,
     ]) {
       expect(html).not.toContain("/admin");
     }
@@ -508,11 +547,22 @@ describe("layout-base · enlaces internos y externos de las páginas servidas", 
     }
   });
 
+  // Scenario: las rutas legales ya no son un enlace muerto (MODIFIED por el
+  // change `agregar-paginas-legales`)
+  it("las rutas legales existen; una legal mal escrita sigue fallando", () => {
+    expect(rutasExistentes).toContain("/aviso-de-privacidad");
+    expect(rutasExistentes).toContain("/terminos");
+    expect(problemasDeEnlaces('<a href="/aviso-de-privacidad">Aviso</a>')).toEqual([]);
+    expect(problemasDeEnlaces('<a href="/terminos">Términos</a>')).toEqual([]);
+    expect(problemasDeEnlaces('<a href="/terminos-y-condiciones">x</a>')).toHaveLength(1);
+    expect(problemasDeEnlaces('<a href="/aviso-privacidad">x</a>')).toHaveLength(1);
+  });
+
   // Scenario: enlace interno a una ruta inexistente (la verificación falla)
   it("señala un enlace inventado, uno externo sin rel y un tel: con pestaña nueva", () => {
-    expect(problemasDeEnlaces('<a href="/aviso-de-privacidad">Aviso</a>')).toHaveLength(
-      1,
-    );
+    // `/aviso-de-privacidad` ya no sirve de ejemplo de ruta inexistente: la
+    // publicó el change `agregar-paginas-legales`. Su versión mal escrita sí.
+    expect(problemasDeEnlaces('<a href="/terminos-y-condiciones">x</a>')).toHaveLength(1);
     expect(problemasDeEnlaces('<a href="/categoria-inventada">x</a>')).toHaveLength(1);
     expect(
       problemasDeEnlaces('<a href="/negocio/negocio-que-no-existe-xyz">x</a>'),

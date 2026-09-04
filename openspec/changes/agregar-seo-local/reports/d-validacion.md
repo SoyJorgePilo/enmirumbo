@@ -90,3 +90,41 @@ Hacerlo bien es normalizar **solo para detectar** y emitir el original — un re
 ## 7. Recordatorio
 
 El **CI de GitHub Actions debe quedar en verde en el PR**: mi validación local no lo sustituye. El **merge lo hace un humano**, y conviene **coordinarlo con el PR de la foto (T-008)**: las dos ramas tocan la ficha y comparten `fotoUrl`.
+
+## 8. Integración con `main` (T-007 mergeó durante esta corrida)
+
+Al ir a abrir el PR encontré que **`main` ya no era la base de la rama**: T-007 (páginas legales) se mergeó como PR #9 y la rama estaba 4 commits atrás. Fusioné `main` en la rama antes de abrir el PR —el mismo patrón que usó el buscador (`2e9202f`)— para que el CI no corriera contra una integración que nadie había probado. Valió la pena: **la fusión rompió 2 pruebas.**
+
+### Conflictos (2, ambos resueltos conservando las dos partes)
+
+- `docs/metricas-pipeline.md` — las dos filas nuevas, legales primero.
+- `tests/layout.test.ts` — un comentario y un bloque de aserciones donde las dos ramas agregaron cosas distintas al mismo `it`. Se conservaron **todas**: las páginas nuevas de giro y las dos legales.
+
+### Hallazgo de integración: el guardián de privacidad de T-007 atrapó a T-009
+
+`tests/legales-adversarial.test.ts` — *"la proyección pública no crece a espaldas del aviso"* y *"todo campo que la ficha pública devuelve está declarado en el aviso"*:
+
+```
+AssertionError: campo público sin declarar en el aviso de privacidad: categoriaNombre
+```
+
+T-009 suma `categoriaNombre` a `NegocioFicha` (lo necesita el `knowsAbout` del JSON-LD) y T-007 estrenó un guardián que exige que **todo** campo de la proyección pública esté declarado en el aviso. Funcionó exactamente como debía.
+
+**Verifiqué si era un hueco real de privacidad, y no lo es:** el aviso ya declara la categoría como pública, en la enumeración de "Qué queda público y qué no" (`src/lib/legales/textos.ts:199`): *"cualquier persona con internet puede verla: el nombre de tu negocio, **la categoría**, tu colonia, …"*. Lo que faltaba era declararla en el **mapa del guardián**, que es justo lo que el guardián existe para exigir.
+
+Corrección aplicada: `categoriaNombre: "la categoría"` en `CAMPO_PUBLICO_DECLARADO`, con el motivo escrito. **No se tocó el texto legal**, no se debilitó el guardián (sigue exigiendo que la frase aparezca en el aviso renderizado) y **no se metió el campo a la lista de excepciones** `CAMPOS_PUBLICOS_SIN_DECLARAR`, que era el atajo tentador y equivocado.
+
+### Gates sobre el árbol ya fusionado
+
+| Gate | Resultado |
+| --- | --- |
+| `npx tsc --noEmit` | Sin errores |
+| `npm run lint` | Limpio |
+| `npm test` | **1 296 pruebas en 47 archivos, todas en verde** |
+| `npm run build` (con `SITIO_URL`) | ✓, con `/aviso-de-privacidad` y `/terminos` en el árbol de rutas |
+
+**Re-verificación en vivo del resultado fusionado**, porque las dos rutas legales son segmentos estáticos nuevos en la raíz y este change estrenó el segmento dinámico que comparte ese nivel: `/aviso-de-privacidad` y `/terminos` responden **200 con su propio `h1`** —los estáticos le ganan al dinámico, como predice `design.md` §1—, las 8 categorías siguen en 200, y `/plomeria`, `/plomeria-huicalco` y `/futbol` en 200 con `/plomeros-baratos` en 404.
+
+### Lo que NO hice, a propósito
+
+**No agregué las páginas legales al sitemap**, aunque T-007 ya mergeó y la deuda #1 del dev decía "se suman con una línea cuando T-007 mergee". El requirement de `layout-base` enumera taxativamente qué incluye el sitemap y las legales no están; agregarlas aquí sería exactamente el scope creep que esta etapa rechaza en otros. Queda como seguimiento accionable **ya desbloqueado** en el PR.

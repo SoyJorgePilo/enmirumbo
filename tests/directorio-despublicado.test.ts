@@ -3,10 +3,10 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { seedCatalogos } from "../prisma/seed";
-import DestinoPage from "../src/app/[destino]/page";
-import BuscarPage from "../src/app/buscar/page";
-import FichaNegocioPage from "../src/app/negocio/[ficha]/page";
-import Home from "../src/app/page";
+import DestinoPage from "../src/app/(publico)/[destino]/page";
+import BuscarPage from "../src/app/(publico)/buscar/page";
+import FichaNegocioPage from "../src/app/(publico)/negocio/[ficha]/page";
+import Home from "../src/app/(publico)/page";
 import sitemap from "../src/app/sitemap";
 import type { PrismaClient } from "../src/generated/prisma/client";
 import { borrarNegocio, despublicarFicha } from "../src/lib/admin/transiciones";

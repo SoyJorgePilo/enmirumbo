@@ -2,7 +2,7 @@
  * Procesamiento de un envío del formulario público de registro
  * (spec `registro-negocio`). Es el corazón de la Server Action, separado de
  * ella para poder probarlo sin un request de Next.js: la acción
- * (`src/app/registro/accion.ts`) solo saca la IP de los encabezados, llama
+ * (`src/app/(publico)/registro/accion.ts`) solo saca la IP de los encabezados, llama
  * aquí y redirige.
  *
  * Orden de las defensas (PRD §8 y design.md §4-§5):

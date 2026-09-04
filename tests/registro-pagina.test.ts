@@ -5,8 +5,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { CATEGORIAS, COLONIAS, seedCatalogos } from "../prisma/seed";
-import RegistroGraciasPage from "../src/app/registro/gracias/page";
-import RegistroPage from "../src/app/registro/page";
+import RegistroGraciasPage from "../src/app/(publico)/registro/gracias/page";
+import RegistroPage from "../src/app/(publico)/registro/page";
 import { AvisoConsentimiento } from "../src/components/registro/aviso-consentimiento";
 import { BotonEnviar } from "../src/components/registro/boton-enviar";
 import {
@@ -326,8 +326,8 @@ describe("registro-negocio · el registro funciona sin JavaScript de cliente", (
   // Scenario: JS acotado al campo del ejemplo
   it('solo el formulario y el botón declaran "use client"', () => {
     const conUseClient = [
-      "src/app/registro/page.tsx",
-      "src/app/registro/gracias/page.tsx",
+      "src/app/(publico)/registro/page.tsx",
+      "src/app/(publico)/registro/gracias/page.tsx",
       "src/components/registro/aviso-consentimiento.tsx",
       "src/components/registro/campo-honeypot.tsx",
       "src/components/registro/formulario-registro.tsx",
@@ -353,6 +353,54 @@ describe("registro-negocio · el registro funciona sin JavaScript de cliente", (
     expect(formulario).toContain('name="queOfreces"');
     expect(formulario).not.toMatch(/value=\{valores\./); // defaultValue, no value
     expect(formulario).toMatch(/placeholder=\{ejemplo\}/);
+  });
+});
+
+// ADDED por el change `agregar-analitica-cookieless` · spec registro-negocio,
+// requirements "El embudo del registro se mide con las vistas de sus dos
+// pantallas" y "Ningún dato del formulario viaja a la medición" (tasks.md #19).
+describe("registro-negocio · el embudo se mide con vistas, no con eventos", () => {
+  const htmlGraciasMedicion = renderToStaticMarkup(
+    createElement(RegistroGraciasPage),
+  );
+
+  // Scenario: sin instrumentación en el botón
+  it('el botón "Enviar" no lleva ningún atributo de evento', () => {
+    const html = renderToStaticMarkup(createElement(BotonEnviar));
+    expect(html).toContain("Registrar mi negocio");
+    expect(html).not.toContain("data-umami");
+    expect(fuente("src/components/registro/boton-enviar.tsx")).not.toContain("analitica");
+  });
+
+  it("ninguna de las dos pantallas del registro instrumenta nada", () => {
+    for (const html of [htmlRegistro, htmlGraciasMedicion]) {
+      expect(html).not.toContain("data-umami");
+      expect(html).not.toContain("umami");
+      // Tampoco el script: lo pone el layout del grupo público, no la página.
+      expect([...html.matchAll(/<script\b[^>]*\bsrc=/g)]).toHaveLength(0);
+    }
+    for (const ruta of [
+      "src/app/(publico)/registro/page.tsx",
+      "src/app/(publico)/registro/gracias/page.tsx",
+      "src/components/registro/formulario-registro.tsx",
+      "src/components/registro/boton-enviar.tsx",
+      "src/components/registro/campo-honeypot.tsx",
+      "src/components/registro/aviso-consentimiento.tsx",
+    ]) {
+      expect(fuente(ruta), ruta).not.toContain("analitica");
+      expect(fuente(ruta), ruta).not.toContain("umami");
+    }
+  });
+
+  // Scenario: las URLs del registro no llevan datos
+  it("las dos pantallas viven en URLs sin parámetros", () => {
+    // El formulario envía con Server Action (POST a la misma URL) y la página
+    // de gracias es una ruta fija: ninguna de las dos arma una URL con datos.
+    const formulario = fuente("src/components/registro/formulario-registro.tsx");
+    expect(formulario).not.toMatch(/\/registro\?[^"']/);
+    expect(fuente("src/app/(publico)/registro/accion.ts")).toContain(
+      '"/registro/gracias"',
+    );
   });
 });
 

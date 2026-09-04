@@ -6,7 +6,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { seedCatalogos } from "../prisma/seed";
-import RegistroPage from "../src/app/registro/page";
+import RegistroPage from "../src/app/(publico)/registro/page";
 import { FormularioRegistro } from "../src/components/registro/formulario-registro";
 import {
   ACCEPT_FOTO,

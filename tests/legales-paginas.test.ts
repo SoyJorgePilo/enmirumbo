@@ -6,9 +6,9 @@ import { describe, expect, it } from "vitest";
 
 import AvisoDePrivacidadPage, {
   metadata as metadataAviso,
-} from "../src/app/aviso-de-privacidad/page";
+} from "../src/app/(publico)/aviso-de-privacidad/page";
 import { metadata as metadataSitio } from "../src/app/layout";
-import TerminosPage, { metadata as metadataTerminos } from "../src/app/terminos/page";
+import TerminosPage, { metadata as metadataTerminos } from "../src/app/(publico)/terminos/page";
 import {
   HAY_PLACEHOLDERS_PENDIENTES,
   PLACEHOLDERS_LEGALES,
@@ -346,8 +346,8 @@ describe("paginas-legales · el dueño abre el aviso de privacidad", () => {
     expect(delAviso[0].href).toBe("/terminos");
     expect(lineasAviso[lineasAviso.length - 1]).toBe("Términos y condiciones");
     // Y no apunta a ninguna página inexistente: el único destino es una ruta
-    // que existe (`src/app/terminos/page.tsx`).
-    expect(fuente("src/app/terminos/page.tsx")).toContain("export default");
+    // que existe (`src/app/(publico)/terminos/page.tsx`).
+    expect(fuente("src/app/(publico)/terminos/page.tsx")).toContain("export default");
   });
 });
 
@@ -682,7 +682,7 @@ describe("paginas-legales · indexables y con metadata propia", () => {
   it("ninguna de las dos pide a los buscadores que no la indexe", () => {
     expect(metadataAviso.robots).toBeUndefined();
     expect(metadataTerminos.robots).toBeUndefined();
-    for (const ruta of ["src/app/aviso-de-privacidad/page.tsx", "src/app/terminos/page.tsx"]) {
+    for (const ruta of ["src/app/(publico)/aviso-de-privacidad/page.tsx", "src/app/(publico)/terminos/page.tsx"]) {
       expect(fuente(ruta), ruta).not.toMatch(/noindex|index:\s*false/);
     }
   });
@@ -707,8 +707,8 @@ describe("paginas-legales · indexables y con metadata propia", () => {
 
 describe("paginas-legales · Server Components mobile-first sin JS de cliente", () => {
   const archivosNuevos = [
-    "src/app/aviso-de-privacidad/page.tsx",
-    "src/app/terminos/page.tsx",
+    "src/app/(publico)/aviso-de-privacidad/page.tsx",
+    "src/app/(publico)/terminos/page.tsx",
     "src/components/legales/documento-legal.tsx",
     "src/lib/legales/textos.ts",
   ];

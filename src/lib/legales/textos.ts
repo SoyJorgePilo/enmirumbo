@@ -6,8 +6,8 @@
  * con ella (mismo patrón que `src/lib/registro/textos.ts` y
  * `src/lib/admin/textos.ts`; design.md §2).
  *
- * Las páginas (`src/app/aviso-de-privacidad/page.tsx`,
- * `src/app/terminos/page.tsx`) solo pintan este contenido con
+ * Las páginas (`src/app/(publico)/aviso-de-privacidad/page.tsx`,
+ * `src/app/(publico)/terminos/page.tsx`) solo pintan este contenido con
  * `DocumentoLegalView` (`src/components/legales/documento-legal.tsx`): este
  * módulo no importa React ni sabe de markup.
  *

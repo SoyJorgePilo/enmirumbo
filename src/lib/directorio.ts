@@ -29,6 +29,12 @@ export type GiroCatalogo = { nombre: string; slug: string };
 export type NegocioListado = {
   id: string;
   nombre: string;
+  /**
+   * Slug de la categoría DEL NEGOCIO. Se lee para que la propiedad `categoria`
+   * del evento de medición sea correcta también en `/buscar`, donde conviven
+   * resultados de categorías distintas (change `agregar-analitica-cookieless`).
+   */
+  categoriaSlug: string;
   /** Nombre del catálogo o el texto libre de "Otra"; `null` si no hay ninguno. */
   coloniaNombre: string | null;
   /** `null` cuando la colonia es "Otra" sin normalizar: no filtra por catálogo. */
@@ -73,11 +79,17 @@ const CAMPOS_LISTADO = {
   fotoClave: true,
   coloniaOtra: true,
   colonia: { select: { nombre: true, slug: true } },
+  categoria: { select: { slug: true } },
 } as const;
 
 const CAMPOS_FICHA = {
   ...CAMPOS_LISTADO,
-  categoria: { select: { nombre: true } },
+  // Los DOS campos de la categoría, y por razones distintas: el `nombre` lo
+  // pinta la ficha (change `agregar-seo-local`) y el `slug` es la propiedad
+  // `categoria` del evento de medición (change `agregar-analitica-cookieless`).
+  // Este `select` PISA al de `CAMPOS_LISTADO`, así que omitir uno lo deja en
+  // `undefined` sin que TypeScript avise.
+  categoria: { select: { nombre: true, slug: true } },
   queOfreces: true,
   telefonoFijo: true,
   direccion: true,
@@ -93,6 +105,7 @@ type FilaListado = {
   fotoClave: string | null;
   coloniaOtra: string | null;
   colonia: { nombre: string; slug: string } | null;
+  categoria: { slug: string };
 };
 
 /** La colonia del catálogo manda; si no la hay, el texto libre de "Otra". */
@@ -100,6 +113,7 @@ function aListado(fila: FilaListado): NegocioListado {
   return {
     id: fila.id,
     nombre: fila.nombre,
+    categoriaSlug: fila.categoria.slug,
     coloniaNombre: fila.colonia?.nombre ?? fila.coloniaOtra?.trim() ?? null,
     coloniaSlug: fila.colonia?.slug ?? null,
     entregaADomicilio: fila.entregaADomicilio,

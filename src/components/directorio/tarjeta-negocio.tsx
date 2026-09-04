@@ -2,12 +2,20 @@ import Link from "next/link";
 
 import { EtiquetaADomicilio } from "@/components/directorio/etiqueta-domicilio";
 import { MarcadorFoto } from "@/components/directorio/marcador-foto";
+import { EVENTO_WHATSAPP_TARJETA, atributosDeEvento } from "@/lib/analitica/eventos";
 import { CLASE_BOTON_PRIMARIO } from "@/lib/estilos-boton";
 
 export type TarjetaNegocioProps = {
   nombre: string;
   /** `null` solo si el negocio no tiene colonia ni texto libre guardado. */
   coloniaNombre: string | null;
+  /**
+   * Slug de la categoría DEL NEGOCIO, para el evento de medición. En `/buscar`
+   * conviven categorías distintas, así que no puede salir de la página.
+   */
+  categoriaSlug: string;
+  /** Slug de la colonia del catálogo; `null` si capturó "Otra" (→ `otra`). */
+  coloniaSlug: string | null;
   entregaADomicilio: boolean;
   /**
    * Lo guardado en `Negocio.fotoClave`, tal cual: `MarcadorFoto` lo pasa por
@@ -45,6 +53,8 @@ export type TarjetaNegocioProps = {
 export function TarjetaNegocio({
   nombre,
   coloniaNombre,
+  categoriaSlug,
+  coloniaSlug,
   entregaADomicilio,
   fotoClave,
   prioridad = false,
@@ -82,6 +92,12 @@ export function TarjetaNegocio({
             rel="noopener noreferrer"
             aria-label={`Enviar WhatsApp a ${nombre}`}
             className={`${CLASE_BOTON_PRIMARIO} relative z-10 mt-1 w-fit px-4 py-2 text-sm`}
+            // Marcado inerte: sin el script del proveedor no hace nada, y con
+            // él manda solo los dos slugs (`src/lib/analitica/eventos.ts`).
+            {...atributosDeEvento(EVENTO_WHATSAPP_TARJETA, {
+              categoriaSlug,
+              coloniaSlug,
+            })}
           >
             WhatsApp
           </a>

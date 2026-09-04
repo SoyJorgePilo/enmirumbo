@@ -8,6 +8,7 @@ import { sembrarNegociosDemo } from "../prisma/seed-demo";
 import type { PrismaClient } from "../src/generated/prisma/client";
 import {
   SLUG_CATEGORIA_DEPORTE,
+  buscarNegociosPublicados,
   listarCategorias,
   obtenerCategoriaPorSlug,
   obtenerColoniasConNegociosPublicados,
@@ -84,12 +85,14 @@ describe("directorio-publico · la ruta dinámica no tapa rutas propias (tasks #
   it("las rutas propias que ya existen en src/app están declaradas como reservadas", () => {
     const entradas = readdirSync(join(raiz, "src/app"), { withFileTypes: true });
 
-    const segmentosDeLaRaiz = entradas
-      .filter((entrada) => entrada.isDirectory() && !entrada.name.startsWith("["))
-      .map((entrada) => entrada.name);
+    // Las CARPETAS se recorren con el helper del change
+    // `agregar-analitica-cookieless`, que atraviesa los grupos de rutas —
+    // `(publico)` no es un segmento de URL, pero lo que cuelga de él sí.
+    const segmentosDeLaRaiz = segmentosDeUrlDe(join(raiz, "src/app"));
 
     expect(segmentosDeLaRaiz).toContain("registro");
     expect(segmentosDeLaRaiz).toContain("negocio");
+    expect(segmentosDeLaRaiz).toContain("admin");
     for (const segmento of segmentosDeLaRaiz) {
       expect(SEGMENTOS_RESERVADOS, segmento).toContain(segmento);
     }
@@ -110,6 +113,17 @@ describe("directorio-publico · la ruta dinámica no tapa rutas propias (tasks #
       expect(segmento, `archivo de ruta sin segmento declarado: ${archivo}`).toBeDefined();
       expect(SEGMENTOS_RESERVADOS, archivo).toContain(segmento);
       expect(esSegmentoReservado(segmento), archivo).toBe(true);
+    }
+  });
+
+  // MODIFICADO por el change `agregar-analitica-cookieless` (tasks.md #5): las
+  // páginas públicas viven bajo `src/app/(publico)/`. Un grupo de rutas no es
+  // un segmento de URL —no puede chocar con el slug de una categoría—, pero lo
+  // que hay DENTRO sí, así que la revisión lo atraviesa en vez de saltárselo.
+  it("un grupo de rutas no cuenta como segmento, pero su contenido sí se revisa", () => {
+    const segmentos = segmentosDeUrlDe(join(raiz, "src/app"));
+    for (const segmento of segmentos) {
+      expect(segmento, segmento).not.toMatch(/^\(/);
     }
   });
 
@@ -229,6 +243,38 @@ describe("directorio-publico · orden y filtro del listado (tasks #2)", () => {
   });
 });
 
+// ADDED por el change `agregar-analitica-cookieless` (tasks.md #11): la
+// propiedad `categoria` del evento tiene que ser la DEL NEGOCIO, también en
+// `/buscar`, donde los resultados son de categorías mezcladas.
+describe("directorio-publico · la categoría del negocio llega hasta la tarjeta", () => {
+  it("el listado trae el slug de la categoría de cada negocio", async () => {
+    const negocios = await obtenerNegociosPublicados("servicios-del-hogar");
+    expect(negocios.length).toBeGreaterThan(0);
+    for (const negocio of negocios) {
+      expect(negocio.categoriaSlug).toBe("servicios-del-hogar");
+    }
+  });
+
+  it("en los resultados de búsqueda cada negocio trae la suya", async () => {
+    // "mentiras" cae en negocios de tres categorías distintas del sembrado.
+    const resultados = await buscarNegociosPublicados("mentiras");
+    expect(resultados.length).toBeGreaterThan(1);
+    for (const negocio of resultados) {
+      expect(negocio.categoriaSlug, negocio.nombre).toMatch(/^[a-z0-9-]+$/);
+    }
+    expect(new Set(resultados.map((n) => n.categoriaSlug)).size).toBeGreaterThan(1);
+
+    const veterinaria = await buscarNegociosPublicados("veterinaria");
+    expect(veterinaria[0].categoriaSlug).toBe("salud");
+  });
+
+  it("la ficha también lo trae", async () => {
+    const [listado] = await obtenerNegociosPublicados("salud");
+    const ficha = await obtenerNegocioPublicado(listado.id);
+    expect(ficha?.categoriaSlug).toBe("salud");
+  });
+});
+
 describe("directorio-publico · solo campos públicos (design.md §5)", () => {
   const camposInternos = [
     "estado",
@@ -326,6 +372,24 @@ describe("directorio-publico · solo campos públicos (design.md §5)", () => {
     );
   });
 });
+
+/**
+ * Segmentos de URL que cuelgan de una carpeta de `src/app`, atravesando los
+ * grupos de rutas: `(publico)/terminos` aporta `terminos`, no `(publico)`.
+ * Los segmentos dinámicos (`[categoria]`) no son rutas propias y quedan fuera.
+ */
+function segmentosDeUrlDe(dir: string): string[] {
+  const segmentos: string[] = [];
+  for (const entrada of readdirSync(dir, { withFileTypes: true })) {
+    if (!entrada.isDirectory() || entrada.name.startsWith("[")) continue;
+    if (entrada.name.startsWith("(") && entrada.name.endsWith(")")) {
+      segmentos.push(...segmentosDeUrlDe(join(dir, entrada.name)));
+      continue;
+    }
+    segmentos.push(entrada.name);
+  }
+  return segmentos;
+}
 
 function archivosDe(dir: string): string[] {
   const rutas: string[] = [];

@@ -7,10 +7,10 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { seedCatalogos } from "../prisma/seed";
 import { sembrarNegociosDemo } from "../prisma/seed-demo";
-import ListadoCategoriaPage from "../src/app/[destino]/page";
-import FichaNegocioPage from "../src/app/negocio/[ficha]/page";
+import ListadoCategoriaPage from "../src/app/(publico)/[destino]/page";
+import FichaNegocioPage from "../src/app/(publico)/negocio/[ficha]/page";
 import NotFoundPage from "../src/app/not-found";
-import Home from "../src/app/page";
+import Home from "../src/app/(publico)/page";
 import type { PrismaClient } from "../src/generated/prisma/client";
 import { construirSegmentoFicha } from "../src/lib/ficha-url";
 import { crearClientePrueba } from "./db";
@@ -519,10 +519,10 @@ describe("directorio-publico · Server Components sin JS de cliente", () => {
   // Scenario: sin JS de cliente nuevo
   it('ningún archivo del directorio declara "use client"', () => {
     const archivos = [
-      join(raiz, "src/app/page.tsx"),
+      join(raiz, "src/app/(publico)/page.tsx"),
       join(raiz, "src/app/not-found.tsx"),
-      join(raiz, "src/app/[destino]/page.tsx"),
-      join(raiz, "src/app/negocio/[ficha]/page.tsx"),
+      join(raiz, "src/app/(publico)/[destino]/page.tsx"),
+      join(raiz, "src/app/(publico)/negocio/[ficha]/page.tsx"),
       ...readdirSync(join(raiz, "src/components/directorio")).map((nombre) =>
         join(raiz, "src/components/directorio", nombre),
       ),
@@ -540,7 +540,7 @@ describe("directorio-publico · Server Components sin JS de cliente", () => {
       join(raiz, "src/components/directorio/tarjeta-negocio.tsx"),
       "utf8",
     );
-    const ficha = readFileSync(join(raiz, "src/app/negocio/[ficha]/page.tsx"), "utf8");
+    const ficha = readFileSync(join(raiz, "src/app/(publico)/negocio/[ficha]/page.tsx"), "utf8");
     const botones = readFileSync(
       join(raiz, "src/components/directorio/botones-contacto.tsx"),
       "utf8",

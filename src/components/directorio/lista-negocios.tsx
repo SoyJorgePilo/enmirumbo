@@ -22,6 +22,12 @@ export function ListaNegocios({ negocios }: { negocios: NegocioListado[] }) {
           <TarjetaNegocio
             nombre={negocio.nombre}
             coloniaNombre={negocio.coloniaNombre}
+            // Los dos slugs del evento de medición (change
+            // `agregar-analitica-cookieless`) salen del NEGOCIO, no de la
+            // página: esta misma lista pinta el listado por categoría, el de
+            // giro y el de giro+colonia, donde conviven categorías distintas.
+            categoriaSlug={negocio.categoriaSlug}
+            coloniaSlug={negocio.coloniaSlug}
             entregaADomicilio={negocio.entregaADomicilio}
             fotoClave={negocio.fotoClave}
             // Listado en una sola columna: la "primera fila" (spec

@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import { useActionState, useEffect, useState } from "react";
 
-import { registrarNegocio } from "@/app/registro/accion";
+import { registrarNegocio } from "@/app/(publico)/registro/accion";
 import { BotonEnviar } from "@/components/registro/boton-enviar";
 import { ejemploParaCategoriaElegida } from "@/lib/registro/ejemplos";
 import {

@@ -8,10 +8,10 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { seedCatalogos } from "../prisma/seed";
 import DestinoPage, {
   generateMetadata as metadataDestino,
-} from "../src/app/[destino]/page";
+} from "../src/app/(publico)/[destino]/page";
 import FichaNegocioPage, {
   generateMetadata as metadataFicha,
-} from "../src/app/negocio/[ficha]/page";
+} from "../src/app/(publico)/negocio/[ficha]/page";
 import robots from "../src/app/robots";
 import sitemap from "../src/app/sitemap";
 import type { PrismaClient } from "../src/generated/prisma/client";
@@ -802,6 +802,7 @@ describe("seo/seguridad · escapado del bloque contra XSS almacenado", () => {
             nombre: `Negocio ${carga}`,
             coloniaNombre: "Huicalco",
             coloniaSlug: "huicalco",
+            categoriaSlug: "talleres",
             entregaADomicilio: false,
             whatsapp: `${PREFIJO}009`,
             fotoClave: null,

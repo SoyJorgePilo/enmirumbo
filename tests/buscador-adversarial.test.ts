@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { seedCatalogos } from "../prisma/seed";
-import BuscarPage from "../src/app/buscar/page";
+import BuscarPage from "../src/app/(publico)/buscar/page";
 import type { PrismaClient } from "../src/generated/prisma/client";
 import { datosDeBusqueda } from "../src/lib/busqueda";
 import { buscarNegociosPublicados } from "../src/lib/directorio";

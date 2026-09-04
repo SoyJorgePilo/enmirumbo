@@ -7,7 +7,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { seedCatalogos } from "../prisma/seed";
 import { sembrarNegociosDemo } from "../prisma/seed-demo";
-import BuscarPage, { metadata } from "../src/app/buscar/page";
+import BuscarPage, { metadata } from "../src/app/(publico)/buscar/page";
 import { Buscador } from "../src/components/directorio/buscador";
 import type { PrismaClient } from "../src/generated/prisma/client";
 import { crearClientePrueba } from "./db";
@@ -281,7 +281,7 @@ describe("directorio-publico · la página de resultados no es indexable (tasks 
     // verificación sigue cubriendo TODAS las páginas, incluida esa.
     const paginas = archivosDe(join(raiz, "src/app")).filter(
       (ruta) =>
-        ruta !== join(raiz, "src/app/buscar/page.tsx") &&
+        ruta !== join(raiz, "src/app/(publico)/buscar/page.tsx") &&
         !ruta.startsWith(join(raiz, "src/app/admin/")),
     );
     expect(paginas.length).toBeGreaterThanOrEqual(4);

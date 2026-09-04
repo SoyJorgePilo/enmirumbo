@@ -1,11 +1,11 @@
 # T-012 · Registrar qué versión del aviso de privacidad aceptó cada negocio
 
-**Estado:** pendiente
+**Estado:** en-desarrollo
 **Prioridad:** P1 (recomendado antes del lanzamiento)
 **Épica:** E6 (derivada — hallazgo del validador de T-007)
 **Referencias PRD:** §8 (LFPDPPP: constancia de consentimiento)
 **Depende de:** T-007 (páginas legales)
-**OpenSpec change:** —
+**OpenSpec change:** `versionar-aviso-privacidad`
 **PR:** —
 
 ## Contexto

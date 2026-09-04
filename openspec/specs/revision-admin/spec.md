@@ -62,17 +62,17 @@ Si falta la variable de entorno de la contraseña, si está vacía, o si falta e
 
 ### Requirement: Toda pantalla y toda acción del panel exigen sesión válida
 
-Cada página del panel y cada acción sobre un registro —aprobar, rechazar, despublicar, borrar definitivamente y la pantalla que confirma el borrado— DEBEN verificar la sesión antes de leer o escribir nada. Sin sesión válida, la respuesta DEBE ser una redirección a la pantalla de acceso, sin mostrar ni un dato del registro —ni en la pantalla, ni en el HTML, ni en la URL de destino—, sin confirmar si ese identificador existe y sin ejecutar ningún cambio en la base. Ninguna de estas acciones DEBE existir en una superficie pública: el formulario de registro, los listados, las fichas y el formulario de reporte NO DEBEN poder cambiar el estado, el origen, los giros ni la colonia de un negocio, ni despublicarlo, ni borrarlo.
+Cada página del panel y cada acción sobre un registro —aprobar, rechazar, despublicar, marcar un reporte como atendido, borrar definitivamente y la pantalla que confirma el borrado— DEBEN verificar la sesión antes de leer o escribir nada. Sin sesión válida, la respuesta DEBE ser una redirección a la pantalla de acceso, sin mostrar ni un dato del registro ni de sus reportes —ni en la pantalla, ni en el HTML, ni en la URL de destino—, sin confirmar si ese identificador existe y sin ejecutar ningún cambio en la base. Ninguna de estas acciones DEBE existir en una superficie pública: el formulario de registro, los listados, las fichas y el formulario de reporte NO DEBEN poder cambiar el estado, el origen, los giros ni la colonia de un negocio, ni despublicarlo, ni borrarlo, ni marcar reportes como atendidos. El formulario público de reporte solo puede crear reportes en estado `pendiente`.
 
 #### Scenario: cola sin sesión
 
 - **WHEN** alguien sin sesión abre `/admin`
-- **THEN** llega a la pantalla de acceso y en la respuesta no aparece ningún nombre, número de WhatsApp ni dato de ningún registro
+- **THEN** llega a la pantalla de acceso y en la respuesta no aparece ningún nombre, número de WhatsApp ni dato de ningún registro, ni ningún conteo de reportes
 
 #### Scenario: detalle de un registro sin sesión
 
 - **WHEN** alguien sin sesión abre la URL del detalle de un registro concreto, con su identificador
-- **THEN** llega a la pantalla de acceso, sin ver ningún dato de ese registro y sin que la respuesta confirme si ese identificador existe
+- **THEN** llega a la pantalla de acceso, sin ver ningún dato de ese registro ni de sus reportes, y sin que la respuesta confirme si ese identificador existe
 
 #### Scenario: aprobar sin sesión
 
@@ -99,10 +99,15 @@ Cada página del panel y cada acción sobre un registro —aprobar, rechazar, de
 - **WHEN** alguien sin sesión abre la URL de la pantalla de confirmación del borrado de un registro concreto
 - **THEN** llega a la pantalla de acceso, sin ver el nombre del negocio ni ningún otro dato, y sin que la respuesta confirme si ese identificador existe
 
+#### Scenario: atender un reporte sin sesión
+
+- **WHEN** llega directamente al servidor una petición de marcar un reporte como atendido sin cookie de sesión válida
+- **THEN** el reporte sigue `pendiente`, sin fecha de atención, y la respuesta no trae su motivo, su comentario ni dato alguno del negocio
+
 #### Scenario: ninguna transición desde lo público
 
 - **WHEN** se revisan las superficies públicas (formulario de registro, listados, fichas y formulario de reporte)
-- **THEN** ninguna permite cambiar estado, origen, giros ni colonia de un negocio, ni despublicarlo, ni borrarlo
+- **THEN** ninguna permite cambiar estado, origen, giros ni colonia de un negocio, ni despublicarlo, ni borrarlo, ni marcar reportes como atendidos
 
 ### Requirement: El panel no se indexa ni se enlaza desde el sitio público
 
@@ -172,6 +177,37 @@ Todo registro de la cola que lleve más de 48 horas **desde que entró a la cola
 
 - **WHEN** el admin revisa la cola en un celular o con lector de pantalla
 - **THEN** el aviso de los registros atrasados se entiende por su texto, sin depender de un color
+
+### Requirement: La cola avisa qué negocios tienen reportes sin atender
+
+Debajo de los registros por revisar, la cola DEBE mostrar una sección propia encabezada con el texto literal "Negocios reportados" que liste **solo los negocios con al menos un reporte pendiente**, del que lleva más tiempo con un reporte sin atender al más reciente. Cada renglón DEBE mostrar el nombre del negocio, cuántos reportes sin atender tiene —con el texto literal "1 reporte sin atender" o "<n> reportes sin atender", según corresponda— y una entrada al detalle de ese negocio con el texto literal "Ver reportes". La sección DEBE encabezar con el conteo total, con el texto literal "1 negocio tiene reportes sin atender." o "<n> negocios tienen reportes sin atender.". Si no hay ningún reporte pendiente, la sección completa NO DEBE aparecer: la pantalla vacía del panel sigue siendo "No hay registros esperando. Todo al día."
+
+Lo que decide quién entra a esta sección son sus reportes pendientes, no su estado: los reportes de un negocio NO DEBEN aparecer en la lista de "Registros por revisar" ni alterar su orden, y esa lista sigue trayendo únicamente los `en_revision`. Son dos secciones distintas, con dos trabajos distintos, y un negocio que a la vez espera revisión y tiene reportes sin atender aparece en las dos, cada una con lo suyo.
+
+#### Scenario: cola con negocios reportados
+
+- **WHEN** el admin abre la cola y hay dos negocios publicados con reportes pendientes (uno con tres reportes y otro con uno)
+- **THEN** ve, debajo de los registros por revisar, la sección "Negocios reportados" con el conteo "2 negocios tienen reportes sin atender.", el renglón del primero con "3 reportes sin atender", el del segundo con "1 reporte sin atender" y en cada uno la entrada "Ver reportes"
+
+#### Scenario: sin reportes pendientes no hay sección
+
+- **WHEN** el admin abre la cola y ningún negocio tiene reportes sin atender
+- **THEN** no aparece la sección "Negocios reportados" ni ningún conteo de reportes
+
+#### Scenario: los reportes no se mezclan con los registros por revisar
+
+- **WHEN** un negocio publicado tiene reportes pendientes
+- **THEN** no aparece en la lista de "Registros por revisar" (que sigue trayendo solo los `en_revision`) ni cambia el orden de esa lista
+
+#### Scenario: un negocio despublicado con reportes está en las dos secciones
+
+- **WHEN** el admin despublica un negocio que tenía reportes sin atender y vuelve a la cola
+- **THEN** lo ve en "Registros por revisar" con su espera nueva y también en "Negocios reportados" con sus reportes pendientes, sin que una sección altere a la otra
+
+#### Scenario: "Ver reportes" abre el detalle del negocio
+
+- **WHEN** el admin toca "Ver reportes" en el renglón de un negocio publicado
+- **THEN** llega al detalle de ese negocio, con sus datos completos y sus reportes sin atender
 
 ### Requirement: Detalle del registro con todos los datos capturados, solo dentro del panel
 
@@ -487,9 +523,76 @@ Terminado el borrado, el panel DEBE llevar al admin a una pantalla que confirme 
 - **WHEN** se borra un negocio cuya foto es un archivo guardado por el sitio
 - **THEN** el archivo deja de existir, ninguna URL lo sigue sirviendo y la foto de los demás negocios queda intacta
 
+### Requirement: El detalle del negocio lista sus reportes sin atender
+
+El detalle de un negocio DEBE mostrar, en una sección propia encabezada con el texto literal "Reportes sin atender", los reportes pendientes de ese negocio, del más antiguo al más reciente. Cada reporte DEBE mostrar la etiqueta legible de su motivo (la misma que vio el vecino: "Ya cerró", "No es real", "Los datos están mal" o "Contenido ofensivo o inapropiado"), desde cuándo lleva sin atenderse —en la misma forma en palabras que usa la cola— y el comentario, solo si el vecino escribió uno. El comentario DEBE mostrarse **como texto plano**, con el mismo escape que el resto de los datos capturados: ninguna etiqueta se interpreta y una palabra larguísima no DEBE provocar scroll horizontal a 390px. La sección DEBE ir después de los datos del negocio y antes de las acciones, para que el admin lea los avisos antes de decidir, y NO DEBE aparecer si el negocio no tiene reportes pendientes. Los reportes DEBEN verse únicamente dentro del panel con sesión válida: NO DEBEN aparecer en ninguna página pública. El detalle NO DEBE mostrar ningún dato de quien reportó, porque no existe ninguno.
+
+#### Scenario: detalle con reportes
+
+- **WHEN** el admin abre el detalle de un negocio con dos reportes pendientes, uno con comentario y otro sin él
+- **THEN** ve la sección "Reportes sin atender" con los dos, del más antiguo al más reciente, cada uno con la etiqueta de su motivo y desde cuándo espera, y el comentario solo en el que lo trae
+
+#### Scenario: comentario con marcado
+
+- **WHEN** un reporte trae como comentario `<b>cerró</b><script>alert(1)</script>`
+- **THEN** el panel lo muestra como texto tal cual se escribió y no interpreta ninguna etiqueta
+
+#### Scenario: negocio sin reportes
+
+- **WHEN** el admin abre el detalle de un negocio que no tiene reportes pendientes
+- **THEN** no ve la sección "Reportes sin atender" ni ningún hueco vacío
+
+#### Scenario: los reportes no salen del panel
+
+- **WHEN** se revisan las páginas públicas del negocio reportado mientras tiene reportes pendientes
+- **THEN** ni la ficha, ni su listado, ni la página de resultados muestran motivos, comentarios ni conteos de reportes
+
+### Requirement: Marcar un reporte como atendido, una sola vez
+
+Cada reporte pendiente del detalle DEBE tener un botón con el texto literal "Marcar como atendido" que lo pase a estado `atendido` con su fecha, lo saque de la lista de pendientes de ese negocio y actualice el conteo de la cola. Tras marcarlo, el panel DEBE confirmar con el texto literal "Reporte atendido." Marcar como atendido NO DEBE cambiar el estado del negocio ni ninguno de sus datos: es solo la constancia de que el admin ya lo vio; lo que decida hacer con la ficha son las herramientas que ya tiene el panel (despublicar y borrar).
+
+**El aviso lo pinta el detalle del negocio, exista o no la sección de reportes sin atender.** Atender el último pendiente hace desaparecer la sección, que es el caso más frecuente —casi todo negocio reportado tendrá un solo aviso—, y la confirmación no DEBE irse con ella. Una pantalla del detalle que no venga de una acción recién ejecutada NO DEBE pintar ningún aviso.
+
+La acción solo DEBE surtir efecto sobre un reporte que siga `pendiente`: si el admin lo marcó dos veces, desde dos pestañas o recargando, la segunda vez NO DEBE sobrescribir la fecha de la primera y el panel DEBE decirlo con el texto literal "Este reporte ya lo habías atendido." Recargar la pantalla posterior NO DEBE repetir la acción. La acción DEBE quedar acotada al negocio cuyo detalle se está viendo: un reporte que no es de ese negocio DEBE responder exactamente igual que uno que no existe, de modo que el panel no sirva para averiguar qué reportes hay en otras fichas.
+
+#### Scenario: atender un reporte
+
+- **WHEN** el admin toca "Marcar como atendido" en uno de los dos reportes pendientes de un negocio
+- **THEN** ve "Reporte atendido.", ese reporte desaparece de "Reportes sin atender", el otro sigue ahí y la cola pasa a contar un reporte menos para ese negocio
+
+#### Scenario: atender el último reporte también se confirma
+
+- **WHEN** el admin marca como atendido el único reporte pendiente de un negocio
+- **THEN** ve "Reporte atendido." aunque la sección "Reportes sin atender" ya no aparezca, y volviendo a mandar la misma acción ve "Este reporte ya lo habías atendido.", también sin sección
+
+#### Scenario: el último reporte atendido saca al negocio de la sección
+
+- **WHEN** el admin atiende el único reporte pendiente de un negocio y vuelve a la cola
+- **THEN** ese negocio ya no aparece en "Negocios reportados"
+
+#### Scenario: el detalle sin acción reciente no avisa nada
+
+- **WHEN** el admin abre el detalle de un negocio sin venir de marcar ningún reporte
+- **THEN** no ve "Reporte atendido." ni "Este reporte ya lo habías atendido."
+
+#### Scenario: atender no cambia el negocio
+
+- **WHEN** el admin marca como atendido un reporte de un negocio publicado
+- **THEN** el negocio sigue en estado `publicado`, con sus mismos datos, sus mismos giros y su misma fecha de publicación, y su ficha pública no cambia
+
+#### Scenario: doble marcado
+
+- **WHEN** el admin marca como atendido un reporte y vuelve a mandar la misma acción desde una pestaña que tenía abierta
+- **THEN** el reporte conserva la fecha de atención original y ve "Este reporte ya lo habías atendido."
+
+#### Scenario: reporte inexistente o de otro negocio
+
+- **WHEN** llega una petición de marcar como atendido un identificador de reporte que no existe, o el de un reporte que pertenece a otro negocio
+- **THEN** no cambia nada en la base, las dos respuestas son iguales y ninguna trae datos de ningún reporte ni de ningún negocio
+
 ### Requirement: El detalle ofrece las acciones que corresponden al estado, con el contexto a la vista
 
-El detalle DEBE mostrar las acciones aplicables al estado del registro y ninguna más: un registro `en_revision` ofrece aprobar y rechazar; un registro `publicado` ofrece "Despublicar"; cualquier registro, en cualquier estado, ofrece "Borrar definitivamente". Las acciones destructivas DEBEN ir después de los datos y del contexto de la decisión —incluidos los reportes sin atender del negocio, cuando el directorio tenga reportes—, para que el admin lea antes de actuar, y "Borrar definitivamente" DEBE distinguirse visualmente de las demás como lo que es: la acción irreversible.
+El detalle DEBE mostrar las acciones aplicables al estado del registro y ninguna más: un registro `en_revision` ofrece aprobar y rechazar; un registro `publicado` ofrece "Despublicar"; cualquier registro, en cualquier estado, ofrece "Borrar definitivamente". Las acciones destructivas DEBEN ir después de los datos y del contexto de la decisión —incluidos los reportes sin atender del negocio—, para que el admin lea antes de actuar, y "Borrar definitivamente" DEBE distinguirse visualmente de las demás como lo que es: la acción irreversible.
 
 #### Scenario: detalle de una ficha publicada
 
@@ -539,17 +642,17 @@ Como cualquier registro se puede borrar en cualquier momento, una aprobación ta
 
 ### Requirement: El panel se opera desde el celular y sin JavaScript de cliente innecesario
 
-El panel DEBE ser mobile-first: cola, detalle, formularios de aprobar, rechazar y despublicar, y la pantalla de confirmación del borrado DEBEN verse completos y usables en un viewport de 390px, sin scroll horizontal, con áreas táctiles de al menos 44px y contraste AA (PRD §8). Las pantallas del panel DEBEN ser Server Components y sus formularios DEBEN funcionar sin JavaScript de cliente, igual que el registro público.
+El panel DEBE ser mobile-first: cola —**incluida la sección de negocios reportados**—, detalle —**incluida la lista de reportes sin atender**—, formularios de aprobar, rechazar, despublicar y marcar atendido, y la pantalla de confirmación del borrado DEBEN verse completos y usables en un viewport de 390px, sin scroll horizontal, con áreas táctiles de al menos 44px y contraste AA (PRD §8). Las pantallas del panel DEBEN ser Server Components y sus formularios DEBEN funcionar sin JavaScript de cliente, igual que el registro público.
 
 #### Scenario: revisar desde el celular
 
-- **WHEN** el admin abre la cola, el detalle de un registro y los formularios de aprobar, rechazar y despublicar en un viewport de 390px
-- **THEN** todo se ve completo y legible, sin scroll horizontal, y cada control tocable mide al menos 44px en su dimensión menor
+- **WHEN** el admin abre la cola con la sección de reportados, el detalle de un negocio con reportes y los formularios de aprobar, rechazar, despublicar y marcar atendido en un viewport de 390px
+- **THEN** todo se ve completo y legible, sin scroll horizontal —incluido un comentario de reporte sin espacios— y cada control tocable mide al menos 44px en su dimensión menor
 
 #### Scenario: el panel funciona sin JavaScript
 
-- **WHEN** el admin entra, aprueba, rechaza, despublica y borra con el JavaScript de cliente deshabilitado
-- **THEN** las cinco acciones funcionan igual, porque cada una es un envío de formulario del servidor
+- **WHEN** el admin entra, aprueba, rechaza, despublica, marca un reporte como atendido y borra con el JavaScript de cliente deshabilitado
+- **THEN** las seis acciones funcionan igual, porque cada una es un envío de formulario del servidor
 
 #### Scenario: la confirmación del borrado también se opera en el celular
 

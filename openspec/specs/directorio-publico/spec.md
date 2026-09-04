@@ -407,14 +407,14 @@ Cada negocio publicado DEBE tener una ficha en URL propia y estable, con el nomb
 
 ### Requirement: Botones de contacto de la ficha con el WhatsApp como acción principal
 
-La ficha DEBE ofrecer los botones del PRD §6.2, cada uno solo si el negocio registró el dato: "Enviar WhatsApp" (siempre presente y como única acción principal, con el verde de acción del sitio), "Llamar" solo si registró teléfono fijo, "Cómo llegar" solo si capturó dirección o referencias (abre Google Maps con esa referencia y su colonia en Tizayuca) y el enlace a la página que registró, solo si la registró. El enlace a la página registrada NO DEBE afirmar que lleva a Facebook: DEBE mostrar el dominio real al que apunta (hallazgo M4 de T-003). Ningún otro botón DEBE competir en jerarquía visual con el de WhatsApp. Los botones DEBEN mostrar la acción, no el número de teléfono como texto. El botón "Llamar" solo se genera si el teléfono fijo se normaliza a 10 dígitos nacionales; si no es normalizable, la ficha muestra el dato capturado como texto plano ("Teléfono: …") sin enlace de llamada (decisión ratificada al cerrar T-004: no se pierde lo registrado y ningún código de marcado hostil llega a un `tel:`).
+La ficha DEBE ofrecer los botones del PRD §6.2, cada uno solo si el negocio registró el dato: "Enviar WhatsApp" (siempre presente y como única acción principal, con el verde de acción del sitio), "Llamar" solo si registró teléfono fijo, "Cómo llegar" solo si capturó dirección o referencias (abre Google Maps con esa referencia y su colonia en Tizayuca) y el enlace a la página que registró, solo si la registró. El enlace a la página registrada NO DEBE afirmar que lleva a Facebook: DEBE mostrar el dominio real al que apunta (hallazgo M4 de T-003). Ningún otro control DEBE competir en jerarquía visual con el de WhatsApp, **incluido el control "Reportar este negocio", que no es un botón de contacto: va aparte de este bloque, después de él y con peso visual menor**. Los botones DEBEN mostrar la acción, no el número de teléfono como texto. El botón "Llamar" solo se genera si el teléfono fijo se normaliza a 10 dígitos nacionales; si no es normalizable, la ficha muestra el dato capturado como texto plano ("Teléfono: …") sin enlace de llamada (decisión ratificada al cerrar T-004: no se pierde lo registrado y ningún código de marcado hostil llega a un `tel:`).
 
 Los tres botones de contacto de la ficha DEBEN declarar su evento con atributos de marcado y sin JavaScript propio, según el contrato único de medición de `layout-base`: "Enviar WhatsApp" el evento `whatsapp-ficha`, "Llamar" el evento `llamar` y "Cómo llegar" el evento `como-llegar`, los tres con las propiedades `categoria` y `colonia` del negocio como slugs del catálogo (PRD §9). Como el enlace `tel:` de "Llamar" no abre pestaña nueva, su evento DEBE declararse en un elemento envolvente y no en el propio enlace, para que el proveedor no pueda aplazar la marcación. El enlace a la página registrada NO se instrumenta.
 
 #### Scenario: WhatsApp como acción principal
 
 - **WHEN** el vecino abre cualquier ficha publicada
-- **THEN** ve el botón "Enviar WhatsApp" con el verde de acción, más grande o más prominente que cualquier otro botón de la página, y al tocarlo sale hacia la conversación con ese negocio
+- **THEN** ve el botón "Enviar WhatsApp" con el verde de acción, más grande o más prominente que cualquier otro control de la página —incluido "Reportar este negocio"—, y al tocarlo sale hacia la conversación con ese negocio
 
 #### Scenario: botones que dependen de lo registrado
 
@@ -450,6 +450,11 @@ Los tres botones de contacto de la ficha DEBEN declarar su evento con atributos 
 
 - **WHEN** se comparan los clics a WhatsApp desde el listado y desde la ficha
 - **THEN** llegan con nombres de evento distintos (`whatsapp-tarjeta` y `whatsapp-ficha`), de modo que la métrica del PRD §10 se puede calcular contra las vistas de ficha sin mezclarlos
+
+#### Scenario: reportar queda fuera del bloque de contacto
+
+- **WHEN** se revisa el orden de la ficha
+- **THEN** el bloque de contacto trae solo los botones del PRD §6.2 y "Reportar este negocio" aparece después, separado de ellos
 
 ### Requirement: La vista de ficha se mide sola, sin instrumentación propia
 
@@ -502,6 +507,217 @@ La ficha de un negocio publicado DEBE mostrar los giros que el admin le asignó,
 
 - **WHEN** se revisa cualquier enlace de giro de una ficha publicada
 - **THEN** la página a la que lleva tiene al menos ese negocio publicado, así que nunca es una de las páginas vacías no indexables
+
+### Requirement: Control discreto "Reportar este negocio" en la ficha
+
+Cada ficha publicada DEBE ofrecer un control con el texto literal "Reportar este negocio" que lleve al mini-formulario de reporte (PRD §6.3). El control DEBE ir **después** de los botones de contacto, al final de la ficha, y presentarse en jerarquía visual claramente menor que "Enviar WhatsApp": ni verde de acción, ni tamaño de botón principal, ni nada que lo haga competir con el contacto, que sigue siendo la única acción principal de la página. Su etiqueta accesible DEBE nombrar al negocio, para que quien navega con lector de pantalla sepa qué ficha está reportando. El control DEBE tener un área táctil de al menos 44px en su dimensión menor. El control NO DEBE aparecer en ninguna tarjeta —ni en el listado por categoría, ni en las páginas de giro y de giro+colonia, ni en la página de resultados—: reportar es un acto deliberado sobre una ficha concreta.
+
+#### Scenario: la ficha ofrece reportar sin robarle el lugar a WhatsApp
+
+- **WHEN** el vecino abre la ficha de un negocio publicado
+- **THEN** ve "Reportar este negocio" al final de la página, después de los botones de contacto, con menos peso visual que "Enviar WhatsApp", que sigue siendo el control más prominente de la ficha
+
+#### Scenario: tocar el control abre el formulario de reporte
+
+- **WHEN** el vecino toca "Reportar este negocio" en la ficha de "Tacos del Güero"
+- **THEN** llega al mini-formulario de reporte de ese negocio, sin salir del sitio y sin que se le pida ninguna cuenta
+
+#### Scenario: etiqueta accesible con el nombre del negocio
+
+- **WHEN** alguien recorre la ficha con lector de pantalla
+- **THEN** el control se anuncia indicando a qué negocio reporta, no solo como "Reportar"
+
+#### Scenario: reportar no está en las tarjetas
+
+- **WHEN** se revisan el listado por categoría, una página de giro, una de giro+colonia y la página de resultados
+- **THEN** ninguna tarjeta muestra un control de reportar
+
+### Requirement: Mini-formulario de reporte sin cuenta, con motivo de lista cerrada y comentario opcional
+
+El reporte DEBE resolverse en una página propia bajo la ficha del negocio (`/negocio/<slug>-<id>/reportar`), sin cuentas, sin registro y sin JavaScript de cliente (formulario resuelto por el servidor). El identificador se lee del mismo segmento que la ficha, así que un enlace viejo con el nombre anterior del negocio también abre su reporte. La página DEBE encabezarse con el texto literal "Reportar este negocio" como único `h1`, mostrar el nombre del negocio que se está reportando —como texto, tal como lo capturó el negocio— y explicar con el texto literal "Dinos qué pasa y lo revisamos. No te pedimos ningún dato tuyo." El formulario DEBE tener:
+
+- Un grupo de opciones **de lista cerrada** bajo el rótulo literal "¿Qué pasa?", con exactamente estas cuatro y ninguna más: "Ya cerró", "No es real", "Los datos están mal" y "Contenido ofensivo o inapropiado". Ninguna DEBE venir marcada por defecto.
+- Un comentario **opcional** bajo el rótulo literal "¿Nos quieres contar más? (opcional)", acotado a 300 caracteres, con la ayuda visible "Máximo 300 caracteres."
+- Un botón de envío con el texto literal "Enviar reporte".
+
+La página DEBE declarar `noindex` en su metadata de robots. Si el negocio no existe o no está en estado `publicado`, la página DEBE responder 404 —la misma página y el mismo código que una ficha inexistente—, sin delatar que existe una ficha en revisión o rechazada. Ese mismo 404 DEBE ser la respuesta a **cualquier** petición cuyo identificador de negocio no sirva: uno inventado, uno vacío, uno que ni siquiera es texto o un envío que llega con más argumentos de los que la acción declara. Todas esas respuestas DEBEN ser indistinguibles entre sí —mismo código, mismo cuerpo, ninguna cookie— y ninguna DEBE terminar en un error del servidor. La página DEBE ofrecer también una vuelta a la ficha con el texto literal "Volver a la ficha".
+
+#### Scenario: formulario de reporte completo
+
+- **WHEN** el vecino llega al formulario de reporte de "Tacos del Güero"
+- **THEN** ve el encabezado "Reportar este negocio", el nombre del negocio, la frase "Dinos qué pasa y lo revisamos. No te pedimos ningún dato tuyo.", las cuatro opciones de "¿Qué pasa?" sin ninguna marcada, el campo "¿Nos quieres contar más? (opcional)" con su ayuda "Máximo 300 caracteres." y el botón "Enviar reporte"
+
+#### Scenario: el reporte funciona sin JavaScript
+
+- **WHEN** el vecino elige un motivo y envía el reporte con el JavaScript de cliente deshabilitado
+- **THEN** el reporte se procesa igual, porque el formulario es un envío resuelto por el servidor
+
+#### Scenario: reportar un negocio que no está publicado
+
+- **WHEN** alguien abre la página de reporte de un negocio en `en_revision`, `rechazado` o de un identificador que no existe
+- **THEN** ve la página 404 en español con código 404, idéntica en los tres casos, y ningún dato del negocio aparece en la respuesta
+
+#### Scenario: envío con el identificador manipulado
+
+- **WHEN** llega directamente al servidor un envío de reporte cuyo identificador de negocio está vacío, no es texto (un número, un objeto, una lista) o que trae argumentos de más
+- **THEN** la respuesta es el mismo 404 que la de un identificador inexistente, byte por byte, sin cookies, sin escribir nada en la base y sin ningún error del servidor
+
+#### Scenario: la página de reporte no se indexa
+
+- **WHEN** un buscador rastrea la página de reporte de cualquier ficha
+- **THEN** encuentra la instrucción de no indexarla
+
+### Requirement: El servidor valida el motivo y el comentario del reporte
+
+Toda la validación del reporte DEBE ocurrir en el servidor, porque el formulario funciona sin JavaScript y porque un envío puede llegar directo, sin pasar por la página. El motivo DEBE pertenecer a la lista cerrada: un envío sin motivo, con un motivo vacío o con un valor que no está en la lista NO DEBE guardar nada y DEBE devolver el formulario con el texto literal "Dinos qué pasa con este negocio", conservando el comentario que ya se había escrito. El comentario DEBE tratarse siempre como texto plano —nunca se interpreta como marcado, ni al guardarse ni al mostrarse— y DEBE rechazarse si pasa de 300 caracteres, con el texto literal "El comentario es muy largo (máximo 300 caracteres)". Un comentario vacío o de puros espacios DEBE guardarse como "sin comentario", no como una cadena de espacios. Si el reporte no se puede guardar por una falla del servidor, el vecino DEBE ver el texto literal "No pudimos enviar tu reporte. Vuelve a intentarlo en un momento." sin ningún detalle técnico.
+
+**El comentario que se conserva tras un error NO DEBE viajar en la URL**, porque lo que un vecino escribe sobre un negocio acabaría en el historial del navegador y en el log de cualquier proxy: la dirección de vuelta solo lleva el código del error, y el borrador se conserva en una cookie de vida corta (a lo más un par de minutos), marcada `HttpOnly`, `SameSite=Lax`, `Secure` siempre que el sitio se sirva por HTTPS y acotada con `Path` a la ruta del formulario de esa ficha, que se borra en cuanto el reporte se envía bien. Esa cookie DEBE acotarse por el servidor antes de escribirse, de modo que ningún comentario largo produzca un encabezado desmedido; un valor que no sea el que escribió el servidor DEBE dejar el campo vacío, nunca romper la página, y el borrador DEBE pintarse siempre escapado dentro del campo.
+
+**La ruta a la que vuelve el vecino la reconstruye el servidor** a partir del negocio que encontró en la base, tanto al confirmar como al volver con un error: el envío NO DEBE poder dictar a dónde se redirige ni qué `Path` lleva la cookie del borrador. Un campo o un argumento del envío que pretenda fijar un destino DEBE ignorarse por completo, sin que ninguna dirección ajena llegue nunca a la redirección ni al encabezado de la cookie.
+
+#### Scenario: envío sin elegir motivo
+
+- **WHEN** el vecino toca "Enviar reporte" sin marcar ninguna opción
+- **THEN** no se guarda ningún reporte y ve "Dinos qué pasa con este negocio", con el comentario que había escrito todavía en el campo
+
+#### Scenario: lo que escribió el vecino no queda en la dirección
+
+- **WHEN** el vecino envía el formulario sin motivo con un comentario escrito
+- **THEN** la dirección a la que vuelve solo lleva el código del error, el texto regresa desde una cookie de vida corta —`HttpOnly`, `SameSite=Lax`, `Secure` en HTTPS y acotada a la ruta del formulario de esa ficha— y esa cookie se borra en cuanto el reporte se envía bien
+
+#### Scenario: borrador manipulado
+
+- **WHEN** llega una petición con el borrador sustituido por algo que el servidor no escribió, por ejemplo texto con marcado o basura
+- **THEN** el formulario se muestra con el campo vacío o con ese contenido escapado como texto, sin romperse y sin interpretar ninguna etiqueta
+
+#### Scenario: el envío no elige a dónde se vuelve
+
+- **WHEN** un envío de reporte llega con campos o argumentos extra que apuntan a un sitio ajeno (`https://evil.example`, `//evil.example`, o valores con saltos de línea o atributos de cookie dentro)
+- **THEN** ninguno cambia el destino: o la respuesta es el 404 de identificador inservible, o se vuelve a la ruta de esa misma ficha, que construye el servidor, y ninguna cookie sale con un `Path` o un dominio distinto del suyo
+
+#### Scenario: motivo fuera de la lista
+
+- **WHEN** llega directamente al servidor un envío con un motivo inventado que no está en la lista cerrada
+- **THEN** no se guarda ningún reporte y la respuesta es el mismo error de motivo, sin error del servidor
+
+#### Scenario: comentario demasiado largo
+
+- **WHEN** el envío trae un comentario de más de 300 caracteres
+- **THEN** no se guarda ningún reporte y el vecino ve "El comentario es muy largo (máximo 300 caracteres)"
+
+#### Scenario: comentario que parece marcado
+
+- **WHEN** alguien envía como comentario `<script>alert(1)</script>` con un motivo válido
+- **THEN** el reporte se guarda con ese texto tal cual y, cuando el admin lo lee en el panel, lo ve como texto plano: ninguna etiqueta se interpreta en ninguna pantalla
+
+#### Scenario: comentario de puros espacios
+
+- **WHEN** el vecino envía un motivo válido y un comentario de puros espacios
+- **THEN** el reporte queda guardado sin comentario, no con una cadena de espacios
+
+### Requirement: El envío del reporte confirma en español llano y no delata nada
+
+Un reporte aceptado DEBE confirmarse con el texto literal "¡Gracias por avisarnos! Vamos a revisar este negocio." y una vuelta a la ficha con el texto literal "Volver a la ficha". La confirmación NO DEBE decir cuántos reportes tiene ese negocio, ni si ya lo habían reportado, ni qué va a pasar con la ficha, ni prometer respuesta a quien reportó (que es anónimo y no dejó forma de contacto). Recargar la pantalla de confirmación NO DEBE crear otro reporte.
+
+#### Scenario: reporte enviado
+
+- **WHEN** el vecino elige "Ya cerró" y toca "Enviar reporte"
+- **THEN** ve "¡Gracias por avisarnos! Vamos a revisar este negocio." y el enlace "Volver a la ficha", que lo regresa a la ficha del negocio
+
+#### Scenario: la confirmación no cuenta nada del negocio
+
+- **WHEN** un vecino reporta un negocio que ya tenía reportes pendientes
+- **THEN** ve exactamente la misma confirmación que si fuera el primero, sin conteos ni pistas de lo que el admin vaya a hacer
+
+#### Scenario: recargar la confirmación no duplica
+
+- **WHEN** el vecino recarga la pantalla de confirmación
+- **THEN** no se crea ningún reporte adicional
+
+### Requirement: Anti-abuso del reporte sin captcha: honeypot, cupo por IP y tope de pendientes por negocio
+
+El formulario de reporte DEBE protegerse contra envíos automatizados sin captcha y sin fricción (PRD §8), con tres defensas:
+
+1. **Campo trampa (honeypot)** invisible para las personas y no anunciado por lectores de pantalla: un envío con ese campo lleno NO DEBE guardar nada y DEBE mostrar exactamente la misma confirmación que un reporte legítimo, para no delatar la trampa.
+2. **Cupo por IP**: 3 reportes por hora desde la misma IP. Al agotarlo, el envío NO DEBE guardar nada y el vecino DEBE ver el texto literal "Ya recibimos varios reportes desde aquí. Espera un rato y vuelve a intentar." La IP se lee con la misma política de encabezado declarado que ya usa el registro: si el despliegue no declara cuál es el encabezado de confianza, NO se confía en ningún encabezado y este cupo simplemente no opera, quedando las otras dos defensas. El cupo de reportes DEBE ser un contador propio: agotarlo NO DEBE impedir registrar un negocio, ni al revés.
+3. **Tope de reportes pendientes por negocio**: cuando un negocio ya acumula 10 reportes sin atender, los envíos siguientes sobre esa misma ficha NO DEBEN guardarse; quien reporta DEBE ver la misma confirmación de siempre, porque el negocio ya está señalado y nada se pierde al no apuntarlo otra vez.
+
+Las dos cotas DEBEN hacerse cumplir **sin ventana de carrera**: el tope se decide en la misma operación que guarda el reporte, y el cupo por IP se comprueba y se aparta de una sola vez. Un puñado de envíos simultáneos NO DEBE poder dejar más de 10 reportes sin atender sobre una misma ficha, ni más de 3 reportes de la misma IP en la hora, y todos ellos DEBEN recibir la respuesta que les tocaría de haber llegado uno por uno.
+
+Ningún envío bloqueado por cualquiera de las tres defensas DEBE escribir nada en la base ni dejar en el log del servidor el contenido del reporte.
+
+#### Scenario: bot que llena el honeypot
+
+- **WHEN** un envío de reporte llega con el campo trampa lleno
+- **THEN** no se guarda ningún reporte y quien envió ve la misma confirmación que un reporte legítimo
+
+#### Scenario: cupo por IP agotado
+
+- **WHEN** desde la misma IP llega un cuarto reporte dentro de la misma hora
+- **THEN** no se guarda nada y el vecino ve "Ya recibimos varios reportes desde aquí. Espera un rato y vuelve a intentar."
+
+#### Scenario: sin encabezado de IP declarado
+
+- **WHEN** el servidor corre sin la variable que declara el encabezado de confianza y llegan muchos reportes
+- **THEN** el cupo por IP no bloquea a nadie (no se confía en un encabezado que escribe quien envía), pero el honeypot y el tope por negocio siguen operando
+
+#### Scenario: el cupo de reportes no consume el de altas
+
+- **WHEN** un vecino agota su cupo de reportes de la hora y enseguida registra un negocio desde la misma IP
+- **THEN** el registro se procesa con normalidad, porque cada cupo lleva su propio conteo
+
+#### Scenario: negocio con el tope de pendientes alcanzado
+
+- **WHEN** un negocio ya tiene 10 reportes sin atender y llega otro reporte sobre esa misma ficha
+- **THEN** no se guarda un reporte nuevo y quien reportó ve la confirmación de siempre, sin enterarse del tope
+
+#### Scenario: muchos reportes al mismo tiempo
+
+- **WHEN** llegan catorce reportes simultáneos sobre la misma ficha, cada uno desde una IP distinta, y ocho simultáneos desde una misma IP sobre otra ficha
+- **THEN** la primera ficha queda con exactamente 10 reportes sin atender y la segunda con exactamente 3, todos los envíos ven la respuesta que les corresponde y ninguno revela que había un tope
+
+#### Scenario: el honeypot no molesta a las personas
+
+- **WHEN** un vecino llena el formulario con teclado o con autocompletado del navegador
+- **THEN** el campo trampa permanece vacío y su reporte se procesa normalmente
+
+### Requirement: Del reportante no se pide ni se guarda ningún dato
+
+El formulario de reporte NO DEBE pedir nombre, teléfono, correo ni ningún otro dato de quien reporta, y el sistema NO DEBE guardar ninguno: lo único que se persiste de un reporte es el negocio al que apunta, el motivo, el comentario opcional, su estado y sus fechas. La IP se usa **solo en memoria** para el cupo de la hora, exactamente como en el registro: NO DEBE quedar en ninguna tabla ni en el log del servidor, y tampoco DEBE guardarse una versión derivada de ella. El contenido del reporte NO DEBE escribirse en el log. El borrador que conserva el comentario tras un error vive únicamente en el navegador de quien lo escribió, caduca solo y NO DEBE guardarse en el servidor.
+
+#### Scenario: el formulario no pide datos del reportante
+
+- **WHEN** se revisa el formulario de reporte
+- **THEN** sus únicos campos son el motivo, el comentario opcional y el campo trampa invisible
+
+#### Scenario: nada del reportante queda guardado
+
+- **WHEN** se revisa un reporte recién creado en la base
+- **THEN** trae el negocio, el motivo, el comentario, el estado y las fechas, y ningún dato ni identificador de quien lo envió
+
+#### Scenario: la IP no se persiste ni se registra
+
+- **WHEN** se revisan la base y el log del servidor después de varios reportes
+- **THEN** no aparece ninguna IP ni ningún valor derivado de ella, ni el contenido de los comentarios
+
+### Requirement: Un reporte no cambia nada de lo público
+
+Los reportes DEBEN ser invisibles fuera del panel: un negocio reportado sigue publicado exactamente igual (PRD §6.3: la moderación la hace el admin, no el volumen de reportes). NINGÚN reporte DEBE despublicar, ocultar, reordenar ni marcar una ficha de forma automática, y ninguna superficie pública —la ficha, el listado por categoría, las páginas de giro y de giro+colonia, la página de resultados y el sitemap— DEBE mostrar, ni en pantalla ni en el HTML de la respuesta, cuántos reportes tiene un negocio, sus motivos o sus comentarios. Tras enviar un reporte, la ficha DEBE verse igual que antes para cualquier vecino.
+
+#### Scenario: la ficha reportada sigue igual
+
+- **WHEN** un negocio publicado recibe varios reportes y otro vecino abre su ficha
+- **THEN** la ve exactamente igual que antes: sigue publicada, con su sello "Negocio verificado", sin aviso de reportes y en el mismo lugar de su listado
+
+#### Scenario: nada de auto-despublicar
+
+- **WHEN** un negocio acumula el tope de reportes pendientes
+- **THEN** su estado sigue siendo `publicado` y solo el admin, desde el panel, puede decidir qué hacer
+
+#### Scenario: sin rastro de reportes en el HTML público
+
+- **WHEN** se inspecciona el HTML de la ficha reportada, de su listado, de sus páginas de giro y de una página de resultados que la incluye
+- **THEN** no aparece ningún conteo, motivo ni comentario de reportes
 
 ### Requirement: Buscador en la home que funciona sin JavaScript de cliente
 
@@ -790,19 +1006,19 @@ El contenido que escribió el negocio DEBE quedar escapado dentro del bloque de 
 
 ### Requirement: Directorio en Server Components, mobile-first y usable sin JavaScript
 
-La home, los listados por categoría, las páginas de giro y de giro+colonia, las fichas, el buscador y la página de resultados DEBEN ser Server Components y NO DEBEN agregar JavaScript de cliente propio (PRD §8, presupuesto de <2s en 4G). El JSON-LD de la ficha NO cuenta como JavaScript de cliente: es un bloque de datos, no código ejecutable. Tampoco cuenta el script del proveedor de analítica cookieless, que es de un tercero y lo inyecta el tronco de las páginas públicas (capacidad `layout-base`): estas páginas solo declaran eventos con atributos de marcado, sin código propio alrededor. Todas las páginas DEBEN verse completas en un viewport de 390px sin scroll horizontal, con áreas táctiles de al menos 44px en todo elemento tocable, y DEBEN seguir siendo navegables con el JavaScript de cliente deshabilitado, incluidos el filtro por colonia, la búsqueda y la navegación entre las páginas de giro y de giro+colonia.
+La home, los listados por categoría, las páginas de giro y de giro+colonia, las fichas, el buscador, la página de resultados y **la página de reporte con su confirmación** DEBEN ser Server Components y NO DEBEN agregar JavaScript de cliente propio (PRD §8, presupuesto de <2s en 4G). El JSON-LD de la ficha NO cuenta como JavaScript de cliente: es un bloque de datos, no código ejecutable. Tampoco cuenta el script del proveedor de analítica cookieless, que es de un tercero y lo inyecta el tronco de las páginas públicas (capacidad `layout-base`): estas páginas solo declaran eventos con atributos de marcado, sin código propio alrededor. Todas las páginas DEBEN verse completas en un viewport de 390px sin scroll horizontal, con áreas táctiles de al menos 44px en todo elemento tocable, y DEBEN seguir siendo navegables con el JavaScript de cliente deshabilitado, incluidos el filtro por colonia, la búsqueda, la navegación entre las páginas de giro y de giro+colonia y el envío de un reporte.
 
 #### Scenario: sin JS de cliente
 
-- **WHEN** se revisan los archivos de la home, el listado, las páginas de giro y giro+colonia, la tarjeta, la ficha, el buscador y la página de resultados
+- **WHEN** se revisan los archivos de la home, el listado, las páginas de giro y giro+colonia, la tarjeta, la ficha, el buscador, la página de resultados y la página de reporte
 - **THEN** ninguno declara `"use client"` ni agrega un bundle de cliente propio
 
 #### Scenario: celular a 390px
 
-- **WHEN** un vecino abre la home, un listado, una página de giro, una de giro+colonia, una ficha y una página de resultados en un viewport de 390px
+- **WHEN** un vecino abre la home, un listado, una página de giro, una de giro+colonia, una ficha, una página de resultados y el formulario de reporte en un viewport de 390px
 - **THEN** todo se ve completo y legible, sin scroll horizontal, y cada elemento tocable mide al menos 44px en su dimensión menor
 
 #### Scenario: navegación sin JavaScript
 
-- **WHEN** el vecino recorre home → buscar → resultados → ficha → WhatsApp, y home → categoría → filtro por colonia → ficha → giro → giro+colonia → WhatsApp, con el JavaScript de cliente deshabilitado
-- **THEN** los dos recorridos completos funcionan igual, porque cada paso es un enlace o un formulario resuelto por el servidor
+- **WHEN** el vecino recorre home → buscar → resultados → ficha → WhatsApp, home → categoría → filtro por colonia → ficha → giro → giro+colonia → WhatsApp, y ficha → reportar → enviar → confirmación, con el JavaScript de cliente deshabilitado
+- **THEN** los tres recorridos completos funcionan igual, porque cada paso es un enlace o un formulario resuelto por el servidor

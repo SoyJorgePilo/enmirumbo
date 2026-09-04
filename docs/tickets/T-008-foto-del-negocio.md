@@ -1,6 +1,6 @@
 # T-008 · Habilitar la foto del negocio en el registro y el directorio
 
-**Estado:** en-review
+**Estado:** hecho
 **Prioridad:** P0
 **Épica:** E1-3 (docs/backlog.md)
 **Referencias PRD:** §6.1 (política de foto), §6.2 (tarjetas y ficha con foto), §6.3 (el admin rechaza fotos que no cumplan)

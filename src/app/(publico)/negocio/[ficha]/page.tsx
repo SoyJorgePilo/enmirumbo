@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { BotonReportar } from "@/components/directorio/boton-reportar";
 import { BotonesContacto } from "@/components/directorio/botones-contacto";
 import { EtiquetaADomicilio } from "@/components/directorio/etiqueta-domicilio";
 import { MarcadorFoto } from "@/components/directorio/marcador-foto";
@@ -225,6 +226,14 @@ export default async function FichaNegocioPage({
         hrefLlamar={hrefLlamar}
         hrefComoLlegar={hrefComoLlegar}
         pagina={pagina}
+      />
+
+      {/* Al final de la ficha, después del bloque de contacto y con jerarquía
+          claramente menor que "Enviar WhatsApp" (spec directorio-publico,
+          requirement "Control discreto 'Reportar este negocio'..."). */}
+      <BotonReportar
+        nombre={negocio.nombre}
+        href={`/negocio/${construirSegmentoFicha(negocio.nombre, negocio.id)}/reportar`}
       />
     </article>
   );

@@ -271,7 +271,11 @@ describe("directorio-publico · la página de resultados no es indexable (tasks 
   // Scenario: las páginas del directorio siguen indexables
   it("ninguna otra página del sitio quedó marcada como no indexable", () => {
     // El panel de revisión (spec revision-admin) exige su propio noindex:
-    // las únicas páginas legítimamente no indexables son /buscar y /admin/*.
+    // las únicas páginas legítimamente no indexables son /buscar, /admin/* y
+    // —desde el change `agregar-boton-reportar`— el mini-formulario de reporte
+    // con su confirmación (requirement "La página de reporte no se indexa":
+    // son páginas de una acción concreta sobre una ficha, no contenido que un
+    // buscador deba traer; la ficha en sí sigue indexable).
     //
     // El change `agregar-seo-local` suma un caso acotado —las páginas de giro
     // y giro+colonia SIN negocios publicados—, y por eso mismo ninguna página
@@ -279,14 +283,23 @@ describe("directorio-publico · la página de resultados no es indexable (tasks 
     // (`NOINDEX_CON_ENLACES`, en `src/lib/seo/metadata.ts`) que la metadata
     // del segmento dinámico aplica solo cuando no hay nada que mostrar. Esta
     // verificación sigue cubriendo TODAS las páginas, incluida esa.
+    const noIndexables = [
+      join(raiz, "src/app/(publico)/buscar/page.tsx"),
+      join(raiz, "src/app/(publico)/negocio/[ficha]/reportar/page.tsx"),
+      join(raiz, "src/app/(publico)/negocio/[ficha]/reportar/gracias/page.tsx"),
+    ];
     const paginas = archivosDe(join(raiz, "src/app")).filter(
       (ruta) =>
-        ruta !== join(raiz, "src/app/(publico)/buscar/page.tsx") &&
-        !ruta.startsWith(join(raiz, "src/app/admin/")),
+        !noIndexables.includes(ruta) && !ruta.startsWith(join(raiz, "src/app/admin/")),
     );
     expect(paginas.length).toBeGreaterThanOrEqual(4);
     for (const ruta of paginas) {
       expect(readFileSync(ruta, "utf8"), ruta).not.toMatch(/noindex|index:\s*false/);
+    }
+    // Y las tres excepciones sí lo declaran: la lista blanca no es un permiso
+    // en blanco, es la constancia de que cada una lo pide a propósito.
+    for (const ruta of noIndexables) {
+      expect(readFileSync(ruta, "utf8"), ruta).toMatch(/noindex|index:\s*false/);
     }
   });
 });

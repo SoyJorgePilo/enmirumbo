@@ -10,7 +10,18 @@
  */
 import { slugify } from "@/lib/slug";
 
-/** Segmento canónico de la ficha, con el nombre actual del negocio. */
+/**
+ * Segmento canónico de la ficha, con el nombre actual del negocio.
+ *
+ * OJO al repartir responsabilidades: el NOMBRE se slugifica aquí (queda en
+ * `[a-z0-9-]`), pero el `id` se interpola TAL CUAL. Que el segmento resultante
+ * sea seguro para meterlo en una URL —y, desde el change
+ * `agregar-boton-reportar`, en el `Path` de una cookie— depende de que todo id
+ * de `Negocio` sea un cuid, que es lo que garantiza `@default(cuid())` porque
+ * nada en `src/` fija ids a mano. El día que algo permita elegir el id habrá
+ * que sanearlo aquí (`tests/reportes-seguridad-adversarial.test.ts` vigila ese
+ * invariante contra la base).
+ */
 export function construirSegmentoFicha(nombre: string, id: string): string {
   const legible = slugify(nombre);
   // Un nombre que se queda vacío al slugificarse (puros signos) no puede

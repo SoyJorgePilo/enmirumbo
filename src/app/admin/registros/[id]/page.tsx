@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { aprobarRegistroAccion } from "@/app/admin/registros/[id]/accion-aprobar";
 import { despublicarRegistroAccion } from "@/app/admin/registros/[id]/accion-despublicar";
+import { marcarReporteAtendidoAccion } from "@/app/admin/registros/[id]/accion-marcar-reporte-atendido";
 import { rechazarRegistroAccion } from "@/app/admin/registros/[id]/accion-rechazar";
 import { BotonWhatsapp } from "@/components/admin/boton-whatsapp";
 import { ControlBorrar } from "@/components/admin/control-borrar";
@@ -10,10 +11,14 @@ import { DetalleRegistro } from "@/components/admin/detalle-registro";
 import { FormularioAprobar } from "@/components/admin/formulario-aprobar";
 import { FormularioDespublicar } from "@/components/admin/formulario-despublicar";
 import { FormularioRechazar } from "@/components/admin/formulario-rechazar";
+import { ReportesPendientesNegocio } from "@/components/admin/reportes-pendientes-negocio";
 import { obtenerRegistroParaPanel } from "@/lib/admin/consultas";
 import { requerirSesionAdmin } from "@/lib/admin/guarda";
+import { obtenerReportesPendientesDeNegocio } from "@/lib/admin/reportes";
 import {
   BOTON_WHATSAPP_VERIFICACION,
+  MENSAJE_REPORTE_ATENDIDO,
+  MENSAJE_REPORTE_YA_ATENDIDO,
   MENSAJE_YA_NO_PUBLICADA,
   mensajeVerificacion,
 } from "@/lib/admin/textos";
@@ -82,15 +87,22 @@ export default async function DetalleRegistroAdminPage({
     : (registro.girosIds ?? []);
   const coloniaSeleccionada = primeraCadena(sp.colonia);
   const origenSeleccionado = primeraCadena(sp.origen) === "siembra" ? "siembra" : "organico";
+  // Solo los dos valores que produce la acción; cualquier otra cosa en la URL
+  // (la escribe quien quiera) no pinta ningún aviso.
+  const reporteCrudo = primeraCadena(sp.reporte);
+  const avisoDeReporte =
+    reporteCrudo === "atendido" || reporteCrudo === "ya-atendido" ? reporteCrudo : undefined;
 
   const enRevision = registro.estado === ESTADO_NEGOCIO_DEFAULT;
   const publicado = registro.estado === ESTADO_NEGOCIO_PUBLICADO;
-  const [giros, colonias] = enRevision
-    ? await Promise.all([
-        prisma.giro.findMany({ orderBy: { id: "asc" } }),
-        prisma.colonia.findMany({ orderBy: { id: "asc" } }),
-      ])
-    : [[], []];
+  // Los catálogos solo hacen falta para republicar/aprobar; los reportes
+  // pendientes se piden SIEMPRE, porque un negocio publicado —o uno que el
+  // admin acaba de despublicar— es justo el que los recibe.
+  const [giros, colonias, reportesPendientes] = await Promise.all([
+    enRevision ? prisma.giro.findMany({ orderBy: { id: "asc" } }) : Promise.resolve([]),
+    enRevision ? prisma.colonia.findMany({ orderBy: { id: "asc" } }) : Promise.resolve([]),
+    obtenerReportesPendientesDeNegocio(prisma, id),
+  ]);
 
   return (
     <article className="flex flex-col gap-8 py-4">
@@ -105,10 +117,34 @@ export default async function DetalleRegistroAdminPage({
 
       <DetalleRegistro registro={registro} />
 
-      {/* Reportes sin atender (agregar-boton-reportar, T-011): se integran
-          aquí, entre los datos y las acciones, cuando esa capacidad exista
-          (requirement "El detalle ofrece las acciones que corresponden al
-          estado, con el contexto a la vista"). */}
+      {/* Requirement "Marcar un reporte como atendido, una sola vez": el
+          panel DEBE confirmar, sin condición. El aviso va AQUÍ y no dentro de
+          la sección de pendientes porque esa sección desaparece cuando ya no
+          queda ninguno, y entonces atender el ÚLTIMO reporte de un negocio no
+          confirmaba nada — que es justo cuando más falta hace saber si el
+          toque contó (hallazgo M1 de la etapa D). */}
+      {avisoDeReporte && (
+        <p role="status" className="text-sm font-semibold text-tinta">
+          {avisoDeReporte === "atendido"
+            ? MENSAJE_REPORTE_ATENDIDO
+            : MENSAJE_REPORTE_YA_ATENDIDO}
+        </p>
+      )}
+
+      {/* Reportes sin atender (change `agregar-boton-reportar`, T-011): el
+          hueco que `main` dejó reservado, entre los datos y las acciones
+          (requirement de T-015 "El detalle ofrece las acciones que
+          corresponden al estado, con el contexto a la vista"). Es justo lo que
+          esperaba T-015: los avisos de los vecinos SE LEEN ANTES de decidir
+          despublicar o borrar, no después. Sección invisible si no hay
+          pendientes, y no depende de `enRevision` —un negocio `publicado` es
+          el que los recibe—. */}
+      {reportesPendientes.length > 0 && (
+        <ReportesPendientesNegocio
+          reportes={reportesPendientes}
+          action={marcarReporteAtendidoAccion.bind(null, id)}
+        />
+      )}
 
       <BotonWhatsapp
         whatsapp={registro.whatsapp}

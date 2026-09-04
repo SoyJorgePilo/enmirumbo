@@ -143,3 +143,28 @@ export const TEXTO_VOLVER_A_LA_COLA = "Volver a la cola";
  */
 export const MENSAJE_SIN_URL_DEL_SITIO =
   "No se pudo armar el link de la ficha porque falta configurar la dirección pública del sitio. El negocio ya quedó publicado; avísale cuando esté configurada.";
+
+// ── Reportes (change `agregar-boton-reportar`, spec `revision-admin`) ──────
+
+export const TEXTO_NEGOCIOS_REPORTADOS_ENCABEZADO = "Negocios reportados";
+
+/**
+ * Conteo de negocios con reportes pendientes, encabezado de la sección de la
+ * cola (requirement "La cola avisa qué negocios tienen reportes sin atender").
+ */
+export function textoConteoNegociosReportados(cantidad: number): string {
+  const plural = cantidad === 1 ? "negocio tiene" : "negocios tienen";
+  return `${cantidad} ${plural} reportes sin atender.`;
+}
+
+/** Renglón de la cola y encabezado de cada reporte del detalle: "1 reporte sin atender" / "<n> reportes sin atender". */
+export function textoReportesSinAtender(cantidad: number): string {
+  const plural = cantidad === 1 ? "reporte" : "reportes";
+  return `${cantidad} ${plural} sin atender`;
+}
+
+export const TEXTO_VER_REPORTES = "Ver reportes";
+export const TEXTO_REPORTES_SIN_ATENDER_ENCABEZADO = "Reportes sin atender";
+export const BOTON_MARCAR_ATENDIDO = "Marcar como atendido";
+export const MENSAJE_REPORTE_ATENDIDO = "Reporte atendido.";
+export const MENSAJE_REPORTE_YA_ATENDIDO = "Este reporte ya lo habías atendido.";

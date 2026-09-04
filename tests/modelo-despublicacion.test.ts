@@ -249,10 +249,12 @@ describe("modelo-datos · toda relación hacia Negocio borra en cascada", () => 
       }
     }
 
-    // Hoy solo existe la relación implícita con los giros; si algún día hay
-    // reportes (T-011) o ediciones pendientes (T-014), entran solas a esta
-    // revisión.
+    // La relación implícita con los giros y —desde que T-011 fusionó— la de
+    // los reportes de los vecinos. Las dos se nombran a propósito: si mañana
+    // alguien quita una de las dos claves foráneas, el recorrido de arriba se
+    // quedaría sin nada que revisar y pasaría en verde sin cubrir nada.
     expect(hacia).toContain("_GiroToNegocio.B");
+    expect(hacia).toContain("Reporte.negocioId");
   });
 
   // Scenario: hard delete

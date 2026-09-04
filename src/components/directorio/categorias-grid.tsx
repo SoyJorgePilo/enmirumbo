@@ -15,6 +15,7 @@
 import Link from "next/link";
 
 import type { CategoriaCatalogo } from "@/lib/directorio";
+import { iconoDeCategoria } from "@/lib/ui/iconos-categorias";
 
 export type CategoriasGridProps = {
   categorias: CategoriaCatalogo[];
@@ -27,8 +28,11 @@ export function CategoriasGrid({ categorias }: CategoriasGridProps) {
         <li key={categoria.slug}>
           <Link
             href={`/${categoria.slug}`}
-            className="flex min-h-16 items-center justify-center rounded-xl border border-borde bg-superficie px-3 py-4 text-center text-sm font-semibold text-tinta transition-colors hover:bg-borde"
+            className="flex min-h-16 flex-col items-center justify-center gap-1 rounded-xl border border-borde bg-superficie px-3 py-4 text-center text-sm font-semibold text-tinta transition-colors hover:bg-borde"
           >
+            <span aria-hidden="true" className="text-2xl leading-none">
+              {iconoDeCategoria(categoria.slug)}
+            </span>
             {categoria.nombre}
           </Link>
         </li>

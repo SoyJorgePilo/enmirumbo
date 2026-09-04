@@ -85,7 +85,7 @@ export function FormularioReporte({
                 type="radio"
                 name="motivo"
                 value={motivo}
-                className="h-5 w-5 shrink-0 border-borde"
+                className="h-5 w-5 shrink-0 border-borde-control"
               />
               {ETIQUETA_MOTIVO_REPORTE[motivo]}
             </label>
@@ -110,7 +110,7 @@ export function FormularioReporte({
           className={
             errorEsDeComentario
               ? "w-full rounded-lg border-2 border-tinta bg-fondo px-4 py-3 text-base text-tinta focus:outline-none focus:ring-2 focus:ring-accion-fuerte"
-              : "w-full rounded-lg border border-borde bg-fondo px-4 py-3 text-base text-tinta focus:outline-none focus:ring-2 focus:ring-accion-fuerte"
+              : "w-full rounded-lg border border-borde-control bg-fondo px-4 py-3 text-base text-tinta focus:outline-none focus:ring-2 focus:ring-accion-fuerte"
           }
         />
         <p id="comentario-ayuda" className="text-sm text-tinta-suave">

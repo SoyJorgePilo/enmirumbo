@@ -65,7 +65,7 @@ export function AvisoConsentimiento() {
           required
           defaultChecked={false}
           aria-describedby="consentimiento-error"
-          className="mt-0.5 h-5 w-5 shrink-0 rounded border-borde"
+          className="mt-0.5 h-5 w-5 shrink-0 rounded border-borde-control"
         />
         <span>{TEXTO_CONSENTIMIENTO}</span>
       </label>

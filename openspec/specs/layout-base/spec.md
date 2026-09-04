@@ -77,10 +77,6 @@ El layout global DEBE ser un Server Component que no envíe JavaScript de client
 - **WHEN** se construye el sitio y se revisa el layout, el header y el footer
 - **THEN** ninguno usa la directiva `"use client"` ni agrega bundles de cliente propios
 
-### Requirement: Home del sitio dentro del layout, con la entrada al registro`
-
-## MODIFIED Requirements
-
 ### Requirement: Home del sitio dentro del layout, con la entrada al registro
 
 La ruta raíz (`/`) DEBE mostrar la home real del sitio dentro del layout global, con un único `h1` de bienvenida en español mexicano coloquial —el texto literal "¿Qué necesitas en Tizayuca?"— acompañado de la frase "Encuentra negocios y servicios de aquí cerquita y contáctalos directo por WhatsApp.". La home DEBE conservar la entrada al registro del Flujo A (PRD §7) con el texto literal "Registra tu negocio gratis", con el estilo de acción principal (verde WhatsApp) y área táctil de al menos 44px, presentada bajo la pregunta "¿Tienes un negocio en Tizayuca?". El contenido de directorio de la home (categorías y bloque de deporte) lo especifica la capacidad `directorio-publico`; aquí solo se exige que viva dentro del layout, con header y footer, y con la jerarquía de encabezados correcta (un `h1` y las secciones como `h2`). La frase provisional "Muy pronto vas a poder encontrar aquí los negocios y servicios de Tizayuca." DEBE desaparecer, porque el directorio ya existe. Todo texto residual de la plantilla de create-next-app DEBE seguir ausente.

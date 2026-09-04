@@ -39,6 +39,10 @@ export type NegocioDemo = {
   estado: EstadoNegocio;
   /** Fecha fija (no `now()`) para que el orden del listado sea reproducible. */
   publicadoEn?: string;
+  /** Fecha del rechazo; solo tiene sentido con estado `rechazado`. */
+  rechazadoEn?: string;
+  /** Motivo que escribió el admin al rechazar (ficticio). */
+  motivoRechazo?: string;
   queOfreces?: string;
   entregaADomicilio?: boolean;
   telefonoFijo?: string;
@@ -207,13 +211,18 @@ export const NEGOCIOS_DEMO: NegocioDemo[] = [
     horario: "L-S 10am-8pm",
   },
   {
-    // Rechazado: tampoco aparece ni tiene ficha.
+    // Rechazado: tampoco aparece ni tiene ficha. Trae fecha y motivo del
+    // rechazo (spec modelo-datos MODIFIED por agregar-panel-admin) para que el
+    // panel y la purga futura de 90 días tengan un caso realista que probar.
     nombre: "Taller Fantasma Rechazado",
     categoriaSlug: "talleres",
     coloniaSlug: "zona-industrial",
     whatsapp: "7719995012",
     estado: "rechazado",
     queOfreces: "Negocio de mentira rechazado por el admin.",
+    rechazadoEn: "2026-08-02T11:00:00.000Z",
+    motivoRechazo:
+      "El número no contesta y no pudimos confirmar que el negocio exista (motivo ficticio).",
   },
 ];
 
@@ -335,6 +344,10 @@ export async function sembrarNegociosDemo(
       // Datos de siembra, no de un registro real del formulario.
       origen: "siembra",
       publicadoEn: demo.publicadoEn ? new Date(demo.publicadoEn) : null,
+      // Explícitamente nulos cuando no aplican: el `upsert` es idempotente,
+      // así que volver a sembrar limpia el rastro de un rechazo anterior.
+      rechazadoEn: demo.rechazadoEn ? new Date(demo.rechazadoEn) : null,
+      motivoRechazo: demo.motivoRechazo ?? null,
     };
 
     await prisma.negocio.upsert({

@@ -775,8 +775,20 @@ describe("adversarial C · ningún camino de escritura se salta datosDeBusqueda"
       ),
     );
     expect(escritores.length).toBeGreaterThan(0);
+    // El panel de revisión (transiciones.ts) actualiza Negocio pero nunca
+    // escribe `nombre` ni `queOfreces` (aprobar/rechazar tocan estado, giros,
+    // colonia, origen y el rastro de rechazo): no necesita recalcular el
+    // texto normalizado. La aserción de abajo mantiene honesta la excepción:
+    // si algún día escribe esos campos, este test truena y obliga a sumar
+    // `datosDeBusqueda` ahí también.
+    const exentos = [path.join(raiz, "src/lib/admin/transiciones.ts")];
     for (const archivo of escritores) {
-      expect(readFileSync(archivo, "utf8"), archivo).toContain("datosDeBusqueda");
+      const codigo = readFileSync(archivo, "utf8");
+      if (exentos.includes(archivo)) {
+        expect(codigo, archivo).not.toMatch(/\bnombre\s*:|\bqueOfreces\s*:/);
+        continue;
+      }
+      expect(codigo, archivo).toContain("datosDeBusqueda");
     }
   });
 });

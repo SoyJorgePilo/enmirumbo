@@ -270,8 +270,12 @@ describe("directorio-publico · la página de resultados no es indexable (tasks 
 
   // Scenario: las páginas del directorio siguen indexables
   it("ninguna otra página del sitio quedó marcada como no indexable", () => {
+    // El panel de revisión (spec revision-admin) exige su propio noindex:
+    // las únicas páginas legítimamente no indexables son /buscar y /admin/*.
     const paginas = archivosDe(join(raiz, "src/app")).filter(
-      (ruta) => ruta !== join(raiz, "src/app/buscar/page.tsx"),
+      (ruta) =>
+        ruta !== join(raiz, "src/app/buscar/page.tsx") &&
+        !ruta.startsWith(join(raiz, "src/app/admin/")),
     );
     expect(paginas.length).toBeGreaterThanOrEqual(4);
     for (const ruta of paginas) {

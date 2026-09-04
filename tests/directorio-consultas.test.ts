@@ -236,14 +236,32 @@ describe("directorio-publico · solo campos públicos (design.md §5)", () => {
     });
   });
 
-  // design.md §5: el filtro de estado vive en un solo archivo
-  it("solo el módulo del directorio filtra por estado publicado en src/", () => {
-    const archivosConFiltro = archivosDe(join(raiz, "src"))
+  // design.md §5: el filtro de estado vive en un solo archivo.
+  //
+  // MODIFICADO por el change agregar-panel-admin: ahora hay DOS archivos que
+  // nombran el estado publicado, y hacen cosas distintas —
+  // `src/lib/directorio.ts` es el único que FILTRA por él (qué se muestra) y
+  // `src/lib/admin/transiciones.ts` el único que lo ESCRIBE (qué se publica,
+  // desde el panel autenticado). Un tercer archivo que lo mencione sigue
+  // rompiendo la suite, y el test de abajo comprueba que el del panel no cuela
+  // un filtro propio.
+  it("solo el directorio filtra por estado publicado y solo el panel lo escribe", () => {
+    const archivosConEstadoPublicado = archivosDe(join(raiz, "src"))
       .filter((ruta) => !ruta.includes("/generated/"))
       .filter((ruta) => /estado:\s*ESTADO_NEGOCIO_PUBLICADO|estado:\s*"publicado"/.test(
         readFileSync(ruta, "utf8"),
       ));
-    expect(archivosConFiltro).toEqual([join(raiz, "src/lib/directorio.ts")]);
+    expect(archivosConEstadoPublicado.sort()).toEqual([
+      join(raiz, "src/lib/admin/transiciones.ts"),
+      join(raiz, "src/lib/directorio.ts"),
+    ]);
+
+    // El módulo del panel solo lo usa para ESCRIBIR: nunca dentro de un `where`.
+    const transiciones = readFileSync(join(raiz, "src/lib/admin/transiciones.ts"), "utf8");
+    expect(transiciones).not.toMatch(
+      /where:\s*\{[^}]*(ESTADO_NEGOCIO_PUBLICADO|"publicado")/,
+    );
+    expect(transiciones).toMatch(/data:\s*\{[\s\S]{0,80}estado:\s*ESTADO_NEGOCIO_PUBLICADO/);
   });
 });
 

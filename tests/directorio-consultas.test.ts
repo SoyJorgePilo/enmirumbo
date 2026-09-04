@@ -52,10 +52,39 @@ describe("directorio-publico · la ruta dinámica no tapa rutas propias (tasks #
     }
   });
 
+  // MODIFICADO por el change `agregar-seo-local` (observación O1 de la etapa
+  // C): el guardián miraba SOLO carpetas, así que no veía las rutas que Next
+  // publica desde un archivo de `src/app` (`robots.ts` → `/robots.txt`,
+  // `sitemap.ts` → `/sitemap.xml`, `opengraph-image.tsx` →
+  // `/opengraph-image`). Un giro futuro llamado `opengraph-image` habría
+  // quedado inalcanzable sin que nada avisara.
+  //
+  // Archivos de `src/app` que NO publican una ruta propia (son el envoltorio
+  // o la interfaz de las rutas que sí lo hacen).
+  const ARCHIVOS_QUE_NO_SON_RUTA = [
+    "layout.tsx",
+    "page.tsx",
+    "not-found.tsx",
+    "error.tsx",
+    "global-error.tsx",
+    "loading.tsx",
+    "template.tsx",
+    "default.tsx",
+    "globals.css",
+  ];
+
+  /** Archivo de convención de Next → el segmento que publica en la raíz. */
+  const RUTA_QUE_PUBLICA: Record<string, string> = {
+    "robots.ts": "robots.txt",
+    "sitemap.ts": "sitemap.xml",
+    "opengraph-image.tsx": "opengraph-image",
+    "favicon.ico": "favicon.ico",
+  };
+
   it("las rutas propias que ya existen en src/app están declaradas como reservadas", () => {
-    const segmentosDeLaRaiz = readdirSync(join(raiz, "src/app"), {
-      withFileTypes: true,
-    })
+    const entradas = readdirSync(join(raiz, "src/app"), { withFileTypes: true });
+
+    const segmentosDeLaRaiz = entradas
       .filter((entrada) => entrada.isDirectory() && !entrada.name.startsWith("["))
       .map((entrada) => entrada.name);
 
@@ -63,6 +92,24 @@ describe("directorio-publico · la ruta dinámica no tapa rutas propias (tasks #
     expect(segmentosDeLaRaiz).toContain("negocio");
     for (const segmento of segmentosDeLaRaiz) {
       expect(SEGMENTOS_RESERVADOS, segmento).toContain(segmento);
+    }
+
+    // Y ahora también los archivos: cada uno o no es una ruta, o publica un
+    // segmento que tiene que estar reservado. Un archivo de convención nuevo
+    // (un `manifest.ts`, por ejemplo) rompe esta prueba hasta que alguien
+    // decida qué segmento reserva.
+    const archivosDeLaRaiz = entradas
+      .filter((entrada) => entrada.isFile())
+      .map((entrada) => entrada.name)
+      .filter((nombre) => !ARCHIVOS_QUE_NO_SON_RUTA.includes(nombre));
+
+    expect(archivosDeLaRaiz).toContain("robots.ts");
+    expect(archivosDeLaRaiz).toContain("sitemap.ts");
+    for (const archivo of archivosDeLaRaiz) {
+      const segmento = RUTA_QUE_PUBLICA[archivo];
+      expect(segmento, `archivo de ruta sin segmento declarado: ${archivo}`).toBeDefined();
+      expect(SEGMENTOS_RESERVADOS, archivo).toContain(segmento);
+      expect(esSegmentoReservado(segmento), archivo).toBe(true);
     }
   });
 
@@ -232,7 +279,7 @@ describe("directorio-publico · solo campos públicos (design.md §5)", () => {
       direccion: null,
       horario: null,
       facebookUrl: null,
-      fotoUrl: null,
+      fotoClave: null,
     });
   });
 

@@ -1,12 +1,12 @@
 # T-008 · Habilitar la foto del negocio en el registro y el directorio
 
-**Estado:** pendiente
+**Estado:** hecho
 **Prioridad:** P0
 **Épica:** E1-3 (docs/backlog.md)
 **Referencias PRD:** §6.1 (política de foto), §6.2 (tarjetas y ficha con foto), §6.3 (el admin rechaza fotos que no cumplan)
 **Depende de:** T-003 (formulario), T-004 (directorio), T-005 (el admin revisa la foto en el panel)
-**OpenSpec change:** —
-**PR:** —
+**OpenSpec change:** `agregar-foto-negocio`
+**PR:** [#11](https://github.com/SoyJorgePilo/necesitouno/pull/11) (en borrador: bloqueado por el párrafo de la foto en el aviso de privacidad, ver `reports/d-validacion.md` §1)
 
 ## Contexto
 
@@ -14,14 +14,14 @@ El formulario omitió la foto (decisión de alcance de T-003) y el directorio mu
 
 ## Criterios de aceptación
 
-- [ ] El formulario de registro acepta una foto opcional desde la galería del celular (input file con `accept` de imagen), rechazando en el servidor archivos >5 MB o que no sean imagen real (contenido, no extensión)
-- [ ] La imagen se procesa en el servidor según ADR-006: comprimida/redimensionada a un tamaño razonable para tarjeta y ficha, sin metadatos EXIF (la foto puede traer GPS del celular — dato personal que no debe publicarse)
-- [ ] La foto solo se sirve en fichas publicadas; las de registros en revisión o rechazados no son accesibles públicamente
-- [ ] Tarjetas del listado y ficha muestran la foto real cuando existe (reemplazan el placeholder), con `alt` razonable y sin romper el presupuesto de rendimiento (<2s en 4G)
-- [ ] `fotoUrl`/la referencia interna solo admite valores generados por el servidor (M1 de T-004: nada externo ni `data:` llega al render)
-- [ ] El panel del admin muestra la foto del registro en revisión (su política de rechazo ya existe en el PRD §6.3; el motivo de rechazo libre de T-005 basta)
-- [ ] El reenvío tras rechazo permite cambiar o quitar la foto; borrar el negocio (hard delete) elimina también su archivo
-- [ ] La política de foto del PRD §6.1 aparece como texto de ayuda del campo, en español llano
+- [x] El formulario de registro acepta una foto opcional desde la galería del celular (input file con `accept` de imagen), rechazando en el servidor archivos >5 MB o que no sean imagen real (contenido, no extensión)
+- [x] La imagen se procesa en el servidor según ADR-006: comprimida/redimensionada a un tamaño razonable para tarjeta y ficha, sin metadatos EXIF (la foto puede traer GPS del celular — dato personal que no debe publicarse)
+- [x] La foto solo se sirve en fichas publicadas; las de registros en revisión o rechazados no son accesibles públicamente
+- [x] Tarjetas del listado y ficha muestran la foto real cuando existe (reemplazan el placeholder), con `alt` razonable y sin romper el presupuesto de rendimiento (<2s en 4G)
+- [x] `fotoUrl`/la referencia interna solo admite valores generados por el servidor (M1 de T-004: nada externo ni `data:` llega al render)
+- [x] El panel del admin muestra la foto del registro en revisión (su política de rechazo ya existe en el PRD §6.3; el motivo de rechazo libre de T-005 basta)
+- [x] El reenvío tras rechazo permite cambiar o quitar la foto; borrar el negocio (hard delete) elimina también su archivo
+- [x] La política de foto del PRD §6.1 aparece como texto de ayuda del campo, en español llano
 
 ## Fuera de alcance de este ticket
 

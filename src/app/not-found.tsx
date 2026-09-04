@@ -1,4 +1,7 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+
+import { imagenesDeMarca } from "@/lib/seo/metadata";
 
 /**
  * 404 global en español (spec layout-base, requirement "Página 404 en
@@ -11,6 +14,20 @@ import Link from "next/link";
  * acción): el verde se reserva para la acción de contactar por WhatsApp
  * (PRD §11), y "Ir al inicio" es navegación, no esa acción.
  */
+
+/**
+ * Declara la imagen de la vista previa **explícitamente** (iteración 2,
+ * hallazgo M1 de la etapa C): la ruta interna de esta página es el único
+ * nivel de metadata que no hereda las `images` del layout, así que sin esto
+ * Next le pegaba la imagen de `opengraph-image.tsx` resuelta contra
+ * `http://localhost:3000` cuando el sitio se construye sin `SITIO_URL` — y la
+ * spec `layout-base` exige que en ese caso NO se publique ninguna URL
+ * absoluta a la dirección local. Con URL pública declarada, la 404 comparte
+ * la misma imagen de marca que el resto del sitio.
+ */
+export const metadata: Metadata = {
+  openGraph: { images: imagenesDeMarca() },
+};
 export default function NotFound() {
   return (
     <section className="flex flex-1 flex-col items-center justify-center gap-6 py-12 text-center">

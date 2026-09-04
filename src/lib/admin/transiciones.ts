@@ -18,7 +18,9 @@
  * Ningún dato capturado por el negocio se toca al aprobar o rechazar, y nada
  * de lo que pasa por aquí se escribe en el log.
  */
+import { almacenDeFotos, type AlmacenFotos } from "@/lib/fotos/almacen";
 import {
+  borrarNegocioDefinitivamente,
   ESTADO_NEGOCIO_DEFAULT,
   ESTADO_NEGOCIO_PUBLICADO,
   ESTADO_NEGOCIO_RECHAZADO,
@@ -327,20 +329,28 @@ export async function despublicarFicha(
  * rompe el invariante en `tests/modelo-despublicacion.test.ts` y no en
  * producción.
  *
- * Punto de integración pendiente con T-008 (foto del negocio subida al sitio,
- * sin mergear en esta rama): hoy `fotoUrl` es una URL externa que el sitio no
- * guarda, así que no hay ningún archivo propio que eliminar. En cuanto el
- * modelo estrene la clave del archivo, el borrado del archivo va AQUÍ, después
- * de que `deleteMany` confirme que la fila era nuestra; el test "si el modelo
- * estrena archivos de foto, el borrado tiene que arrastrarlos" lo exige.
+ * Lo que la cascada NO puede arrastrar son los archivos, que no viven en la
+ * base: desde T-008 (`agregar-foto-negocio`) el negocio guarda su `fotoClave`
+ * y las variantes de su imagen viven en el almacén. Ese punto de integración
+ * —que este change dejó documentado y exigido por un test mientras T-008 no
+ * mergeaba— **ya está activo**: esta función delega en
+ * `borrarNegocioDefinitivamente`, que lee la clave, borra la fila y en seguida
+ * se lleva los archivos. Se delega en vez de repetir el borrado aquí porque
+ * dos hard deletes distintos es exactamente la forma de que uno de los dos se
+ * olvide de la foto; el que sobrevive es el que ya declara la spec de
+ * `modelo-datos` y al que apunta `src/lib/fotos/huerfanas.ts`.
+ *
+ * Lo único que esta capa agrega es el resultado discriminado que el panel
+ * necesita para elegir su literal.
  */
 export async function borrarNegocio(
   prisma: ClienteTransiciones,
   id: string,
+  almacen: AlmacenFotos = almacenDeFotos(),
 ): Promise<ResultadoBorrado> {
   if (!id) return { resultado: "ya-no-existe" };
 
-  const { count } = await prisma.negocio.deleteMany({ where: { id } });
+  const borrado = await borrarNegocioDefinitivamente(prisma, id, almacen);
 
-  return count === 0 ? { resultado: "ya-no-existe" } : { resultado: "borrado" };
+  return borrado ? { resultado: "borrado" } : { resultado: "ya-no-existe" };
 }

@@ -273,6 +273,12 @@ describe("adversarial · enlaces y markup de las superficies legales", () => {
  */
 const CAMPO_PUBLICO_DECLARADO: Record<string, string> = {
   nombre: "el nombre de tu negocio",
+  // El change `agregar-seo-local` sumó el nombre de la categoría a la
+  // proyección pública (lo necesita el `knowsAbout` del JSON-LD de la ficha).
+  // No hubo que tocar el aviso: ya declaraba la categoría como pública en
+  // "Qué queda público y qué no", junto al nombre y la colonia. Lo que faltaba
+  // era declararla AQUÍ, que es justo lo que este guardián existe para exigir.
+  categoriaNombre: "la categoría",
   coloniaNombre: "tu colonia",
   queOfreces: '"¿Qué ofreces?"',
   horario: "tu horario",
@@ -284,8 +290,15 @@ const CAMPO_PUBLICO_DECLARADO: Record<string, string> = {
     "Si tú escribes una dirección o referencias en el formulario, eso también se publica tal cual",
   // Enmienda de la auditoría (MEDIO-2): la foto dejó de ser un campo público
   // sin declarar. El aviso ya dice que, si la ficha llega a llevarla, es
-  // pública; T-008 volverá aquí a escribir con qué reglas se publica.
-  fotoUrl: "una foto de tu negocio",
+  // pública.
+  //
+  // T-008 renombró la columna a `fotoClave` (ya no es una URL, es la clave
+  // opaca que genera el servidor), así que la declaración se muda con ella —
+  // el mismo criterio con el que T-009 declaró aquí `categoriaNombre`. Y con
+  // la enmienda aprobada del delta `paginas-legales`, el aviso ya no promete
+  // la política de la foto: la escribe (qué se puede retratar, qué no, y qué
+  // pasa si no cumple).
+  fotoClave: "una foto de tu negocio",
 };
 
 /**

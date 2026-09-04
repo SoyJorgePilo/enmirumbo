@@ -11,6 +11,7 @@
     "db:seed": "prisma db seed",
     "db:seed:demo": "tsx prisma/seed-demo.ts",
     "db:backfill:busqueda": "tsx prisma/backfill-busqueda.ts",
+    "fotos:barrer-huerfanos": "tsx prisma/barrer-fotos-huerfanas.ts",
     "postinstall": "prisma generate"
   },
   "dependencies": {
@@ -18,7 +19,8 @@
     "@prisma/client": "7.10.0",
     "next": "16.3.3",
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "sharp": "0.35.4"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

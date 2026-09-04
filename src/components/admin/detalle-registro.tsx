@@ -1,5 +1,7 @@
+import { MarcadorFoto } from "@/components/directorio/marcador-foto";
 import { ETIQUETA_CUANDO_DESPUBLICO, ETIQUETA_POR_QUE_DESPUBLICO } from "@/lib/admin/textos";
 import type { RegistroAdminDetalle } from "@/lib/admin/consultas";
+import { urlDeFoto } from "@/lib/fotos/url";
 
 const FORMATO_FECHA = new Intl.DateTimeFormat("es-MX", {
   day: "2-digit",
@@ -27,8 +29,21 @@ function Dato({ etiqueta, valor }: { etiqueta: string; valor: string | null }) {
  * origen, fecha de registro, constancia del consentimiento). Los opcionales
  * no capturados se marcan como tales, nunca se inventa contenido (scenario
  * "detalle de un registro con solo obligatorios"). Server Component, sin JS.
+ *
+ * La foto se pide por la dirección del PANEL (`/admin/foto/…`), que es la
+ * única que vive dentro del alcance de la cookie de sesión y la única que
+ * sirve la foto de un registro que todavía no está publicado. Sin sesión, esa
+ * dirección responde el mismo "no encontrado" que el sitio público.
  */
-export function DetalleRegistro({ registro }: { registro: RegistroAdminDetalle }) {
+export function DetalleRegistro({
+  registro,
+}: {
+  registro: RegistroAdminDetalle;
+}) {
+  // "Sin foto" también cuando lo guardado no es una clave del servidor: el
+  // panel no pinta referencias que no generó él (M1 de T-004).
+  const tieneFoto = urlDeFoto(registro.fotoClave, "ficha", "panel") !== null;
+
   const coloniaMostrada = registro.coloniaNombre
     ? registro.coloniaNombre
     : registro.coloniaOtra
@@ -42,6 +57,27 @@ export function DetalleRegistro({ registro }: { registro: RegistroAdminDetalle }
           {registro.nombre}
         </h1>
         <p className="text-tinta-suave">{registro.categoriaNombre}</p>
+      </div>
+
+      {/* Requirement "Detalle del registro con todos los datos capturados,
+          solo dentro del panel": la foto tiene que verse "lo bastante
+          grande para poder juzgarla contra la política del PRD §6.1" antes
+          de aprobar o rechazar — más grande que la miniatura de la tarjeta,
+          por eso va arriba del todo y no dentro de la lista de campos. */}
+      <div className="flex flex-col gap-1.5">
+        <p className="text-sm font-semibold text-tinta">Foto del negocio</p>
+        {tieneFoto ? (
+          <div className="relative aspect-video w-full max-w-sm overflow-hidden rounded-lg border border-borde">
+            <MarcadorFoto
+              fotoClave={registro.fotoClave}
+              variante="ficha"
+              ambito="panel"
+              alt={`Foto de ${registro.nombre}`}
+            />
+          </div>
+        ) : (
+          <p className="text-tinta-suave italic">Sin foto</p>
+        )}
       </div>
 
       <dl className="flex flex-col">

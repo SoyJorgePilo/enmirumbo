@@ -42,16 +42,28 @@ La home DEBE incluir un bloque propio titulado literalmente "Deporte en Tizayuca
 
 ### Requirement: Listado por categoría en URL limpia con el slug del catálogo
 
-Cada categoría DEBE tener un listado público en la raíz del sitio, con la URL formada por el slug del catálogo (por ejemplo `/servicios-del-hogar`). La página DEBE encabezarse con el nombre de la categoría seguido de "en Tizayuca" (por ejemplo "Servicios del hogar en Tizayuca") como único `h1`, y listar los negocios publicados de esa categoría. El orden DEBE ser determinista: primero los publicados más recientemente y, a igualdad, por nombre. Un slug que no corresponde a ninguna categoría del catálogo DEBE responder 404, sin sugerir categorías parecidas. Ningún slug del catálogo DEBE poder tapar una ruta propia del sitio.
+Cada categoría DEBE tener un listado público en la raíz del sitio, con la URL formada por el slug del catálogo (por ejemplo `/servicios-del-hogar`). La página DEBE encabezarse con el nombre de la categoría seguido de "en Tizayuca" (por ejemplo "Servicios del hogar en Tizayuca") como único `h1`, y listar los negocios publicados de esa categoría. El orden DEBE ser determinista: primero los publicados más recientemente y, a igualdad, por nombre.
+
+La raíz del sitio DEBE resolver un slug contra los tres catálogos en un orden fijo y sin ambigüedad: **primero categorías, después giros, después el par giro+colonia**. La categoría gana siempre, de modo que **ninguna URL de categoría ya publicada puede cambiar de significado** por lo que se agregue a los otros catálogos. Un slug que no corresponde a ninguna categoría, ni a ningún giro, ni a ningún par giro+colonia del catálogo DEBE responder 404, sin sugerir slugs parecidos. Ningún slug de ninguno de los tres catálogos DEBE poder tapar una ruta propia del sitio.
 
 #### Scenario: listado de una categoría con negocios
 
 - **WHEN** el vecino abre `/servicios-del-hogar` y hay negocios publicados en esa categoría
 - **THEN** ve el encabezado "Servicios del hogar en Tizayuca" y una tarjeta por cada negocio publicado de esa categoría
 
-#### Scenario: categoría inexistente
+#### Scenario: las URLs de categoría son estables
 
-- **WHEN** alguien abre `/plomeros-baratos`, que no es un slug del catálogo
+- **WHEN** alguien abre un enlace de categoría que se compartió tiempo atrás, por ejemplo `/clubes-y-escuelas-deportivas`
+- **THEN** ve el listado de esa categoría, con su encabezado y sin ninguna redirección
+
+#### Scenario: la categoría le gana al giro con el mismo slug
+
+- **WHEN** el slug de una categoría coincidiera con el slug de un giro del catálogo
+- **THEN** la raíz muestra el listado de la categoría, no la página del giro
+
+#### Scenario: slug que no está en ningún catálogo
+
+- **WHEN** alguien abre `/plomeros-baratos`, que no es slug de categoría, ni de giro, ni un par giro+colonia válido
 - **THEN** ve la página 404 en español del sitio y la respuesta tiene código 404
 
 #### Scenario: categoría sin negocios publicados todavía
@@ -62,7 +74,7 @@ Cada categoría DEBE tener un listado público en la raíz del sitio, con la URL
 #### Scenario: la ruta dinámica no tapa las rutas propias del sitio
 
 - **WHEN** el vecino abre `/registro` o la ficha de un negocio
-- **THEN** llega a esas páginas y no al listado de una categoría; y ningún slug del catálogo coincide con un segmento reservado del sitio
+- **THEN** llega a esas páginas y no al listado de una categoría ni a una página de giro; y ningún slug de los tres catálogos coincide con un segmento reservado del sitio
 
 ### Requirement: Solo se muestra lo que está publicado
 
@@ -119,12 +131,22 @@ El listado por categoría DEBE ofrecer un filtro por colonia (PRD §6.2) que fun
 
 ### Requirement: La tarjeta del listado trae lo esencial y el WhatsApp sin clics extra
 
-Cada negocio del listado DEBE presentarse en una tarjeta con: su foto o, mientras no haya foto (E1-3), un marcador de posición neutro que no prometa una imagen; el nombre del negocio; su colonia; la etiqueta "A domicilio" solo cuando el negocio registró que hace entregas o va a domicilio; y un botón verde de WhatsApp que abre directo la conversación con ese negocio, sin pasar por la ficha (PRD §6.2). El resto de la tarjeta DEBE llevar a la ficha del negocio. El botón de WhatsApp DEBE tener un área táctil de al menos 44px y una etiqueta accesible que diga a qué negocio se le escribe.
+Cada negocio del listado DEBE presentarse en una tarjeta con: **su foto cuando la tiene** y, cuando no, un marcador de posición neutro que no prometa una imagen; el nombre del negocio; su colonia; la etiqueta "A domicilio" solo cuando el negocio registró que hace entregas o va a domicilio; y un botón verde de WhatsApp que abre directo la conversación con ese negocio, sin pasar por la ficha (PRD §6.2). El resto de la tarjeta DEBE llevar a la ficha del negocio. El botón de WhatsApp DEBE tener un área táctil de al menos 44px y una etiqueta accesible que diga a qué negocio se le escribe. La foto DEBE llevar un texto alternativo que nombre al negocio ("Foto de <nombre del negocio>"), mientras que el marcador de posición sigue siendo decorativo y no se anuncia. Con foto o sin ella, la tarjeta DEBE ocupar el mismo espacio y no DEBE saltar cuando la imagen termina de cargar.
 
 #### Scenario: contenido de la tarjeta
 
-- **WHEN** el vecino ve el listado de una categoría
-- **THEN** cada tarjeta muestra marcador de foto, nombre del negocio, su colonia y un botón verde de WhatsApp
+- **WHEN** el vecino ve el listado de una categoría donde hay un negocio con foto y otro sin ella
+- **THEN** la tarjeta del primero muestra su foto y la del segundo el marcador de posición, y las dos muestran nombre del negocio, colonia y el botón verde de WhatsApp
+
+#### Scenario: la foto se anuncia con el nombre del negocio
+
+- **WHEN** alguien recorre el listado con lector de pantalla
+- **THEN** la foto de "Tacos del Güero" se anuncia como "Foto de Tacos del Güero" y el marcador de posición de un negocio sin foto no se anuncia
+
+#### Scenario: la maquetación no salta
+
+- **WHEN** el listado se abre en una red lenta y las fotos todavía no terminan de cargar
+- **THEN** cada tarjeta ya ocupa el mismo espacio que ocupará con la foto puesta, y nada se mueve de lugar cuando las imágenes aparecen
 
 #### Scenario: etiqueta "A domicilio" solo cuando aplica
 
@@ -145,6 +167,178 @@ Cada negocio del listado DEBE presentarse en una tarjeta con: su foto o, mientra
 
 - **WHEN** alguien recorre el listado con lector de pantalla
 - **THEN** cada botón de WhatsApp se anuncia indicando el negocio al que le escribe, no solo como "WhatsApp"
+
+### Requirement: La ficha muestra la foto del negocio cuando la tiene
+
+La ficha de un negocio publicado DEBE mostrar su foto, en un tamaño mayor que el de la tarjeta, arriba o junto a la información del negocio (PRD §6.2), con el texto alternativo "Foto de <nombre del negocio>". Si el negocio no registró foto, la ficha NO DEBE mostrar ningún hueco, marco vacío ni texto que anuncie una imagen inexistente: simplemente no hay foto, igual que con el resto de los campos opcionales.
+
+#### Scenario: ficha con foto
+
+- **WHEN** el vecino abre la ficha de un negocio publicado que subió foto
+- **THEN** ve la foto del negocio, más grande que en la tarjeta del listado, anunciada como "Foto de <nombre del negocio>"
+
+#### Scenario: ficha sin foto
+
+- **WHEN** el vecino abre la ficha de un negocio publicado que no subió foto
+- **THEN** ve su información sin ningún hueco de imagen, sin marco vacío y sin texto que hable de una foto
+
+### Requirement: Solo se pinta la foto que generó el servidor
+
+El directorio DEBE construir la dirección de cada imagen a partir de la referencia interna que generó el servidor al procesar la foto, y NO DEBE usar nunca como origen de una imagen un valor que pueda venir de fuera: si la referencia guardada en una ficha no es una de las que el servidor genera —una URL externa, un `data:`, un `javascript:`, una ruta con `..` o cualquier cadena arbitraria—, la vista DEBE comportarse como si el negocio no tuviera foto y mostrar el marcador de posición, sin intentar cargar nada (hallazgo M1 de T-004). Esta regla aplica igual en el listado por categoría, en las páginas de giro y de giro+colonia, en la página de resultados de búsqueda, en la ficha, en la imagen de la vista previa al compartir (`og:image`) y en la imagen de los datos estructurados (hallazgo M3 de T-009): como la referencia guardada ya no es una dirección, no hay lista blanca de dominios que mantener —la lista blanca es la construcción de la URL—.
+
+#### Scenario: referencia externa guardada a mano
+
+- **WHEN** una ficha publicada tiene guardada como foto `https://evil.example/pixel.png`
+- **THEN** su tarjeta y su ficha muestran el marcador de posición, y en el HTML de la respuesta no aparece ese dominio ni ninguna petición hacia él, ni en la imagen de la vista previa ni en los datos estructurados
+
+#### Scenario: `data:` o `javascript:` en la referencia
+
+- **WHEN** una ficha publicada tiene guardada como foto `data:image/svg+xml,<svg onload=alert(1)>` o `javascript:alert(1)`
+- **THEN** no se pinta ninguna imagen: se muestra el marcador de posición y ese contenido no aparece en el HTML servido
+
+#### Scenario: intento de salirse del almacenamiento
+
+- **WHEN** una ficha publicada tiene guardada como foto una referencia con `../` o con una ruta absoluta del sistema de archivos
+- **THEN** se muestra el marcador de posición y ningún archivo fuera del almacenamiento de fotos se sirve
+
+### Requirement: La foto de un negocio no publicado no es accesible públicamente
+
+La dirección pública que sirve una foto DEBE comprobar, en cada petición, que el negocio dueño de esa foto está en estado `publicado`. La foto de un negocio en `en_revision` o `rechazado`, la de un negocio que ya no existe y la de una referencia inventada DEBEN responder 404, con la misma respuesta en los cuatro casos, para no delatar que ese archivo existe (PRD §6.3 y §8). Una foto que dejó de estar publicada NO DEBE quedar disponible por haberse guardado antes en una caché pública. La única forma de ver la foto de un registro que no está publicado es la dirección propia del panel, que exige sesión válida y vive en la capacidad `revision-admin`.
+
+#### Scenario: foto de un registro en revisión
+
+- **WHEN** alguien pide directamente la dirección de la foto de un negocio que está en `en_revision`
+- **THEN** recibe 404 y ni un byte de la imagen
+
+#### Scenario: foto de un registro rechazado
+
+- **WHEN** alguien pide la dirección de la foto de un negocio `rechazado`
+- **THEN** recibe 404, igual que si el archivo no existiera
+
+#### Scenario: referencia inventada
+
+- **WHEN** alguien prueba direcciones de foto al azar o construidas a partir del identificador de un negocio
+- **THEN** todas responden 404 y ninguna respuesta permite distinguir "no existe" de "existe pero no está publicado"
+
+#### Scenario: la foto de una ficha publicada sí se sirve
+
+- **WHEN** el vecino abre el listado o la ficha de un negocio publicado con foto
+- **THEN** las imágenes cargan normalmente
+
+### Requirement: El peso de las fotos no rompe el presupuesto de 4G
+
+Las fotos servidas DEBEN caber en el presupuesto de rendimiento del PRD §8 (página en menos de 2 segundos en 4G, "imágenes comprimidas"): la variante que se usa en la tarjeta DEBE tener a lo más 400px de lado mayor y pesar a lo más 60 KB, y la de la ficha a lo más 1200px de lado mayor y pesar a lo más 250 KB. Si con la calidad de compresión elegida una foto se pasa de esos topes, el servidor DEBE bajar la calidad hasta cumplirlos. En un listado, solo la primera fila de tarjetas DEBE cargar su foto de inmediato; las de abajo DEBEN cargarse de forma diferida, y ninguna página DEBE pedir la variante de ficha para pintar una tarjeta.
+
+#### Scenario: peso de las variantes
+
+- **WHEN** se procesa cualquier foto aceptada de hasta 5 MB
+- **THEN** la variante de tarjeta que se sirve pesa 60 KB o menos y la de ficha 250 KB o menos
+
+#### Scenario: el listado no descarga lo que no se ve
+
+- **WHEN** el vecino abre en su celular un listado con doce negocios con foto
+- **THEN** al cargar la página solo se piden las fotos de las tarjetas visibles al inicio, y las demás se piden conforme baja
+
+#### Scenario: la tarjeta no usa la foto grande
+
+- **WHEN** se revisan las imágenes que pide un listado o una página de resultados
+- **THEN** todas corresponden a la variante de tarjeta, ninguna a la de ficha
+
+### Requirement: Página indexable por giro en la raíz, generada del catálogo cerrado
+
+Cada giro del catálogo cerrado (PRD Apéndice B) DEBE tener una página pública en la raíz del sitio con la URL formada por su slug (por ejemplo `/plomeria`), que liste **todos los negocios publicados que tienen ese giro asignado por el admin, sin importar su categoría**, con la misma tarjeta y el mismo orden determinista del listado por categoría (primero los publicados más recientemente y, a igualdad, por nombre). Las palabras clave libres del negocio NO generan páginas: solo los giros del catálogo (PRD §8).
+
+El único `h1` de la página DEBE ser la frase del giro seguida de "en Tizayuca". La frase DEBE salir de una tabla curada de frases por giro, y cuando un giro no tenga entrada en esa tabla DEBE usarse su nombre del catálogo tal cual, de modo que agregar un giro nuevo nunca rompa la página. La página DEBE ofrecer, como el listado por categoría, una navegación por colonia: "Todas las colonias" más una opción por cada colonia del catálogo que tenga al menos un negocio publicado de ese giro, y cada opción DEBE llevar a la URL propia de giro+colonia, no a un parámetro de consulta.
+
+#### Scenario: página de un giro con negocios
+
+- **WHEN** el vecino abre `/plomeria` y hay negocios publicados a los que el admin les asignó el giro "Plomería"
+- **THEN** ve el encabezado "Plomería en Tizayuca" y una tarjeta por cada uno de esos negocios, con el mismo aspecto y el mismo botón de WhatsApp que en el listado por categoría
+
+#### Scenario: el giro deportivo aterriza la búsqueda que pide el PRD §6.5
+
+- **WHEN** una mamá que busca "clases de futbol en Tizayuca" abre `/futbol`, donde hay un club publicado con ese giro asignado
+- **THEN** ve el encabezado "Clases de futbol en Tizayuca" —no "Futbol en Tizayuca"— y la tarjeta de ese club
+
+#### Scenario: el giro manda, no la categoría
+
+- **WHEN** dos negocios publicados de categorías distintas tienen asignado el mismo giro
+- **THEN** los dos aparecen en la página de ese giro
+
+#### Scenario: un negocio sin ese giro no aparece
+
+- **WHEN** un negocio publicado no tiene asignado el giro de la página (porque el admin le asignó otros o ninguno)
+- **THEN** no aparece en esa página, aunque la palabra del giro esté en su nombre o en su "¿Qué ofreces?"
+
+#### Scenario: solo lo publicado, también aquí
+
+- **WHEN** un negocio en `en_revision` o `rechazado` tiene giros asignados
+- **THEN** no aparece en ninguna página de giro y ninguno de sus datos está en el HTML de la respuesta
+
+#### Scenario: la navegación por colonia lleva a URLs propias
+
+- **WHEN** el vecino ve la página `/plomeria` y hay negocios publicados de ese giro en la colonia "Huicalco"
+- **THEN** ve la opción "Huicalco" enlazada a `/plomeria-huicalco`, y solo aparecen colonias con al menos un negocio publicado de ese giro
+
+### Requirement: Página indexable por giro y colonia
+
+Cada par de giro y colonia del catálogo DEBE tener una página pública en la raíz con la URL formada por el slug del giro, un guion y el slug de la colonia (por ejemplo `/plomeria-haciendas-de-tizayuca`, PRD §8), que liste los negocios publicados con ese giro asignado **y** esa colonia del catálogo, con la misma tarjeta y el mismo orden. El único `h1` DEBE ser la frase del giro, "en", el nombre de la colonia, y "Tizayuca" separado por coma (por ejemplo "Plomería en Huicalco, Tizayuca"); cuando el nombre de la colonia ya contiene la palabra "Tizayuca" (por ejemplo "Haciendas de Tizayuca"), NO DEBE repetirse: el encabezado termina en el nombre de la colonia.
+
+La resolución del par DEBE ser inequívoca: un slug compuesto que no se pueda leer como exactamente un par giro+colonia del catálogo DEBE responder 404. La página DEBE mostrar la misma navegación por colonia que la página del giro, con la colonia actual marcada como activa y con "Todas las colonias" llevando de vuelta a la página del giro.
+
+#### Scenario: página de giro y colonia con negocios
+
+- **WHEN** el vecino abre `/plomeria-huicalco` y hay un negocio publicado con el giro "Plomería" en la colonia "Huicalco"
+- **THEN** ve el encabezado "Plomería en Huicalco, Tizayuca" y la tarjeta de ese negocio
+
+#### Scenario: la colonia que ya dice Tizayuca no lo repite
+
+- **WHEN** el vecino abre la página del giro "Plomería" en la colonia "Haciendas de Tizayuca"
+- **THEN** el encabezado es "Plomería en Haciendas de Tizayuca", sin un segundo "Tizayuca" al final
+
+#### Scenario: el filtro es real
+
+- **WHEN** hay negocios publicados con ese giro en otras colonias
+- **THEN** no aparecen en esta página: solo los de la colonia de la URL
+
+#### Scenario: compuesto que no existe
+
+- **WHEN** alguien abre `/plomeria-colonia-inventada` o `/loquesea-huicalco`, donde una de las dos partes no está en su catálogo
+- **THEN** ve la página 404 en español y la respuesta tiene código 404
+
+#### Scenario: volver al giro completo
+
+- **WHEN** el vecino está en `/plomeria-huicalco` y toca "Todas las colonias"
+- **THEN** llega a `/plomeria` y ve los negocios publicados de ese giro en todo Tizayuca
+
+### Requirement: Las páginas de giro sin negocios publicados no se indexan ni se enlazan, pero tampoco son 404
+
+Una página de giro o de giro+colonia cuyo slug es válido pero que **no tiene ningún negocio publicado** NO DEBE indexarse ni enlazarse desde ninguna página del sitio ni aparecer en el sitemap (evitar thin content, PRD §8), y AL MISMO TIEMPO NO DEBE responder 404: DEBE responder con normalidad, declarar `noindex` permitiendo seguir sus enlaces, y mostrar un estado vacío útil con la invitación a registrarse. Una página de giro o de giro+colonia **con** negocios publicados NO DEBE llevar `noindex`.
+
+#### Scenario: giro del catálogo que todavía no tiene negocios
+
+- **WHEN** el vecino abre la página de un giro del catálogo al que ningún negocio publicado tiene asignado
+- **THEN** la respuesta es normal (no un 404), ve el encabezado del giro, el mensaje "Todavía no hay negocios publicados de esto en Tizayuca." y la invitación "Registra tu negocio gratis"
+
+#### Scenario: combinación de giro y colonia sin negocios
+
+- **WHEN** el vecino abre `/box-huicalco`, con el giro y la colonia en sus catálogos pero sin ningún negocio publicado que coincida
+- **THEN** la respuesta es normal, ve el mensaje "Todavía no hay negocios publicados de esto en esta colonia." y un enlace "Ver todas las colonias" que lleva a la página del giro completo
+
+#### Scenario: lo vacío no se indexa
+
+- **WHEN** un buscador rastrea una página de giro o de giro+colonia sin negocios publicados
+- **THEN** encuentra la instrucción de no indexarla, puede seguir sus enlaces, y esa URL no está en el sitemap
+
+#### Scenario: lo vacío tampoco se enlaza
+
+- **WHEN** se revisan los enlaces de la home, los listados, las fichas y las páginas de giro
+- **THEN** ninguno apunta a una página de giro o de giro+colonia sin negocios publicados
+
+#### Scenario: lo que sí tiene contenido sí se indexa
+
+- **WHEN** un buscador rastrea una página de giro y una de giro+colonia que sí tienen negocios publicados
+- **THEN** ninguna de las dos declara `noindex`
 
 ### Requirement: Ficha de negocio en URL propia con la información registrada y el sello de verificado
 
@@ -217,6 +411,25 @@ El directorio DEBE mostrar la colonia del negocio y NO DEBE mostrar ningún dato
 
 - **WHEN** se inspecciona el HTML de un listado o de una ficha
 - **THEN** no aparecen el estado, el origen, la fecha de registro, la fecha de consentimiento ni el token de gestión del negocio
+
+### Requirement: Desde la ficha se llega a las páginas de sus giros
+
+La ficha de un negocio publicado DEBE mostrar los giros que el admin le asignó, cada uno como enlace a su página de giro, para que esas páginas sean alcanzables navegando y rastreables por un buscador sin depender solo del sitemap. Un negocio publicado sin giros asignados NO DEBE mostrar ninguna sección vacía ni etiqueta sin contenido, exactamente igual que el resto de los campos que el negocio no llenó. Los giros DEBEN presentarse con la frase curada del giro y con área táctil de al menos 44px.
+
+#### Scenario: ficha con giros asignados
+
+- **WHEN** el vecino abre la ficha de un negocio publicado al que el admin le asignó los giros "Plomería" y "Cerrajería"
+- **THEN** ve los dos giros como enlaces y, al tocar "Plomería", llega a `/plomeria`
+
+#### Scenario: ficha sin giros
+
+- **WHEN** el vecino abre la ficha de un negocio publicado al que el admin todavía no le asignó ningún giro
+- **THEN** la ficha se muestra completa y no aparece ninguna sección de giros vacía
+
+#### Scenario: los enlaces de giro nunca llevan a una página vacía
+
+- **WHEN** se revisa cualquier enlace de giro de una ficha publicada
+- **THEN** la página a la que lleva tiene al menos ese negocio publicado, así que nunca es una de las páginas vacías no indexables
 
 ### Requirement: Buscador en la home que funciona sin JavaScript de cliente
 
@@ -393,21 +606,131 @@ La página de resultados DEBE declarar `noindex` en su metadata de robots (permi
 - **WHEN** se revisan la home, un listado por categoría y una ficha
 - **THEN** ninguna quedó marcada como no indexable
 
+### Requirement: Título y descripción propios en cada página del directorio, con su canónica
+
+Cada página pública del directorio DEBE declarar su propio título y su propia descripción, en lugar de heredar los del sitio, y DEBE declarar su URL canónica absoluta. Los textos son:
+
+- **Listado por categoría:** título `«Categoría» en Tizayuca`; descripción `«Categoría» en Tizayuca: negocios de aquí, verificados uno por uno, que contactas directo por WhatsApp.`
+- **Página de giro:** título `«Frase del giro» en Tizayuca`; descripción `«Frase del giro» en Tizayuca: negocios verificados que contactas directo por WhatsApp, sin intermediarios.`
+- **Página de giro y colonia:** título `«Frase del giro» en «Colonia», Tizayuca` (sin repetir "Tizayuca" cuando el nombre de la colonia ya lo contiene); descripción `«Frase del giro» en «Colonia»: negocios verificados de Tizayuca que contactas directo por WhatsApp.`
+- **Ficha:** título `«Nombre del negocio» en «Colonia», Tizayuca` o, si el negocio no tiene colonia, `«Nombre del negocio» en Tizayuca`; descripción: lo que el negocio escribió en "¿Qué ofreces?", recortado si es largo, y si no escribió nada, `«Nombre del negocio» en «Colonia», Tizayuca. Negocio verificado que contactas directo por WhatsApp.`
+
+El listado por categoría con un filtro de colonia aplicado (`?colonia=`) DEBE declarar como canónica el listado sin filtro, para no competir con las páginas de giro+colonia ni duplicar contenido.
+
+La descripción NO DEBE incluir el WhatsApp ni el teléfono del negocio, ni ningún dato interno de la ficha. Como "¿Qué ofreces?" es texto libre, no basta con no leer esos campos: la descripción DEBE ocultar también las secuencias de siete o más dígitos que el negocio haya escrito dentro de ese texto —admitiendo entre ellos los separadores con los que se escribe un teléfono— sustituyéndolas por `…`. El nombre del negocio NO se altera: es la identidad de la ficha y el admin lo revisa al aprobar.
+
+#### Scenario: cada página con su propio título
+
+- **WHEN** se revisan el listado `/servicios-del-hogar`, la página `/plomeria`, la página `/plomeria-huicalco` y la ficha de un negocio
+- **THEN** cada una declara un título y una descripción distintos entre sí y distintos de los del sitio, y ninguna se queda con los del layout
+
+#### Scenario: descripción de la ficha con lo que escribió el negocio
+
+- **WHEN** el vecino comparte la ficha de un negocio que escribió "Plomería, destape de drenajes y bombas de agua." en "¿Qué ofreces?"
+- **THEN** la descripción de la página es ese texto, y no incluye su WhatsApp ni su teléfono
+
+#### Scenario: un número escrito dentro de "¿Qué ofreces?"
+
+- **WHEN** un negocio publicado escribió "Plomería 24 horas, llámanos al 771 000 0000." y alguien comparte su ficha o un buscador la rastrea
+- **THEN** la descripción de la página dice "Plomería 24 horas, llámanos al …", mientras la ficha le sigue mostrando a las personas el texto completo tal como lo escribió
+
+#### Scenario: ficha sin "¿Qué ofreces?"
+
+- **WHEN** el negocio no llenó "¿Qué ofreces?"
+- **THEN** la descripción es la frase de respaldo con su nombre y su colonia, no una descripción vacía
+
+#### Scenario: el listado filtrado no compite con las páginas de giro
+
+- **WHEN** un buscador rastrea `/servicios-del-hogar?colonia=huicalco`
+- **THEN** encuentra como canónica `/servicios-del-hogar`, sin el filtro
+
+#### Scenario: canónicas absolutas
+
+- **WHEN** se revisa la canónica de cualquier página indexable del directorio
+- **THEN** es una URL absoluta construida con la URL pública del sitio, no una ruta relativa ni una dirección local
+
+### Requirement: La ficha se ve bien al compartirla por WhatsApp o Facebook
+
+Cada ficha publicada DEBE declarar datos de Open Graph para que la vista previa del enlace muestre algo útil cuando se comparte (PRD §9: cada ficha se distribuye como link individual): título y descripción los mismos de la página, la URL canónica, el nombre del sitio y el idioma español de México, y una imagen. La imagen DEBE ser la foto del negocio cuando exista, con su dirección construida a partir de la referencia interna que generó el servidor; cuando el negocio no tenga foto —o lo guardado no sea una referencia válida—, DEBE usarse la imagen de marca del propio sitio, de modo que **ninguna ficha se comparta sin imagen** y ninguna dirección ajena pueda acabar como `og:image`. La vista previa NO DEBE agregar el WhatsApp ni el teléfono del negocio.
+
+#### Scenario: ficha con foto
+
+- **WHEN** un negocio publicado tiene foto y alguien comparte su ficha
+- **THEN** la vista previa usa esa foto, con el título y la descripción de la ficha
+
+#### Scenario: ficha sin foto
+
+- **WHEN** un negocio publicado no tiene foto y alguien comparte su ficha
+- **THEN** la vista previa usa la imagen de marca del sitio, no queda sin imagen
+
+#### Scenario: referencia de foto que no generó el servidor
+
+- **WHEN** una ficha publicada tiene guardada como foto una dirección externa o una cadena arbitraria y alguien comparte su ficha
+- **THEN** la vista previa usa la imagen de marca del sitio y esa dirección no aparece en la respuesta
+
+#### Scenario: la imagen se declara con URL absoluta
+
+- **WHEN** se revisan los datos de Open Graph de cualquier ficha
+- **THEN** la imagen y la URL son absolutas, construidas con la URL pública del sitio
+
+#### Scenario: la vista previa no reparte el número
+
+- **WHEN** se revisan los datos de Open Graph de una ficha
+- **THEN** no aparecen el WhatsApp ni el teléfono fijo del negocio
+
+### Requirement: Cada ficha publicada emite Schema.org LocalBusiness
+
+Cada ficha publicada DEBE emitir datos estructurados JSON-LD de tipo `LocalBusiness` (PRD §8) con lo que es honesto publicar: el nombre del negocio, la URL canónica de su ficha, su categoría y sus giros, la colonia como única referencia de ubicación —dentro de una dirección que declara Tizayuca, Hidalgo, México—, la descripción con lo que escribió en "¿Qué ofreces?" si lo escribió —con las secuencias largas de dígitos ocultas igual que en la meta descripción— y su foto si la tiene, con la dirección construida a partir de la referencia interna que generó el servidor. Si el negocio no tiene foto, o lo guardado no es una referencia válida, el bloque DEBE emitirse sin imagen antes que emitir una dirección que no construyó el sitio.
+
+El markup DEBE respetar la expectativa realista del PRD §8: *"al publicar colonia (no dirección exacta) y horario en texto libre, el markup será parcial; el horario estructurado queda para fases posteriores (§12)"*. En consecuencia NO DEBE emitir: el horario, el texto de dirección o referencias que capturó el negocio, coordenadas, ni el WhatsApp o el teléfono (hallazgo M5 de T-004: no entregar los números en formato legible por máquina). Tampoco DEBE emitirse en las fichas que no están publicadas, ni en los listados.
+
+El contenido que escribió el negocio DEBE quedar escapado dentro del bloque de datos: un nombre o un "¿Qué ofreces?" con marcado dentro NO DEBE poder cerrar el bloque ni ejecutar nada.
+
+#### Scenario: ficha publicada con datos estructurados
+
+- **WHEN** un buscador lee la ficha de un negocio publicado en la colonia "Huicalco" con el giro "Plomería"
+- **THEN** encuentra un bloque JSON-LD válido de tipo `LocalBusiness` con su nombre, la URL de la ficha, la colonia, "Tizayuca" y "Hidalgo" como ubicación, y su categoría y su giro
+
+#### Scenario: nunca el domicilio exacto ni el número
+
+- **WHEN** se revisa el JSON-LD de un negocio que capturó dirección o referencias, teléfono fijo y horario
+- **THEN** ninguno de esos tres datos aparece en el bloque de datos estructurados, aunque la ficha sí los muestre a las personas
+
+#### Scenario: negocio sin colonia del catálogo
+
+- **WHEN** un negocio publicado quedó con colonia "Otra" sin normalizar
+- **THEN** el bloque JSON-LD se emite igual, con Tizayuca como ubicación y sin inventar una colonia, y nada se rompe
+
+#### Scenario: nombre con marcado dentro
+
+- **WHEN** un negocio publicado se llama `Tacos </script><script>alert(1)</script>`
+- **THEN** el bloque de datos estructurados sigue siendo un solo bloque válido, el marcado se ve como texto dentro del dato y nada se ejecuta
+
+#### Scenario: solo en las fichas publicadas
+
+- **WHEN** se revisan los listados, las páginas de giro y la respuesta de una ficha en `en_revision`
+- **THEN** en ninguna hay datos estructurados de negocio
+
+#### Scenario: la imagen del bloque siempre la construye el sitio
+
+- **WHEN** se revisa el JSON-LD de una ficha publicada con foto y el de otra cuya referencia de foto no es de las que genera el servidor
+- **THEN** el primero declara la imagen construida por el sitio y el segundo se emite sin imagen, sin sacar ninguna dirección de lo guardado
+
 ### Requirement: Directorio en Server Components, mobile-first y usable sin JavaScript
 
-La home, los listados, las fichas, el buscador y la página de resultados DEBEN ser Server Components y NO DEBEN agregar JavaScript de cliente propio (PRD §8, presupuesto de <2s en 4G). Todas las páginas DEBEN verse completas en un viewport de 390px sin scroll horizontal, con áreas táctiles de al menos 44px en todo elemento tocable, y DEBEN seguir siendo navegables con el JavaScript de cliente deshabilitado, incluidos el filtro por colonia y la búsqueda.
+La home, los listados por categoría, las páginas de giro y de giro+colonia, las fichas, el buscador y la página de resultados DEBEN ser Server Components y NO DEBEN agregar JavaScript de cliente propio (PRD §8, presupuesto de <2s en 4G). El JSON-LD de la ficha NO cuenta como JavaScript de cliente: es un bloque de datos, no código ejecutable. Todas las páginas DEBEN verse completas en un viewport de 390px sin scroll horizontal, con áreas táctiles de al menos 44px en todo elemento tocable, y DEBEN seguir siendo navegables con el JavaScript de cliente deshabilitado, incluidos el filtro por colonia, la búsqueda y la navegación entre las páginas de giro y de giro+colonia.
 
-#### Scenario: sin JS de cliente nuevo
+#### Scenario: sin JS de cliente
 
-- **WHEN** se revisan los archivos nuevos de la home, el listado, la tarjeta, la ficha, el buscador y la página de resultados
+- **WHEN** se revisan los archivos de la home, el listado, las páginas de giro y giro+colonia, la tarjeta, la ficha, el buscador y la página de resultados
 - **THEN** ninguno declara `"use client"` ni agrega un bundle de cliente propio
 
 #### Scenario: celular a 390px
 
-- **WHEN** un vecino abre la home, un listado, una ficha y una página de resultados en un viewport de 390px
+- **WHEN** un vecino abre la home, un listado, una página de giro, una de giro+colonia, una ficha y una página de resultados en un viewport de 390px
 - **THEN** todo se ve completo y legible, sin scroll horizontal, y cada elemento tocable mide al menos 44px en su dimensión menor
 
 #### Scenario: navegación sin JavaScript
 
-- **WHEN** el vecino recorre home → buscar → resultados → ficha → WhatsApp, y home → categoría → filtro por colonia → ficha → WhatsApp, con el JavaScript de cliente deshabilitado
-- **THEN** los dos flujos completos funcionan igual, porque cada paso es un enlace o un formulario resuelto por el servidor
+- **WHEN** el vecino recorre home → buscar → resultados → ficha → WhatsApp, y home → categoría → filtro por colonia → ficha → giro → giro+colonia → WhatsApp, con el JavaScript de cliente deshabilitado
+- **THEN** los dos recorridos completos funcionan igual, porque cada paso es un enlace o un formulario resuelto por el servidor

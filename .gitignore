@@ -64,3 +64,10 @@ prisma/*.db-journal
 .claude/*
 !.claude/agents/
 !.claude/commands/
+
+# fotos de negocios (ADR-006): los bytes NUNCA viven en el repo. `.fotos/` es
+# el default de FOTOS_DIR en desarrollo y `.fotos-test/` el que usan las
+# pruebas (vitest.config.mts). Si mueves FOTOS_DIR a otro lado, que sea
+# también fuera del árbol versionado.
+/.fotos/
+/.fotos-test/

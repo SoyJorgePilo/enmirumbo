@@ -1,5 +1,6 @@
 import { execSync } from "node:child_process";
-import { rmSync } from "node:fs";
+import { readFileSync, rmSync } from "node:fs";
+import { readdir } from "node:fs/promises";
 import path from "node:path";
 
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
@@ -8,6 +9,17 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { NEGOCIOS_DEMO, sembrarNegociosDemo } from "../prisma/seed-demo";
 import { seedCatalogos } from "../prisma/seed";
 import { PrismaClient } from "../src/generated/prisma/client";
+import { almacenDeFotos, directorioDeFotos } from "../src/lib/fotos/almacen";
+import { esClaveFotoValida } from "../src/lib/fotos/clave";
+
+/** Lo que hay ahora mismo en el almacén de fotos de las pruebas. */
+async function archivosDelAlmacen(): Promise<string[]> {
+  try {
+    return (await readdir(directorioDeFotos())).sort();
+  } catch {
+    return [];
+  }
+}
 
 // Spec: modelo-datos · Requirement "Seed de negocios ficticios para
 // desarrollo, separado del de catálogos" (tasks.md #5, design.md §6).
@@ -145,6 +157,66 @@ describe("modelo-datos · seed de demostración", () => {
     const antes = await prisma.negocio.count();
     await sembrarNegociosDemo(prisma, { NODE_ENV: "development" });
     expect(await prisma.negocio.count()).toBe(antes);
+  });
+
+  // ── Fotos sembradas (change `agregar-foto-negocio`, tasks.md #22) ──────────
+
+  // Scenario: sembrar con fotos
+  it("deja al menos un publicado con foto y al menos uno sin foto", async () => {
+    const publicados = await prisma.negocio.findMany({ where: { estado: "publicado" } });
+    const conFoto = publicados.filter((n) => n.fotoClave !== null);
+    const sinFoto = publicados.filter((n) => n.fotoClave === null);
+
+    expect(conFoto.length).toBeGreaterThanOrEqual(1);
+    expect(sinFoto.length).toBeGreaterThanOrEqual(1);
+
+    for (const negocio of conFoto) {
+      // La referencia es una clave del servidor, no una URL.
+      expect(esClaveFotoValida(negocio.fotoClave)).toBe(true);
+      // Y sus dos variantes existen de verdad en el almacén.
+      for (const variante of ["tarjeta", "ficha"] as const) {
+        const bytes = await almacenDeFotos().leer(negocio.fotoClave as string, variante);
+        expect(bytes, `${negocio.nombre}/${variante}`).not.toBeNull();
+        expect((bytes as Buffer).length).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  // Scenario: seed de demostración idempotente con fotos
+  it("dos corridas dejan una sola foto por negocio y ningún archivo suelto", async () => {
+    const antes = await prisma.negocio.findMany({
+      where: { fotoClave: { not: null } },
+      select: { whatsapp: true, fotoClave: true },
+      orderBy: { whatsapp: "asc" },
+    });
+    const archivosAntes = await archivosDelAlmacen();
+
+    await sembrarNegociosDemo(prisma, { NODE_ENV: "development" });
+
+    const despues = await prisma.negocio.findMany({
+      where: { fotoClave: { not: null } },
+      select: { whatsapp: true, fotoClave: true },
+      orderBy: { whatsapp: "asc" },
+    });
+    // Misma clave que antes: no se generó una foto nueva ni quedó la vieja.
+    expect(despues).toEqual(antes);
+    expect(await archivosDelAlmacen()).toEqual(archivosAntes);
+  });
+
+  // Scenario: nada de imágenes en el repositorio
+  it("los archivos generados caen fuera del árbol versionado", async () => {
+    const directorio = directorioDeFotos();
+    expect(directorio.startsWith(path.join(raiz, "src"))).toBe(false);
+    expect(directorio.startsWith(path.join(raiz, "public"))).toBe(false);
+    expect(directorio.startsWith(path.join(raiz, "prisma"))).toBe(false);
+    // Y lo que hay ahí son las variantes WebP que genera el servidor.
+    for (const archivo of await archivosDelAlmacen()) {
+      expect(archivo).toMatch(/^[0-9a-f]{32}\.(tarjeta|ficha)\.webp$/);
+    }
+
+    // El .gitignore del repo deja fuera el directorio por defecto.
+    const gitignore = readFileSync(path.join(raiz, ".gitignore"), "utf8");
+    expect(gitignore).toContain("/.fotos/");
   });
 
   // Scenario: nunca contra producción

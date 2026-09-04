@@ -2,12 +2,22 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
+import { metadataDelSitio } from "@/lib/seo/metadata";
+import { avisarSinUrlSitioUnaVez } from "@/lib/sitio";
 
-export const metadata: Metadata = {
-  title: "NecesitoUno Tizayuca — Encuentra negocios y servicios en Tizayuca",
-  description:
-    "Encuentra negocios, servicios y deporte en Tizayuca y contáctalos directo por WhatsApp. Registro gratis para negocios locales.",
-};
+/**
+ * Metadata base del sitio (spec `layout-base`): título y descripción, la
+ * plantilla "%s — NecesitoUno" que heredan las páginas con título propio, la
+ * identidad de la vista previa al compartir y la URL pública como base de
+ * todas las URLs absolutas. Los valores viven en `src/lib/seo/metadata.ts`,
+ * que es el mismo módulo que usan las páginas y los artefactos del sitio.
+ *
+ * Si el sitio corre en producción sin `SITIO_URL`, el aviso queda en el log
+ * del servidor una sola vez por proceso, nunca por petición.
+ */
+avisarSinUrlSitioUnaVez();
+
+export const metadata: Metadata = metadataDelSitio();
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (

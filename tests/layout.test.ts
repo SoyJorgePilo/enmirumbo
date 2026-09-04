@@ -21,7 +21,7 @@ vi.mock("next/navigation", async () => {
 
 import { seedCatalogos } from "../prisma/seed";
 import { sembrarNegociosDemo } from "../prisma/seed-demo";
-import ListadoCategoriaPage from "../src/app/[categoria]/page";
+import ListadoCategoriaPage from "../src/app/[destino]/page";
 import BuscarPage from "../src/app/buscar/page";
 import ColaAdminPage from "../src/app/admin/cola/page";
 import AccesoAdminPage from "../src/app/admin/page";
@@ -42,6 +42,10 @@ import {
 } from "../src/lib/admin/config";
 import { NOMBRE_COOKIE_SESION, crearValorDeSesion } from "../src/lib/admin/sesion";
 import { construirSegmentoFicha } from "../src/lib/ficha-url";
+import {
+  type CatalogosDeLaRaiz,
+  resolverSlugDeLaRaiz,
+} from "../src/lib/seo/rutas";
 import { peticion, reiniciarPeticion } from "./admin-mocks";
 import { crearClientePrueba } from "./db";
 
@@ -75,7 +79,7 @@ const fuentesTodas = archivosDe(join(raiz, "src"), [".ts", ".tsx", ".css"]);
  * tenga segmentos dinámicos. Sirve de lista blanca de hrefs, así que agregar
  * un enlace a una página que aún no existe rompe la suite. Desde el change
  * `agregar-paginas-legales` la lista reconoce `/aviso-de-privacidad` y
- * `/terminos`, que ya existen. Las rutas dinámicas (`/[categoria]`,
+ * `/terminos`, que ya existen. Las rutas dinámicas (`/[destino]`,
  * `/negocio/[ficha]`) se validan aparte, resolviendo el destino contra el
  * catálogo y contra los negocios publicados.
  */
@@ -109,8 +113,12 @@ let htmlListadoFiltrado = "";
 let htmlFicha = "";
 let htmlBuscar = "";
 let htmlBuscarVacio = "";
-let slugsCategorias: string[] = [];
+let htmlGiro = "";
+let htmlGiroColonia = "";
 let idsPublicados: string[] = [];
+// Los tres catálogos, con los que se resuelven las URLs de la raíz igual que
+// en producción (change `agregar-seo-local`).
+let catalogos: CatalogosDeLaRaiz = { categorias: [], giros: [], colonias: [] };
 
 // Pantallas del panel (E3): también tienen que cumplir la revisión de enlaces.
 let htmlAccesoAdmin = "";
@@ -132,9 +140,13 @@ beforeAll(async () => {
   await seedCatalogos(prisma);
   await sembrarNegociosDemo(prisma, { NODE_ENV: "test" });
 
-  slugsCategorias = (await prisma.categoria.findMany({ select: { slug: true } })).map(
-    (c) => c.slug,
-  );
+  catalogos = {
+    categorias: await prisma.categoria.findMany({
+      select: { nombre: true, slug: true },
+    }),
+    giros: await prisma.giro.findMany({ select: { nombre: true, slug: true } }),
+    colonias: await prisma.colonia.findMany({ select: { nombre: true, slug: true } }),
+  };
   const publicados = await prisma.negocio.findMany({
     where: { estado: "publicado", whatsapp: "7719995001" },
     select: { id: true, nombre: true },
@@ -156,17 +168,32 @@ beforeAll(async () => {
   const home = await Home();
   htmlHome = renderToStaticMarkup(createElement(() => home));
 
+  // El segmento dinámico de la raíz se llama `destino` desde el change
+  // `agregar-seo-local`: la misma carpeta resuelve categoría, giro y
+  // giro+colonia (design.md §1). Las URLs no cambiaron.
   const listado = await ListadoCategoriaPage({
-    params: Promise.resolve({ categoria: "servicios-del-hogar" }),
+    params: Promise.resolve({ destino: "servicios-del-hogar" }),
     searchParams: Promise.resolve({}),
   });
   htmlListado = renderToStaticMarkup(createElement(() => listado));
 
   const filtrado = await ListadoCategoriaPage({
-    params: Promise.resolve({ categoria: "servicios-del-hogar" }),
+    params: Promise.resolve({ destino: "servicios-del-hogar" }),
     searchParams: Promise.resolve({ colonia: "atempa" }),
   });
   htmlListadoFiltrado = renderToStaticMarkup(createElement(() => filtrado));
+
+  const giro = await ListadoCategoriaPage({
+    params: Promise.resolve({ destino: "plomeria" }),
+    searchParams: Promise.resolve({}),
+  });
+  htmlGiro = renderToStaticMarkup(createElement(() => giro));
+
+  const giroColonia = await ListadoCategoriaPage({
+    params: Promise.resolve({ destino: "plomeria-huicalco" }),
+    searchParams: Promise.resolve({}),
+  });
+  htmlGiroColonia = renderToStaticMarkup(createElement(() => giroColonia));
 
   const ficha = await FichaNegocioPage({
     params: Promise.resolve({
@@ -247,7 +274,16 @@ function rutaInternaExiste(href: string): boolean {
   if (rutasExistentes.has(ruta)) return true;
 
   const segmentos = ruta.split("/").slice(1);
-  if (segmentos.length === 1 && slugsCategorias.includes(segmentos[0])) return true;
+  // Un solo segmento en la raíz: lo resuelve el MISMO resolvedor que
+  // producción contra los tres catálogos (change `agregar-seo-local`), así que
+  // valen `/servicios-del-hogar` (categoría), `/plomeria` (giro) y
+  // `/plomeria-huicalco` (giro+colonia), y sigue sin valer un slug inventado.
+  if (
+    segmentos.length === 1 &&
+    resolverSlugDeLaRaiz(segmentos[0], catalogos).tipo !== "desconocido"
+  ) {
+    return true;
+  }
   if (
     segmentos.length === 2 &&
     segmentos[0] === "negocio" &&
@@ -413,9 +449,28 @@ describe("layout-base · enlaces internos y externos de las páginas servidas", 
     expect(problemasDeEnlaces(htmlFooter)).toEqual([]);
     expect(problemasDeEnlaces(htmlBuscar)).toEqual([]);
     expect(problemasDeEnlaces(htmlBuscarVacio)).toEqual([]);
+    // Páginas nuevas del change `agregar-seo-local`
+    expect(problemasDeEnlaces(htmlGiro)).toEqual([]);
+    expect(problemasDeEnlaces(htmlGiroColonia)).toEqual([]);
     // Las dos páginas legales se enlazan entre sí: ninguna es un enlace muerto.
     expect(problemasDeEnlaces(htmlAvisoPrivacidad)).toEqual([]);
     expect(problemasDeEnlaces(htmlTerminos)).toEqual([]);
+  });
+
+  // directorio-publico · Requirements "Página indexable por giro…" y "Desde la
+  // ficha se llega a las páginas de sus giros" (tasks.md #21).
+  it("los enlaces de giro y de giro+colonia resuelven contra el catálogo", () => {
+    expect(htmlGiro).toContain('href="/plomeria-huicalco"');
+    expect(htmlGiroColonia).toContain('href="/plomeria"');
+    expect(htmlFicha).toContain('href="/plomeria"');
+    expect(problemasDeEnlaces('<a href="/plomeria">x</a>')).toEqual([]);
+    expect(problemasDeEnlaces('<a href="/plomeria-huicalco">x</a>')).toEqual([]);
+    // Y lo que no está en el catálogo sigue siendo un enlace roto
+    expect(problemasDeEnlaces('<a href="/giro-que-no-existe">x</a>')).toHaveLength(1);
+    expect(problemasDeEnlaces('<a href="/plomeria-colonia-inventada">x</a>')).toHaveLength(
+      1,
+    );
+    expect(problemasDeEnlaces('<a href="/loquesea-huicalco">x</a>')).toHaveLength(1);
   });
 
   // Scenario: destino del formulario de búsqueda (change `agregar-buscador`)
@@ -642,10 +697,16 @@ describe("layout-base · áreas táctiles ≥44px (scenario 9)", () => {
 });
 
 describe("layout-base · documento es-MX con metadata (scenario 10)", () => {
+  // MODIFIED por el change `agregar-seo-local`: el título del sitio pasa a ser
+  // el `default` (lo que ve la home y cualquier página sin título propio) y
+  // aparece la plantilla que las páginas con título propio heredan. El literal
+  // no cambió. Los demás campos nuevos (metadataBase, Open Graph) los cubre
+  // `tests/seo-metadata.test.ts`.
   it("título y descripción son los literales aprobados en la spec", () => {
-    expect(metadata.title).toBe(
-      "NecesitoUno Tizayuca — Encuentra negocios y servicios en Tizayuca",
-    );
+    expect(metadata.title).toEqual({
+      default: "NecesitoUno Tizayuca — Encuentra negocios y servicios en Tizayuca",
+      template: "%s — NecesitoUno",
+    });
     expect(metadata.description).toBe(
       "Encuentra negocios, servicios y deporte en Tizayuca y contáctalos directo por WhatsApp. Registro gratis para negocios locales.",
     );

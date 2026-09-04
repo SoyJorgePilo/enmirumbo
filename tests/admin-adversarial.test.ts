@@ -22,7 +22,7 @@ import ConfirmarBorradoPage from "../src/app/admin/registros/[id]/borrar/page";
 import RegistroDespublicadoPage from "../src/app/admin/registros/[id]/despublicado/page";
 import DetalleRegistroAdminPage from "../src/app/admin/registros/[id]/page";
 import RegistroRechazadoPage from "../src/app/admin/registros/[id]/rechazado/page";
-import ListadoCategoriaPage from "../src/app/[categoria]/page";
+import ListadoCategoriaPage from "../src/app/[destino]/page";
 import FichaNegocioPage from "../src/app/negocio/[ficha]/page";
 import type { PrismaClient } from "../src/generated/prisma/client";
 import {
@@ -567,6 +567,11 @@ describe("adversarial · la guarda se invoca antes de leer o escribir nada", () 
     "src/app/admin/page.tsx",
     "src/app/admin/accion-acceso.ts",
     "src/app/admin/accion-salir.ts",
+    // Exige sesión igual, pero sin redirigir: sin ella responde el mismo 404
+    // que el sitio público (spec `revision-admin`, scenario "la foto del
+    // registro en revisión no sale del panel"). Se verifica en el `it` de
+    // abajo y en `tests/fotos-ruta.test.ts`.
+    "src/app/admin/foto/[clave]/[variante]/route.ts",
   ];
 
   function archivosDe(dir: string): string[] {
@@ -606,6 +611,20 @@ describe("adversarial · la guarda se invoca antes de leer o escribir nada", () 
         if (posicion === -1) continue;
         expect(posicion, `${ruta} usa ${acceso} antes de la guarda`).toBeGreaterThan(guarda);
       }
+    }
+  });
+
+  it("la ruta de fotos del panel resuelve la sesión antes de tocar la base", () => {
+    const ruta = "src/app/admin/foto/[clave]/[variante]/route.ts";
+    expect(archivos).toContain(ruta);
+    const codigo = readFileSync(join(raiz, ruta), "utf8");
+    const cuerpo = codigo.slice(codigo.lastIndexOf("\nimport "));
+    const sesion = cuerpo.indexOf("await haySesionAdmin()");
+    expect(sesion, "no resuelve la sesión").toBeGreaterThan(-1);
+    for (const acceso of ACCESOS_A_DATOS) {
+      const posicion = cuerpo.indexOf(acceso);
+      if (posicion === -1) continue;
+      expect(posicion, `usa ${acceso} antes de resolver la sesión`).toBeGreaterThan(sesion);
     }
   });
 
@@ -704,7 +723,7 @@ describe("adversarial · el rastro del rechazo no llega a ninguna página públi
 
     const html = await render(
       ListadoCategoriaPage({
-        params: Promise.resolve({ categoria: categoriaSlug }),
+        params: Promise.resolve({ destino: categoriaSlug }),
         searchParams: Promise.resolve({}),
       }) as Promise<React.ReactElement>,
     );

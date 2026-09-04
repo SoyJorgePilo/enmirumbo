@@ -6,6 +6,9 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { seedCatalogos } from "../prisma/seed";
 import { PrismaClient } from "../src/generated/prisma/client";
+import { borrarNegocio } from "../src/lib/admin/transiciones";
+import { almacenDeFotos } from "../src/lib/fotos/almacen";
+import { generarClaveFoto, VARIANTES_FOTO } from "../src/lib/fotos/clave";
 import { crearClientePrueba } from "./db";
 
 // Spec: modelo-datos (delta `agregar-despublicar-y-borrado-arco`) ·
@@ -282,12 +285,17 @@ describe("modelo-datos · toda relación hacia Negocio borra en cascada", () => 
   });
 
   /**
-   * Punto de integración con T-008 (foto del negocio subida al sitio), que no
-   * está mergeado en esta rama: mientras `Negocio` no tenga una columna con la
-   * clave del archivo, no hay archivo que borrar. En cuanto exista, este test
-   * exige que el borrado definitivo la contemple —el requirement es explícito:
-   * "un archivo que sobrevive al borrado es el dato personal que el aviso de
-   * privacidad prometió eliminar"—.
+   * Punto de integración con T-008 (foto del negocio subida al sitio), que
+   * mergeó a `main` mientras este change estaba en el pipeline: ahora
+   * `Negocio` sí guarda la clave de un archivo propio, así que la rama viva de
+   * este test es la segunda.
+   *
+   * El disparador es agnóstico al nombre de la columna (hallazgo BAJO 2 de la
+   * etapa C: anclarlo a `fotoClave` era adivinar, y si mañana se agrega una
+   * `fotoRuta` el test tiene que volver a sonar). Y se revisa el CAMINO del
+   * borrado completo —`borrarNegocio` delega en `borrarNegocioDefinitivamente`,
+   * en `src/lib/negocio.ts`—, no un solo archivo, porque lo que el requirement
+   * exige es que el archivo desaparezca, no dónde está escrita la llamada.
    */
   // Scenario: la foto también se va
   it("si el modelo estrena archivos de foto, el borrado tiene que arrastrarlos", () => {
@@ -296,30 +304,111 @@ describe("modelo-datos · toda relación hacia Negocio borra en cascada", () => 
       path.join(raiz, "src/lib/admin/transiciones.ts"),
       "utf8",
     );
+    const negocio = readFileSync(path.join(raiz, "src/lib/negocio.ts"), "utf8");
+    const caminoDelBorrado = `${transiciones}\n${negocio}`;
 
-    // Agnóstico al nombre exacto que elija T-008 (hallazgo BAJO 2 de la etapa
-    // C: anclarlo a `fotoClave`/`fotoArchivo` era adivinar, y si la columna
-    // llegaba a llamarse `fotoRuta` el test se quedaba verde mientras el
-    // archivo sobrevivía al borrado ARCO). El disparador es "cualquier campo
-    // del modelo que empiece por `foto` y no sea el `fotoUrl` de hoy", que es
-    // una URL externa: el sitio no guarda ese archivo, así que no hay nada que
-    // borrar del disco.
     const camposDeFoto = [...schema.matchAll(/^\s*(foto\w*)\s+\w/gm)]
       .map((encontrado) => encontrado[1])
       .filter((campo) => campo !== "fotoUrl");
     if (camposDeFoto.length === 0) {
-      // Hoy `fotoUrl` es una URL externa que el sitio no guarda: nada que
-      // borrar del disco. El punto de integración queda documentado en el
-      // código del borrado.
+      // Sin columna de archivo propio no hay nada que borrar del disco; el
+      // punto de integración queda documentado en el código del borrado.
       expect(transiciones).toContain("T-008");
       return;
     }
+
+    // `borrarNegocio` no puede borrar por su cuenta: delega en el único hard
+    // delete del proyecto, para que no haya dos caminos y uno se olvide.
+    expect(transiciones).toContain("borrarNegocioDefinitivamente");
     for (const campo of camposDeFoto) {
       expect(
-        transiciones,
-        `el modelo ya guarda archivos de foto (\`${campo}\`): \`borrarNegocio\` debe eliminarlos`,
+        caminoDelBorrado,
+        `el modelo guarda archivos de foto (\`${campo}\`): el borrado definitivo debe eliminarlos`,
       ).toContain(campo);
     }
+    expect(negocio).toContain("almacen.borrar");
+  });
+
+  /**
+   * Y la comprobación de verdad, con archivos en el disco: el meta-test de
+   * arriba solo lee código.
+   */
+  // Scenario: la foto también se va
+  it("borrar desde el panel se lleva TODAS las variantes del archivo de la foto", async () => {
+    const almacen = almacenDeFotos();
+    const clave = generarClaveFoto();
+    for (const variante of VARIANTES_FOTO) {
+      await almacen.guardar(clave, variante, Buffer.from("bytes de mentiras"));
+    }
+
+    const creado = await prisma.negocio.create({
+      data: {
+        nombre: "Taller Ficticio Con Foto",
+        categoriaId,
+        whatsapp: `${PREFIJO}202`,
+        consintioAvisoEn: new Date(),
+        estado: "publicado",
+        publicadoEn: new Date(),
+        fotoClave: clave,
+        giros: { connect: girosIds.map((id) => ({ id })) },
+      },
+    });
+
+    // Control: antes del borrado los archivos sí están.
+    for (const variante of VARIANTES_FOTO) {
+      expect(await almacen.leer(clave, variante), variante).not.toBeNull();
+    }
+
+    expect(await borrarNegocio(prisma, creado.id)).toEqual({ resultado: "borrado" });
+
+    expect(await prisma.negocio.findUnique({ where: { id: creado.id } })).toBeNull();
+    for (const variante of VARIANTES_FOTO) {
+      expect(await almacen.leer(clave, variante), variante).toBeNull();
+    }
+  });
+
+  // Scenario: borrado con el archivo ya ausente (spec `modelo-datos`)
+  it("borrar una ficha cuya foto ya no está en el almacén se completa igual", async () => {
+    const clave = generarClaveFoto(); // nunca se escribió ningún archivo
+    const creado = await prisma.negocio.create({
+      data: {
+        nombre: "Taller Ficticio Sin Archivos",
+        categoriaId,
+        whatsapp: `${PREFIJO}203`,
+        consintioAvisoEn: new Date(),
+        fotoClave: clave,
+      },
+    });
+
+    expect(await borrarNegocio(prisma, creado.id)).toEqual({ resultado: "borrado" });
+    expect(await prisma.negocio.findUnique({ where: { id: creado.id } })).toBeNull();
+    // Y el segundo intento sigue siendo idempotente con foto de por medio.
+    expect(await borrarNegocio(prisma, creado.id)).toEqual({ resultado: "ya-no-existe" });
+  });
+
+  it("borrar una ficha sin foto no toca el almacén", async () => {
+    const creado = await prisma.negocio.create({
+      data: {
+        nombre: "Taller Ficticio Sin Foto",
+        categoriaId,
+        whatsapp: `${PREFIJO}204`,
+        consintioAvisoEn: new Date(),
+      },
+    });
+
+    let borradas = 0;
+    const almacenEspia = {
+      guardar: async () => {},
+      leer: async () => null,
+      borrar: async () => {
+        borradas += 1;
+      },
+    };
+
+    expect(await borrarNegocio(prisma, creado.id, almacenEspia)).toEqual({
+      resultado: "borrado",
+    });
+    expect(borradas).toBe(0);
   });
 
   it("el disparador de ese test reconoce una columna de foto con cualquier nombre", () => {

@@ -913,6 +913,7 @@ describe("adversarial · el seed de demostración no puede llevar datos reales",
       expect(Object.keys(negocio)).not.toContain("latitud");
       expect(Object.keys(negocio)).not.toContain("longitud");
       expect(Object.keys(negocio)).not.toContain("fotoUrl");
+      expect(Object.keys(negocio)).not.toContain("fotoClave");
     }
   });
 

@@ -804,7 +804,7 @@ describe("seo/seguridad · escapado del bloque contra XSS almacenado", () => {
             coloniaSlug: "huicalco",
             entregaADomicilio: false,
             whatsapp: `${PREFIJO}009`,
-            fotoUrl: null,
+            fotoClave: null,
             categoriaNombre: "Talleres",
             queOfreces: carga,
             telefonoFijo: null,
@@ -1051,6 +1051,14 @@ describe("seo/seguridad · la imagen para compartir", () => {
       "JAVASCRIPT:alert(1)",
       "httpx://necesitouno.example/x.png",
       "x.png",
+      // El caso del hallazgo M3 de este change: una URL externa perfectamente
+      // formada guardada a mano en la columna. Ya no hace falta lista blanca
+      // de dominio, porque la columna no guarda direcciones: guarda la clave
+      // que genera el servidor (T-008) y `imagenesDeLaFicha` la construye.
+      "https://evil.example/pixel.png",
+      "https://necesitouno.example.evil/x.png",
+      "/fotos/negocio-ficticio.jpg",
+      "../../etc/passwd",
     ]) {
       const imagenes = imagenesDeLaFicha(hostil, {
         [VARIABLE_URL_SITIO]: URL_SITIO,

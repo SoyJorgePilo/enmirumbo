@@ -10,6 +10,7 @@
  */
 import type { Metadata } from "next";
 
+import { urlDeFoto } from "@/lib/fotos/url";
 import { type EntornoSitio, urlAbsoluta, urlSitio } from "@/lib/sitio";
 
 /** Título del sitio: el de la home y el de cualquier página sin uno propio. */
@@ -99,13 +100,21 @@ export const NOINDEX_CON_ENLACES: Metadata["robots"] = {
  * Imagen de la vista previa: la foto del negocio si la tiene y, si no, la
  * imagen de marca del sitio — ninguna ficha se comparte sin imagen. Lista
  * vacía cuando no hay URL pública declarada.
+ *
+ * Recibe la **referencia interna** de la foto (`Negocio.fotoClave`), no una
+ * dirección: la URL la construye `urlDeFoto` a partir de la clave que generó
+ * el servidor, y cualquier otra cosa guardada en esa columna —una URL
+ * externa, un `data:`, una ruta con `..`— devuelve `null` y cae en la imagen
+ * de marca. Eso cierra el hallazgo **M3 de T-009** ("`fotoUrl` sin lista
+ * blanca de dominio para `og:image`") sin lista blanca que mantener: nada de
+ * fuera puede llegar a `og:image`, porque la dirección no se lee, se arma.
  */
 export function imagenesDeLaFicha(
-  fotoUrl: string | null,
+  fotoClave: string | null,
   env: EntornoSitio = process.env,
 ): string[] {
-  if (fotoUrl && /^https?:\/\//.test(fotoUrl)) return [fotoUrl];
-  if (!fotoUrl?.startsWith("/")) return imagenesDeMarca(env);
-  const absoluta = urlAbsoluta(fotoUrl, env);
+  const ruta = urlDeFoto(fotoClave, "ficha");
+  if (!ruta) return imagenesDeMarca(env);
+  const absoluta = urlAbsoluta(ruta, env);
   return absoluta ? [absoluta] : [];
 }

@@ -553,6 +553,11 @@ describe("adversarial · la guarda se invoca antes de leer o escribir nada", () 
     "src/app/admin/page.tsx",
     "src/app/admin/accion-acceso.ts",
     "src/app/admin/accion-salir.ts",
+    // Exige sesión igual, pero sin redirigir: sin ella responde el mismo 404
+    // que el sitio público (spec `revision-admin`, scenario "la foto del
+    // registro en revisión no sale del panel"). Se verifica en el `it` de
+    // abajo y en `tests/fotos-ruta.test.ts`.
+    "src/app/admin/foto/[clave]/[variante]/route.ts",
   ];
 
   function archivosDe(dir: string): string[] {
@@ -590,6 +595,20 @@ describe("adversarial · la guarda se invoca antes de leer o escribir nada", () 
         if (posicion === -1) continue;
         expect(posicion, `${ruta} usa ${acceso} antes de la guarda`).toBeGreaterThan(guarda);
       }
+    }
+  });
+
+  it("la ruta de fotos del panel resuelve la sesión antes de tocar la base", () => {
+    const ruta = "src/app/admin/foto/[clave]/[variante]/route.ts";
+    expect(archivos).toContain(ruta);
+    const codigo = readFileSync(join(raiz, ruta), "utf8");
+    const cuerpo = codigo.slice(codigo.lastIndexOf("\nimport "));
+    const sesion = cuerpo.indexOf("await haySesionAdmin()");
+    expect(sesion, "no resuelve la sesión").toBeGreaterThan(-1);
+    for (const acceso of ACCESOS_A_DATOS) {
+      const posicion = cuerpo.indexOf(acceso);
+      if (posicion === -1) continue;
+      expect(posicion, `usa ${acceso} antes de resolver la sesión`).toBeGreaterThan(sesion);
     }
   });
 

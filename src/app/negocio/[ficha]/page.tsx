@@ -32,6 +32,7 @@ import {
   construirSegmentoFicha,
   extraerIdDeSegmentoFicha,
 } from "@/lib/ficha-url";
+import { urlDeFoto } from "@/lib/fotos/url";
 
 /**
  * Ficha de negocio en `/negocio/<slug>-<id>` (spec directorio-publico,
@@ -86,7 +87,11 @@ export async function generateMetadata({
       siteName: NOMBRE_DEL_SITIO,
       locale: "es_MX",
       ...(url ? { url } : {}),
-      images: imagenesDeLaFicha(negocio.fotoUrl),
+      // La vista previa se arma con la referencia interna de la foto, no con
+      // una dirección guardada: `imagenesDeLaFicha` la pasa por `urlDeFoto`,
+      // así que a `og:image` solo puede llegar una URL de este sitio (cierre
+      // del hallazgo M3 de T-009).
+      images: imagenesDeLaFicha(negocio.fotoClave),
     },
   };
 }
@@ -110,6 +115,9 @@ export default async function FichaNegocioPage({
   );
   const hrefLlamar = construirEnlaceTelefono(negocio.telefonoFijo);
   const pagina = obtenerPaginaRegistrada(negocio.facebookUrl);
+  // "Tiene foto" = lo guardado es una clave que generó el servidor. Una
+  // referencia hostil escrita a mano se trata como "no tiene" (M1 de T-004).
+  const tieneFoto = urlDeFoto(negocio.fotoClave, "ficha") !== null;
   // Registró algo en "teléfono fijo", pero no es un número marcable
   // (hallazgo M2): se muestra tal cual lo escribió, sin botón "Llamar".
   const telefonoNoMarcable = negocio.telefonoFijo && !hrefLlamar
@@ -135,9 +143,23 @@ export default async function FichaNegocioPage({
         dangerouslySetInnerHTML={{ __html: jsonLd }}
       />
 
-      <div className="relative aspect-video w-full overflow-hidden rounded-xl">
-        <MarcadorFoto fotoUrl={negocio.fotoUrl} />
-      </div>
+      {/* Sin foto, la ficha no muestra hueco ni marco vacío ni texto que
+          hable de una imagen inexistente (spec `directorio-publico`,
+          requirement "La ficha muestra la foto del negocio cuando la tiene",
+          scenario "ficha sin foto"): simplemente no hay bloque, igual que con
+          el resto de los campos opcionales. Eso la distingue de la tarjeta
+          del listado, donde el marcador SÍ se pinta para que todas ocupen lo
+          mismo. */}
+      {tieneFoto && (
+        <div className="relative aspect-video w-full overflow-hidden rounded-xl">
+          <MarcadorFoto
+            fotoClave={negocio.fotoClave}
+            variante="ficha"
+            alt={`Foto de ${negocio.nombre}`}
+            prioridad
+          />
+        </div>
+      )}
 
       <div className="flex flex-col gap-2">
         {/* `break-words` en todo lo que escribe el negocio: a 390px una

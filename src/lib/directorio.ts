@@ -36,7 +36,14 @@ export type NegocioListado = {
   entregaADomicilio: boolean;
   /** Como está guardado; el enlace se arma con `construirEnlaceWhatsapp`. */
   whatsapp: string;
-  fotoUrl: string | null;
+  /**
+   * Referencia interna de la foto tal como está guardada, sin interpretar:
+   * quien la pinta la pasa por `urlDeFoto` (`src/lib/fotos/url.ts`), que
+   * devuelve la dirección interna o `null`. Aquí NO se construye ninguna URL
+   * (spec `directorio-publico`, "Solo se pinta la foto que generó el
+   * servidor").
+   */
+  fotoClave: string | null;
 };
 
 /** Lo de la tarjeta más lo que solo se muestra en la ficha. */
@@ -63,7 +70,7 @@ const CAMPOS_LISTADO = {
   nombre: true,
   entregaADomicilio: true,
   whatsapp: true,
-  fotoUrl: true,
+  fotoClave: true,
   coloniaOtra: true,
   colonia: { select: { nombre: true, slug: true } },
 } as const;
@@ -83,7 +90,7 @@ type FilaListado = {
   nombre: string;
   entregaADomicilio: boolean;
   whatsapp: string;
-  fotoUrl: string | null;
+  fotoClave: string | null;
   coloniaOtra: string | null;
   colonia: { nombre: string; slug: string } | null;
 };
@@ -97,7 +104,7 @@ function aListado(fila: FilaListado): NegocioListado {
     coloniaSlug: fila.colonia?.slug ?? null,
     entregaADomicilio: fila.entregaADomicilio,
     whatsapp: fila.whatsapp,
-    fotoUrl: fila.fotoUrl,
+    fotoClave: fila.fotoClave,
   };
 }
 

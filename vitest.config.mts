@@ -13,6 +13,10 @@ export default defineConfig({
     fileParallelism: false,
     env: {
       DATABASE_URL: "file:./prisma/test.db",
+      // Las fotos de las pruebas caen en su propio directorio, fuera del
+      // repositorio versionado y separado del `.fotos/` de desarrollo
+      // (`tests/global-setup.ts` lo borra antes de cada corrida).
+      FOTOS_DIR: "./.fotos-test",
     },
     globalSetup: "./tests/global-setup.ts",
   },

@@ -290,8 +290,16 @@ const CAMPO_PUBLICO_DECLARADO: Record<string, string> = {
     "Si tú escribes una dirección o referencias en el formulario, eso también se publica tal cual",
   // Enmienda de la auditoría (MEDIO-2): la foto dejó de ser un campo público
   // sin declarar. El aviso ya dice que, si la ficha llega a llevarla, es
-  // pública; T-008 volverá aquí a escribir con qué reglas se publica.
-  fotoUrl: "una foto de tu negocio",
+  // pública.
+  //
+  // T-008 renombró la columna a `fotoClave` (ya no es una URL, es la clave
+  // opaca que genera el servidor), así que la declaración se muda con ella —
+  // el mismo criterio con el que T-009 declaró aquí `categoriaNombre`. Lo que
+  // T-008 NO puede hacer solo es actualizar el texto del aviso, que hoy dice
+  // que "el formulario todavía no pide fotos": eso ya no es verdad y necesita
+  // enmienda de la spec `paginas-legales` aprobada por un humano (ver el
+  // reporte de validación de T-008).
+  fotoClave: "una foto de tu negocio",
 };
 
 /**

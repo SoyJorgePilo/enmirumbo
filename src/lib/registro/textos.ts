@@ -58,6 +58,54 @@ export const MENSAJES_ERROR_REGISTRO = {
   servidor: "No pudimos guardar tu registro. Vuelve a intentarlo en un momento.",
 } as const;
 
+/**
+ * Política de foto del PRD §6.1, texto de ayuda visible ANTES de elegir el
+ * archivo (spec `registro-negocio`, requirement "El campo de foto explica la
+ * política del PRD §6.1 y abre la galería del celular").
+ */
+export const TEXTO_POLITICA_FOTO =
+  "Una foto de tu local, de tus productos o de tu trabajo. Que no salgan personas que se puedan reconocer. Máximo 5 MB (JPG, PNG o WebP); nosotros la comprimimos para que cargue rápido.";
+
+/** Casilla siempre visible, mismo texto para cualquiera (anti-oráculo). */
+export const TEXTO_CASILLA_SIN_FOTO = "Dejar mi ficha sin foto";
+
+/**
+ * Tipos MIME que el campo declara aceptar (`accept` del `<input>`): es una
+ * ayuda del navegador para filtrar la galería, no la validación real — esa
+ * la hace el servidor por contenido (requirement "El servidor solo acepta la
+ * foto si es una imagen real de máximo 5 MB").
+ */
+export const ACCEPT_FOTO = "image/jpeg,image/png,image/webp";
+
+/**
+ * Los tres mensajes de error de la foto en sí (spec `registro-negocio`,
+ * requirement "El servidor solo acepta la foto si es una imagen real de
+ * máximo 5 MB"): cada uno va, literal, junto al campo de foto. Vive aquí, no
+ * repartido en el código del dev, para que el texto no se desvíe de la spec
+ * (mismo criterio que `MENSAJES_ERROR_REGISTRO`).
+ */
+export const MENSAJES_ERROR_FOTO = {
+  demasiadoGrande: "Esa foto pesa más de 5 MB. Sube una más ligera.",
+  noEsImagen: "No pudimos leer esa foto. Sube una imagen JPG, PNG o WebP.",
+  errorProcesamiento: "No pudimos preparar tu foto. Intenta con otra.",
+  /**
+   * El servidor ya estaba abriendo todas las fotos que se compromete a abrir a
+   * la vez (spec `registro-negocio`, requirement "El trabajo de imagen tiene un
+   * techo y el que no cabe se va con un mensaje, no a una cola"). No dice nada
+   * de la carga real ni del motivo técnico: solo que se reintente.
+   */
+  servidorOcupado: "Estamos recibiendo muchas fotos, intenta de nuevo en un momento",
+} as const;
+
+/**
+ * Cuando el envío traía foto pero se rechazó por OTRO campo (requirement "El
+ * servidor valida todos los campos...", scenario "hay que volver a elegir la
+ * foto"): ningún navegador repuebla un `<input type="file">`, así que hay que
+ * decirlo.
+ */
+export const AVISO_FOTO_NO_GUARDADA =
+  "Tu foto no se quedó guardada: vuelve a elegirla antes de enviar.";
+
 export const MENSAJE_GRACIAS =
   "¡Gracias! Tu negocio está en revisión. Te contactaremos por WhatsApp para confirmar tus datos antes de publicarlo.";
 

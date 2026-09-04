@@ -60,7 +60,12 @@ model Negocio {
   latitud            Float? // pin opcional en mapa
   longitud           Float?
   horario            String?
-  fotoUrl            String?
+  // Referencia interna a la foto (change `agregar-foto-negocio`, design.md §4):
+  // clave OPACA que genera el servidor al procesar la imagen, nunca una URL ni
+  // una ruta del sistema de archivos. Los bytes viven en el almacén de fotos
+  // (ADR-006), fuera de la base y fuera del repositorio. Es única entre
+  // negocios: dos fichas no pueden apuntar a los mismos archivos.
+  fotoClave          String?  @unique
   facebookUrl        String?
 
   // Texto derivado SOLO para el buscador (change `agregar-buscador`,

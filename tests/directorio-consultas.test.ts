@@ -279,7 +279,7 @@ describe("directorio-publico · solo campos públicos (design.md §5)", () => {
       direccion: null,
       horario: null,
       facebookUrl: null,
-      fotoUrl: null,
+      fotoClave: null,
     });
   });
 

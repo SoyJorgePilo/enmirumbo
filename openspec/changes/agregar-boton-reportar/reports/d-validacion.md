@@ -52,7 +52,7 @@ Cola  → el negocio ya no aparece en "Negocios reportados"
 | --- | --- | --- |
 | `npm run lint` | ✅ | ✅ |
 | `npx tsc --noEmit` | ✅ | ✅ |
-| `npm test` | ✅ 58 archivos / **1 614** pruebas | ✅ ver §4 |
+| `npm test` | ✅ 58 archivos / **1 614** pruebas | ✅ 84 archivos / **2 305** pruebas |
 | `npm run build` | ✅ | ✅ |
 | `prisma migrate deploy` sobre base nueva | ✅ sin drift | ✅ migraciones en orden |
 
@@ -69,11 +69,26 @@ Sin dependencias nuevas, sin `any`, sin `"use client"` en archivos nuevos.
 
 ## 4. Integración con `main` (#11, #12, #13, #14)
 
-La base de esta rama era anterior a esos PRs. Tras aprobar y commitear, fusioné `origin/main` y resolví los cruces esperados; el detalle de la resolución y la verificación posterior en servidor real están en el cuerpo del PR y en el commit de merge.
+La base de esta rama era anterior a esos PRs (más el #15). Tras aprobar y commitear, fusioné `origin/main`; la resolución está detallada en el commit de merge. Lo que hubo que decidir:
 
-- **Ficha**: "Reportar este negocio" queda al final, después del bloque de contacto y de lo que trajo `main` (foto y JSON-LD).
-- **Detalle del panel**: "Reportes sin atender" convive con despublicar y borrar (T-015) — que es el contexto que T-015 esperaba: los reportes a la vista **en el momento de decidir**.
-- **Borrado ARCO**: verificado con filas reales que se lleva también los reportes, sin huérfanos.
+- **Rutas públicas**: `main` movió el directorio al grupo `(publico)`, cuyo layout inyecta el script de la medición. Mudé ahí el formulario de reporte y su confirmación: **ninguna URL cambia** —un grupo de rutas no aparece en la dirección— y el flujo queda medido por construcción, no por una lista que alguien deba recordar.
+- **Ficha**: "Reportar este negocio" sigue al final, después del bloque de contacto y de lo que trajo `main` (foto, giros y JSON-LD).
+- **Detalle del panel**: la sección ocupa el **hueco que `main` había dejado reservado** para T-011, entre los datos y las acciones. Verificado en el HTML servido: reportes (pos. 7 077) → despublicar (9 238) → borrar (10 632). Es el contexto que T-015 esperaba: los avisos se leen **antes** de decidir.
+- **Cobertura de T-015 activada**: su invariante recorre todas las claves foráneas hacia `Negocio` exigiendo cascada, y ahora nombra explícitamente `Reporte.negocioId` (sin eso, quitar la clave dejaría el recorrido sin nada que revisar y pasaría en verde). Sumé un test del **camino real del panel** (`borrarNegocioDefinitivamente`, que borra con `deleteMany`, no con `delete`).
+- **Suites**: `admin-adversarial` conserva los dos bloques y suma las dos listas de accesos a datos; en `reportes-seguridad-adversarial` acoté el corte de la sección de reportes a su `</section>`, porque `main` pinta después el enlace "Borrar definitivamente" y unas aserciones que vigilan lo que el comentario de un vecino mete en el HTML acababan juzgando marcado ajeno al reporte.
+
+### Verificación en servidor real sobre el árbol fusionado
+
+`next build` + `next start` en el puerto 3500, base propia y datos ficticios:
+
+| Comprobación | Resultado |
+| --- | --- |
+| Reportar **sin JavaScript** (POST de formulario) | `303` → `/reportar/gracias`, con la confirmación en pantalla |
+| Cola con la sección de reportados | "Negocios reportados", "1 negocio tiene reportes sin atender.", "1 reporte sin atender", "Ver reportes" |
+| Atender el **último** pendiente | "Reporte atendido." presente, sección fuera, negocio fuera de la cola |
+| Borrado ARCO desde el panel, con 3 reportes reales | negocio borrado y **cero filas** en `Reporte` (consulta SQL cruda) |
+
+**Gates sobre el árbol fusionado:** lint ✅ · `tsc` ✅ · **84 archivos y 2 305 pruebas** ✅ · build ✅.
 
 ## 5. Pendientes para el humano
 

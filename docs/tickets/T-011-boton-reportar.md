@@ -6,7 +6,7 @@
 **Referencias PRD:** §6.3 ("Botón Reportar en cada ficha pública para negocios falsos o cerrados")
 **Depende de:** T-004 (ficha), T-005 (panel)
 **OpenSpec change:** `agregar-boton-reportar`
-**PR:** —
+**PR:** [#16](https://github.com/SoyJorgePilo/necesitouno/pull/16)
 
 ## Contexto
 

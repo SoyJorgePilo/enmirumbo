@@ -14,7 +14,9 @@ vi.mock("next/navigation", async () => {
 });
 
 import { seedCatalogos } from "../prisma/seed";
+import ColaAdminPage from "../src/app/admin/cola/page";
 import { aprobarRegistroAccion } from "../src/app/admin/registros/[id]/accion-aprobar";
+import { marcarReporteAtendidoAccion } from "../src/app/admin/registros/[id]/accion-marcar-reporte-atendido";
 import { rechazarRegistroAccion } from "../src/app/admin/registros/[id]/accion-rechazar";
 import DetalleRegistroAdminPage from "../src/app/admin/registros/[id]/page";
 import RegistroRechazadoPage from "../src/app/admin/registros/[id]/rechazado/page";
@@ -574,6 +576,11 @@ describe("adversarial · la guarda se invoca antes de leer o escribir nada", () 
     "obtenerColaDeRevision(",
     "aprobarRegistro(",
     "rechazarRegistro(",
+    // Reportes (change `agregar-boton-reportar`): la sección de la cola, la
+    // del detalle y la acción de atender entran a la MISMA regla.
+    "obtenerNegociosReportados(",
+    "obtenerReportesPendientesDeNegocio(",
+    "marcarReporteAtendido(",
   ];
 
   it("en cada ruta y acción, `requerirSesionAdmin()` aparece antes del primer acceso a datos", () => {
@@ -590,6 +597,29 @@ describe("adversarial · la guarda se invoca antes de leer o escribir nada", () 
         if (posicion === -1) continue;
         expect(posicion, `${ruta} usa ${acceso} antes de la guarda`).toBeGreaterThan(guarda);
       }
+    }
+  });
+
+  /**
+   * `marcarReporteAtendido` acepta el `negocioId` como parámetro OPCIONAL para
+   * no romper las firmas que ya usan las suites, pero es una condición de
+   * autorización: si un llamador la olvida, la guarda desaparece sin que nada
+   * se queje (observación 10 de la etapa C). Esta prueba es esa queja.
+   */
+  it("toda llamada del panel a marcarReporteAtendido pasa el negocio", () => {
+    const llamadas = archivosDe(join(raiz, "src")).flatMap((ruta) => {
+      if (ruta.includes("/lib/admin/reportes.ts")) return []; // la definición
+      const codigo = readFileSync(ruta, "utf8");
+      // `[^;]` ya cruza saltos de línea: no hace falta la bandera `s`.
+      return [...codigo.matchAll(/marcarReporteAtendido\(([^;]*?)\)\s*;/g)].map((m) => ({
+        ruta,
+        argumentos: m[1],
+      }));
+    });
+
+    expect(llamadas.length).toBeGreaterThanOrEqual(1);
+    for (const llamada of llamadas) {
+      expect(llamada.argumentos, llamada.ruta).toContain("negocioId");
     }
   });
 
@@ -996,5 +1026,125 @@ describe("adversarial · el reenvío y la constancia LFPDPPP del titular", () =>
     expect(despues.consintioAvisoEn.getTime()).toBeLessThan(
       despues.registradoEn.getTime(),
     );
+  });
+});
+
+// ── 10. Los reportes tampoco se ven ni se tocan sin sesión ──────────────────
+
+describe("adversarial · reportes del panel sin cookie de sesión", () => {
+  const COMENTARIO_REPORTE = "El local está cerrado desde hace semanas (dato inventado).";
+
+  /** Negocio publicado con un reporte pendiente y comentario. */
+  async function conReportePendiente(): Promise<{ negocioId: string; reporteId: string }> {
+    const negocio = await prisma.negocio.create({
+      data: {
+        nombre: "Lavandería Ficticia Espuma",
+        categoriaId,
+        coloniaId,
+        whatsapp: "7719996040",
+        consintioAvisoEn: new Date(),
+        estado: "publicado",
+        publicadoEn: new Date(),
+      },
+    });
+    const reporte = await prisma.reporte.create({
+      data: { negocioId: negocio.id, motivo: "cerrado", comentario: COMENTARIO_REPORTE },
+    });
+    return { negocioId: negocio.id, reporteId: reporte.id };
+  }
+
+  // Scenario: cola sin sesión (delta: "ni ningún conteo de reportes")
+  it("la cola no revela ni el nombre del reportado ni su conteo", async () => {
+    const { negocioId } = await conReportePendiente();
+
+    const destino = await urlDeRedireccion(() => ColaAdminPage());
+
+    expect(destino).toBe("/admin");
+    expect(destino).not.toContain(negocioId);
+    expect(destino).not.toContain("reporte");
+  });
+
+  // Scenario: detalle de un registro sin sesión (delta: "ni de sus reportes")
+  it("el detalle no revela el motivo ni el comentario del reporte", async () => {
+    const { negocioId } = await conReportePendiente();
+
+    const destino = await urlDeRedireccion(() =>
+      DetalleRegistroAdminPage({
+        params: Promise.resolve({ id: negocioId }),
+        searchParams: Promise.resolve({}),
+      }),
+    );
+
+    expect(destino).toBe("/admin");
+    expect(destino).not.toContain(COMENTARIO_REPORTE);
+    expect(destino).not.toContain("cerrado");
+  });
+
+  // Scenario: atender un reporte sin sesión
+  it("marcar como atendido sin sesión no escribe nada ni confirma que exista", async () => {
+    const { negocioId, reporteId } = await conReportePendiente();
+
+    const destino = await urlDeRedireccion(() =>
+      marcarReporteAtendidoAccion(negocioId, reporteId, new FormData()),
+    );
+
+    expect(destino).toBe("/admin");
+    expect(destino).not.toContain(reporteId);
+    expect(destino).not.toContain(negocioId);
+
+    const guardado = await prisma.reporte.findUniqueOrThrow({ where: { id: reporteId } });
+    expect(guardado.estado).toBe("pendiente");
+    expect(guardado.atendidoEn).toBeNull();
+  });
+
+  it("una cookie manipulada vale lo mismo que ninguna para atender reportes", async () => {
+    const { negocioId, reporteId } = await conReportePendiente();
+    peticion.cookies[NOMBRE_COOKIE_SESION] = `${Date.now() + 100000}.firma-inventada`;
+
+    expect(
+      await urlDeRedireccion(() =>
+        marcarReporteAtendidoAccion(negocioId, reporteId, new FormData()),
+      ),
+    ).toBe("/admin");
+    expect(
+      (await prisma.reporte.findUniqueOrThrow({ where: { id: reporteId } })).estado,
+    ).toBe("pendiente");
+  });
+
+  // Delta: "El formulario público de reporte solo puede crear reportes
+  // `pendiente`: NO DEBE poder marcarlos como atendidos ni tocar nada del
+  // negocio."
+  it("ninguna superficie pública sabe marcar reportes como atendidos", () => {
+    function fuentesDe(dir: string): string[] {
+      return readdirSync(dir, { withFileTypes: true }).flatMap((entrada) => {
+        const ruta = join(dir, entrada.name);
+        if (entrada.isDirectory()) {
+          return entrada.name === "admin" || entrada.name === "generated"
+            ? []
+            : fuentesDe(ruta);
+        }
+        return /\.tsx?$/.test(entrada.name) ? [ruta] : [];
+      });
+    }
+
+    const publicas = [
+      ...fuentesDe(join(raiz, "src/app")),
+      ...fuentesDe(join(raiz, "src/components")),
+      ...fuentesDe(join(raiz, "src/lib")),
+    ];
+    expect(publicas.length).toBeGreaterThanOrEqual(20);
+
+    // `src/lib/reportes/estados.ts` es la única excepción: DECLARA el
+    // vocabulario (lo importan los dos lados), pero no escribe nada.
+    const declaracion = join(raiz, "src/lib/reportes/estados.ts");
+
+    for (const ruta of publicas) {
+      const fuente = readFileSync(ruta, "utf8");
+      expect(fuente, ruta).not.toContain("marcarReporteAtendido");
+      expect(fuente, ruta).not.toContain('estado: "atendido"');
+      if (ruta !== declaracion) {
+        expect(fuente, ruta).not.toContain("ESTADO_REPORTE_ATENDIDO");
+      }
+    }
   });
 });

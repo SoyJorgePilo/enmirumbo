@@ -74,8 +74,48 @@ describe("revision-admin · literales de la spec, carácter por carácter", () =
       textos.MENSAJE_YA_RESUELTO,
       "Este registro ya lo habías resuelto.",
     ],
+    // Reportes (change `agregar-boton-reportar`, delta de revision-admin)
+    [
+      "encabezado de negocios reportados",
+      textos.TEXTO_NEGOCIOS_REPORTADOS_ENCABEZADO,
+      "Negocios reportados",
+    ],
+    ["entrada a los reportes", textos.TEXTO_VER_REPORTES, "Ver reportes"],
+    [
+      "encabezado de los reportes del detalle",
+      textos.TEXTO_REPORTES_SIN_ATENDER_ENCABEZADO,
+      "Reportes sin atender",
+    ],
+    ["botón de atender", textos.BOTON_MARCAR_ATENDIDO, "Marcar como atendido"],
+    [
+      "confirmación de atendido",
+      textos.MENSAJE_REPORTE_ATENDIDO,
+      "Reporte atendido.",
+    ],
+    [
+      "reporte ya atendido",
+      textos.MENSAJE_REPORTE_YA_ATENDIDO,
+      "Este reporte ya lo habías atendido.",
+    ],
   ])("el %s es exactamente el de la spec", (_caso, actual, esperado) => {
     expect(actual).toBe(esperado);
+  });
+});
+
+describe("revision-admin · conteos de reportes (literales del delta)", () => {
+  // Requirement "La cola avisa qué negocios tienen reportes sin atender"
+  it("el conteo de la sección concuerda en singular y en plural", () => {
+    expect(textos.textoConteoNegociosReportados(1)).toBe(
+      "1 negocio tiene reportes sin atender.",
+    );
+    expect(textos.textoConteoNegociosReportados(2)).toBe(
+      "2 negocios tienen reportes sin atender.",
+    );
+  });
+
+  it("el renglón dice cuántos reportes sin atender tiene el negocio", () => {
+    expect(textos.textoReportesSinAtender(1)).toBe("1 reporte sin atender");
+    expect(textos.textoReportesSinAtender(3)).toBe("3 reportes sin atender");
   });
 });
 

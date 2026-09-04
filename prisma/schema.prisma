@@ -87,6 +87,41 @@ model Negocio {
   // Giros asignados por el admin al aprobar (PRD §6.3, Apéndice B)
   giros Giro[]
 
+  // Avisos de los vecinos sobre esta ficha (change `agregar-boton-reportar`).
+  // Se borran con el negocio (ARCO, PRD §8): la cascada está en `Reporte`.
+  reportes Reporte[]
+
   // Reservado para el enlace de gestión de P1 (PRD §6.4): nulo y sin lógica en el MVP
   tokenGestion String? @unique
+}
+
+// ── Reporte (PRD §6.3 y §13: botón "Reportar" de la ficha) ──────────────────
+
+/**
+ * Aviso de un vecino sobre una ficha publicada. NO tiene —ni debe tener—
+ * ninguna columna del reportante: el formulario es anónimo y la IP solo se
+ * usa en memoria para el cupo de la hora (PRD §8 y LFPDPPP: lo que no se
+ * guarda no se puede filtrar).
+ *
+ * `motivo` y `estado` son texto con CHECK en la migración, igual que
+ * `estado`/`origen` del negocio (ADR-001: SQLite no tiene enums). Los valores
+ * válidos viven en `src/lib/reportes/motivos.ts` y `src/lib/reportes/estados.ts`.
+ */
+model Reporte {
+  id String @id @default(cuid())
+
+  negocio   Negocio @relation(fields: [negocioId], references: [id], onDelete: Cascade)
+  negocioId String
+
+  motivo String // cerrado | no_real | datos_incorrectos | inapropiado
+
+  // Opcional; la cota de 300 caracteres se hace cumplir en el formulario.
+  comentario String?
+
+  estado     String    @default("pendiente") // pendiente | atendido
+  creadoEn   DateTime  @default(now())
+  atendidoEn DateTime?
+
+  // La cola del panel pregunta siempre "pendientes de este negocio".
+  @@index([negocioId, estado])
 }

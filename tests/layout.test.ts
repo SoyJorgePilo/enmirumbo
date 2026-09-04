@@ -30,6 +30,8 @@ import RegistroAprobadoPage from "../src/app/admin/registros/[id]/aprobado/page"
 import AvisoDePrivacidadPage from "../src/app/aviso-de-privacidad/page";
 import { metadata } from "../src/app/layout";
 import FichaNegocioPage from "../src/app/negocio/[ficha]/page";
+import ReportarGraciasPage from "../src/app/negocio/[ficha]/reportar/gracias/page";
+import ReportarNegocioPage from "../src/app/negocio/[ficha]/reportar/page";
 import NotFoundPage from "../src/app/not-found";
 import Home from "../src/app/page";
 import TerminosPage from "../src/app/terminos/page";
@@ -111,11 +113,15 @@ let htmlHome = "";
 let htmlListado = "";
 let htmlListadoFiltrado = "";
 let htmlFicha = "";
+let htmlReportar = "";
+let htmlReportarGracias = "";
 let htmlBuscar = "";
 let htmlBuscarVacio = "";
 let htmlGiro = "";
 let htmlGiroColonia = "";
 let idsPublicados: string[] = [];
+/** Segmento de la ficha que renderiza esta suite, para sus sub-rutas. */
+let segmentoFichaPublicada = "";
 // Los tres catálogos, con los que se resuelven las URLs de la raíz igual que
 // en producción (change `agregar-seo-local`).
 let catalogos: CatalogosDeLaRaiz = { categorias: [], giros: [], colonias: [] };
@@ -203,6 +209,22 @@ beforeAll(async () => {
   });
   htmlFicha = renderToStaticMarkup(createElement(() => ficha));
 
+  // Página de reporte y su confirmación (change `agregar-boton-reportar`):
+  // sus enlaces —el "Volver a la ficha" de las dos— entran a la misma
+  // revisión que los del resto del sitio.
+  segmentoFichaPublicada = construirSegmentoFicha(publicados[0].nombre, publicados[0].id);
+  const reportar = await ReportarNegocioPage({
+    params: Promise.resolve({ ficha: segmentoFichaPublicada }),
+    searchParams: Promise.resolve({}),
+  });
+  htmlReportar = renderToStaticMarkup(createElement(() => reportar));
+
+  const gracias = await ReportarGraciasPage({
+    params: Promise.resolve({ ficha: segmentoFichaPublicada }),
+    searchParams: Promise.resolve({}),
+  });
+  htmlReportarGracias = renderToStaticMarkup(createElement(() => gracias));
+
   // Página de resultados (change `agregar-buscador`): sus enlaces y el
   // destino de su buscador entran a la misma revisión.
   const buscar = await BuscarPage({
@@ -284,12 +306,20 @@ function rutaInternaExiste(href: string): boolean {
   ) {
     return true;
   }
+  // Ficha pública y, desde el change `agregar-boton-reportar`, su página de
+  // reporte con la confirmación: cuelgan del mismo segmento de la ficha, así
+  // que resuelven contra un negocio publicado de verdad. Una sub-ruta
+  // inventada bajo la ficha sigue siendo un enlace roto.
   if (
-    segmentos.length === 2 &&
+    segmentos.length >= 2 &&
     segmentos[0] === "negocio" &&
     idsPublicados.some((id) => segmentos[1].endsWith(id))
   ) {
-    return true;
+    if (segmentos.length === 2) return true;
+    return (
+      segmentos[2] === "reportar" &&
+      (segmentos.length === 3 || (segmentos.length === 4 && segmentos[3] === "gracias"))
+    );
   }
   // Panel de revisión (E3): `/admin/registros/<id>` y sus sub-rutas de
   // confirmación resuelven contra registros que existen de verdad, igual que
@@ -446,6 +476,9 @@ describe("layout-base · enlaces internos y externos de las páginas servidas", 
     // Páginas nuevas del change `agregar-seo-local`
     expect(problemasDeEnlaces(htmlGiro)).toEqual([]);
     expect(problemasDeEnlaces(htmlGiroColonia)).toEqual([]);
+    // Páginas nuevas del change `agregar-boton-reportar`
+    expect(problemasDeEnlaces(htmlReportar)).toEqual([]);
+    expect(problemasDeEnlaces(htmlReportarGracias)).toEqual([]);
     // Las dos páginas legales se enlazan entre sí: ninguna es un enlace muerto.
     expect(problemasDeEnlaces(htmlAvisoPrivacidad)).toEqual([]);
     expect(problemasDeEnlaces(htmlTerminos)).toEqual([]);
@@ -465,6 +498,28 @@ describe("layout-base · enlaces internos y externos de las páginas servidas", 
       1,
     );
     expect(problemasDeEnlaces('<a href="/loquesea-huicalco">x</a>')).toHaveLength(1);
+  });
+
+  // directorio-publico (change `agregar-boton-reportar`) · Requirements
+  // "Control discreto 'Reportar este negocio' en la ficha" y "Mini-formulario
+  // de reporte…" (tasks.md #10).
+  it("la ficha enlaza al reporte de ESE negocio, y la sub-ruta inventada falla", () => {
+    const segmento = segmentoFichaPublicada;
+    expect(htmlFicha).toContain(`href="/negocio/${segmento}/reportar"`);
+    expect(problemasDeEnlaces(`<a href="/negocio/${segmento}/reportar">x</a>`)).toEqual([]);
+    expect(
+      problemasDeEnlaces(`<a href="/negocio/${segmento}/reportar/gracias">x</a>`),
+    ).toEqual([]);
+    // Y lo que no existe bajo la ficha sigue siendo un enlace roto.
+    expect(
+      problemasDeEnlaces(`<a href="/negocio/${segmento}/reportarr">x</a>`),
+    ).toHaveLength(1);
+    expect(
+      problemasDeEnlaces(`<a href="/negocio/${segmento}/reportar/enviado">x</a>`),
+    ).toHaveLength(1);
+    expect(
+      problemasDeEnlaces('<a href="/negocio/negocio-que-no-existe-xyz/reportar">x</a>'),
+    ).toHaveLength(1);
   });
 
   // Scenario: destino del formulario de búsqueda (change `agregar-buscador`)

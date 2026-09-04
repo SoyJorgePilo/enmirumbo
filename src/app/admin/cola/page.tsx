@@ -2,9 +2,11 @@ import type { Metadata } from "next";
 
 import { salirDelPanel } from "@/app/admin/accion-salir";
 import { BotonSalir } from "@/components/admin/boton-salir";
+import { SeccionNegociosReportados } from "@/components/admin/negocios-reportados";
 import { TarjetaCola } from "@/components/admin/tarjeta-cola";
 import { contarAtrasados, obtenerColaDeRevision } from "@/lib/admin/consultas";
 import { requerirSesionAdmin } from "@/lib/admin/guarda";
+import { obtenerNegociosReportados } from "@/lib/admin/reportes";
 import {
   TEXTO_COLA_ENCABEZADO,
   TEXTO_COLA_VACIA,
@@ -28,7 +30,11 @@ export const metadata: Metadata = {
 export default async function ColaAdminPage() {
   await requerirSesionAdmin();
 
-  const cola = await obtenerColaDeRevision(obtenerPrisma());
+  const prisma = obtenerPrisma();
+  const [cola, negociosReportados] = await Promise.all([
+    obtenerColaDeRevision(prisma),
+    obtenerNegociosReportados(prisma),
+  ]);
   const atrasados = contarAtrasados(cola);
 
   return (
@@ -56,6 +62,13 @@ export default async function ColaAdminPage() {
             </li>
           ))}
         </ul>
+      )}
+
+      {/* Debajo de "Registros por revisar", invisible sin pendientes
+          (requirement "La cola avisa qué negocios tienen reportes sin
+          atender", scenario "sin reportes pendientes no hay sección"). */}
+      {negociosReportados.length > 0 && (
+        <SeccionNegociosReportados negocios={negociosReportados} />
       )}
     </section>
   );

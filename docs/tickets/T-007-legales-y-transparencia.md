@@ -1,6 +1,6 @@
 # T-007 · Publicar las páginas legales y transparentar el uso de datos
 
-**Estado:** en-review
+**Estado:** hecho
 **Prioridad:** P0
 **Épica:** E6-1, E6-2, E1-6 (docs/backlog.md)
 **Referencias PRD:** §8 (LFPDPPP 2025, elementos mínimos del aviso), §6.3 (reglas de moderación → términos), §6.1 (checkbox con link al integral)

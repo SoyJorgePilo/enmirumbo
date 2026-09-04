@@ -20,6 +20,7 @@ import {
   MENSAJE_GRACIAS,
   TEXTO_AVISO_PRIVACIDAD,
   TEXTO_CONSENTIMIENTO,
+  TEXTO_ENLACE_AVISO_INTEGRAL,
 } from "../src/lib/registro/textos";
 import { VALORES_VACIOS_REGISTRO } from "../src/lib/registro/tipos";
 import { crearClientePrueba } from "./db";
@@ -148,12 +149,41 @@ describe("registro-negocio · consentimiento y aviso simplificado", () => {
     expect(normalizado(htmlRegistro)).toContain(TEXTO_CONSENTIMIENTO);
   });
 
-  // Scenario: sin enlaces muertos al aviso integral
-  it("el bloque de consentimiento no tiene ningún enlace mientras E6 no exista", () => {
-    expect(htmlAviso).not.toMatch(/<a[\s>]/);
-    expect(htmlAviso).not.toContain("href");
-    // Tampoco en toda la página del registro
-    expect(htmlRegistro).not.toContain("href");
+  // Scenario: el aviso simplificado avisa que el WhatsApp y el teléfono
+  // quedan públicos (E1-6 / hallazgo M3 de T-004). El literal está COPIADO de
+  // `openspec/changes/agregar-paginas-legales/specs/registro-negocio/spec.md`:
+  // si alguien cambia el copy sin cambiar la spec, esta suite lo caza.
+  it("advierte, carácter por carácter, que los datos quedan a la vista", () => {
+    expect(TEXTO_AVISO_PRIVACIDAD).toBe(
+      "Aviso de privacidad (resumen): NecesitoUno Tizayuca usa los datos que escribes aquí para revisar tu negocio, contactarte por WhatsApp y publicar tu ficha en el directorio. Ojo con esto: si publicamos tu ficha, el nombre de tu negocio, tu WhatsApp, tu teléfono fijo y lo demás que escribas quedan a la vista de cualquiera que entre al directorio, con botones para escribirte o marcarte directo. Publicamos tu colonia, no tu domicilio exacto, salvo que tú escribas la dirección. No vendemos ni compartimos tus datos con nadie más. Puedes pedirnos que corrijamos o borremos tu ficha cuando quieras, por el mismo WhatsApp con el que te contactemos; lo atendemos en máximo 20 días hábiles.",
+    );
+    expect(normalizado(htmlRegistro)).toContain(
+      "el nombre de tu negocio, tu WhatsApp, tu teléfono fijo y lo demás que escribas quedan a la vista de cualquiera que entre al directorio, con botones para escribirte o marcarte directo",
+    );
+  });
+
+  // Scenario: enlace al aviso integral (MODIFIED por `agregar-paginas-legales`:
+  // antes este caso exigía cero enlaces, porque la página no existía)
+  it("enlaza al aviso integral en la misma pestaña y ya no promete el enlace", () => {
+    const enlaces = [...htmlAviso.matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a>/g)];
+    expect(enlaces).toHaveLength(1);
+    expect(enlaces[0][2].replace(/<[^>]+>/g, "").trim()).toBe(
+      TEXTO_ENLACE_AVISO_INTEGRAL,
+    );
+    expect(TEXTO_ENLACE_AVISO_INTEGRAL).toBe("Lee el aviso de privacidad completo");
+    expect(enlaces[0][1]).toContain('href="/aviso-de-privacidad"');
+    expect(enlaces[0][1]).not.toContain("target="); // misma pestaña
+    expect(enlaces[0][1]).toContain("min-h-11"); // área táctil ≥44px
+    // El único enlace de toda la página de registro es ese.
+    expect([...htmlRegistro.matchAll(/href="([^"]*)"/g)].map((m) => m[1])).toEqual([
+      "/aviso-de-privacidad",
+    ]);
+    // Y la frase que reservaba el hueco ya no aparece en ningún lado.
+    for (const texto of [htmlAviso, htmlRegistro, TEXTO_AVISO_PRIVACIDAD]) {
+      expect(texto).not.toContain(
+        "Cuando publiquemos el aviso completo, aquí va a estar el enlace.",
+      );
+    }
   });
 
   it("el checkbox del consentimiento es obligatorio y no viene marcado", () => {

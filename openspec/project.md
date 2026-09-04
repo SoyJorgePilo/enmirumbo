@@ -26,10 +26,13 @@ Directorio web donde los negocios de Tizayuca se registran solos (sin cuentas ni
 - `openspec/specs/` — verdad actual del sistema por capacidad
 - `openspec/changes/` — propuestas de cambio en curso; `archive/` las completadas
 
-## Capacidades (se poblarán al archivar los primeros changes)
+## Capacidades consolidadas (verdad actual en `openspec/specs/`)
 
-- `registro-negocio` — formulario de alta y flujo de envío
-- `directorio-publico` — home, listados, ficha, búsqueda
-- `revision-admin` — cola de verificación y moderación
-- `seo-local` — páginas indexables, schema, sitemap
-- `edicion-gestion` — enlaces de gestión y ediciones supervisadas (P1)
+- `modelo-datos` — esquema, migraciones, seeds y sus invariantes
+- `layout-base` — marco visual, tokens, accesibilidad, metadata base y verificación de enlaces
+- `registro-negocio` — formulario de alta, validación, consentimiento, anti-abuso y reenvío tras rechazo
+- `directorio-publico` — home, listados por categoría, ficha, filtro por colonia y buscador
+- `revision-admin` — acceso del admin, cola de verificación, aprobar/rechazar
+- `paginas-legales` — aviso de privacidad integral y términos, con textos normativos literales
+
+En construcción (changes en curso): foto del negocio, SEO local (páginas por giro, schema, sitemap), analítica, botón "Reportar", versión del aviso, preparación de deploy, edición con enlace de gestión (P1).

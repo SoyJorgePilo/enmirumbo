@@ -13,7 +13,7 @@ vi.mock("next/navigation", async () => {
 
 import { seedCatalogos } from "../prisma/seed";
 import { sembrarNegociosDemo } from "../prisma/seed-demo";
-import ListadoCategoriaPage from "../src/app/[categoria]/page";
+import ListadoCategoriaPage from "../src/app/[destino]/page";
 import DetalleRegistroAdminPage from "../src/app/admin/registros/[id]/page";
 import FichaNegocioPage from "../src/app/negocio/[ficha]/page";
 import type { PrismaClient } from "../src/generated/prisma/client";
@@ -42,7 +42,9 @@ let htmlListado = "";
 
 async function renderListado(categoria: string): Promise<string> {
   const elemento = await ListadoCategoriaPage({
-    params: Promise.resolve({ categoria }),
+    // `destino` desde T-009: el mismo segmento dinámico resuelve
+    // categoría, giro y giro+colonia; la URL de la categoría no cambió.
+    params: Promise.resolve({ destino: categoria }),
     searchParams: Promise.resolve({}),
   });
   return renderToStaticMarkup(createElement(() => elemento));

@@ -29,6 +29,7 @@ El fundador compró el dominio definitivo `enmirumbo.com` y decidió (2026-09-04
 ## Notas
 
 - **Datos legales del fundador (2026-09-04):** llenar `CORREO_ARCO_PLACEHOLDER` y `CORREO_CONTACTO_PLACEHOLDER` con `contacto@enmirumbo.com` (el fundador debe activar el reenvío en su registrador). Nombre del responsable, domicilio, WhatsApp del directorio y jurisdicción SIGUEN como placeholders (los resuelve la revisión legal E6-3); la marca de borrador de las páginas legales permanece hasta entonces, y eso es correcto.
+- **Plan legal acordado con el abogado del fundador (2026-09-04):** el responsable será **"EnMiRumbo S.A.S."** — la sociedad está EN TRÁMITE; el nombre NO entra al aviso hasta tener el acta constitutiva (con la denominación exacta del acta). Domicilio tentativo en la colonia Hacienda de Guadalupe, Tizayuca — falta el domicilio completo (calle, número, CP). Cuando existan acta + domicilio, se llenan los dos placeholders juntos (una sola versión nueva del aviso, no dos).
 
 - Decisión del fundador vía revisión 2026-09-04; el dominio ya está comprado.
 - ¡Ojo con el versionado del aviso! `VERSION_AVISO` y la huella: cambiar el nombre del sitio dentro del texto legal probablemente cambia la huella del aviso → la spec debe decidir si eso amerita subir la versión (mecánica de T-012).

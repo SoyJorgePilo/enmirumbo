@@ -11,6 +11,33 @@ const FORMATO_FECHA = new Intl.DateTimeFormat("es-MX", {
   minute: "2-digit",
 });
 
+/**
+ * Constancia del consentimiento, con la versión del aviso entre paréntesis
+ * (spec `revision-admin`, change `versionar-aviso-privacidad`). Una ficha
+ * anterior al versionado lo dice con el literal "versión no registrada": el
+ * panel nunca inventa una versión que nadie puede sostener.
+ */
+function constanciaConVersion(cuando: Date, version: string | null): string {
+  return `${FORMATO_FECHA.format(cuando)} (${
+    version ? `versión ${version}` : "versión no registrada"
+  })`;
+}
+
+/**
+ * Etiqueta de la reaceptación (hallazgo MEDIO-4 de la etapa C).
+ *
+ * Describe EL HECHO —un reenvío del formulario público aceptó la versión N—
+ * en vez de atribuírselo al titular ("Aceptó una versión más nueva…"). El
+ * formulario de registro es anónimo: quien reenvía puede no ser el dueño, y
+ * esta línea es evidencia que se lee ante una reclamación. La versión va en la
+ * etiqueta porque es lo que se aceptó; el valor es cuándo pasó.
+ */
+function etiquetaReaceptacion(version: string | null): string {
+  return version
+    ? `El reenvío aceptó la versión ${version} del aviso`
+    : "El reenvío volvió a aceptar el aviso";
+}
+
 function Dato({ etiqueta, valor }: { etiqueta: string; valor: string | null }) {
   return (
     <div className="flex flex-col gap-0.5 border-b border-borde py-2.5 last:border-0">
@@ -112,8 +139,19 @@ export function DetalleRegistro({
           />
           <Dato
             etiqueta="Consentimiento del aviso de privacidad"
-            valor={FORMATO_FECHA.format(registro.consintioAvisoEn)}
+            valor={constanciaConVersion(
+              registro.consintioAvisoEn,
+              registro.consintioAvisoVersion,
+            )}
           />
+          {/* Solo cuando un reenvío aceptó una versión POSTERIOR a la de la
+              constancia original: si no la hay, esta línea no aparece. */}
+          {registro.reconsintioAvisoEn && (
+            <Dato
+              etiqueta={etiquetaReaceptacion(registro.reconsintioAvisoVersion)}
+              valor={FORMATO_FECHA.format(registro.reconsintioAvisoEn)}
+            />
+          )}
           {registro.publicadoEn && (
             <Dato
               etiqueta="Fecha de publicación"

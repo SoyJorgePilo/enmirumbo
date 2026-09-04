@@ -13,7 +13,12 @@ import {
   procesarRegistro,
   type ClienteRegistro,
 } from "../src/lib/registro/procesar";
-import { COLONIA_OTRA_VALOR, MENSAJES_ERROR_REGISTRO } from "../src/lib/registro/textos";
+import { VERSION_AVISO } from "../src/lib/legales/version";
+import {
+  CAMPO_VERSION_AVISO,
+  COLONIA_OTRA_VALOR,
+  MENSAJES_ERROR_REGISTRO,
+} from "../src/lib/registro/textos";
 import { crearClientePrueba } from "./db";
 
 // Datos 100% ficticios (repo público + LFPDPPP): números 771999xxxx y nombres
@@ -36,6 +41,9 @@ describe("procesarRegistro (Server Action de registro)", () => {
       whatsapp: "7719990101",
       coloniaId: String(coloniaId),
       consentimiento: "on",
+      // El campo oculto que el formulario devuelve con la versión del aviso
+      // que se pintó (change `versionar-aviso-privacidad`).
+      [CAMPO_VERSION_AVISO]: VERSION_AVISO,
       ...campos,
     };
     for (const [clave, valor] of Object.entries(base)) {
@@ -187,6 +195,112 @@ describe("procesarRegistro (Server Action de registro)", () => {
     expect(creado.tokenGestion).toBeNull();
     expect(creado.id).not.toBe("id-falsificado");
     expect(creado.consintioAvisoEn.getFullYear()).toBeGreaterThan(2020);
+  });
+
+  // ── La versión del aviso consentido (change versionar-aviso-privacidad) ───
+
+  // Scenario (modelo-datos): alta con su versión
+  // Scenario (registro-negocio): constancia del consentimiento
+  it("sella la versión vigente del aviso junto a la fecha, sin reaceptación", async () => {
+    await procesar(envio({ whatsapp: "7719990120" }));
+
+    const creado = await prisma.negocio.findUniqueOrThrow({
+      where: { whatsapp: "7719990120" },
+    });
+    expect(creado.consintioAvisoVersion).toBe(VERSION_AVISO);
+    expect(creado.consintioAvisoEn).toBeInstanceOf(Date);
+    expect(creado.reconsintioAvisoEn).toBeNull();
+    expect(creado.reconsintioAvisoVersion).toBeNull();
+  });
+
+  // Scenario: la versión guardada la pone el servidor
+  it("la versión que se guarda es la del servidor, no la que traiga el envío", async () => {
+    // El envío declara la vigente (si no, ni siquiera se guardaría) y de paso
+    // intenta fijar la columna a mano.
+    await procesar(
+      envio({
+        whatsapp: "7719990121",
+        consintioAvisoVersion: "99",
+        reconsintioAvisoVersion: "99",
+        reconsintioAvisoEn: "1999-01-01T00:00:00.000Z",
+      }),
+    );
+
+    const creado = await prisma.negocio.findUniqueOrThrow({
+      where: { whatsapp: "7719990121" },
+    });
+    expect(creado.consintioAvisoVersion).toBe(VERSION_AVISO);
+    expect(creado.reconsintioAvisoEn).toBeNull();
+    expect(creado.reconsintioAvisoVersion).toBeNull();
+  });
+
+  // Scenario: el aviso cambió a media captura
+  // Scenario: versión inventada en el envío
+  it.each([
+    ["una versión vieja", "0"],
+    ["una versión que no existe", "99"],
+    ["basura", "<script>1</script>"],
+    ["vacía", ""],
+  ])(
+    "con %s en el campo de versión no guarda nada y pide releer el aviso",
+    async (_caso, version) => {
+      const resultado = await procesar(
+        envio({
+          whatsapp: "7719990122",
+          queOfreces: "Lo que ya había escrito",
+          [CAMPO_VERSION_AVISO]: version,
+        }),
+      );
+
+      expect(resultado.exito).toBe(false);
+      if (resultado.exito) return;
+      // El mensaje va junto a la casilla, con el literal de la spec.
+      expect(resultado.estado.errores.consentimiento).toBe(
+        "El aviso de privacidad cambió mientras llenabas esto. Léelo otra vez y vuelve a marcar la casilla.",
+      );
+      expect(resultado.estado.errores.consentimiento).toBe(
+        MENSAJES_ERROR_REGISTRO.avisoDesfasado,
+      );
+      // Y no se pierde lo capturado.
+      expect(resultado.estado.valores.queOfreces).toBe("Lo que ya había escrito");
+      expect(await buscar("7719990122")).toBeNull();
+    },
+  );
+
+  // Scenario: el aviso cambió a media captura (no modifica nada existente)
+  it("un envío con versión desfasada tampoco toca una ficha que ya existe", async () => {
+    await procesar(envio({ whatsapp: "7719990123", nombre: "Ficticia La Primera" }));
+
+    const resultado = await procesar(
+      envio({
+        whatsapp: "7719990123",
+        nombre: "Ficticia La Intrusa",
+        [CAMPO_VERSION_AVISO]: "99",
+      }),
+    );
+
+    expect(resultado.exito).toBe(false);
+    const ficha = await prisma.negocio.findUniqueOrThrow({
+      where: { whatsapp: "7719990123" },
+    });
+    expect(ficha.nombre).toBe("Ficticia La Primera");
+    expect(ficha.consintioAvisoVersion).toBe(VERSION_AVISO);
+  });
+
+  // Scenario: reintento después del cambio
+  it("cuando el dueño relee y vuelve a mandar con la versión vigente, se guarda", async () => {
+    const primero = await procesar(
+      envio({ whatsapp: "7719990124", [CAMPO_VERSION_AVISO]: "99" }),
+    );
+    expect(primero.exito).toBe(false);
+
+    const segundo = await procesar(envio({ whatsapp: "7719990124" }));
+    expect(segundo.exito).toBe(true);
+
+    const creado = await prisma.negocio.findUniqueOrThrow({
+      where: { whatsapp: "7719990124" },
+    });
+    expect(creado.consintioAvisoVersion).toBe(VERSION_AVISO);
   });
 
   // ── Rechazos de validación: nada se guarda y no se pierde lo capturado ────

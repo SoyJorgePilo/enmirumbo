@@ -36,6 +36,8 @@ import { procesarRegistro } from "../src/lib/registro/procesar";
 import { MENSAJES_ERROR_FOTO } from "../src/lib/registro/textos";
 import { crearClientePrueba } from "./db";
 import { archivoDeFormulario, jpegDePrueba } from "./fotos-fixtures";
+import { VERSION_AVISO } from "../src/lib/legales/version";
+import { CAMPO_VERSION_AVISO } from "../src/lib/registro/textos";
 
 // Spec `registro-negocio`, requirement "El trabajo de imagen tiene un techo y
 // el que no cabe se va con un mensaje, no a una cola" (enmienda de la
@@ -58,6 +60,9 @@ function formulario(whatsapp: string, extra: Record<string, string | File> = {})
   datos.set("coloniaId", String(coloniaId));
   datos.set("horario", "L-S 9am-7pm");
   datos.set("consentimiento", "on");
+  // Campo oculto con la versión del aviso que pintó el formulario
+  // (change `versionar-aviso-privacidad`): sin él, el envío se rechaza.
+  datos.set(CAMPO_VERSION_AVISO, VERSION_AVISO);
   for (const [clave, valor] of Object.entries(extra)) datos.set(clave, valor);
   return datos;
 }

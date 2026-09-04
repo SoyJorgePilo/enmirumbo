@@ -54,6 +54,8 @@ import { procesarRegistro } from "../src/lib/registro/procesar";
 import { MENSAJES_ERROR_REGISTRO } from "../src/lib/registro/textos";
 import { peticion, reiniciarPeticion, urlDeRedireccion } from "./admin-mocks";
 import { crearClientePrueba } from "./db";
+import { VERSION_AVISO } from "../src/lib/legales/version";
+import { CAMPO_VERSION_AVISO } from "../src/lib/registro/textos";
 
 /**
  * Pruebas ADVERSARIALES del panel de revisión (etapa C del change
@@ -104,6 +106,9 @@ function envio(extra: Record<string, string> = {}): FormData {
     whatsapp: "7719996001",
     coloniaId: String(coloniaId),
     consentimiento: "on",
+    // Campo oculto con la versión del aviso que pintó el formulario
+    // (change `versionar-aviso-privacidad`): sin él, el envío se rechaza.
+    [CAMPO_VERSION_AVISO]: VERSION_AVISO,
     ...extra,
   };
   for (const [clave, valor] of Object.entries(campos)) {

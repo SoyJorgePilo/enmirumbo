@@ -158,7 +158,10 @@ export const AVISO_PRIVACIDAD: DocumentoLegal = {
           tipo: "lista",
           items: [
             "Obligatorios: el nombre de tu negocio, la categoría, tu número de WhatsApp de 10 dígitos y tu colonia.",
-            "Opcionales: qué ofreces, si haces entregas o vas a domicilio, teléfono fijo, dirección o referencias, horario y el link de tu Facebook.",
+            // Enmienda aprobada (T-012): el elemento (2) de la LFPDPPP pide
+            // enumerar TODOS los datos que se tratan, y desde T-008 el
+            // formulario captura una foto que esta lista no nombraba.
+            "Opcionales: qué ofreces, si haces entregas o vas a domicilio, teléfono fijo, dirección o referencias, horario, el link de tu Facebook y, si la subes, una foto de tu negocio.",
           ],
         },
         {

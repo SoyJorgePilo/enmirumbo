@@ -14,11 +14,28 @@ import {
  * sección como `h2` con sus párrafos/listas/enlaces (spec `paginas-legales`).
  * Server Component puro, sin directiva de cliente.
  *
+ * `version` solo la pasa el aviso de privacidad (change
+ * `versionar-aviso-privacidad`): antepone "Versión N · " a la línea de última
+ * actualización. Los términos no se versionan —hoy no se aceptan con casilla—
+ * así que la pintan tal cual. La versión llega como prop y no desde
+ * `documento` a propósito (design.md §1): el módulo del texto no sabe de
+ * versiones, es la versión la que sabe del texto.
+ *
  * Ancho de lectura cómodo (`max-w-2xl`, más angosto que el `max-w-3xl` del
  * layout raíz) para el texto largo (tasks.md #26); se ve completo en 390px
  * sin scroll horizontal porque no hay elementos de ancho fijo.
  */
-export function DocumentoLegalView({ documento }: { documento: DocumentoLegal }) {
+export function DocumentoLegalView({
+  documento,
+  version,
+}: {
+  documento: DocumentoLegal;
+  version?: string;
+}) {
+  const lineaActualizacion = `${
+    version ? `Versión ${version} · ` : ""
+  }Última actualización: ${documento.ultimaActualizacion}`;
+
   return (
     <article className="mx-auto flex w-full max-w-2xl flex-col gap-6 py-4">
       <header className="flex flex-col gap-3">
@@ -28,9 +45,7 @@ export function DocumentoLegalView({ documento }: { documento: DocumentoLegal })
             {TEXTO_MARCA_BORRADOR}
           </p>
         )}
-        <p className="text-sm text-tinta-suave">
-          Última actualización: {documento.ultimaActualizacion}
-        </p>
+        <p className="text-sm text-tinta-suave">{lineaActualizacion}</p>
         <p className="text-tinta-suave">{documento.introduccion}</p>
       </header>
       {documento.secciones.map((seccion) => (

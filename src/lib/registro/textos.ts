@@ -31,6 +31,14 @@ export const LIMITES_LONGITUD = {
   direccion: 200,
   horario: 100,
   facebookUrl: 300,
+  /**
+   * Campo oculto de la versión del aviso (hallazgo BAJO-1 de la etapa C: era
+   * el único campo de entrada sin cota). Es corta a propósito: solo tiene que
+   * caber un identificador de versión, no un texto. El valor no se guarda ni
+   * se refleja, así que la cota es paridad con el resto de los campos, no un
+   * arreglo de una fuga.
+   */
+  avisoVersion: 20,
 } as const;
 
 /**
@@ -49,6 +57,14 @@ export const MENSAJES_ERROR_REGISTRO = {
   coloniaId: "Elige tu colonia",
   coloniaOtra: "Escribe el nombre de tu colonia",
   consentimiento: "Marca la casilla para poder registrar tu negocio",
+  /**
+   * El aviso estrenó versión entre que el formulario se pintó y llegó el
+   * envío (change `versionar-aviso-privacidad`): nadie consiente un texto que
+   * no tuvo enfrente, así que no se guarda nada y se pide releer y volver a
+   * marcar. Va junto a la casilla, igual que `consentimiento`.
+   */
+  avisoDesfasado:
+    "El aviso de privacidad cambió mientras llenabas esto. Léelo otra vez y vuelve a marcar la casilla.",
   queOfreces: mensajeLimiteLongitud(LIMITES_LONGITUD.queOfreces),
   facebookUrl: "El link de Facebook debe empezar con http:// o https://",
   whatsappDuplicado:
@@ -122,3 +138,24 @@ export const TEXTO_ENLACE_AVISO_INTEGRAL = "Lee el aviso de privacidad completo"
 
 export const TEXTO_CONSENTIMIENTO =
   "Acepto el aviso de privacidad y confirmo que este negocio es mío o que tengo permiso para registrarlo.";
+
+/**
+ * Línea que dice, antes de la casilla, qué versión del aviso se está
+ * aceptando (change `versionar-aviso-privacidad`, requirement "Consentimiento
+ * con aviso simplificado visible y constancia").
+ *
+ * Recibe la versión en lugar de importarla: `src/lib/legales/version.ts`
+ * necesita el texto de este módulo para calcular la huella del aviso, así que
+ * importarla aquí armaría un ciclo. Quien pinta la línea pasa `VERSION_AVISO`,
+ * que sigue siendo la fuente única.
+ */
+export function textoVersionAceptada(version: string): string {
+  return `Estás aceptando la versión ${version} del aviso de privacidad.`;
+}
+
+/**
+ * Nombre del campo oculto donde el formulario devuelve la versión del aviso
+ * con la que se pintó (design.md §3). El servidor lo usa SOLO para comparar:
+ * la versión que se guarda es siempre la vigente del servidor.
+ */
+export const CAMPO_VERSION_AVISO = "avisoVersion";

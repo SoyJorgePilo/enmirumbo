@@ -6,6 +6,7 @@ import {
   DESCRIPCION_AVISO_PRIVACIDAD,
   TITULO_AVISO_PRIVACIDAD,
 } from "@/lib/legales/textos";
+import { VERSION_AVISO } from "@/lib/legales/version";
 
 /**
  * Aviso de privacidad integral (spec `paginas-legales`, requirement "Página
@@ -24,5 +25,9 @@ export const metadata: Metadata = {
 };
 
 export default function AvisoDePrivacidadPage() {
-  return <DocumentoLegalView documento={AVISO_PRIVACIDAD} />;
+  // La versión se lee del módulo que la declara (`src/lib/legales/version.ts`),
+  // nunca se escribe a mano aquí: al estrenar versión, esta página se entera
+  // sola (requirement "El aviso de privacidad tiene una versión estable
+  // declarada en un solo lugar").
+  return <DocumentoLegalView documento={AVISO_PRIVACIDAD} version={VERSION_AVISO} />;
 }

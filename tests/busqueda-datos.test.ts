@@ -11,6 +11,8 @@ import { datosDeBusqueda } from "../src/lib/busqueda";
 import { reiniciarLimitePorIp } from "../src/lib/registro/limite-ip";
 import { procesarRegistro } from "../src/lib/registro/procesar";
 import { crearClientePrueba } from "./db";
+import { VERSION_AVISO } from "../src/lib/legales/version";
+import { CAMPO_VERSION_AVISO } from "../src/lib/registro/textos";
 
 /**
  * Change `agregar-buscador`, tasks.md #3 a #7.
@@ -40,6 +42,9 @@ function envio(campos: Record<string, string> = {}): FormData {
     whatsapp: "7719994101",
     coloniaId: String(coloniaId),
     consentimiento: "on",
+    // Campo oculto con la versión del aviso que pintó el formulario
+    // (change `versionar-aviso-privacidad`): sin él, el envío se rechaza.
+    [CAMPO_VERSION_AVISO]: VERSION_AVISO,
     ...campos,
   };
   for (const [clave, valor] of Object.entries(base)) {

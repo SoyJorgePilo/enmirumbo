@@ -208,6 +208,45 @@ describe("revision-admin · detalle de un registro", () => {
     expect(detalle?.consintioAvisoEn).toBeInstanceOf(Date);
   });
 
+  // Scenario: detalle completo (la constancia con su versión, change
+  // `versionar-aviso-privacidad`)
+  it("trae la versión de la constancia y la reaceptación cuando existen", async () => {
+    const conVersion = await prisma.negocio.create({
+      data: {
+        nombre: "Cerrajería Ficticia de la Versión",
+        categoriaId,
+        whatsapp: `${PREFIJO}205`,
+        coloniaId,
+        consintioAvisoEn: haceHoras(10),
+        consintioAvisoVersion: "1",
+        reconsintioAvisoEn: haceHoras(2),
+        reconsintioAvisoVersion: "2",
+        registradoEn: haceHoras(10),
+      },
+    });
+
+    const detalle = await obtenerRegistroParaPanel(prisma, conVersion.id);
+    expect(detalle?.consintioAvisoVersion).toBe("1");
+    expect(detalle?.reconsintioAvisoEn).toBeInstanceOf(Date);
+    expect(detalle?.reconsintioAvisoVersion).toBe("2");
+
+    // Y una ficha anterior al versionado los trae nulos, sin inventar nada.
+    const sinVersion = await prisma.negocio.create({
+      data: {
+        nombre: "Cerrajería Ficticia Sin Versión",
+        categoriaId,
+        whatsapp: `${PREFIJO}206`,
+        coloniaId,
+        consintioAvisoEn: haceHoras(10),
+        registradoEn: haceHoras(10),
+      },
+    });
+    const viejo = await obtenerRegistroParaPanel(prisma, sinVersion.id);
+    expect(viejo?.consintioAvisoVersion).toBeNull();
+    expect(viejo?.reconsintioAvisoEn).toBeNull();
+    expect(viejo?.reconsintioAvisoVersion).toBeNull();
+  });
+
   // Scenario: detalle de un registro con solo obligatorios
   it("con solo los obligatorios deja los opcionales nulos, sin inventar contenido", async () => {
     const creado = await alta({

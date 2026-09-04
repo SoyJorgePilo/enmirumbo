@@ -30,6 +30,7 @@ import { datosDeBusqueda } from "@/lib/busqueda";
 import { almacenDeFotos, type AlmacenFotos } from "@/lib/fotos/almacen";
 import { generarClaveFoto } from "@/lib/fotos/clave";
 import { procesarFoto } from "@/lib/fotos/procesar";
+import { VERSION_AVISO, versionAvisoEsPosterior } from "@/lib/legales/version";
 import {
   ESTADO_NEGOCIO_DEFAULT,
   ESTADO_NEGOCIO_RECHAZADO,
@@ -56,8 +57,18 @@ export type ClienteRegistro = {
   negocio: {
     findUnique(args: {
       where: { whatsapp: string };
-      select: { id: true; estado: true; fotoClave: true };
-    }): Promise<{ id: string; estado: string; fotoClave: string | null } | null>;
+      select: {
+        id: true;
+        estado: true;
+        fotoClave: true;
+        consintioAvisoVersion: true;
+      };
+    }): Promise<{
+      id: string;
+      estado: string;
+      fotoClave: string | null;
+      consintioAvisoVersion: string | null;
+    } | null>;
     create(args: { data: Record<string, unknown> }): Promise<unknown>;
     updateMany(args: {
       where: { id: string; estado: string };
@@ -166,7 +177,7 @@ export async function procesarRegistro(
 ): Promise<ResultadoRegistro> {
   const ahora = contexto.ahora ?? new Date();
   const almacen = contexto.almacen ?? almacenDeFotos();
-  const { campos, consentimiento, trampa, foto, quitarFoto } =
+  const { campos, consentimiento, versionAvisoDeclarada, trampa, foto, quitarFoto } =
     leerEnvioRegistro(formData);
   // Lo que vuelve al formulario va truncado a la cota de cada campo: nunca se
   // le devuelve al cliente un payload gigante que él mismo mandó (MEDIO 3).
@@ -213,6 +224,7 @@ export async function procesarRegistro(
   const validacion = validarRegistro({
     campos,
     consentimiento,
+    versionAvisoDeclarada,
     categorias,
     colonias,
     foto,
@@ -228,11 +240,23 @@ export async function procesarRegistro(
   // 4. Una sola ficha por número (PRD §6.1), ya normalizado a 10 dígitos.
   //    Excepción: una ficha `rechazado` puede corregir y volver a enviar
   //    (PRD §6.3), y entonces se actualiza esa misma fila.
-  let existente: { id: string; estado: string; fotoClave: string | null } | null;
+  let existente: {
+    id: string;
+    estado: string;
+    fotoClave: string | null;
+    consintioAvisoVersion: string | null;
+  } | null;
   try {
     existente = await contexto.prisma.negocio.findUnique({
       where: { whatsapp: datos.whatsapp },
-      select: { id: true, estado: true, fotoClave: true },
+      // `consintioAvisoVersion` se lee para saber si un reenvío está
+      // aceptando una versión distinta de la de la constancia original.
+      select: {
+        id: true,
+        estado: true,
+        fotoClave: true,
+        consintioAvisoVersion: true,
+      },
     });
   } catch (error) {
     console.error(`[registro] falló la consulta de duplicado: ${resumenDeError(error)}`);
@@ -296,7 +320,8 @@ export async function procesarRegistro(
     // y `publicadoEn` no están en `datos` (los fija el servidor, ver
     // `DatosNegocioValidados`), así que un envío no puede autopublicarse.
     //
-    // `consintioAvisoEn` TAMPOCO se toca (hallazgo MEDIO 4 de la etapa C, que
+    // `consintioAvisoEn` —y con él `consintioAvisoVersion`, que es la otra
+    // mitad de la misma constancia— TAMPOCO se toca (hallazgo MEDIO 4 de la etapa C, que
     // corrige lo que decía design.md §6): es la constancia LFPDPPP de que el
     // titular consintió el aviso (PRD §8), y este formulario es anónimo —
     // quien reenvía puede no ser el dueño. Pisarla sustituiría la evidencia
@@ -314,12 +339,40 @@ export async function procesarRegistro(
     // línea el admin pudo haberla resuelto desde el panel, y un `update` por
     // id la regresaría a la cola pisando esa resolución. Si no afecta ninguna
     // fila, ya no era un reenvío: es el duplicado de siempre.
+    //
+    // Lo que SÍ se anota, aparte: la reaceptación (change
+    // `versionar-aviso-privacidad`). Si la versión vigente del aviso es
+    // POSTERIOR a la de la constancia original, este reenvío aceptó un texto
+    // más nuevo que el que la constancia ampara, y eso queda registrado en su
+    // propio par de campos: cuándo y qué versión. Pisar la constancia
+    // produciría una evidencia falsa ("consintió en agosto la versión que se
+    // estrenó en octubre"), así que la reaceptación la COMPLEMENTA.
+    //
+    // ITERACIÓN 2 (hallazgos MEDIO-3 y MEDIO-4 de la etapa C): la condición es
+    // "posterior", no "distinta". Con `!==`, un rollback del despliegue
+    // (constancia de la `2`, vigente la `1`) anotaba como reaceptación una
+    // versión más vieja; y una constancia SIN versión —todas las fichas
+    // anteriores al versionado— estrenaba reaceptación en el primer reenvío,
+    // convirtiendo a cualquiera que conociera el número en autor de evidencia
+    // de consentimiento. "No consta" no es comparable: no se anota nada y el
+    // panel sigue diciendo "versión no registrada", que es la verdad.
+    const columnasReaceptacion = versionAvisoEsPosterior(
+      VERSION_AVISO,
+      existente.consintioAvisoVersion,
+    )
+      ? { reconsintioAvisoEn: ahora, reconsintioAvisoVersion: VERSION_AVISO }
+      : {};
+
     let afectadas: number;
     try {
       const escritura = await contexto.prisma.negocio.updateMany({
         where: { id: existente.id, estado: ESTADO_NEGOCIO_RECHAZADO },
         data: {
           ...datos,
+          // Después de `datos` (que nunca trae estas columnas) y dentro del
+          // mismo `updateMany` condicionado al estado `rechazado`: la
+          // reaceptación solo se escribe si el reenvío de verdad prospera.
+          ...columnasReaceptacion,
           // El reenvío pisa nombre y "¿qué ofreces?": el texto normalizado
           // del buscador se recalcula con ellos, o la ficha reenviada se
           // seguiría encontrando por el contenido del envío rechazado.
@@ -374,7 +427,12 @@ export async function procesarRegistro(
         // estado, el origen y la constancia del consentimiento: `datos` nunca
         // la trae, así que ningún campo del cliente puede fijarla.
         fotoClave: claveNueva,
+        // La constancia LFPDPPP es un PAR y se escribe de un solo trazo: la
+        // fecha y la versión del aviso vigente en el servidor (nunca la que
+        // vino en el envío, que solo sirvió para detectar el desfase). Van
+        // juntas en el mismo bloque para que nadie pueda separarlas.
         consintioAvisoEn: ahora,
+        consintioAvisoVersion: VERSION_AVISO,
         estado: ESTADO_NEGOCIO_DEFAULT,
         origen: ORIGEN_NEGOCIO_DEFAULT,
       },

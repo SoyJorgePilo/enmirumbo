@@ -11,6 +11,7 @@
 | 2026-09-03 | deuda-post-merge | corta | — | 1 alto corregido (`.env.example` ignorado por `.gitignore`) | no | [#4](https://github.com/SoyJorgePilo/necesitouno/pull/4) | |
 | 2026-09-03 | agregar-formulario-registro | completa | 1 (1 alto + 6 medios, corregidos y re-verificados en la iteración) | 0 bloqueantes (3 notas informativas: no-op en un test, convención de teléfonos ficticios, fusión de scenarios al archivar) | sí | [#5](https://github.com/SoyJorgePilo/necesitouno/pull/5) | |
 | 2026-09-03 | agregar-directorio-publico | completa | 1 (0 críticos/altos; 2 medios corregidos —`tel:` sin normalizar y guarda del seed— y re-verificados) | 0 bloqueantes (1 decisión de producto tomada: el fijo no marcable como texto; 5 notas: format-detection, convención de fijos ficticios —reincidente—, marcador de foto en la ficha, salto h1→h3 en el listado, conteo real 14 req/54 sc) | sí | [#6](https://github.com/SoyJorgePilo/necesitouno/pull/6) | |
+| 2026-09-03 | agregar-panel-admin | completa | 1 (1 alto + 4 medios corregidos en iteración; veredicto final limpio con 5 bajos documentados) | 0 bloqueantes (1 corrección editorial aplicada por el validador: `tasks.md` #22 seguía describiendo la constancia de consentimiento como se decidió ANTES de la enmienda del `design.md` §6; 3 notas: prop `motivoPrevio` sin usar, "Revisar" `aria-hidden` en la tarjeta de la cola, revisión visual a 390px pendiente del humano) | sí | [#8](https://github.com/SoyJorgePilo/necesitouno/pull/8) | |
 
 ## Qué mirar cada ~5 corridas
 

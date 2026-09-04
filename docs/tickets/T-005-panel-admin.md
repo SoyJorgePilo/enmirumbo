@@ -6,7 +6,7 @@
 **Referencias PRD:** §6.3, §7 Flujo A (tramo del admin), §8 (LFPDPPP, retención de rechazados)
 **Depende de:** T-001, T-003 (hay registros que revisar), T-004 (al aprobar se publica en el directorio)
 **OpenSpec change:** `agregar-panel-admin`
-**PR:** —
+**PR:** [#8](https://github.com/SoyJorgePilo/necesitouno/pull/8)
 
 ## Contexto
 

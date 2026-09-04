@@ -6,7 +6,7 @@
 **Referencias PRD:** §6.3 (moderación, retiro de fichas), §8 (ARCO ≤20 días hábiles, borrado definitivo)
 **Depende de:** T-005 (panel), T-011 (los reportes son el disparador natural)
 **OpenSpec change:** `agregar-despublicar-y-borrado-arco`
-**PR:** —
+**PR:** [#13](https://github.com/SoyJorgePilo/necesitouno/pull/13)
 
 ## Contexto
 

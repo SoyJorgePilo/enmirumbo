@@ -1,17 +1,37 @@
+import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { BotonesContacto } from "@/components/directorio/botones-contacto";
 import { EtiquetaADomicilio } from "@/components/directorio/etiqueta-domicilio";
 import { MarcadorFoto } from "@/components/directorio/marcador-foto";
 import { SelloVerificado } from "@/components/directorio/sello-verificado";
-import { obtenerNegocioPublicado } from "@/lib/directorio";
+import {
+  obtenerGirosDeNegocioPublicado,
+  obtenerNegocioPublicado,
+} from "@/lib/directorio";
+import {
+  datosEstructuradosDeFicha,
+  serializarJsonLd,
+} from "@/lib/seo/datos-estructurados";
+import { fraseDeGiro } from "@/lib/seo/frases-giro";
+import {
+  NOMBRE_DEL_SITIO,
+  canonicaDe,
+  imagenesDeLaFicha,
+} from "@/lib/seo/metadata";
+import { descripcionFicha, tituloFicha } from "@/lib/seo/titulos";
+import { urlAbsoluta } from "@/lib/sitio";
 import {
   construirEnlaceComoLlegar,
   construirEnlaceTelefono,
   construirEnlaceWhatsapp,
   obtenerPaginaRegistrada,
 } from "@/lib/enlaces";
-import { extraerIdDeSegmentoFicha } from "@/lib/ficha-url";
+import {
+  construirSegmentoFicha,
+  extraerIdDeSegmentoFicha,
+} from "@/lib/ficha-url";
 
 /**
  * Ficha de negocio en `/negocio/<slug>-<id>` (spec directorio-publico,
@@ -27,6 +47,50 @@ import { extraerIdDeSegmentoFicha } from "@/lib/ficha-url";
  */
 export const dynamic = "force-dynamic";
 
+/**
+ * Título, descripción, canónica y vista previa al compartir (spec
+ * `directorio-publico`, requirements "Título y descripción propios…" y "La
+ * ficha se ve bien al compartirla por WhatsApp o Facebook").
+ *
+ * La descripción es lo que el negocio escribió en "¿Qué ofreces?" (recortado)
+ * o la frase de respaldo con su nombre y su colonia; nunca su WhatsApp ni su
+ * teléfono. La imagen es su foto y, si no tiene, la imagen de marca del sitio:
+ * ninguna ficha se comparte sin imagen (PRD §9).
+ */
+export async function generateMetadata({
+  params,
+}: PageProps<"/negocio/[ficha]">): Promise<Metadata> {
+  const { ficha } = await params;
+  const id = extraerIdDeSegmentoFicha(ficha);
+  const negocio = id ? await obtenerNegocioPublicado(id) : null;
+  // Lo que no existe (o no está publicado) no declara nada: la página
+  // responde el mismo 404 en los dos casos.
+  if (!negocio) return {};
+
+  // La canónica es SIEMPRE el segmento con el nombre actual: la parte legible
+  // es decorativa y un enlace viejo (con el nombre anterior) sigue abriendo
+  // la ficha, pero no puede indexarse como una segunda URL.
+  const ruta = `/negocio/${construirSegmentoFicha(negocio.nombre, negocio.id)}`;
+  const titulo = tituloFicha(negocio.nombre, negocio.coloniaNombre);
+  const descripcion = descripcionFicha(negocio);
+  const url = urlAbsoluta(ruta);
+
+  return {
+    title: titulo,
+    description: descripcion,
+    alternates: canonicaDe(ruta),
+    openGraph: {
+      type: "article",
+      title: titulo,
+      description: descripcion,
+      siteName: NOMBRE_DEL_SITIO,
+      locale: "es_MX",
+      ...(url ? { url } : {}),
+      images: imagenesDeLaFicha(negocio.fotoUrl),
+    },
+  };
+}
+
 export default async function FichaNegocioPage({
   params,
 }: PageProps<"/negocio/[ficha]">) {
@@ -35,6 +99,10 @@ export default async function FichaNegocioPage({
   const negocio = id ? await obtenerNegocioPublicado(id) : null;
 
   if (!negocio) notFound();
+
+  // Giros que el admin le asignó al aprobar: son los que hacen alcanzables (y
+  // rastreables) las páginas de giro sin depender solo del sitemap.
+  const giros = await obtenerGirosDeNegocioPublicado(negocio.id);
 
   const hrefComoLlegar = construirEnlaceComoLlegar(
     negocio.direccion,
@@ -48,8 +116,25 @@ export default async function FichaNegocioPage({
     ? negocio.telefonoFijo
     : null;
 
+  // Datos estructurados de la ficha (design.md §6). Se renderizan como un
+  // `<script type="application/ld+json">` del propio Server Component, que es
+  // lo que recomienda la guía de Next: es un bloque de DATOS, no código
+  // ejecutable, así que no cuenta como JavaScript de cliente.
+  const jsonLd = serializarJsonLd(
+    datosEstructuradosDeFicha(
+      negocio,
+      giros,
+      `/negocio/${construirSegmentoFicha(negocio.nombre, negocio.id)}`,
+    ),
+  );
+
   return (
     <article className="flex flex-col gap-6 py-4">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: jsonLd }}
+      />
+
       <div className="relative aspect-video w-full overflow-hidden rounded-xl">
         <MarcadorFoto fotoUrl={negocio.fotoUrl} />
       </div>
@@ -89,6 +174,25 @@ export default async function FichaNegocioPage({
           <span className="font-semibold text-tinta">Teléfono: </span>
           {telefonoNoMarcable}
         </p>
+      )}
+
+      {/* Giros asignados: cada uno lleva a su página de giro, que por
+          construcción tiene al menos a este negocio (nunca a una de las
+          páginas vacías no indexables). Sin giros no se pinta nada: ninguna
+          sección vacía, igual que el resto de los campos que el negocio no
+          llenó. */}
+      {giros.length > 0 && (
+        <nav aria-label="Lo que hace este negocio" className="flex flex-wrap gap-2">
+          {giros.map((giro) => (
+            <Link
+              key={giro.slug}
+              href={`/${giro.slug}`}
+              className="inline-flex min-h-11 items-center rounded-full border border-borde px-4 text-sm font-semibold text-tinta-suave transition-colors hover:bg-superficie"
+            >
+              {fraseDeGiro(giro)}
+            </Link>
+          ))}
+        </nav>
       )}
 
       <BotonesContacto

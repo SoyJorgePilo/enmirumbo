@@ -272,6 +272,13 @@ describe("directorio-publico · la página de resultados no es indexable (tasks 
   it("ninguna otra página del sitio quedó marcada como no indexable", () => {
     // El panel de revisión (spec revision-admin) exige su propio noindex:
     // las únicas páginas legítimamente no indexables son /buscar y /admin/*.
+    //
+    // El change `agregar-seo-local` suma un caso acotado —las páginas de giro
+    // y giro+colonia SIN negocios publicados—, y por eso mismo ninguna página
+    // lo escribe a mano: la instrucción vive en una sola constante
+    // (`NOINDEX_CON_ENLACES`, en `src/lib/seo/metadata.ts`) que la metadata
+    // del segmento dinámico aplica solo cuando no hay nada que mostrar. Esta
+    // verificación sigue cubriendo TODAS las páginas, incluida esa.
     const paginas = archivosDe(join(raiz, "src/app")).filter(
       (ruta) =>
         ruta !== join(raiz, "src/app/buscar/page.tsx") &&

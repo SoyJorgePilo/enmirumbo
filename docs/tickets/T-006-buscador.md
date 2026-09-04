@@ -6,7 +6,7 @@
 **Referencias PRD:** §6.2 (búsqueda simple, normalización), §7 Flujo B
 **Depende de:** T-004 (directorio público)
 **OpenSpec change:** `agregar-buscador`
-**PR:** —
+**PR:** [#7](https://github.com/SoyJorgePilo/necesitouno/pull/7)
 
 ## Contexto
 

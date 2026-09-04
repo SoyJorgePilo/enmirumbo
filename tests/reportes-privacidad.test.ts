@@ -5,9 +5,9 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { seedCatalogos } from "../prisma/seed";
-import ListadoCategoriaPage from "../src/app/[destino]/page";
-import BuscarPage from "../src/app/buscar/page";
-import FichaNegocioPage from "../src/app/negocio/[ficha]/page";
+import ListadoCategoriaPage from "../src/app/(publico)/[destino]/page";
+import BuscarPage from "../src/app/(publico)/buscar/page";
+import FichaNegocioPage from "../src/app/(publico)/negocio/[ficha]/page";
 import type { PrismaClient } from "../src/generated/prisma/client";
 import { datosDeBusqueda } from "../src/lib/busqueda";
 import { construirSegmentoFicha } from "../src/lib/ficha-url";

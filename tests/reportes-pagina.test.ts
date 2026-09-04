@@ -18,14 +18,14 @@ vi.mock("next/navigation", async () => {
 });
 
 import { seedCatalogos } from "../prisma/seed";
-import FichaNegocioPage from "../src/app/negocio/[ficha]/page";
-import { reportarNegocio } from "../src/app/negocio/[ficha]/reportar/accion";
+import FichaNegocioPage from "../src/app/(publico)/negocio/[ficha]/page";
+import { reportarNegocio } from "../src/app/(publico)/negocio/[ficha]/reportar/accion";
 import ReportarGraciasPage, {
   metadata as metadataGracias,
-} from "../src/app/negocio/[ficha]/reportar/gracias/page";
+} from "../src/app/(publico)/negocio/[ficha]/reportar/gracias/page";
 import ReportarNegocioPage, {
   metadata as metadataReportar,
-} from "../src/app/negocio/[ficha]/reportar/page";
+} from "../src/app/(publico)/negocio/[ficha]/reportar/page";
 import type { PrismaClient } from "../src/generated/prisma/client";
 import { construirSegmentoFicha } from "../src/lib/ficha-url";
 import {
@@ -217,7 +217,7 @@ describe("directorio-publico · el formulario de reporte", () => {
   // Scenario: sin JS de cliente nuevo
   it('ningún archivo nuevo del reporte declara "use client"', () => {
     const archivos = [
-      ...archivosDe(join(raiz, "src/app/negocio")),
+      ...archivosDe(join(raiz, "src/app/(publico)/negocio")),
       ...archivosDe(join(raiz, "src/components/reportes")),
       ...archivosDe(join(raiz, "src/lib/reportes")),
       join(raiz, "src/components/directorio/boton-reportar.tsx"),
@@ -274,7 +274,7 @@ describe("directorio-publico · los errores vuelven al formulario", () => {
   // la ruta de la ficha en el servidor.
   it("el formulario liga un solo argumento: el identificador del negocio", () => {
     const fuente = readFileSync(
-      join(raiz, "src/app/negocio/[ficha]/reportar/page.tsx"),
+      join(raiz, "src/app/(publico)/negocio/[ficha]/reportar/page.tsx"),
       "utf8",
     );
     expect(fuente).toContain("reportarNegocio.bind(null, negocio.id)");

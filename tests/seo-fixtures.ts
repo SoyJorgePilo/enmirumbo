@@ -26,13 +26,25 @@ type NegocioSeo = {
   estado: "publicado" | "en_revision";
   publicadoEn?: string;
   queOfreces?: string;
-  /** Ruta de la foto; hoy la llena T-008, aquí es un archivo inventado. */
-  fotoUrl?: string;
+  /**
+   * Referencia interna de la foto (T-008): la clave opaca que genera el
+   * servidor, no una ruta ni una URL. Aquí va una clave fija e inventada para
+   * que las aserciones de `og:image` y del JSON-LD sean estables.
+   */
+  fotoClave?: string;
   direccion?: string;
   telefonoFijo?: string;
   horario?: string;
   giros: string[];
 };
+
+/**
+ * Clave de foto de los fixtures: 32 hexadecimales, la misma forma que genera
+ * `generarClaveFoto()` (T-008). No hay archivo detrás —estas suites solo miran
+ * el HTML y la metadata—, y de ella sale la URL interna
+ * `/api/foto/<clave>/ficha` que se publica en `og:image` y en el JSON-LD.
+ */
+export const CLAVE_FOTO_SEO = "a1b2c3d4e5f60718293a4b5c6d7e8f90";
 
 /** Prefijo de los WhatsApp de estos fixtures (la limpieza borra `7719995*`). */
 export const NEGOCIOS_SEO: NegocioSeo[] = [
@@ -91,7 +103,7 @@ export const NEGOCIOS_SEO: NegocioSeo[] = [
     estado: "publicado",
     publicadoEn: "2026-08-04T10:00:00.000Z",
     queOfreces: "Pan dulce y bolillo recién salido (negocio de mentira).",
-    fotoUrl: "/fotos/negocio-ficticio.jpg",
+    fotoClave: CLAVE_FOTO_SEO,
     direccion: "Calle Inventada 99, junto a la nada",
     telefonoFijo: "7717775023",
     horario: "L-D 7am-9pm",
@@ -113,7 +125,7 @@ export async function sembrarNegociosSeo(prisma: PrismaClient): Promise<void> {
       categoriaId: categoria.id,
       coloniaId: colonia.id,
       queOfreces: negocio.queOfreces ?? null,
-      fotoUrl: negocio.fotoUrl ?? null,
+      fotoClave: negocio.fotoClave ?? null,
       direccion: negocio.direccion ?? null,
       telefonoFijo: negocio.telefonoFijo ?? null,
       horario: negocio.horario ?? null,

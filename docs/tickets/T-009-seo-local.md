@@ -1,6 +1,6 @@
 # T-009 · Construir el SEO local: páginas por giro, Schema, sitemap y metadata
 
-**Estado:** en-review
+**Estado:** hecho
 **Prioridad:** P0
 **Épica:** E5-1, E5-2, E5-3, E5-5, E4-3 (docs/backlog.md)
 **Referencias PRD:** §8 (SEO local, páginas por giro generadas del catálogo cerrado), §6.5 (oportunidad SEO de deporte sin competencia), §6.2, §10 (tráfico orgánico como métrica)

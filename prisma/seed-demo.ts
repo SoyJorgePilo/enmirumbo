@@ -16,9 +16,14 @@
  * deja la base igual.
  */
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import sharp from "sharp";
 
 import { PrismaClient } from "../src/generated/prisma/client";
 import { datosDeBusqueda } from "../src/lib/busqueda";
+import { almacenDeFotos, type AlmacenFotos } from "../src/lib/fotos/almacen";
+import { esClaveFotoValida, generarClaveFoto } from "../src/lib/fotos/clave";
+import { procesarFoto } from "../src/lib/fotos/procesar";
+import { VERSION_AVISO } from "../src/lib/legales/version";
 import type { EstadoNegocio } from "../src/lib/negocio";
 import {
   type EntornoScriptDb,
@@ -41,6 +46,12 @@ export type NegocioDemo = {
   publicadoEn?: string;
   /** Fecha del rechazo; solo tiene sentido con estado `rechazado`. */
   rechazadoEn?: string;
+  /**
+   * Cuándo entró a la cola. Por defecto, la fecha común de siembra; se
+   * sobreescribe cuando la historia del negocio lo pide (un reenvío reinicia
+   * este reloj, así que la ficha que trae reaceptación tiene la suya).
+   */
+  registradoEn?: string;
   /** Motivo que escribió el admin al rechazar (ficticio). */
   motivoRechazo?: string;
   queOfreces?: string;
@@ -56,6 +67,36 @@ export type NegocioDemo = {
    * design.md §3).
    */
   giros?: string[];
+  /**
+   * Le genera una foto al vuelo (un rectángulo de color, nunca un archivo
+   * versionado ni la foto de un negocio real). Sirve para ver en desarrollo
+   * tanto la tarjeta con imagen como el marcador de posición del que no tiene
+   * (spec `modelo-datos`, requirement "El seed de demostración deja fichas con
+   * foto…").
+   */
+  conFoto?: boolean;
+  /**
+   * Ficha anterior al versionado del aviso (change
+   * `versionar-aviso-privacidad`): su constancia se queda SIN versión, como
+   * las que existían antes de que hubiera una. Sirve para ver en el panel el
+   * caso "versión no registrada".
+   */
+  sinVersionDeAviso?: boolean;
+  /**
+   * Versión que quedó en la constancia, cuando NO es la vigente. Sirve para
+   * sembrar el caso de la reaceptación: hace falta una constancia de una
+   * versión anterior a la vigente para que un reenvío pueda haber aceptado
+   * una posterior.
+   */
+  versionDeLaConstancia?: string;
+  /**
+   * Reaceptación: cuándo un reenvío aceptó la versión vigente, siendo la de
+   * su constancia anterior. Solo tiene sentido junto con
+   * `versionDeLaConstancia`: la reaceptación se anota únicamente cuando la
+   * vigente es POSTERIOR a la de la constancia (iteración 2, hallazgos
+   * MEDIO-3 y MEDIO-4 de la etapa C).
+   */
+  reconsintioAvisoEn?: string;
 };
 
 /**
@@ -149,6 +190,9 @@ export const NEGOCIOS_DEMO: NegocioDemo[] = [
     // sin prometer Facebook (hallazgo M4 de T-003).
     facebookUrl: "https://halcones-ficticios.example.mx/perfil",
     giros: ["futbol"],
+    // El de la foto. Su categoría tiene otro negocio publicado SIN foto (el
+    // club de natación), así que ese listado enseña los dos casos juntos.
+    conFoto: true,
   },
   {
     nombre: "Club de Natación Delfines de Mentiras",
@@ -200,11 +244,18 @@ export const NEGOCIOS_DEMO: NegocioDemo[] = [
   },
   {
     // En revisión: no debe aparecer en /belleza ni tener ficha.
+    //
+    // Es también el caso "ficha anterior al versionado" del change
+    // `versionar-aviso-privacidad`: su constancia no tiene versión, así que el
+    // panel muestra "versión no registrada". Y NO lleva reaceptación: "no
+    // consta" no es comparable, así que un reenvío no le estrena evidencia
+    // (iteración 2, hallazgo MEDIO-4 de la etapa C).
     nombre: "Barbería El Buen Corte Imaginario",
     categoriaSlug: "belleza",
     coloniaSlug: "tizayuca-centro",
     whatsapp: "7719995011",
     estado: "en_revision",
+    sinVersionDeAviso: true,
     queOfreces: "Corte de caballero y barba (negocio de mentira, en revisión).",
     telefonoFijo: "7717775011",
     direccion: "Calle Imaginaria 45",
@@ -220,6 +271,16 @@ export const NEGOCIOS_DEMO: NegocioDemo[] = [
     whatsapp: "7719995012",
     estado: "rechazado",
     queOfreces: "Negocio de mentira rechazado por el admin.",
+    // Caso de la REACEPTACIÓN para el panel: se registró con una versión
+    // anterior del aviso, lo rechazaron, reenvió el 1 de agosto cuando ya
+    // estaba vigente la de hoy —ahí se anotó la reaceptación y se reinició el
+    // reloj de la cola— y lo volvieron a rechazar al día siguiente. La versión
+    // "0" es tan ficticia como el negocio: hace falta una constancia anterior
+    // a la vigente para que este caso exista, y la vigente es la primera que
+    // se publica.
+    versionDeLaConstancia: "0",
+    registradoEn: "2026-08-01T09:30:00.000Z",
+    reconsintioAvisoEn: "2026-08-01T09:30:00.000Z",
     rechazadoEn: "2026-08-02T11:00:00.000Z",
     motivoRechazo:
       "El número no contesta y no pudimos confirmar que el negocio exista (motivo ficticio).",
@@ -273,14 +334,61 @@ export function motivoParaNoSembrar(env: EntornoSeedDemo): string | null {
   return null;
 }
 
+/** Paleta neutra del sitio (globals.css): nada de colores nuevos. */
+const COLORES_FOTO_DEMO = [
+  { r: 199, g: 191, b: 174 },
+  { r: 174, g: 188, b: 199 },
+  { r: 184, g: 199, b: 174 },
+  { r: 199, g: 174, b: 187 },
+];
+
+function colorParaNombre(nombre: string) {
+  let suma = 0;
+  for (let i = 0; i < nombre.length; i++) suma = (suma * 31 + nombre.charCodeAt(i)) >>> 0;
+  return COLORES_FOTO_DEMO[suma % COLORES_FOTO_DEMO.length];
+}
+
+/**
+ * "Foto" de demostración: un rectángulo de color generado AL VUELO y pasado
+ * por el mismo pipeline de producción (`procesarFoto`), para que lo que se ve
+ * en desarrollo sea exactamente lo que el sitio serviría.
+ *
+ * Nunca un archivo de imagen versionado, nunca la foto de un negocio ni de
+ * una persona real (repo público + LFPDPPP, PRD §8).
+ */
+async function guardarFotoDemo(
+  almacen: AlmacenFotos,
+  clave: string,
+  nombre: string,
+): Promise<void> {
+  const original = await sharp({
+    create: { width: 1600, height: 1200, channels: 3, background: colorParaNombre(nombre) },
+  })
+    .png()
+    .toBuffer();
+
+  const procesada = await procesarFoto(original);
+  if (!procesada.ok) {
+    throw new Error(`No se pudo generar la foto de demostración: ${procesada.motivo}`);
+  }
+  await almacen.guardar(clave, "tarjeta", procesada.variantes.tarjeta);
+  await almacen.guardar(clave, "ficha", procesada.variantes.ficha);
+}
+
 /**
  * Siembra (o actualiza) los negocios ficticios. Idempotente por WhatsApp.
  * Necesita los catálogos ya poblados (`npm run db:seed`): si falta una
  * categoría o una colonia, avisa con un mensaje que dice qué hacer.
+ *
+ * También es idempotente en las fotos: si el negocio ya tenía una clave
+ * válida se reutiliza (se reescriben sus dos variantes), y si dejó de tener
+ * foto se borran las que tenía. Correrlo dos veces deja una sola foto por
+ * negocio sembrado y ningún archivo suelto.
  */
 export async function sembrarNegociosDemo(
   prisma: PrismaClient,
   env: EntornoSeedDemo = process.env,
+  almacen: AlmacenFotos = almacenDeFotos(),
 ): Promise<ResultadoSeedDemo> {
   const motivo = motivoParaNoSembrar(env);
   if (motivo) {
@@ -326,6 +434,21 @@ export async function sembrarNegociosDemo(
     const girosAlCrear = { connect: slugsDeGiros.map((slug) => ({ slug })) };
     const girosAlActualizar = { set: slugsDeGiros.map((slug) => ({ slug })) };
 
+    // Foto: se reutiliza la clave que ya tuviera (idempotencia) y se limpia la
+    // anterior si este negocio dejó de llevar foto.
+    const previo = await prisma.negocio.findUnique({
+      where: { whatsapp: demo.whatsapp },
+      select: { fotoClave: true },
+    });
+    const claveAnterior = previo?.fotoClave ?? null;
+    let fotoClave: string | null = null;
+    if (demo.conFoto) {
+      fotoClave = esClaveFotoValida(claveAnterior) ? claveAnterior : generarClaveFoto();
+      await guardarFotoDemo(almacen, fotoClave, demo.nombre);
+    } else if (claveAnterior) {
+      await almacen.borrar(claveAnterior);
+    }
+
     const datos = {
       nombre: demo.nombre,
       categoriaId: categoria.id,
@@ -340,6 +463,7 @@ export async function sembrarNegociosDemo(
       direccion: demo.direccion ?? null,
       horario: demo.horario ?? null,
       facebookUrl: demo.facebookUrl ?? null,
+      fotoClave,
       estado: demo.estado,
       // Datos de siembra, no de un registro real del formulario.
       origen: "siembra",
@@ -348,6 +472,20 @@ export async function sembrarNegociosDemo(
       // así que volver a sembrar limpia el rastro de un rechazo anterior.
       rechazadoEn: demo.rechazadoEn ? new Date(demo.rechazadoEn) : null,
       motivoRechazo: demo.motivoRechazo ?? null,
+      // Constancia del consentimiento (change `versionar-aviso-privacidad`):
+      // el par fecha + versión va JUNTO y en `datos`, para que también se
+      // rellene al volver a sembrar una base que se creó antes del versionado.
+      // La versión sale del módulo que la declara salvo en las dos fichas que
+      // sirven de caso al panel: una sin versión (anterior al versionado) y
+      // otra con una anterior, que es la que puede llevar reaceptación.
+      consintioAvisoEn: new Date("2026-07-31T10:00:00.000Z"),
+      consintioAvisoVersion: demo.sinVersionDeAviso
+        ? null
+        : (demo.versionDeLaConstancia ?? VERSION_AVISO),
+      reconsintioAvisoEn: demo.reconsintioAvisoEn
+        ? new Date(demo.reconsintioAvisoEn)
+        : null,
+      reconsintioAvisoVersion: demo.reconsintioAvisoEn ? VERSION_AVISO : null,
     };
 
     await prisma.negocio.upsert({
@@ -357,8 +495,7 @@ export async function sembrarNegociosDemo(
         ...datos,
         giros: girosAlCrear,
         whatsapp: demo.whatsapp,
-        consintioAvisoEn: new Date("2026-07-31T10:00:00.000Z"),
-        registradoEn: new Date("2026-07-31T10:00:00.000Z"),
+        registradoEn: new Date(demo.registradoEn ?? "2026-07-31T10:00:00.000Z"),
       },
     });
   }

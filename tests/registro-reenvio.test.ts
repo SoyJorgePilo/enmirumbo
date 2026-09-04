@@ -8,6 +8,8 @@ import { procesarRegistro } from "../src/lib/registro/procesar";
 import { MENSAJES_ERROR_REGISTRO } from "../src/lib/registro/textos";
 import { CAMPO_TRAMPA } from "../src/lib/registro/validacion";
 import { crearClientePrueba } from "./db";
+import { VERSION_AVISO } from "../src/lib/legales/version";
+import { CAMPO_VERSION_AVISO } from "../src/lib/registro/textos";
 
 // Spec: registro-negocio (MODIFIED por agregar-panel-admin) · Requirement "Una
 // sola ficha por número de WhatsApp": el reenvío tras un rechazo (tasks.md
@@ -51,8 +53,16 @@ beforeEach(async () => {
   await prisma.negocio.deleteMany();
 });
 
-/** Ficha vieja del mismo número, en el estado que pida el test. */
-async function fichaPrevia(estado: string) {
+/**
+ * Ficha vieja del mismo número, en el estado que pida el test. `constancia`
+ * es la versión del aviso que quedó registrada en su día: la vigente, una
+ * anterior, o `null` para una ficha previa al versionado.
+ */
+async function fichaPrevia(
+  estado: string,
+  constancia: { version?: string | null; reaceptacion?: [Date, string] } = {},
+) {
+  const { version = VERSION_AVISO, reaceptacion } = constancia;
   return prisma.negocio.create({
     data: {
       nombre: "Plomería Ficticia La de Antes",
@@ -65,6 +75,9 @@ async function fichaPrevia(estado: string) {
       origen: "siembra",
       tokenGestion: "token-ficticio-de-prueba",
       consintioAvisoEn: new Date("2026-08-20T09:00:00.000Z"),
+      consintioAvisoVersion: version,
+      reconsintioAvisoEn: reaceptacion?.[0] ?? null,
+      reconsintioAvisoVersion: reaceptacion?.[1] ?? null,
       registradoEn: new Date("2026-08-20T09:00:00.000Z"),
       ...(estado === "rechazado"
         ? {
@@ -92,6 +105,9 @@ function envioCorregido(extra: Record<string, string> = {}): FormData {
     queOfreces: "Ahora sí describimos bien lo que hacemos.",
     horario: "L-S 9am-7pm",
     consentimiento: "on",
+    // Campo oculto con la versión del aviso que pintó el formulario
+    // (change `versionar-aviso-privacidad`): sin él, el envío se rechaza.
+    [CAMPO_VERSION_AVISO]: VERSION_AVISO,
     ...extra,
   };
   for (const [clave, valor] of Object.entries(campos)) {
@@ -177,6 +193,168 @@ describe("registro-negocio · reenvío tras un rechazo", () => {
     // Y la ficha nunca queda sin consentimiento: el envío nuevo tuvo que
     // marcar el checkbox para llegar hasta aquí (lo exige `validarRegistro`).
     expect(despues.consintioAvisoEn).toBeInstanceOf(Date);
+  });
+
+  // ── La versión del aviso en el reenvío (change versionar-aviso-privacidad)
+  //
+  // Regla: la constancia original (fecha + versión) NUNCA se sustituye; la
+  // reaceptación se anota aparte y SOLO cuando la versión vigente es distinta
+  // de la de esa constancia.
+
+  // Scenario: la constancia del consentimiento no se sustituye en el reenvío
+  it("con la MISMA versión vigente no toca la constancia ni anota reaceptación", async () => {
+    const previa = await fichaPrevia("rechazado", { version: VERSION_AVISO });
+
+    const resultado = await procesar(envioCorregido());
+    expect(resultado).toEqual({ exito: true });
+
+    const despues = await leer();
+    expect(despues.consintioAvisoEn.toISOString()).toBe(
+      previa.consintioAvisoEn.toISOString(),
+    );
+    expect(despues.consintioAvisoVersion).toBe(VERSION_AVISO);
+    expect(despues.reconsintioAvisoEn).toBeNull();
+    expect(despues.reconsintioAvisoVersion).toBeNull();
+  });
+
+  // Scenario: reenvío contra una versión nueva del aviso
+  it("con una versión DISTINTA anota la reaceptación y deja intacta la constancia", async () => {
+    const previa = await fichaPrevia("rechazado", { version: "0" });
+
+    await procesar(envioCorregido());
+
+    const despues = await leer();
+    // La constancia original, tal cual: su fecha y su versión de siempre.
+    expect(despues.consintioAvisoEn.toISOString()).toBe(
+      previa.consintioAvisoEn.toISOString(),
+    );
+    expect(despues.consintioAvisoVersion).toBe("0");
+    // Y la reaceptación, con la fecha del reenvío y la versión vigente.
+    expect(despues.reconsintioAvisoEn?.toISOString()).toBe(AHORA.toISOString());
+    expect(despues.reconsintioAvisoVersion).toBe(VERSION_AVISO);
+  });
+
+  it("un reenvío posterior sobrescribe la reaceptación, nunca la constancia", async () => {
+    const previa = await fichaPrevia("rechazado", {
+      version: "0",
+      reaceptacion: [new Date("2026-08-25T08:00:00.000Z"), "0.5"],
+    });
+
+    await procesar(envioCorregido());
+
+    const despues = await leer();
+    expect(despues.consintioAvisoEn.toISOString()).toBe(
+      previa.consintioAvisoEn.toISOString(),
+    );
+    expect(despues.consintioAvisoVersion).toBe("0");
+    expect(despues.reconsintioAvisoEn?.toISOString()).toBe(AHORA.toISOString());
+    expect(despues.reconsintioAvisoVersion).toBe(VERSION_AVISO);
+  });
+
+  // Scenario: reenvío de una ficha anterior al versionado
+  //
+  // ITERACIÓN 2 (hallazgo MEDIO-4 de la etapa C): antes, una constancia SIN
+  // versión se trataba como "distinta" y el primer reenvío le fabricaba una
+  // reaceptación. Como el formulario es anónimo, eso convertía a cualquiera
+  // que conociera el número en autor de evidencia de consentimiento sobre las
+  // fichas más viejas del directorio —que son justo las que hoy existen—.
+  // "Sin versión" significa "no consta": no es comparable, así que no se
+  // anota nada y el panel sigue diciendo "versión no registrada".
+  it("una ficha SIN versión registrada sigue sin ella y NO genera reaceptación", async () => {
+    const previa = await fichaPrevia("rechazado", { version: null });
+
+    const resultado = await procesar(envioCorregido());
+    expect(resultado).toEqual({ exito: true });
+
+    const despues = await leer();
+    // El reenvío entra (datos nuevos, vuelve a la cola)…
+    expect(despues.nombre).toBe("Plomería Ficticia Ya Corregida");
+    expect(despues.estado).toBe("en_revision");
+    // …pero no se le inventa una versión a lo que nadie puede sostener, ni se
+    // fabrica una reaceptación atribuible a quien mandó el formulario.
+    expect(despues.consintioAvisoVersion).toBeNull();
+    expect(despues.consintioAvisoEn.toISOString()).toBe(
+      previa.consintioAvisoEn.toISOString(),
+    );
+    expect(despues.reconsintioAvisoEn).toBeNull();
+    expect(despues.reconsintioAvisoVersion).toBeNull();
+  });
+
+  // ITERACIÓN 2 (hallazgo MEDIO-3 de la etapa C): rollback del despliegue.
+  // La ficha consintió la versión 2; se revierte a la 1 y el dueño reenvía.
+  // La vigente NO es posterior, así que no hay nada que anotar: registrar una
+  // "reaceptación" de una versión más vieja sería evidencia que miente sobre
+  // el sentido del cambio.
+  it("si la versión vigente es ANTERIOR a la de la constancia, no se anota reaceptación", async () => {
+    const previa = await fichaPrevia("rechazado", { version: "2" });
+
+    const resultado = await procesar(envioCorregido());
+    expect(resultado).toEqual({ exito: true });
+
+    const despues = await leer();
+    expect(despues.estado).toBe("en_revision");
+    expect(despues.consintioAvisoVersion).toBe("2");
+    expect(despues.consintioAvisoEn.toISOString()).toBe(
+      previa.consintioAvisoEn.toISOString(),
+    );
+    expect(despues.reconsintioAvisoEn).toBeNull();
+    expect(despues.reconsintioAvisoVersion).toBeNull();
+  });
+
+  it("una reaceptación anterior tampoco se borra ni se pisa en ese caso", async () => {
+    // Rollback sobre una ficha que ya traía reaceptación: lo que ya estaba
+    // anotado es evidencia, no se toca.
+    await fichaPrevia("rechazado", {
+      version: "2",
+      reaceptacion: [new Date("2026-08-25T08:00:00.000Z"), "3"],
+    });
+
+    await procesar(envioCorregido());
+
+    const despues = await leer();
+    expect(despues.reconsintioAvisoEn?.toISOString()).toBe(
+      new Date("2026-08-25T08:00:00.000Z").toISOString(),
+    );
+    expect(despues.reconsintioAvisoVersion).toBe("3");
+  });
+
+  // Scenario: el reenvío no se autopublica (con una versión a modo)
+  it("un reenvío no puede fijar la versión de su constancia ni la de la reaceptación", async () => {
+    await fichaPrevia("rechazado", { version: "0" });
+
+    await procesar(
+      envioCorregido({
+        consintioAvisoVersion: "99",
+        reconsintioAvisoVersion: "99",
+        reconsintioAvisoEn: "1999-01-01T00:00:00.000Z",
+      }),
+    );
+
+    const despues = await leer();
+    expect(despues.consintioAvisoVersion).toBe("0");
+    expect(despues.reconsintioAvisoVersion).toBe(VERSION_AVISO);
+    expect(despues.reconsintioAvisoEn?.toISOString()).toBe(AHORA.toISOString());
+  });
+
+  // Scenario: el aviso cambió a media captura (sobre un reenvío)
+  it("un reenvío que declara otra versión no cambia nada de la ficha rechazada", async () => {
+    const previa = await fichaPrevia("rechazado", { version: "0" });
+
+    const resultado = await procesar(
+      envioCorregido({ [CAMPO_VERSION_AVISO]: "99" }),
+    );
+
+    expect(resultado.exito).toBe(false);
+    if (!resultado.exito) {
+      expect(resultado.estado.errores.consentimiento).toBe(
+        MENSAJES_ERROR_REGISTRO.avisoDesfasado,
+      );
+    }
+    const despues = await leer();
+    expect(despues.nombre).toBe(previa.nombre);
+    expect(despues.estado).toBe("rechazado");
+    expect(despues.consintioAvisoVersion).toBe("0");
+    expect(despues.reconsintioAvisoEn).toBeNull();
   });
 
   it("vuelve a la cola del panel como recién llegada, sin marca de atraso", async () => {

@@ -14,10 +14,10 @@ vi.mock("next/navigation", async () => {
 import { seedCatalogos } from "../prisma/seed";
 import DetalleRegistroAdminPage from "../src/app/admin/registros/[id]/page";
 import { marcarReporteAtendidoAccion } from "../src/app/admin/registros/[id]/accion-marcar-reporte-atendido";
-import FichaNegocioPage from "../src/app/negocio/[ficha]/page";
-import { reportarNegocio } from "../src/app/negocio/[ficha]/reportar/accion";
-import ReportarGraciasPage from "../src/app/negocio/[ficha]/reportar/gracias/page";
-import ReportarNegocioPage from "../src/app/negocio/[ficha]/reportar/page";
+import FichaNegocioPage from "../src/app/(publico)/negocio/[ficha]/page";
+import { reportarNegocio } from "../src/app/(publico)/negocio/[ficha]/reportar/accion";
+import ReportarGraciasPage from "../src/app/(publico)/negocio/[ficha]/reportar/gracias/page";
+import ReportarNegocioPage from "../src/app/(publico)/negocio/[ficha]/reportar/page";
 import type { PrismaClient } from "../src/generated/prisma/client";
 import {
   LONGITUD_MINIMA_SECRETO,
@@ -482,15 +482,24 @@ describe("adversarial · el comentario nunca se interpreta como marcado en el pa
   }
 
   /**
-   * El HTML de la sección de reportes, SIN el `<script>` de reposición de
-   * formularios que React añade siempre al final (no es contenido del panel y
-   * ensucia cualquier búsqueda de `<script`).
+   * El HTML de la sección de reportes —y SOLO de ella—, sin el `<script>` de
+   * reposición de formularios que React añade siempre al final (no es
+   * contenido del panel y ensucia cualquier búsqueda de `<script`).
+   *
+   * El corte termina en el `</section>` de la propia sección, no al final del
+   * documento: al fusionar T-015 el detalle pasó a pintar DESPUÉS los controles
+   * de despublicar y de borrar, y "Borrar definitivamente" es un `<a>`
+   * legítimo del panel. Sin acotar, estas aserciones —que existen para vigilar
+   * lo que el comentario de un vecino puede meter en el HTML— acabarían
+   * juzgando marcado que no tiene nada que ver con el reporte.
    */
   function seccionDeReportes(html: string): string {
     const sinReactForms = html.replace(/<script>[\s\S]*?<\/script>/g, "");
     const desde = sinReactForms.indexOf("Reportes sin atender");
     expect(desde).toBeGreaterThan(-1);
-    return sinReactForms.slice(desde);
+    const hasta = sinReactForms.indexOf("</section>", desde);
+    expect(hasta, "la sección de reportes no cierra").toBeGreaterThan(desde);
+    return sinReactForms.slice(desde, hasta);
   }
 
   it.each([

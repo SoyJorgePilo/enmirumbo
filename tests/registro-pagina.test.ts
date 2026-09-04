@@ -5,8 +5,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { CATEGORIAS, COLONIAS, seedCatalogos } from "../prisma/seed";
-import RegistroGraciasPage from "../src/app/registro/gracias/page";
-import RegistroPage from "../src/app/registro/page";
+import RegistroGraciasPage from "../src/app/(publico)/registro/gracias/page";
+import RegistroPage from "../src/app/(publico)/registro/page";
 import { AvisoConsentimiento } from "../src/components/registro/aviso-consentimiento";
 import { BotonEnviar } from "../src/components/registro/boton-enviar";
 import {
@@ -14,6 +14,7 @@ import {
   ORDEN_CAMPOS_PARA_FOCO,
   primerCampoConError,
 } from "../src/components/registro/formulario-registro";
+import { VERSION_AVISO } from "../src/lib/legales/version";
 import { obtenerPrisma } from "../src/lib/prisma";
 import {
   MENSAJES_ERROR_REGISTRO,
@@ -21,6 +22,7 @@ import {
   TEXTO_AVISO_PRIVACIDAD,
   TEXTO_CONSENTIMIENTO,
   TEXTO_ENLACE_AVISO_INTEGRAL,
+  textoVersionAceptada,
 } from "../src/lib/registro/textos";
 import { VALORES_VACIOS_REGISTRO } from "../src/lib/registro/tipos";
 import { crearClientePrueba } from "./db";
@@ -89,6 +91,9 @@ describe("registro-negocio · página en una sola pantalla", () => {
     "Dirección o referencias (opcional)",
     "Horario (opcional)",
     "Link de tu Facebook (opcional)",
+    // 11ª etiqueta, del change `agregar-foto-negocio`: el requirement
+    // "Campos obligatorios y opcionales del formulario" la enumera literal.
+    "Foto de tu negocio (opcional)",
   ])('muestra la etiqueta literal "%s"', (etiqueta) => {
     expect(normalizado(htmlRegistro)).toContain(etiqueta);
   });
@@ -183,6 +188,33 @@ describe("registro-negocio · consentimiento y aviso simplificado", () => {
     }
   });
 
+  // Scenario: la versión está a la vista antes de aceptar (change
+  // `versionar-aviso-privacidad`)
+  it("dice qué versión del aviso se está aceptando, antes de la casilla", () => {
+    const literal = `Estás aceptando la versión ${VERSION_AVISO} del aviso de privacidad.`;
+    expect(textoVersionAceptada(VERSION_AVISO)).toBe(literal);
+    expect(normalizado(htmlAviso)).toContain(literal);
+    expect(normalizado(htmlRegistro)).toContain(literal);
+    // Antes de la casilla, no después.
+    expect(htmlAviso.indexOf(literal)).toBeLessThan(htmlAviso.indexOf('id="consentimiento"'));
+    // Es la misma versión que muestra /aviso-de-privacidad y no está escrita
+    // a mano: sale del módulo que la declara.
+    expect(fuente("src/components/registro/aviso-consentimiento.tsx")).toContain(
+      "VERSION_AVISO",
+    );
+    expect(fuente("src/lib/registro/textos.ts")).not.toMatch(/versión\s+\d/i);
+  });
+
+  // Requirement "…la versión a la vista": es texto, no un campo que el dueño
+  // tenga que llenar o elegir.
+  it("la versión no le pide nada al dueño: no es un control del formulario", () => {
+    const bloque = htmlAviso.split('id="consentimiento"')[0];
+    expect(bloque).not.toMatch(/<select|<textarea/i);
+    for (const etiqueta of [...bloque.matchAll(/<input\b[^>]*>/g)].map((m) => m[0])) {
+      expect(etiqueta).toContain('type="hidden"');
+    }
+  });
+
   it("el checkbox del consentimiento es obligatorio y no viene marcado", () => {
     const checkbox = htmlRegistro.split('id="consentimiento"')[1].split(">")[0];
     expect(checkbox).toContain('required=""');
@@ -248,6 +280,41 @@ describe("registro-negocio · estado de error por campo", () => {
     expect(htmlConErrores.split('id="entregaADomicilio"')[1].split(">")[0]).toContain(
       'checked=""',
     );
+  });
+
+  // Scenario: el aviso cambió a media captura (change
+  // `versionar-aviso-privacidad`): el mensaje se pinta junto a la casilla, la
+  // casilla vuelve desmarcada y el aviso nuevo —con su versión— está a la
+  // vista, listo para releerse.
+  it("el desfase de versión se pinta junto a la casilla, con el aviso nuevo a la vista", () => {
+    const html = renderToStaticMarkup(
+      createElement(FormularioRegistro, {
+        categorias: [
+          { id: 2, nombre: "Servicios del hogar", slug: "servicios-del-hogar" },
+        ],
+        colonias: [
+          { id: 12, nombre: "Haciendas de Tizayuca", slug: "haciendas-de-tizayuca" },
+        ],
+        honeypot: null,
+        aviso: createElement(AvisoConsentimiento),
+        estadoInicial: {
+          errores: { consentimiento: MENSAJES_ERROR_REGISTRO.avisoDesfasado },
+          valores,
+        },
+      }),
+    );
+
+    expect(normalizado(html)).toContain(MENSAJES_ERROR_REGISTRO.avisoDesfasado);
+    expect(html).toContain('id="consentimiento-error"');
+    // El mensaje va DESPUÉS de la casilla en el DOM y asociado a ella.
+    const casilla = html.split('id="consentimiento"')[1].split(">")[0];
+    expect(casilla).toContain('aria-describedby="consentimiento-error"');
+    expect(casilla).not.toContain("checked");
+    // El aviso nuevo, con su versión y el campo oculto ya actualizado.
+    expect(normalizado(html)).toContain(textoVersionAceptada(VERSION_AVISO));
+    expect(html).toContain(`name="avisoVersion" value="${VERSION_AVISO}"`);
+    // Y lo capturado sigue ahí.
+    expect(html).toContain('value="Plomería Ficticia El Tubo Feliz"');
   });
 
   // Scenario: obligatorios vacíos (foco en el primero)
@@ -323,8 +390,8 @@ describe("registro-negocio · el registro funciona sin JavaScript de cliente", (
   // Scenario: JS acotado al campo del ejemplo
   it('solo el formulario y el botón declaran "use client"', () => {
     const conUseClient = [
-      "src/app/registro/page.tsx",
-      "src/app/registro/gracias/page.tsx",
+      "src/app/(publico)/registro/page.tsx",
+      "src/app/(publico)/registro/gracias/page.tsx",
       "src/components/registro/aviso-consentimiento.tsx",
       "src/components/registro/campo-honeypot.tsx",
       "src/components/registro/formulario-registro.tsx",
@@ -344,12 +411,81 @@ describe("registro-negocio · el registro funciona sin JavaScript de cliente", (
     expect(formulario).not.toMatch(/onSubmit|fetch\(|preventDefault/);
   });
 
+  // Change `versionar-aviso-privacidad` (tasks.md #27): el campo oculto de la
+  // versión viaja en el HTML que pinta el servidor, así que un envío sin JS lo
+  // manda igual. Ni el módulo de la versión ni el bloque del aviso son
+  // Client Components.
+  it("el campo oculto de la versión viaja ya renderizado, sin JavaScript", () => {
+    expect(htmlRegistro).toContain(
+      `<input type="hidden" name="avisoVersion" value="${VERSION_AVISO}"/>`,
+    );
+    for (const ruta of [
+      "src/lib/legales/version.ts",
+      "src/components/registro/aviso-consentimiento.tsx",
+    ]) {
+      expect(fuente(ruta), ruta).not.toMatch(/["']use client["']/);
+    }
+    // Lo pinta el bloque del aviso (Server Component), no el formulario de
+    // cliente: así el valor no depende de que el JS haya cargado.
+    expect(fuente("src/components/registro/formulario-registro.tsx")).not.toContain(
+      "avisoVersion",
+    );
+  });
+
   // Scenario: el ejemplo cambia al cambiar de categoría (sin borrar lo escrito)
   it("los campos son no controlados: cambiar de categoría no borra lo escrito", () => {
     const formulario = fuente("src/components/registro/formulario-registro.tsx");
     expect(formulario).toContain('name="queOfreces"');
     expect(formulario).not.toMatch(/value=\{valores\./); // defaultValue, no value
     expect(formulario).toMatch(/placeholder=\{ejemplo\}/);
+  });
+});
+
+// ADDED por el change `agregar-analitica-cookieless` · spec registro-negocio,
+// requirements "El embudo del registro se mide con las vistas de sus dos
+// pantallas" y "Ningún dato del formulario viaja a la medición" (tasks.md #19).
+describe("registro-negocio · el embudo se mide con vistas, no con eventos", () => {
+  const htmlGraciasMedicion = renderToStaticMarkup(
+    createElement(RegistroGraciasPage),
+  );
+
+  // Scenario: sin instrumentación en el botón
+  it('el botón "Enviar" no lleva ningún atributo de evento', () => {
+    const html = renderToStaticMarkup(createElement(BotonEnviar));
+    expect(html).toContain("Registrar mi negocio");
+    expect(html).not.toContain("data-umami");
+    expect(fuente("src/components/registro/boton-enviar.tsx")).not.toContain("analitica");
+  });
+
+  it("ninguna de las dos pantallas del registro instrumenta nada", () => {
+    for (const html of [htmlRegistro, htmlGraciasMedicion]) {
+      expect(html).not.toContain("data-umami");
+      expect(html).not.toContain("umami");
+      // Tampoco el script: lo pone el layout del grupo público, no la página.
+      expect([...html.matchAll(/<script\b[^>]*\bsrc=/g)]).toHaveLength(0);
+    }
+    for (const ruta of [
+      "src/app/(publico)/registro/page.tsx",
+      "src/app/(publico)/registro/gracias/page.tsx",
+      "src/components/registro/formulario-registro.tsx",
+      "src/components/registro/boton-enviar.tsx",
+      "src/components/registro/campo-honeypot.tsx",
+      "src/components/registro/aviso-consentimiento.tsx",
+    ]) {
+      expect(fuente(ruta), ruta).not.toContain("analitica");
+      expect(fuente(ruta), ruta).not.toContain("umami");
+    }
+  });
+
+  // Scenario: las URLs del registro no llevan datos
+  it("las dos pantallas viven en URLs sin parámetros", () => {
+    // El formulario envía con Server Action (POST a la misma URL) y la página
+    // de gracias es una ruta fija: ninguna de las dos arma una URL con datos.
+    const formulario = fuente("src/components/registro/formulario-registro.tsx");
+    expect(formulario).not.toMatch(/\/registro\?[^"']/);
+    expect(fuente("src/app/(publico)/registro/accion.ts")).toContain(
+      '"/registro/gracias"',
+    );
   });
 });
 

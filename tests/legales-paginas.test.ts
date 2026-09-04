@@ -6,14 +6,15 @@ import { describe, expect, it } from "vitest";
 
 import AvisoDePrivacidadPage, {
   metadata as metadataAviso,
-} from "../src/app/aviso-de-privacidad/page";
+} from "../src/app/(publico)/aviso-de-privacidad/page";
 import { metadata as metadataSitio } from "../src/app/layout";
-import TerminosPage, { metadata as metadataTerminos } from "../src/app/terminos/page";
+import TerminosPage, { metadata as metadataTerminos } from "../src/app/(publico)/terminos/page";
 import {
   HAY_PLACEHOLDERS_PENDIENTES,
   PLACEHOLDERS_LEGALES,
   TEXTO_MARCA_BORRADOR,
 } from "../src/lib/legales/textos";
+import { VERSION_AVISO } from "../src/lib/legales/version";
 
 // Spec: paginas-legales (change `agregar-paginas-legales`).
 //
@@ -30,7 +31,7 @@ Aviso de privacidad
 
 Ojo: este texto todavía es un borrador. Nos faltan los datos que ves entre corchetes y la revisión legal antes de que el directorio se lance.
 
-Última actualización: [FECHA DE PUBLICACIÓN]
+Versión ${VERSION_AVISO} · Última actualización: [FECHA DE PUBLICACIÓN]
 
 Este aviso explica, sin rodeos, qué datos nos das cuando registras tu negocio en NecesitoUno Tizayuca, para qué los usamos, qué queda público y cómo puedes pedirnos que los corrijamos o los borremos.
 
@@ -45,7 +46,7 @@ Para cualquier cosa relacionada con tus datos escríbenos al correo [CORREO ARCO
 Los que tú escribes en el formulario de registro:
 
 - Obligatorios: el nombre de tu negocio, la categoría, tu número de WhatsApp de 10 dígitos y tu colonia.
-- Opcionales: qué ofreces, si haces entregas o vas a domicilio, teléfono fijo, dirección o referencias, horario y el link de tu Facebook.
+- Opcionales: qué ofreces, si haces entregas o vas a domicilio, teléfono fijo, dirección o referencias, horario, el link de tu Facebook y, si la subes, una foto de tu negocio.
 
 No te pedimos CURP, RFC, credencial de elector ni datos bancarios. Si nos los mandas por WhatsApp, no los guardamos.
 
@@ -70,7 +71,7 @@ Publicamos tu colonia, no tu domicilio exacto. Si tú escribes una dirección o 
 
 Esa dirección también alimenta el botón "Cómo llegar" de tu ficha: quien lo toca abre Google Maps en su teléfono, buscando lo que escribiste junto con tu colonia y "Tizayuca, Hidalgo".
 
-Si tu ficha llega a llevar una foto de tu negocio, esa foto es pública igual que lo demás. Hoy el formulario todavía no pide fotos; el día que las pida, aquí te decimos qué se puede publicar en ellas.
+Si subes una foto de tu negocio, esa foto es pública igual que lo demás. La foto es opcional y debe mostrar tu local, tus productos o tu trabajo: que no salgan personas que se puedan reconocer, porque este aviso cubre tus datos y no la imagen de otras personas. Si una foto no cumple, no la publicamos y te decimos por qué al revisar tu registro. Antes de guardarla la comprimimos y le quitamos los datos ocultos que trae el archivo —como la ubicación GPS de dónde se tomó—: eso no se publica ni se conserva.
 
 Buscadores como Google pueden encontrar tu ficha y mostrarla en sus resultados. Para eso está hecho el directorio.
 
@@ -294,14 +295,38 @@ describe("paginas-legales · el texto publicado es el aprobado", () => {
 });
 
 describe("paginas-legales · el dueño abre el aviso de privacidad", () => {
-  // Scenario: el dueño abre el aviso de privacidad
-  it("encabeza con el h1 y la línea de última actualización con su fecha", () => {
+  // Scenario: el dueño abre el aviso de privacidad (MODIFIED por el change
+  // `versionar-aviso-privacidad`: la línea antepone "Versión N · ")
+  it("encabeza con el h1 y la línea de versión y última actualización con su fecha", () => {
     expect(lineasAviso[0]).toBe("Aviso de privacidad");
-    const actualizacion = lineasAviso.find((linea) =>
-      linea.startsWith("Última actualización: "),
-    );
+    const prefijo = `Versión ${VERSION_AVISO} · Última actualización: `;
+    const actualizacion = lineasAviso.find((linea) => linea.startsWith(prefijo));
     expect(actualizacion).toBeDefined();
-    expect(actualizacion?.slice("Última actualización: ".length)).not.toBe("");
+    expect(actualizacion?.slice(prefijo.length)).not.toBe("");
+    // Una sola línea de actualización, y ninguna suelta sin su versión.
+    expect(lineasAviso.filter((l) => l.includes("Última actualización: "))).toHaveLength(1);
+  });
+
+  // Scenario: la versión que se muestra es la vigente
+  it("la versión sale del literal del módulo, no escrita a mano en la página", () => {
+    for (const ruta of [
+      "src/app/(publico)/aviso-de-privacidad/page.tsx",
+      "src/components/legales/documento-legal.tsx",
+    ]) {
+      expect(fuente(ruta), ruta).not.toMatch(/Versión\s+\d/);
+    }
+    expect(fuente("src/app/(publico)/aviso-de-privacidad/page.tsx")).toContain("VERSION_AVISO");
+    expect(htmlAviso).toContain(`Versión ${VERSION_AVISO} · Última actualización:`);
+  });
+
+  // Requirement "Página del aviso…": la versión es del aviso, no de los
+  // términos (que hoy no se aceptan con casilla y quedan fuera del change).
+  it("/terminos conserva su línea de última actualización, sin versión", () => {
+    const actualizacion = lineasTerminos.find((linea) =>
+      linea.includes("Última actualización: "),
+    );
+    expect(actualizacion).toBe("Última actualización: [FECHA DE PUBLICACIÓN]");
+    expect(htmlTerminos).not.toMatch(/Versión\s+\d/);
   });
 
   // Scenario: el dueño abre el aviso de privacidad (dentro del layout global:
@@ -346,8 +371,8 @@ describe("paginas-legales · el dueño abre el aviso de privacidad", () => {
     expect(delAviso[0].href).toBe("/terminos");
     expect(lineasAviso[lineasAviso.length - 1]).toBe("Términos y condiciones");
     // Y no apunta a ninguna página inexistente: el único destino es una ruta
-    // que existe (`src/app/terminos/page.tsx`).
-    expect(fuente("src/app/terminos/page.tsx")).toContain("export default");
+    // que existe (`src/app/(publico)/terminos/page.tsx`).
+    expect(fuente("src/app/(publico)/terminos/page.tsx")).toContain("export default");
   });
 });
 
@@ -369,7 +394,7 @@ describe("paginas-legales · los seis elementos mínimos de la LFPDPPP (PRD §8)
       "Obligatorios: el nombre de tu negocio, la categoría, tu número de WhatsApp de 10 dígitos y tu colonia.",
     );
     expect(texto).toContain(
-      "Opcionales: qué ofreces, si haces entregas o vas a domicilio, teléfono fijo, dirección o referencias, horario y el link de tu Facebook.",
+      "Opcionales: qué ofreces, si haces entregas o vas a domicilio, teléfono fijo, dirección o referencias, horario, el link de tu Facebook y, si la subes, una foto de tu negocio.",
     );
     expect(texto).toContain("No te pedimos CURP, RFC, credencial de elector ni datos bancarios.");
   });
@@ -486,13 +511,23 @@ describe("paginas-legales · qué queda público y qué no (E1-6 / hallazgo M3)"
     );
   });
 
-  // Scenario: la foto del negocio también es pública (enmienda MEDIO-2)
-  it("declara que la foto del negocio, si la ficha llega a llevarla, es pública", () => {
+  // Scenario: la foto del negocio también es pública (enmienda MEDIO-2,
+  // ampliada por T-008: el formulario ya pide fotos, así que el aviso trae la
+  // política completa en vez de prometerla)
+  it("declara que la foto del negocio es pública y con qué reglas", () => {
     expect(texto()).toContain(
-      "Si tu ficha llega a llevar una foto de tu negocio, esa foto es pública igual que lo demás.",
+      "Si subes una foto de tu negocio, esa foto es pública igual que lo demás.",
     );
-    // Y no promete que hoy se capturen: el formulario todavía no las pide.
-    expect(texto()).toContain("Hoy el formulario todavía no pide fotos");
+    // Qué se puede retratar y qué no (PRD §6.1).
+    expect(texto()).toContain("debe mostrar tu local, tus productos o tu trabajo");
+    expect(texto()).toContain("que no salgan personas que se puedan reconocer");
+    // Qué pasa si no cumple (PRD §6.3: lo resuelve la revisión).
+    expect(texto()).toContain("Si una foto no cumple, no la publicamos");
+    // Y qué hacemos con los metadatos, que es lo que de verdad protege al
+    // titular: la ubicación de la toma no se publica ni se guarda.
+    expect(texto()).toContain("la ubicación GPS de dónde se tomó");
+    // La promesa vieja ya no está: el formulario SÍ pide fotos.
+    expect(texto()).not.toContain("todavía no pide fotos");
   });
 
   it("avisa que los buscadores pueden indexar la ficha", () => {
@@ -672,7 +707,7 @@ describe("paginas-legales · indexables y con metadata propia", () => {
   it("ninguna de las dos pide a los buscadores que no la indexe", () => {
     expect(metadataAviso.robots).toBeUndefined();
     expect(metadataTerminos.robots).toBeUndefined();
-    for (const ruta of ["src/app/aviso-de-privacidad/page.tsx", "src/app/terminos/page.tsx"]) {
+    for (const ruta of ["src/app/(publico)/aviso-de-privacidad/page.tsx", "src/app/(publico)/terminos/page.tsx"]) {
       expect(fuente(ruta), ruta).not.toMatch(/noindex|index:\s*false/);
     }
   });
@@ -697,8 +732,8 @@ describe("paginas-legales · indexables y con metadata propia", () => {
 
 describe("paginas-legales · Server Components mobile-first sin JS de cliente", () => {
   const archivosNuevos = [
-    "src/app/aviso-de-privacidad/page.tsx",
-    "src/app/terminos/page.tsx",
+    "src/app/(publico)/aviso-de-privacidad/page.tsx",
+    "src/app/(publico)/terminos/page.tsx",
     "src/components/legales/documento-legal.tsx",
     "src/lib/legales/textos.ts",
   ];

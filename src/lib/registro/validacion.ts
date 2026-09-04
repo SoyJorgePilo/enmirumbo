@@ -8,11 +8,15 @@
  * panel (E3) y la edición (E8) la pueden reutilizar.
  */
 
+import { LIMITE_BYTES_FOTO } from "@/lib/fotos/limites";
+import { VERSION_AVISO } from "@/lib/legales/version";
 import { normalizarWhatsapp } from "@/lib/whatsapp";
 
 import {
+  CAMPO_VERSION_AVISO,
   COLONIA_OTRA_VALOR,
   LIMITES_LONGITUD,
+  MENSAJES_ERROR_FOTO,
   MENSAJES_ERROR_REGISTRO,
   mensajeLimiteLongitud,
 } from "./textos";
@@ -23,13 +27,28 @@ import {
   type ErroresFormularioRegistro,
 } from "./tipos";
 
-/** Lo que llega en un envío del formulario, ya separado en sus tres partes. */
+/** Lo que llega en un envío del formulario, ya separado en sus partes. */
 export type EnvioRegistro = {
   campos: CamposFormularioRegistro;
   /** El checkbox del aviso de privacidad venía marcado. */
   consentimiento: boolean;
+  /**
+   * Versión del aviso con la que el formulario se pintó, tal como llegó
+   * (change `versionar-aviso-privacidad`). Cadena vacía si no vino. Solo
+   * sirve para detectar el desfase: la versión que se guarda es la del
+   * servidor.
+   */
+  versionAvisoDeclarada: string;
   /** Contenido del campo trampa (honeypot): vacío en un envío humano. */
   trampa: string;
+  /**
+   * La foto elegida, si la hay. Si el envío trae varios archivos en el mismo
+   * campo, es el PRIMERO con contenido: una ficha tiene una sola foto (spec
+   * `registro-negocio`, scenario "varios archivos en el mismo envío").
+   */
+  foto: File | null;
+  /** La casilla "Dejar mi ficha sin foto" venía marcada. */
+  quitarFoto: boolean;
 };
 
 export type ResultadoValidacion =
@@ -39,8 +58,21 @@ export type ResultadoValidacion =
 export type EntradaValidacion = {
   campos: CamposFormularioRegistro;
   consentimiento: boolean;
+  /**
+   * Versión del aviso que declaró el envío. Se compara con la vigente del
+   * servidor; si no coinciden, el envío no se guarda (requirement "Nadie
+   * consiente una versión del aviso que no tuvo enfrente").
+   */
+  versionAvisoDeclarada: string;
   categorias: ReadonlyArray<{ id: number }>;
   colonias: ReadonlyArray<{ id: number }>;
+  /**
+   * La foto del envío, si la hay. Aquí solo se mira su TAMAÑO, que es
+   * comparar un número; si de verdad es una imagen se decide después, por
+   * contenido y solo cuando el envío ya pasó todas las demás defensas
+   * (`src/lib/fotos/procesar.ts`, design.md §5).
+   */
+  foto?: { size: number } | null;
 };
 
 /** Nombre del campo trampa; debe coincidir con `CampoHoneypot`. */
@@ -74,13 +106,28 @@ function casilla(formData: FormData, campo: string): boolean {
 }
 
 /**
+ * La foto del envío: el primer archivo con contenido del campo `foto`. Los
+ * demás se descartan (una ficha tiene una sola foto) y un campo de archivo
+ * vacío —que el navegador manda igual, con nombre y tamaño 0— cuenta como
+ * "no eligió foto".
+ */
+function primeraFoto(formData: FormData): File | null {
+  for (const valor of formData.getAll("foto")) {
+    if (valor instanceof File && valor.size > 0) return valor;
+  }
+  return null;
+}
+
+/**
  * Lee el envío sin interpretarlo: solo recorta espacios. Ningún campo del
  * ciclo de vida (`estado`, `origen`, `publicadoEn`, `tokenGestion`,
- * `consintioAvisoEn`) se lee aquí — si el cliente los manda, se ignoran por
- * construcción.
+ * `consintioAvisoEn`) se lee aquí — tampoco `fotoClave`, que la genera el
+ * servidor. Si el cliente los manda, se ignoran por construcción.
  */
 export function leerEnvioRegistro(formData: FormData): EnvioRegistro {
   return {
+    foto: primeraFoto(formData),
+    quitarFoto: casilla(formData, "quitarFoto"),
     campos: {
       nombre: texto(formData, "nombre"),
       categoriaId: texto(formData, "categoriaId"),
@@ -95,6 +142,14 @@ export function leerEnvioRegistro(formData: FormData): EnvioRegistro {
       facebookUrl: texto(formData, "facebookUrl"),
     },
     consentimiento: casilla(formData, "consentimiento"),
+    // Cota como la de cualquier otro campo (hallazgo BAJO-1 de la etapa C):
+    // se recorta al leer, en el borde. Truncar no puede convertir una cadena
+    // hostil en la versión vigente —seguiría teniendo que ser igual carácter
+    // por carácter—, solo evita pasear un payload desproporcionado.
+    versionAvisoDeclarada: texto(formData, CAMPO_VERSION_AVISO).slice(
+      0,
+      LIMITES_LONGITUD.avisoVersion,
+    ),
     trampa: texto(formData, CAMPO_TRAMPA),
   };
 }
@@ -155,11 +210,27 @@ function recortar(campos: CamposFormularioRegistro): CamposFormularioRegistro {
 export function validarRegistro({
   campos: capturados,
   consentimiento,
+  versionAvisoDeclarada,
   categorias,
   colonias,
+  foto = null,
 }: EntradaValidacion): ResultadoValidacion {
   const campos = recortar(capturados);
   const errores: ErroresFormularioRegistro = {};
+
+  // Nadie consiente una versión del aviso que no tuvo enfrente (requirement
+  // del mismo nombre): si el aviso estrenó versión entre que el formulario se
+  // pintó y llegó este envío —o si el dato no llegó— no se guarda nada y se
+  // pide releer. Esto se decide ANTES de tocar la base: es una comparación de
+  // dos cadenas, y de todos modos el envío no va a prosperar.
+  const avisoDesfasado = versionAvisoDeclarada !== VERSION_AVISO;
+
+  // Tope de entrada del PRD §6.1. Se mira aquí, con el resto de los campos,
+  // porque es comparar un número: no cuesta nada y evita que un archivo
+  // enorme llegue siquiera a `sharp`.
+  if (foto && foto.size > LIMITE_BYTES_FOTO) {
+    errores.foto = MENSAJES_ERROR_FOTO.demasiadoGrande;
+  }
 
   // Cotas de longitud de los campos de texto libre, todas con el mismo molde
   // de mensaje.
@@ -216,7 +287,11 @@ export function validarRegistro({
     errores.coloniaId = MENSAJES_ERROR_REGISTRO.coloniaId;
   }
 
-  if (!consentimiento) {
+  // El desfase gana sobre "marca la casilla": de nada sirve pedirle que la
+  // marque si el texto que tenía enfrente ya no es el vigente.
+  if (avisoDesfasado) {
+    errores.consentimiento = MENSAJES_ERROR_REGISTRO.avisoDesfasado;
+  } else if (!consentimiento) {
     errores.consentimiento = MENSAJES_ERROR_REGISTRO.consentimiento;
   }
 

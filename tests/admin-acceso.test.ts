@@ -308,12 +308,35 @@ describe("revision-admin · fail-safe sin configuración", () => {
 // verificable del código, no la memoria de quien programa.
 describe("revision-admin · toda ruta y toda acción del panel invocan la guarda", () => {
   /**
-   * Las dos únicas excepciones, y por qué: la pantalla de acceso ES el
-   * destino de la guarda (pedirle sesión sería un bucle) y la acción de salir
-   * solo caduca una cookie del propio navegador. El test comprueba además que
-   * ninguna de las dos toca la base ni las consultas del panel.
+   * Las únicas excepciones, y por qué: la pantalla de acceso ES el destino de
+   * la guarda (pedirle sesión sería un bucle), la acción de salir solo caduca
+   * una cookie del propio navegador, y el layout del panel —agregado por el
+   * change `agregar-analitica-cookieless` para cortar el referente— no
+   * renderiza contenido ni lee nada: solo declara metadata y deja pasar a sus
+   * hijos, que sí exigen sesión cada uno. La quinta es la ruta comodín que
+   * responde 404 a cualquier URL del panel que no existe (observación O-1):
+   * no hay nada que proteger detrás de una ruta inexistente, y pedir sesión
+   * para decir "no existe" delataría más de lo que oculta. El test comprueba
+   * además que ninguna de las excepciones toca la base ni las consultas del
+   * panel.
    */
-  const EXCEPCIONES = ["src/app/admin/page.tsx", "src/app/admin/accion-acceso.ts", "src/app/admin/accion-salir.ts"];
+  const EXCEPCIONES = [
+    "src/app/admin/page.tsx",
+    "src/app/admin/accion-acceso.ts",
+    "src/app/admin/accion-salir.ts",
+    "src/app/admin/layout.tsx",
+    "src/app/admin/[...resto]/page.tsx",
+  ];
+
+  /**
+   * La ruta que sirve las fotos del panel también exige sesión, pero NO puede
+   * redirigir: la spec `revision-admin` pide que sin sesión responda "la misma
+   * respuesta de no encontrado que daría el sitio público" (una redirección al
+   * acceso sería una respuesta distinta y delataría la ruta). Por eso usa
+   * `haySesionAdmin()` en vez de `requerirSesionAdmin()`, y por eso se
+   * verifica aparte, abajo.
+   */
+  const GUARDA_SIN_REDIRECCION = ["src/app/admin/foto/[clave]/[variante]/route.ts"];
 
   function archivosDe(dir: string): string[] {
     return readdirSync(dir, { withFileTypes: true }).flatMap((entrada) => {
@@ -334,9 +357,30 @@ describe("revision-admin · toda ruta y toda acción del panel invocan la guarda
 
   it("cada archivo del panel llama a requerirSesionAdmin() antes de nada", () => {
     for (const ruta of archivos) {
-      if (EXCEPCIONES.includes(ruta)) continue;
+      if (EXCEPCIONES.includes(ruta) || GUARDA_SIN_REDIRECCION.includes(ruta)) continue;
       const codigo = readFileSync(join(raiz, ruta), "utf8");
       expect(codigo, ruta).toContain("await requerirSesionAdmin();");
+    }
+  });
+
+  // Spec `revision-admin`, scenario "la foto del registro en revisión no sale
+  // del panel" (change `agregar-foto-negocio`).
+  it("la ruta de fotos del panel exige sesión, pero responde 404 en vez de redirigir", () => {
+    for (const ruta of GUARDA_SIN_REDIRECCION) {
+      expect(archivos, "la excepción sigue existiendo").toContain(ruta);
+      const codigo = readFileSync(join(raiz, ruta), "utf8");
+      const cuerpo = codigo.slice(codigo.lastIndexOf("\nimport "));
+      expect(codigo, ruta).toContain("await haySesionAdmin()");
+      // Nada de redirigir: eso delataría que la ruta existe. Se mira el
+      // cuerpo, no los comentarios de arriba (que sí explican por qué).
+      expect(cuerpo, ruta).not.toContain("redirect(");
+      expect(cuerpo, ruta).not.toContain("requerirSesionAdmin(");
+      // La sesión se resuelve antes de pedir siquiera el cliente de la base.
+      expect(cuerpo.indexOf("await haySesionAdmin()")).toBeLessThan(
+        cuerpo.indexOf("obtenerPrisma()"),
+      );
+      // Y quien decide qué se sirve recibe explícitamente si hay sesión.
+      expect(codigo, ruta).toContain("conSesionAdmin");
     }
   });
 
@@ -344,6 +388,7 @@ describe("revision-admin · toda ruta y toda acción del panel invocan la guarda
     for (const ruta of EXCEPCIONES) {
       const codigo = readFileSync(join(raiz, ruta), "utf8");
       expect(codigo, ruta).not.toContain("obtenerPrisma");
+      expect(codigo, ruta).not.toContain("prisma.");
       expect(codigo, ruta).not.toContain("@/lib/admin/consultas");
       expect(codigo, ruta).not.toContain("@/lib/admin/transiciones");
     }

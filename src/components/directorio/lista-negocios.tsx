@@ -17,13 +17,25 @@ export function ListaNegocios({ negocios }: { negocios: NegocioListado[] }) {
 
   return (
     <ul className="flex flex-col gap-4">
-      {negocios.map((negocio) => (
+      {negocios.map((negocio, indice) => (
         <li key={negocio.id}>
           <TarjetaNegocio
             nombre={negocio.nombre}
             coloniaNombre={negocio.coloniaNombre}
+            // Los dos slugs del evento de medición (change
+            // `agregar-analitica-cookieless`) salen del NEGOCIO, no de la
+            // página: esta misma lista pinta el listado por categoría, el de
+            // giro y el de giro+colonia, donde conviven categorías distintas.
+            categoriaSlug={negocio.categoriaSlug}
+            coloniaSlug={negocio.coloniaSlug}
             entregaADomicilio={negocio.entregaADomicilio}
-            fotoUrl={negocio.fotoUrl}
+            fotoClave={negocio.fotoClave}
+            // Listado en una sola columna: la "primera fila" (spec
+            // `directorio-publico`, "El peso de las fotos no rompe el
+            // presupuesto de 4G") es la primera tarjeta; el resto carga
+            // diferido. Vale igual para la categoría, el giro y giro+colonia,
+            // porque las tres pintan esta misma lista.
+            prioridad={indice === 0}
             hrefFicha={`/negocio/${construirSegmentoFicha(negocio.nombre, negocio.id)}`}
             hrefWhatsapp={construirEnlaceWhatsapp(negocio.whatsapp)}
           />

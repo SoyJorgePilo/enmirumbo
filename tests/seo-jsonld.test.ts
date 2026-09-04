@@ -5,14 +5,14 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { seedCatalogos } from "../prisma/seed";
 import { sembrarNegociosDemo } from "../prisma/seed-demo";
-import DestinoPage from "../src/app/[destino]/page";
-import FichaNegocioPage from "../src/app/negocio/[ficha]/page";
+import DestinoPage from "../src/app/(publico)/[destino]/page";
+import FichaNegocioPage from "../src/app/(publico)/negocio/[ficha]/page";
 import type { PrismaClient } from "../src/generated/prisma/client";
 import { datosDeBusqueda } from "../src/lib/busqueda";
 import { construirSegmentoFicha } from "../src/lib/ficha-url";
 import { VARIABLE_URL_SITIO } from "../src/lib/sitio";
 import { crearClientePrueba } from "./db";
-import { sembrarNegociosSeo } from "./seo-fixtures";
+import { CLAVE_FOTO_SEO, sembrarNegociosSeo } from "./seo-fixtures";
 
 // Spec: directorio-publico · requirement "Cada ficha publicada emite
 // Schema.org LocalBusiness" (tasks.md #18, design.md §6).
@@ -141,8 +141,13 @@ describe("directorio-publico · JSON-LD de la ficha publicada (tasks #18)", () =
     ]) {
       expect(bloque, campo).not.toHaveProperty(campo);
     }
-    // La foto sí, cuando existe
-    expect(bloque.image).toEqual([`${URL_SITIO}/fotos/negocio-ficticio.jpg`]);
+    // La foto sí, cuando existe: y su dirección la construye el servidor a
+    // partir de la clave interna (T-008), nunca se lee de la base. Es lo que
+    // cierra el hallazgo M3 de este change: al JSON-LD solo puede llegar una
+    // URL de este sitio.
+    expect(bloque.image).toEqual([
+      `${URL_SITIO}/api/foto/${CLAVE_FOTO_SEO}/ficha`,
+    ]);
   });
 
   it("un negocio sin foto no declara imagen inventada", async () => {

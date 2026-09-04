@@ -195,3 +195,107 @@ describe("revision-admin · enlace de WhatsApp del panel", () => {
     },
   );
 });
+
+// ── Literales del change agregar-despublicar-y-borrado-arco (tasks.md #3 y #19) ──
+// Copiados del delta de `revision-admin` de ese change.
+
+describe("revision-admin · literales de despublicar y del borrado definitivo", () => {
+  it.each([
+    ["botón de despublicar", textos.BOTON_DESPUBLICAR, "Despublicar"],
+    [
+      "rótulo del motivo de la despublicación",
+      textos.ETIQUETA_MOTIVO_DESPUBLICAR,
+      "¿Por qué la despublicas?",
+    ],
+    [
+      "texto de ayuda del motivo (duda 2 de la propuesta)",
+      textos.AYUDA_MOTIVO_DESPUBLICAR,
+      "Este motivo se le enviará al negocio por WhatsApp.",
+    ],
+    [
+      "error del motivo vacío",
+      textos.ERROR_MOTIVO_DESPUBLICAR_VACIO,
+      "Escribe por qué la despublicas",
+    ],
+    ["confirmación de la despublicación", textos.MENSAJE_DESPUBLICADO, "Ya la despublicaste."],
+    [
+      "ficha que ya no estaba publicada",
+      textos.MENSAJE_YA_NO_PUBLICADA,
+      "Esta ficha ya no estaba publicada.",
+    ],
+    [
+      "etiqueta de la cola",
+      textos.ETIQUETA_COLA_DESPUBLICADA,
+      "Ya estaba publicada, la despublicaste",
+    ],
+    [
+      "rótulo de cuándo se despublicó",
+      textos.ETIQUETA_CUANDO_DESPUBLICO,
+      "Cuándo la despublicaste",
+    ],
+    [
+      "rótulo de por qué se despublicó",
+      textos.ETIQUETA_POR_QUE_DESPUBLICO,
+      "Por qué la despublicaste",
+    ],
+    [
+      "control de borrado",
+      textos.BOTON_BORRAR_DEFINITIVAMENTE,
+      "Borrar definitivamente",
+    ],
+    [
+      "encabezado de la confirmación",
+      textos.ENCABEZADO_CONFIRMAR_BORRADO,
+      "¿Seguro que quieres borrar esta ficha?",
+    ],
+    [
+      "recordatorio del trámite ARCO",
+      textos.RECORDATORIO_TRAMITE_ARCO,
+      "Antes de borrar: confirma por WhatsApp, desde el número con el que se registró, que quien lo pide es el dueño del negocio. Tienes 20 días hábiles para contestarle.",
+    ],
+    [
+      "rótulo del campo de confirmación",
+      textos.ETIQUETA_CONFIRMAR_BORRAR,
+      "Escribe BORRAR para confirmar",
+    ],
+    ["botón de confirmar el borrado", textos.BOTON_CONFIRMAR_BORRADO, "Sí, borrar para siempre"],
+    ["salida de la confirmación", textos.TEXTO_MEJOR_NO_REGRESAR, "Mejor no, regresar"],
+    [
+      "error de la palabra de confirmación",
+      textos.ERROR_PALABRA_BORRAR,
+      "Para borrar, escribe BORRAR en el campo.",
+    ],
+    ["confirmación del borrado", textos.MENSAJE_BORRADO_HECHO, "Ya se borró para siempre."],
+    ["ficha que ya no existe", textos.MENSAJE_YA_NO_EXISTE, "Esta ficha ya no existe."],
+    ["palabra de confirmación", textos.PALABRA_CONFIRMACION_BORRADO, "BORRAR"],
+  ])("el %s es exactamente el de la spec", (_caso, actual, esperado) => {
+    expect(actual).toBe(esperado);
+  });
+
+  // Scenario: aviso de despublicación
+  it("el aviso de despublicación por WhatsApp interpola nombre y motivo", () => {
+    expect(textos.mensajeAvisoDespublicacion("Tacos del Güero", "El negocio cerró")).toBe(
+      "Hola, te escribo de NecesitoUno Tizayuca. Bajamos del directorio la ficha de «Tacos del Güero»: El negocio cerró. Si quieres que la volvamos a publicar o tienes alguna duda, contéstame por aquí.",
+    );
+  });
+
+  // Sin literal en la spec (copy propuesto, enmienda del hallazgo BAJO 3 de la
+  // etapa C): el motivo ya no se recorta en silencio.
+  it("el error de motivo largo dice la cota y por qué importa", () => {
+    expect(textos.errorMotivoDespublicarLargo(500)).toBe(
+      "El motivo no puede pasar de 500 caracteres. Recórtalo un poco: así, completo, es como le va a llegar al negocio.",
+    );
+    // La cota sale del parámetro: texto y límite no se pueden desincronizar.
+    expect(textos.errorMotivoDespublicarLargo(200)).toContain("200 caracteres");
+    // Y no es el mismo mensaje que el del motivo vacío.
+    expect(textos.errorMotivoDespublicarLargo(500)).not.toBe(
+      textos.ERROR_MOTIVO_DESPUBLICAR_VACIO,
+    );
+  });
+
+  it("la advertencia del borrado nombra el negocio y dice que no hay vuelta atrás", () => {
+    expect(textos.textoAdvertenciaBorrado("Tacos del Güero")).toBe(
+      "Esto borra para siempre el registro de «Tacos del Güero», sus giros y sus reportes. No hay papelera y no se puede deshacer.",
+    );
+  });
+});

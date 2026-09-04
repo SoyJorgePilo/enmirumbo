@@ -44,7 +44,24 @@ model Negocio {
   categoria        Categoria @relation(fields: [categoriaId], references: [id])
   categoriaId      Int
   whatsapp         String    @unique // una sola ficha por número
-  consintioAvisoEn DateTime // constancia del checkbox del aviso de privacidad
+  // Constancia LFPDPPP del checkbox del aviso de privacidad (PRD §8). Es un
+  // PAR y viaja junto (change `versionar-aviso-privacidad`): cuándo consintió
+  // y contra QUÉ texto. Sin la versión, la fecha apunta a un aviso que pudo
+  // haber cambiado. Ni la fecha ni la versión se sustituyen en un reenvío.
+  consintioAvisoEn DateTime
+  // Versión del aviso vigente al dar el consentimiento. Nulable y sin default
+  // a propósito: las fichas anteriores al versionado se quedan nulas porque
+  // nadie puede afirmar hoy qué texto tuvieron enfrente (design.md §2).
+  consintioAvisoVersion String?
+
+  // Reaceptación: la última vez que un reenvío aceptó una versión POSTERIOR a
+  // la de la constancia original. No se escribe cuando la vigente es la misma,
+  // cuando es anterior (despliegue revertido) ni cuando la constancia no tiene
+  // versión, que no es comparable (hallazgos MEDIO-3 y MEDIO-4 de la etapa C).
+  // Complementa a la constancia, no la sustituye. Las dos nulas mientras eso
+  // no ocurra, y también inseparables.
+  reconsintioAvisoEn      DateTime?
+  reconsintioAvisoVersion String?
 
   // Colonia: del catálogo, u "Otra" con texto libre pendiente de normalizar
   // (pendiente = coloniaId nulo con coloniaOtra no vacío; ver design.md §2)
@@ -60,7 +77,12 @@ model Negocio {
   latitud            Float? // pin opcional en mapa
   longitud           Float?
   horario            String?
-  fotoUrl            String?
+  // Referencia interna a la foto (change `agregar-foto-negocio`, design.md §4):
+  // clave OPACA que genera el servidor al procesar la imagen, nunca una URL ni
+  // una ruta del sistema de archivos. Los bytes viven en el almacén de fotos
+  // (ADR-006), fuera de la base y fuera del repositorio. Es única entre
+  // negocios: dos fichas no pueden apuntar a los mismos archivos.
+  fotoClave          String?  @unique
   facebookUrl        String?
 
   // Texto derivado SOLO para el buscador (change `agregar-buscador`,
@@ -83,6 +105,17 @@ model Negocio {
   // lo que habilitará la purga de rechazados a los 90 días (E0-3).
   rechazadoEn   DateTime?
   motivoRechazo String?
+
+  // Rastro de la última despublicación (spec `modelo-datos`, requirement "El
+  // negocio guarda el rastro de su despublicación"): nulos mientras la ficha
+  // nunca se haya despublicado, y se sobrescriben en cada despublicación
+  // posterior. NO se limpian en ninguna transición: son historia útil dentro
+  // del panel. Para que ese rastro viejo no ensucie la cola, la espera se
+  // cuenta desde `max(registradoEn, despublicadoEn)` (src/lib/admin/consultas.ts).
+  // El motivo es un dato interno del panel, como `motivoRechazo`: nunca sale
+  // a una página pública.
+  despublicadoEn       DateTime?
+  motivoDespublicacion String?
 
   // Giros asignados por el admin al aprobar (PRD §6.3, Apéndice B)
   giros Giro[]

@@ -10,7 +10,7 @@ vi.mock("next/navigation", async () => {
 });
 
 import { seedCatalogos } from "../prisma/seed";
-import { reportarNegocio } from "../src/app/negocio/[ficha]/reportar/accion";
+import { reportarNegocio } from "../src/app/(publico)/negocio/[ficha]/reportar/accion";
 import type { PrismaClient } from "../src/generated/prisma/client";
 import { construirSegmentoFicha } from "../src/lib/ficha-url";
 import { TOPE_REPORTES_PENDIENTES_POR_NEGOCIO, reiniciarCupoDeReportes } from "../src/lib/reportes/limite";

@@ -7,8 +7,8 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { seedCatalogos } from "../prisma/seed";
 import { sembrarNegociosDemo } from "../prisma/seed-demo";
-import DestinoPage from "../src/app/[destino]/page";
-import FichaNegocioPage from "../src/app/negocio/[ficha]/page";
+import DestinoPage from "../src/app/(publico)/[destino]/page";
+import FichaNegocioPage from "../src/app/(publico)/negocio/[ficha]/page";
 import type { PrismaClient } from "../src/generated/prisma/client";
 import { construirSegmentoFicha } from "../src/lib/ficha-url";
 import { crearClientePrueba } from "./db";
@@ -285,8 +285,8 @@ describe("directorio-publico · Server Components sin JS de cliente (tasks #9 a 
   // Scenario: sin JS de cliente nuevo
   it('ningún archivo nuevo del directorio declara "use client"', () => {
     const archivos = [
-      join(raiz, "src/app/[destino]/page.tsx"),
-      join(raiz, "src/app/negocio/[ficha]/page.tsx"),
+      join(raiz, "src/app/(publico)/[destino]/page.tsx"),
+      join(raiz, "src/app/(publico)/negocio/[ficha]/page.tsx"),
       ...readdirSync(join(raiz, "src/components/directorio")).map((nombre) =>
         join(raiz, "src/components/directorio", nombre),
       ),
@@ -309,7 +309,7 @@ describe("directorio-publico · Server Components sin JS de cliente (tasks #9 a 
       join(raiz, "src/components/directorio/listado-giro.tsx"),
       "utf8",
     );
-    const ficha = readFileSync(join(raiz, "src/app/negocio/[ficha]/page.tsx"), "utf8");
+    const ficha = readFileSync(join(raiz, "src/app/(publico)/negocio/[ficha]/page.tsx"), "utf8");
     expect(navegacion).toMatch(/\bmin-h-11\b/);
     expect(giro).toMatch(/\bmin-h-11\b|CLASE_BOTON_PRIMARIO/);
     expect(ficha).toMatch(/\bmin-h-11\b/);

@@ -24,6 +24,7 @@
  * peor que no marcarlo.
  */
 import type { GiroCatalogo, NegocioFicha } from "@/lib/directorio";
+import { urlDeFoto } from "@/lib/fotos/url";
 import { ocultarNumerosDeContacto } from "@/lib/seo/saneo";
 import { type EntornoSitio, urlAbsoluta } from "@/lib/sitio";
 
@@ -62,7 +63,7 @@ export function datosEstructuradosDeFicha(
   // Solo la colonia DEL CATÁLOGO entra como referencia de ubicación: el texto
   // libre de "Otra" es lo que el negocio escribió y no se publica aquí.
   const colonia = negocio.coloniaSlug ? negocio.coloniaNombre : null;
-  const foto = imagenAbsoluta(negocio.fotoUrl, env);
+  const foto = imagenAbsoluta(negocio.fotoClave, env);
 
   return {
     "@context": "https://schema.org",
@@ -84,10 +85,20 @@ export function datosEstructuradosDeFicha(
   };
 }
 
-function imagenAbsoluta(fotoUrl: string | null, env: EntornoSitio): string | null {
-  if (!fotoUrl) return null;
-  if (/^https?:\/\//.test(fotoUrl)) return fotoUrl;
-  return fotoUrl.startsWith("/") ? urlAbsoluta(fotoUrl, env) : null;
+/**
+ * La `image` del JSON-LD se construye a partir de la referencia interna que
+ * generó el servidor (`Negocio.fotoClave`), nunca a partir de una dirección
+ * guardada: `urlDeFoto` devuelve la ruta interna o `null`, y solo entonces se
+ * hace absoluta con la URL pública del sitio.
+ *
+ * Cierra el hallazgo **M3 de T-009** (`fotoUrl` sin lista blanca de dominio):
+ * ya no hace falta lista blanca, porque no hay forma de que un dominio ajeno
+ * entre — lo que se guarda no es una URL. Una fila con basura en esa columna
+ * emite una ficha sin `image`, que es lo mismo que hace la vista.
+ */
+function imagenAbsoluta(fotoClave: string | null, env: EntornoSitio): string | null {
+  const ruta = urlDeFoto(fotoClave, "ficha");
+  return ruta ? urlAbsoluta(ruta, env) : null;
 }
 
 /**

@@ -208,6 +208,45 @@ describe("revision-admin · detalle de un registro", () => {
     expect(detalle?.consintioAvisoEn).toBeInstanceOf(Date);
   });
 
+  // Scenario: detalle completo (la constancia con su versión, change
+  // `versionar-aviso-privacidad`)
+  it("trae la versión de la constancia y la reaceptación cuando existen", async () => {
+    const conVersion = await prisma.negocio.create({
+      data: {
+        nombre: "Cerrajería Ficticia de la Versión",
+        categoriaId,
+        whatsapp: `${PREFIJO}205`,
+        coloniaId,
+        consintioAvisoEn: haceHoras(10),
+        consintioAvisoVersion: "1",
+        reconsintioAvisoEn: haceHoras(2),
+        reconsintioAvisoVersion: "2",
+        registradoEn: haceHoras(10),
+      },
+    });
+
+    const detalle = await obtenerRegistroParaPanel(prisma, conVersion.id);
+    expect(detalle?.consintioAvisoVersion).toBe("1");
+    expect(detalle?.reconsintioAvisoEn).toBeInstanceOf(Date);
+    expect(detalle?.reconsintioAvisoVersion).toBe("2");
+
+    // Y una ficha anterior al versionado los trae nulos, sin inventar nada.
+    const sinVersion = await prisma.negocio.create({
+      data: {
+        nombre: "Cerrajería Ficticia Sin Versión",
+        categoriaId,
+        whatsapp: `${PREFIJO}206`,
+        coloniaId,
+        consintioAvisoEn: haceHoras(10),
+        registradoEn: haceHoras(10),
+      },
+    });
+    const viejo = await obtenerRegistroParaPanel(prisma, sinVersion.id);
+    expect(viejo?.consintioAvisoVersion).toBeNull();
+    expect(viejo?.reconsintioAvisoEn).toBeNull();
+    expect(viejo?.reconsintioAvisoVersion).toBeNull();
+  });
+
   // Scenario: detalle de un registro con solo obligatorios
   it("con solo los obligatorios deja los opcionales nulos, sin inventar contenido", async () => {
     const creado = await alta({
@@ -264,5 +303,161 @@ describe("revision-admin · detalle de un registro", () => {
     expect(detalle?.estado).toBe("rechazado");
     expect(detalle?.rechazadoEn).toBeInstanceOf(Date);
     expect(detalle?.motivoRechazo).toBe("Motivo ficticio de prueba");
+  });
+});
+
+// ── Fichas despublicadas en la cola (change agregar-despublicar-y-borrado-arco) ──
+
+describe("revision-admin · la espera se cuenta desde que el registro entró a la cola", () => {
+  // Scenario: una ficha despublicada aparece marcada y con su espera nueva
+  it("una ficha registrada hace meses y despublicada hace 2 horas espera desde la despublicación", async () => {
+    const creado = await alta({
+      nombre: "Ficticio despublicado hoy",
+      whatsapp: `${PREFIJO}301`,
+      horasEsperando: 8 * 30 * 24, // ocho meses
+    });
+    await prisma.negocio.update({
+      where: { id: creado.id },
+      data: {
+        despublicadoEn: haceHoras(2),
+        motivoDespublicacion: "El negocio cerró",
+        publicadoEn: haceHoras(100),
+      },
+    });
+
+    const [registro] = await obtenerColaDeRevision(prisma, AHORA);
+    expect(registro.esperaTexto).toBe("Hace 2 horas");
+    // Scenario: una ficha recién despublicada no nace atrasada
+    expect(registro.atrasado).toBe(false);
+    expect(registro.vieneDeDespublicacion).toBe(true);
+    expect(contarAtrasados([registro])).toBe(0);
+  });
+
+  // Scenario: una ficha despublicada y luego reenviada cuenta desde el reenvío
+  it("si después de despublicarla el negocio reenvía, la espera cuenta desde el reenvío", async () => {
+    const creado = await alta({
+      nombre: "Ficticio reenviado",
+      whatsapp: `${PREFIJO}302`,
+      horasEsperando: 3, // el reenvío pisa registradoEn (src/lib/registro/procesar.ts)
+    });
+    await prisma.negocio.update({
+      where: { id: creado.id },
+      data: {
+        despublicadoEn: haceHoras(300),
+        motivoDespublicacion: "Motivo ficticio viejo",
+      },
+    });
+
+    const [registro] = await obtenerColaDeRevision(prisma, AHORA);
+    expect(registro.esperaTexto).toBe("Hace 3 horas");
+    expect(registro.atrasado).toBe(false);
+    // Llegó a la cola por el reenvío, no por la despublicación: sin etiqueta.
+    expect(registro.vieneDeDespublicacion).toBe(false);
+  });
+
+  it("una despublicación de hace 50 horas sí sale atrasada", async () => {
+    const creado = await alta({
+      nombre: "Ficticio despublicado y olvidado",
+      whatsapp: `${PREFIJO}303`,
+      horasEsperando: 5000,
+    });
+    await prisma.negocio.update({
+      where: { id: creado.id },
+      data: { despublicadoEn: haceHoras(50), motivoDespublicacion: "Motivo ficticio" },
+    });
+
+    const [registro] = await obtenerColaDeRevision(prisma, AHORA);
+    expect(registro.atrasado).toBe(true);
+    expect(registro.esperaTexto).toBe("Hace 2 días");
+    expect(registro.vieneDeDespublicacion).toBe(true);
+  });
+
+  it("un registro sin despublicación se comporta exactamente como antes", async () => {
+    await alta({ nombre: "Ficticio normal", whatsapp: `${PREFIJO}304`, horasEsperando: 49 });
+    const [registro] = await obtenerColaDeRevision(prisma, AHORA);
+    expect(registro.esperaTexto).toBe("Hace 2 días");
+    expect(registro.atrasado).toBe(true);
+    expect(registro.vieneDeDespublicacion).toBe(false);
+  });
+
+  it("el orden de la cola usa el mismo reloj de entrada para todos, sin secciones aparte", async () => {
+    await alta({ nombre: "Alta de hace 10 horas", whatsapp: `${PREFIJO}305`, horasEsperando: 10 });
+    const vieja = await alta({
+      nombre: "Despublicada hace 30 horas",
+      whatsapp: `${PREFIJO}306`,
+      horasEsperando: 4000,
+    });
+    await prisma.negocio.update({
+      where: { id: vieja.id },
+      data: { despublicadoEn: haceHoras(30), motivoDespublicacion: "Motivo ficticio" },
+    });
+    await alta({ nombre: "Alta de hace 1 hora", whatsapp: `${PREFIJO}307`, horasEsperando: 1 });
+
+    const cola = await obtenerColaDeRevision(prisma, AHORA);
+    expect(cola.map((registro) => registro.nombre)).toEqual([
+      "Despublicada hace 30 horas",
+      "Alta de hace 10 horas",
+      "Alta de hace 1 hora",
+    ]);
+  });
+});
+
+describe("revision-admin · el detalle trae el rastro de la despublicación y los giros", () => {
+  // Scenario: detalle de una ficha despublicada
+  it("con rastro devuelve fecha y motivo de la despublicación y la última publicación", async () => {
+    const creado = await alta({
+      nombre: "Ficticio despublicado",
+      whatsapp: `${PREFIJO}401`,
+      horasEsperando: 500,
+    });
+    await prisma.negocio.update({
+      where: { id: creado.id },
+      data: {
+        despublicadoEn: haceHoras(24),
+        motivoDespublicacion: "El negocio cerró",
+        publicadoEn: haceHoras(200),
+      },
+    });
+
+    const detalle = await obtenerRegistroParaPanel(prisma, creado.id);
+    expect(detalle?.despublicadoEn?.toISOString()).toBe(haceHoras(24).toISOString());
+    expect(detalle?.motivoDespublicacion).toBe("El negocio cerró");
+    expect(detalle?.publicadoEn?.toISOString()).toBe(haceHoras(200).toISOString());
+  });
+
+  // Scenario: detalle de una ficha que nunca se despublicó
+  it("sin rastro, los dos campos llegan nulos", async () => {
+    const creado = await alta({
+      nombre: "Ficticio nunca despublicado",
+      whatsapp: `${PREFIJO}402`,
+      horasEsperando: 4,
+    });
+    const detalle = await obtenerRegistroParaPanel(prisma, creado.id);
+    expect(detalle?.despublicadoEn).toBeNull();
+    expect(detalle?.motivoDespublicacion).toBeNull();
+  });
+
+  // Scenario: republicar conserva los giros
+  it("trae los ids de los giros ya asignados, y una lista vacía si no tiene ninguno", async () => {
+    const giros = await prisma.giro.findMany({ orderBy: { id: "asc" }, take: 3 });
+    const conGiros = await alta({
+      nombre: "Ficticio con 3 giros",
+      whatsapp: `${PREFIJO}403`,
+      horasEsperando: 6,
+    });
+    await prisma.negocio.update({
+      where: { id: conGiros.id },
+      data: { giros: { set: giros.map((giro) => ({ id: giro.id })) } },
+    });
+    const sinGiros = await alta({
+      nombre: "Ficticio recién registrado",
+      whatsapp: `${PREFIJO}404`,
+      horasEsperando: 1,
+    });
+
+    expect((await obtenerRegistroParaPanel(prisma, conGiros.id))?.girosIds?.sort()).toEqual(
+      giros.map((giro) => giro.id).sort(),
+    );
+    expect((await obtenerRegistroParaPanel(prisma, sinGiros.id))?.girosIds).toEqual([]);
   });
 });

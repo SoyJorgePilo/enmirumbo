@@ -9,9 +9,9 @@ import {
   motivoParaNoSembrar,
   sembrarNegociosDemo,
 } from "../prisma/seed-demo";
-import ListadoCategoriaPage from "../src/app/[destino]/page";
-import FichaNegocioPage from "../src/app/negocio/[ficha]/page";
-import Home from "../src/app/page";
+import ListadoCategoriaPage from "../src/app/(publico)/[destino]/page";
+import FichaNegocioPage from "../src/app/(publico)/negocio/[ficha]/page";
+import Home from "../src/app/(publico)/page";
 import type { PrismaClient } from "../src/generated/prisma/client";
 import {
   listarCategorias,
@@ -484,6 +484,47 @@ describe("adversarial · un negocio sin publicar es indistinguible de uno inexis
     expect(new Set(digests)).toEqual(new Set([DIGEST_404]));
   });
 
+  // Change `versionar-aviso-privacidad`: la versión aceptada es un dato
+  // interno del panel, como `consintioAvisoEn` y `registradoEn`. Se comprueba
+  // con valores realmente guardados en la base, no con la proyección limpia.
+  it("la versión del consentimiento y la reaceptación no salen a la superficie pública", async () => {
+    const id = idPorWhatsapp[`${PREFIJO}104`];
+    await prisma.negocio.update({
+      where: { id },
+      data: {
+        consintioAvisoVersion: "version-interna-ficticia-7",
+        reconsintioAvisoEn: new Date("2026-08-09T10:00:00.000Z"),
+        reconsintioAvisoVersion: "reaceptacion-interna-ficticia-8",
+      },
+    });
+
+    const ficha = await renderFicha(
+      construirSegmentoFicha("Ferreteria Repetida (ficticia)", id),
+    );
+    const listado = await renderListado("otro");
+    for (const html of [ficha, listado]) {
+      for (const secreto of [
+        "version-interna-ficticia-7",
+        "reaceptacion-interna-ficticia-8",
+        "consintioAvisoVersion",
+        "reconsintioAvisoEn",
+        "reconsintioAvisoVersion",
+        "2026-08-09",
+      ]) {
+        expect(html, `fuga: ${secreto}`).not.toContain(secreto);
+      }
+    }
+
+    const publicado = await obtenerNegocioPublicado(id);
+    for (const campo of [
+      "consintioAvisoVersion",
+      "reconsintioAvisoEn",
+      "reconsintioAvisoVersion",
+    ]) {
+      expect(Object.keys(publicado!), campo).not.toContain(campo);
+    }
+  });
+
   it("el token de gestión no viaja ni siquiera en la ficha de un publicado", async () => {
     // El módulo de consultas no lee `tokenGestion`; este test lo comprueba con
     // un token realmente guardado en la base (el seed de demo los deja nulos).
@@ -913,6 +954,7 @@ describe("adversarial · el seed de demostración no puede llevar datos reales",
       expect(Object.keys(negocio)).not.toContain("latitud");
       expect(Object.keys(negocio)).not.toContain("longitud");
       expect(Object.keys(negocio)).not.toContain("fotoUrl");
+      expect(Object.keys(negocio)).not.toContain("fotoClave");
     }
   });
 

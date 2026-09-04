@@ -1,7 +1,10 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { seedCatalogos } from "../prisma/seed";
+import { almacenDeFotos } from "../src/lib/fotos/almacen";
+import { generarClaveFoto, VARIANTES_FOTO } from "../src/lib/fotos/clave";
 import {
+  borrarNegocioDefinitivamente,
   ESTADO_NEGOCIO_DEFAULT,
   ORIGEN_NEGOCIO_DEFAULT,
 } from "../src/lib/negocio";
@@ -56,7 +59,7 @@ describe("modelo Negocio", () => {
     expect(creado.latitud).toBeNull();
     expect(creado.longitud).toBeNull();
     expect(creado.horario).toBeNull();
-    expect(creado.fotoUrl).toBeNull();
+    expect(creado.fotoClave).toBeNull();
     expect(creado.facebookUrl).toBeNull();
 
     // Ciclo de vida inicial
@@ -85,7 +88,8 @@ describe("modelo Negocio", () => {
       latitud: 19.8367,
       longitud: -98.9817,
       horario: "L-S 9am-6pm",
-      fotoUrl: "https://ejemplo.test/foto.jpg",
+      // Clave con la forma que genera el servidor (32 hex).
+      fotoClave: "0123456789abcdef0123456789abcdef",
       facebookUrl: "https://facebook.com/negocio-ficticio",
     };
     const { id } = await prisma.negocio.create({ data: datos });
@@ -230,6 +234,51 @@ describe("modelo Negocio", () => {
     expect(normalizado.colonia?.slug).toBe("haciendas-de-tizayuca");
   });
 
+  // Requirement "El modelo Negocio cubre los campos del registro" MODIFIED por
+  // `agregar-foto-negocio` · Scenario: dos negocios no comparten la misma foto
+  it("la base rechaza dos negocios con la misma referencia de foto", async () => {
+    const clave = generarClaveFoto();
+    await prisma.negocio.create({
+      data: {
+        nombre: "Panadería Ficticia de la Foto Única",
+        categoriaId,
+        whatsapp: "7710000012",
+        coloniaId,
+        consintioAvisoEn: new Date(),
+        fotoClave: clave,
+      },
+    });
+
+    await expect(
+      prisma.negocio.create({
+        data: {
+          nombre: "Copia Ficticia de la Foto",
+          categoriaId,
+          whatsapp: "7710000013",
+          coloniaId,
+          consintioAvisoEn: new Date(),
+          fotoClave: clave,
+        },
+      }),
+    ).rejects.toMatchObject({ code: "P2002" });
+
+    // Varias fichas SIN foto sí conviven: el índice único admite nulos.
+    for (const whatsapp of ["7710000014", "7710000015"]) {
+      await prisma.negocio.create({
+        data: {
+          nombre: `Negocio Ficticio sin Foto ${whatsapp}`,
+          categoriaId,
+          whatsapp,
+          coloniaId,
+          consintioAvisoEn: new Date(),
+        },
+      });
+    }
+    expect(
+      await prisma.negocio.count({ where: { fotoClave: null } }),
+    ).toBeGreaterThanOrEqual(2);
+  });
+
   // Requirement "Borrado definitivo de un negocio (ARCO)" · Scenario: hard delete
   it("hard delete: desaparecen la fila y sus vínculos con giros", async () => {
     const giro = await prisma.giro.findUniqueOrThrow({ where: { slug: "tacos" } });
@@ -257,5 +306,62 @@ describe("modelo Negocio", () => {
       { total: bigint }[]
     >`SELECT COUNT(*) as total FROM "_GiroToNegocio" WHERE "B" = ${id}`;
     expect(Number(vinculos[0].total)).toBe(0);
+  });
+
+  // Requirement "Borrado definitivo de un negocio (ARCO)" MODIFIED por
+  // `agregar-foto-negocio` · Scenario: hard delete (con foto)
+  it("el borrado definitivo se lleva también todas las variantes de su foto", async () => {
+    const almacen = almacenDeFotos();
+    const clave = generarClaveFoto();
+    for (const variante of VARIANTES_FOTO) {
+      await almacen.guardar(clave, variante, Buffer.from("foto de mentiras"));
+    }
+    const giro = await prisma.giro.findUniqueOrThrow({ where: { slug: "tacos" } });
+    const { id } = await prisma.negocio.create({
+      data: {
+        nombre: "Taquería Ficticia con Foto Borrable",
+        categoriaId,
+        whatsapp: "7710000010",
+        coloniaId,
+        consintioAvisoEn: new Date(),
+        fotoClave: clave,
+        giros: { connect: { id: giro.id } },
+      },
+    });
+
+    expect(await borrarNegocioDefinitivamente(prisma, id, almacen)).toBe(true);
+
+    expect(await prisma.negocio.findUnique({ where: { id } })).toBeNull();
+    for (const variante of VARIANTES_FOTO) {
+      expect(await almacen.leer(clave, variante)).toBeNull();
+    }
+    const vinculos = await prisma.$queryRaw<
+      { total: bigint }[]
+    >`SELECT COUNT(*) as total FROM "_GiroToNegocio" WHERE "B" = ${id}`;
+    expect(Number(vinculos[0].total)).toBe(0);
+  });
+
+  // Scenario: borrado con el archivo ya ausente
+  it("borrar un negocio cuya foto ya no está en el almacén no truena", async () => {
+    const clave = generarClaveFoto(); // nunca se escribió ningún archivo
+    const { id } = await prisma.negocio.create({
+      data: {
+        nombre: "Estética Ficticia sin Archivos",
+        categoriaId,
+        whatsapp: "7710000011",
+        coloniaId,
+        consintioAvisoEn: new Date(),
+        fotoClave: clave,
+      },
+    });
+
+    await expect(borrarNegocioDefinitivamente(prisma, id)).resolves.toBe(true);
+    expect(await prisma.negocio.findUnique({ where: { id } })).toBeNull();
+  });
+
+  it("borrar un identificador que no existe devuelve false, sin error", async () => {
+    await expect(
+      borrarNegocioDefinitivamente(prisma, "no-existe-este-id"),
+    ).resolves.toBe(false);
   });
 });

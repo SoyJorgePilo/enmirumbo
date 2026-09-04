@@ -2,8 +2,8 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { seedCatalogos } from "../prisma/seed";
 import { sembrarNegociosDemo } from "../prisma/seed-demo";
-import { generateMetadata as metadataDestino } from "../src/app/[destino]/page";
-import { generateMetadata as metadataFicha } from "../src/app/negocio/[ficha]/page";
+import { generateMetadata as metadataDestino } from "../src/app/(publico)/[destino]/page";
+import { generateMetadata as metadataFicha } from "../src/app/(publico)/negocio/[ficha]/page";
 import { metadata as metadataLayout } from "../src/app/layout";
 import type { PrismaClient } from "../src/generated/prisma/client";
 import { construirSegmentoFicha } from "../src/lib/ficha-url";
@@ -17,7 +17,7 @@ import {
 } from "../src/lib/seo/metadata";
 import { URL_SITIO_LOCAL, VARIABLE_URL_SITIO } from "../src/lib/sitio";
 import { crearClientePrueba } from "./db";
-import { sembrarNegociosSeo } from "./seo-fixtures";
+import { CLAVE_FOTO_SEO, sembrarNegociosSeo } from "./seo-fixtures";
 
 // Spec: layout-base · requirement "Server Component con documento en es-MX y
 // metadata base" (MODIFIED) y directorio-publico · requirements "Título y
@@ -257,8 +257,10 @@ describe("directorio-publico · metadata de la ficha (tasks #16)", () => {
     const metadata = await metadataFicha(
       propsFicha("7719995023", "Panadería La Foto Ficticia"),
     );
+    // La URL de la foto la arma el servidor con la clave interna (T-008): a
+    // `og:image` no puede llegar una dirección guardada en la base.
     expect(metadata.openGraph?.images).toEqual([
-      `${URL_SITIO}/fotos/negocio-ficticio.jpg`,
+      `${URL_SITIO}/api/foto/${CLAVE_FOTO_SEO}/ficha`,
     ]);
   });
 

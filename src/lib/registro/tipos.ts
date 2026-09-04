@@ -34,10 +34,20 @@ export type CamposFormularioRegistro = {
 /**
  * Un mensaje por campo. `consentimiento` no es un campo capturado (el
  * checkbox siempre se vuelve a marcar) y `general` es el error de servidor
- * que se pinta arriba del formulario.
+ * que se pinta arriba del formulario. `foto` tampoco es un campo de
+ * `CamposFormularioRegistro` (un `<input type="file">` no se puede repoblar
+ * con `defaultValue`, y por eso nunca viaja en el eco del formulario, spec
+ * `registro-negocio`), pero sí necesita su propio mensaje junto al campo: los
+ * cuatro literales de la spec ("Esa foto pesa más de 5 MB...", "No pudimos
+ * leer esa foto...", "No pudimos preparar tu foto..." y "Tu foto no se quedó
+ * guardada: vuelve a elegirla antes de enviar.") se muestran todos en este
+ * mismo slot, según cuál aplique.
  */
 export type ErroresFormularioRegistro = Partial<
-  Record<keyof CamposFormularioRegistro | "consentimiento" | "general", string>
+  Record<
+    keyof CamposFormularioRegistro | "consentimiento" | "general" | "foto",
+    string
+  >
 >;
 
 /** Lo que `useActionState` recibe de vuelta en el camino de error. */

@@ -7,7 +7,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { seedCatalogos } from "../prisma/seed";
 import { sembrarNegociosDemo } from "../prisma/seed-demo";
-import BuscarPage, { metadata } from "../src/app/buscar/page";
+import BuscarPage, { metadata } from "../src/app/(publico)/buscar/page";
 import { Buscador } from "../src/components/directorio/buscador";
 import type { PrismaClient } from "../src/generated/prisma/client";
 import { crearClientePrueba } from "./db";
@@ -284,9 +284,9 @@ describe("directorio-publico · la página de resultados no es indexable (tasks 
     // del segmento dinámico aplica solo cuando no hay nada que mostrar. Esta
     // verificación sigue cubriendo TODAS las páginas, incluida esa.
     const noIndexables = [
-      join(raiz, "src/app/buscar/page.tsx"),
-      join(raiz, "src/app/negocio/[ficha]/reportar/page.tsx"),
-      join(raiz, "src/app/negocio/[ficha]/reportar/gracias/page.tsx"),
+      join(raiz, "src/app/(publico)/buscar/page.tsx"),
+      join(raiz, "src/app/(publico)/negocio/[ficha]/reportar/page.tsx"),
+      join(raiz, "src/app/(publico)/negocio/[ficha]/reportar/gracias/page.tsx"),
     ];
     const paginas = archivosDe(join(raiz, "src/app")).filter(
       (ruta) =>

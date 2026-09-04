@@ -5,11 +5,11 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest
 
 import { seedCatalogos } from "../prisma/seed";
 import { sembrarNegociosDemo } from "../prisma/seed-demo";
-import DestinoPage, { generateMetadata as metadataDestino } from "../src/app/[destino]/page";
+import DestinoPage, { generateMetadata as metadataDestino } from "../src/app/(publico)/[destino]/page";
 import { metadata as metadataDeLa404 } from "../src/app/not-found";
 import FichaNegocioPage, {
   generateMetadata as metadataFicha,
-} from "../src/app/negocio/[ficha]/page";
+} from "../src/app/(publico)/negocio/[ficha]/page";
 import type { PrismaClient } from "../src/generated/prisma/client";
 import { datosDeBusqueda } from "../src/lib/busqueda";
 import {

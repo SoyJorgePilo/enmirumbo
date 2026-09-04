@@ -5,7 +5,7 @@
  * guarda ningún dato").
  *
  * Es el corazón de la Server Action, separado de ella para poder probarlo sin
- * un request de Next.js: la acción (`src/app/negocio/[ficha]/reportar/
+ * un request de Next.js: la acción (`src/app/(publico)/negocio/[ficha]/reportar/
  * accion.ts`) solo saca la IP de los encabezados, llama aquí y redirige.
  * Recibe el cliente Prisma como parámetro, igual que `procesarRegistro` y las
  * consultas del panel.

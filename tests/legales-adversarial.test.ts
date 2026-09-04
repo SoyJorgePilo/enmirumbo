@@ -7,9 +7,9 @@ import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { seedCatalogos } from "../prisma/seed";
-import AvisoDePrivacidadPage from "../src/app/aviso-de-privacidad/page";
-import FichaNegocioPage from "../src/app/negocio/[ficha]/page";
-import TerminosPage from "../src/app/terminos/page";
+import AvisoDePrivacidadPage from "../src/app/(publico)/aviso-de-privacidad/page";
+import FichaNegocioPage from "../src/app/(publico)/negocio/[ficha]/page";
+import TerminosPage from "../src/app/(publico)/terminos/page";
 import { Footer } from "../src/components/footer";
 import { DocumentoLegalView } from "../src/components/legales/documento-legal";
 import { AvisoConsentimiento } from "../src/components/registro/aviso-consentimiento";
@@ -153,13 +153,18 @@ describe("adversarial · la marca de borrador no se puede quitar por accidente",
   });
 
   it("la marca no depende de una prop que quien pinte pueda apagar", () => {
-    // `DocumentoLegalView` recibe solo el documento: no hay forma de pedirle
-    // "píntalo sin la advertencia" desde una página nueva.
+    // `DocumentoLegalView` solo recibe el documento y —desde el change
+    // `versionar-aviso-privacidad`— la versión del aviso, que es un dato que
+    // se PINTA, no un interruptor: no hay forma de pedirle "píntalo sin la
+    // advertencia" desde una página nueva. Si alguien agrega otra prop, este
+    // caso salta y hay que volver a justificarla aquí.
     const componente = readFileSync(
       join(raiz, "src/components/legales/documento-legal.tsx"),
       "utf8",
     );
-    expect(componente).toMatch(/\{\s*documento\s*\}\s*:\s*\{\s*documento:\s*DocumentoLegal/);
+    expect(componente).toMatch(
+      /\{\s*documento,\s*version,?\s*\}\s*:\s*\{\s*documento:\s*DocumentoLegal;\s*version\?:\s*string;?\s*\}/,
+    );
     expect(componente).not.toMatch(/borrador\s*\?\?|mostrarBorrador|ocultarBorrador/);
   });
 });
@@ -214,8 +219,8 @@ describe("adversarial · enlaces y markup de las superficies legales", () => {
   it("ninguna superficie legal pinta HTML sin escapar", () => {
     for (const archivo of [
       "src/components/legales/documento-legal.tsx",
-      "src/app/aviso-de-privacidad/page.tsx",
-      "src/app/terminos/page.tsx",
+      "src/app/(publico)/aviso-de-privacidad/page.tsx",
+      "src/app/(publico)/terminos/page.tsx",
       "src/components/footer.tsx",
       "src/components/registro/aviso-consentimiento.tsx",
       "src/lib/legales/textos.ts",
@@ -280,6 +285,10 @@ const CAMPO_PUBLICO_DECLARADO: Record<string, string> = {
   // era declararla AQUÍ, que es justo lo que este guardián existe para exigir.
   categoriaNombre: "la categoría",
   coloniaNombre: "tu colonia",
+  // Agregado por el change `agregar-analitica-cookieless`: la proyección
+  // pública ahora lee el slug de la categoría (para la propiedad `categoria`
+  // del evento de medición). El aviso ya la enumera como pública desde E6.
+  categoriaSlug: "la categoría",
   queOfreces: '"¿Qué ofreces?"',
   horario: "tu horario",
   entregaADomicilio: "si haces entregas",
@@ -290,8 +299,15 @@ const CAMPO_PUBLICO_DECLARADO: Record<string, string> = {
     "Si tú escribes una dirección o referencias en el formulario, eso también se publica tal cual",
   // Enmienda de la auditoría (MEDIO-2): la foto dejó de ser un campo público
   // sin declarar. El aviso ya dice que, si la ficha llega a llevarla, es
-  // pública; T-008 volverá aquí a escribir con qué reglas se publica.
-  fotoUrl: "una foto de tu negocio",
+  // pública.
+  //
+  // T-008 renombró la columna a `fotoClave` (ya no es una URL, es la clave
+  // opaca que genera el servidor), así que la declaración se muda con ella —
+  // el mismo criterio con el que T-009 declaró aquí `categoriaNombre`. Y con
+  // la enmienda aprobada del delta `paginas-legales`, el aviso ya no promete
+  // la política de la foto: la escribe (qué se puede retratar, qué no, y qué
+  // pasa si no cumple).
+  fotoClave: "una foto de tu negocio",
 };
 
 /**
@@ -320,6 +336,12 @@ const NEGOCIO_PRUEBA = {
   token: "token-de-gestion-ficticio-legales-4d2e",
   registradoEn: new Date("2026-07-31T10:00:00.000Z"),
   consintioAvisoEn: new Date("2026-07-31T10:05:00.000Z"),
+  // Change `versionar-aviso-privacidad`: la versión aceptada y la
+  // reaceptación son datos internos del panel. Valores reconocibles a
+  // propósito, para poder buscarlos en el HTML servido.
+  consintioAvisoVersion: "version-legales-ficticia-3",
+  reconsintioAvisoEn: new Date("2026-08-09T10:00:00.000Z"),
+  reconsintioAvisoVersion: "reaceptacion-legales-ficticia-4",
 };
 
 describe("adversarial · lo que el aviso promete vs. lo que la ficha publica", () => {
@@ -353,6 +375,9 @@ describe("adversarial · lo que el aviso promete vs. lo que la ficha publica", (
         publicadoEn: new Date("2026-08-15T10:00:00.000Z"),
         registradoEn: NEGOCIO_PRUEBA.registradoEn,
         consintioAvisoEn: NEGOCIO_PRUEBA.consintioAvisoEn,
+        consintioAvisoVersion: NEGOCIO_PRUEBA.consintioAvisoVersion,
+        reconsintioAvisoEn: NEGOCIO_PRUEBA.reconsintioAvisoEn,
+        reconsintioAvisoVersion: NEGOCIO_PRUEBA.reconsintioAvisoVersion,
         // Fila deliberadamente sucia: rastro de un rechazo anterior y token de
         // gestión sobre una ficha ya publicada. El aviso promete que nada de
         // esto se ve; se comprueba en el peor caso, no en el limpio.
@@ -407,8 +432,16 @@ describe("adversarial · lo que el aviso promete vs. lo que la ficha publica", (
       NEGOCIO_PRUEBA.token,
       "2026-07-31",
       "2026-08-01",
+      "2026-08-09",
       "2026-08-15",
       "consintioAvisoEn",
+      // Change `versionar-aviso-privacidad`: la constancia completa (fecha,
+      // versión y reaceptación) es un dato interno del panel.
+      NEGOCIO_PRUEBA.consintioAvisoVersion,
+      NEGOCIO_PRUEBA.reconsintioAvisoVersion,
+      "consintioAvisoVersion",
+      "reconsintioAvisoEn",
+      "reconsintioAvisoVersion",
       "tokenGestion",
       "motivoRechazo",
       "registradoEn",

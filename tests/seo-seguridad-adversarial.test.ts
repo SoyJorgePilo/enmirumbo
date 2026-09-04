@@ -8,10 +8,10 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { seedCatalogos } from "../prisma/seed";
 import DestinoPage, {
   generateMetadata as metadataDestino,
-} from "../src/app/[destino]/page";
+} from "../src/app/(publico)/[destino]/page";
 import FichaNegocioPage, {
   generateMetadata as metadataFicha,
-} from "../src/app/negocio/[ficha]/page";
+} from "../src/app/(publico)/negocio/[ficha]/page";
 import robots from "../src/app/robots";
 import sitemap from "../src/app/sitemap";
 import type { PrismaClient } from "../src/generated/prisma/client";
@@ -802,9 +802,10 @@ describe("seo/seguridad · escapado del bloque contra XSS almacenado", () => {
             nombre: `Negocio ${carga}`,
             coloniaNombre: "Huicalco",
             coloniaSlug: "huicalco",
+            categoriaSlug: "talleres",
             entregaADomicilio: false,
             whatsapp: `${PREFIJO}009`,
-            fotoUrl: null,
+            fotoClave: null,
             categoriaNombre: "Talleres",
             queOfreces: carga,
             telefonoFijo: null,
@@ -1051,6 +1052,14 @@ describe("seo/seguridad · la imagen para compartir", () => {
       "JAVASCRIPT:alert(1)",
       "httpx://necesitouno.example/x.png",
       "x.png",
+      // El caso del hallazgo M3 de este change: una URL externa perfectamente
+      // formada guardada a mano en la columna. Ya no hace falta lista blanca
+      // de dominio, porque la columna no guarda direcciones: guarda la clave
+      // que genera el servidor (T-008) y `imagenesDeLaFicha` la construye.
+      "https://evil.example/pixel.png",
+      "https://necesitouno.example.evil/x.png",
+      "/fotos/negocio-ficticio.jpg",
+      "../../etc/passwd",
     ]) {
       const imagenes = imagenesDeLaFicha(hostil, {
         [VARIABLE_URL_SITIO]: URL_SITIO,

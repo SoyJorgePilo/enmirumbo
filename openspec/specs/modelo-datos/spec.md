@@ -4,15 +4,25 @@
 
 ### Requirement: El modelo `Negocio` cubre los campos del registro
 
-El sistema DEBE persistir un negocio con los 5 campos obligatorios del PRD §6.1 — nombre, categoría (del catálogo), WhatsApp de 10 dígitos, colonia y constancia del consentimiento del aviso de privacidad — y DEBE admitir los 5 opcionales: "¿Qué ofreces?" (máx. 200 caracteres), entregas a domicilio (sí/no), teléfono fijo y dirección o referencias con pin opcional (latitud/longitud), horario en texto libre, y foto y/o link de Facebook.
+El sistema DEBE persistir un negocio con los 5 campos obligatorios del PRD §6.1 — nombre, categoría (del catálogo), WhatsApp de 10 dígitos, colonia y constancia del consentimiento del aviso de privacidad — y DEBE admitir los opcionales: "¿Qué ofreces?" (máx. 200 caracteres), entregas a domicilio (sí/no), teléfono fijo y dirección o referencias con pin opcional (latitud/longitud), horario en texto libre, link de Facebook y foto.
+
+La foto NO se guarda como una URL cualquiera: el negocio persiste una **referencia interna a la foto** (`fotoClave`), que es una clave opaca generada por el servidor al procesar la imagen y que solo sirve para localizar los archivos en el almacenamiento de fotos (ADR-006). Esa referencia DEBE ser nula cuando el negocio no tiene foto, DEBE ser única entre negocios, y NO DEBE contener nunca una dirección externa, un `data:`, un esquema de URL ni una ruta del sistema de archivos: quien lee este campo tiene que poder asumir que lo escribió el servidor. Los bytes de la imagen NO viven en la base de datos ni en el repositorio.
 
 #### Scenario: alta mínima con solo obligatorios
 - **WHEN** se crea un negocio con nombre, categoría, WhatsApp, colonia y constancia de consentimiento
-- **THEN** el negocio queda guardado y todos los campos opcionales quedan vacíos
+- **THEN** el negocio queda guardado, todos los campos opcionales quedan vacíos y su referencia de foto queda nula
 
 #### Scenario: alta completa con opcionales
-- **WHEN** se crea un negocio incluyendo los 5 campos opcionales (con pin de mapa)
-- **THEN** todos los valores quedan persistidos y recuperables tal como se guardaron, incluidas las coordenadas del pin
+- **WHEN** se crea un negocio incluyendo los campos opcionales (con pin de mapa y con foto)
+- **THEN** todos los valores quedan persistidos y recuperables tal como se guardaron, incluidas las coordenadas del pin y la referencia interna de la foto
+
+#### Scenario: la referencia de la foto no es una URL
+- **WHEN** se revisa el valor guardado en la referencia de foto de un negocio que subió una imagen
+- **THEN** es la clave opaca que generó el servidor, sin esquema de URL, sin dominio y sin ruta del sistema de archivos, y no coincide con el identificador del negocio ni con su nombre
+
+#### Scenario: dos negocios no comparten la misma foto
+- **WHEN** se intenta guardar en dos negocios la misma referencia de foto
+- **THEN** la base de datos rechaza la operación
 
 ### Requirement: Una sola ficha por número de WhatsApp
 
@@ -38,6 +48,37 @@ El sistema DEBE contar con tres catálogos persistidos: las 8 categorías del PR
 - **WHEN** se vuelve a ejecutar el seed sobre una base ya poblada
 - **THEN** los slugs existentes no cambian ni se generan entradas duplicadas
 
+### Requirement: Los slugs de los tres catálogos no producen URLs ambiguas en la raíz
+
+Las páginas públicas de categoría (`/servicios-del-hogar`), de giro (`/plomeria`) y de giro+colonia (`/plomeria-haciendas-de-tizayuca`) comparten la raíz del sitio, así que los slugs de los tres catálogos DEBEN garantizar que **cada URL de la raíz se lea de una sola manera**. El proyecto DEBE tener una verificación automática sobre los catálogos sembrados que falle —antes de que nada se publique— si se rompe cualquiera de estas condiciones:
+
+- ningún slug de giro ni de colonia coincide con un slug de categoría;
+- ningún slug de ninguno de los tres catálogos coincide con un segmento reservado del sitio (las rutas propias, PRD §6.3 y §6.4);
+- ningún slug compuesto `«giro»-«colonia»` coincide con un slug de categoría ni con un slug de giro;
+- ningún slug compuesto `«giro»-«colonia»` admite dos lecturas distintas, es decir, no existen dos pares de giro y colonia del catálogo que produzcan la misma URL.
+
+Es una invariante de los catálogos sembrados (8 categorías, 21 colonias y 49 giros con slug estable), no un campo del modelo. Reservar un nombre es gratis; migrar una URL ya publicada, no.
+
+#### Scenario: los catálogos de hoy son inequívocos
+
+- **WHEN** se corre la verificación sobre la base con los tres catálogos sembrados
+- **THEN** pasa: ninguna URL de la raíz se puede leer de dos maneras
+
+#### Scenario: un giro que se llama como una categoría
+
+- **WHEN** se agrega al catálogo un giro cuyo slug coincide con el de una categoría
+- **THEN** la verificación falla y señala el slug en conflicto
+
+#### Scenario: un giro que taparía una ruta propia
+
+- **WHEN** se agrega al catálogo un giro o una colonia con un slug que es un segmento reservado del sitio (por ejemplo `buscar`)
+- **THEN** la verificación falla y señala el slug en conflicto
+
+#### Scenario: un compuesto con dos lecturas
+
+- **WHEN** el catálogo llega a un estado en el que un mismo slug compuesto se puede leer como dos pares distintos de giro y colonia
+- **THEN** la verificación falla y nombra las dos lecturas posibles
+
 ### Requirement: Giros asignables al negocio por el admin
 
 El sistema DEBE permitir vincular giros del catálogo a un negocio (relación muchos-a-muchos). Un negocio recién registrado no tiene giros; el admin le asigna de 1 a 3 al aprobar (PRD §6.3), y un negocio puede publicarse sin giro si ninguno embona (Apéndice B). La cota 1-3 se hace cumplir en el panel de revisión, no en la base de datos.
@@ -52,7 +93,7 @@ El sistema DEBE permitir vincular giros del catálogo a un negocio (relación mu
 
 ### Requirement: Estado de revisión, origen y timestamps del ciclo de vida
 
-El negocio DEBE tener un estado con valores `en_revision | publicado | rechazado` (default `en_revision`), un origen con valores `siembra | organico` (PRD §6.3 y §10; default `organico`, el admin lo ajusta al aprobar), un timestamp de registro asignado automáticamente al crearse y un timestamp de publicación que permanece nulo hasta que la ficha se publica. Además DEBE guardar el rastro del rechazo: un timestamp de rechazo y el motivo en texto, ambos nulos mientras el negocio no haya sido rechazado. La fecha del rechazo es lo que habilita la eliminación de los registros rechazados a los 90 días que exige el PRD §8 (la purga en sí no está implementada). Si un negocio rechazado corrige y vuelve a enviar su registro, ambos campos DEBEN volver a quedar nulos, para que la purga no se lleve un registro que ya está otra vez en la cola. La migración DEBE poder aplicarse sobre una base que ya tiene negocios, sin perder ni alterar sus datos. El seed de negocios de demostración DEBE poblar ambos campos en su negocio `rechazado`, para que el panel y la purga futura tengan un caso realista que probar.
+El negocio DEBE tener un estado con valores `en_revision | publicado | rechazado` (default `en_revision`), un origen con valores `siembra | organico` (PRD §6.3 y §10; default `organico`, el admin lo ajusta al aprobar), un timestamp de registro asignado automáticamente al crearse y un timestamp de publicación que permanece nulo hasta que la ficha se publica. **El timestamp de publicación significa "la última vez que la ficha estuvo publicada": al despublicarla NO DEBE borrarse —es el único rastro de que estuvo en el directorio y de cuándo—, y al volver a publicarla se sobrescribe con la fecha de la nueva publicación. Lo que decide si una ficha se muestra es su estado, nunca ese timestamp.** Además DEBE guardar el rastro del rechazo: un timestamp de rechazo y el motivo en texto, ambos nulos mientras el negocio no haya sido rechazado. La fecha del rechazo es lo que habilita la eliminación de los registros rechazados a los 90 días que exige el PRD §8 (la purga en sí no está implementada). Si un negocio rechazado corrige y vuelve a enviar su registro, ambos campos DEBEN volver a quedar nulos, para que la purga no se lleve un registro que ya está otra vez en la cola. La migración DEBE poder aplicarse sobre una base que ya tiene negocios, sin perder ni alterar sus datos. El seed de negocios de demostración DEBE poblar ambos campos en su negocio `rechazado`, para que el panel y la purga futura tengan un caso realista que probar.
 
 #### Scenario: negocio recién creado
 - **WHEN** se crea un negocio
@@ -61,6 +102,14 @@ El negocio DEBE tener un estado con valores `en_revision | publicado | rechazado
 #### Scenario: publicación
 - **WHEN** un negocio pasa a estado `publicado` y se le asigna la fecha de publicación
 - **THEN** ambos valores quedan persistidos y consultables
+
+#### Scenario: la fecha de publicación sobrevive a la despublicación
+- **WHEN** un negocio publicado se despublica y queda en `en_revision`
+- **THEN** su timestamp de publicación sigue teniendo la fecha en que estuvo publicado, y ninguna superficie pública lo muestra porque su estado ya no es `publicado`
+
+#### Scenario: republicar actualiza la fecha de publicación
+- **WHEN** una ficha despublicada se vuelve a publicar
+- **THEN** su timestamp de publicación queda con la fecha de esta publicación, no con la anterior
 
 #### Scenario: rechazo con fecha y motivo
 - **WHEN** un negocio pasa a estado `rechazado` con la fecha del rechazo y el motivo que escribió el admin
@@ -82,6 +131,34 @@ El negocio DEBE tener un estado con valores `en_revision | publicado | rechazado
 - **WHEN** se corre el seed de negocios de demostración
 - **THEN** su negocio `rechazado` trae fecha de rechazo y motivo poblados, con un motivo ficticio
 
+### Requirement: El negocio guarda el rastro de su despublicación
+
+El negocio DEBE guardar un timestamp de despublicación y el motivo en texto, ambos nulos mientras la ficha nunca haya sido despublicada. Los dos se escriben juntos cuando el admin despublica una ficha publicada (PRD §6.3 "se retiran, si ya estaban publicadas"; PRD §8 "las fichas retiradas a solicitud del negocio, de inmediato") y se sobrescriben en cada despublicación posterior: siempre reflejan la última.
+
+Este rastro NO se limpia en ninguna transición: sobrevive a que la ficha se publique de nuevo, se rechace o el negocio la reenvíe, porque es historia útil dentro del panel ("esta ficha ya la bajaste una vez, por esto") y ninguna consulta depende de que sea nulo. Para que ese rastro viejo no ensucie la cola, **la espera de un registro se cuenta desde la más reciente entre su fecha de registro y su fecha de despublicación** (ver `revision-admin`), nunca desde la de despublicación a secas.
+
+El motivo de la despublicación es un dato interno del panel, del mismo tipo que el motivo del rechazo: NO DEBE aparecer en ninguna página pública. La migración DEBE poder aplicarse sobre una base que ya tiene negocios, sin perder ni alterar sus datos y sin tocar los CHECK de `estado` y de `origen` que ya existen.
+
+#### Scenario: negocio que nunca se ha despublicado
+- **WHEN** se crea un negocio y se publica
+- **THEN** su timestamp de despublicación y su motivo de despublicación son nulos
+
+#### Scenario: despublicación con fecha y motivo
+- **WHEN** un negocio publicado pasa a `en_revision` por una despublicación, con su fecha y el motivo que escribió el admin
+- **THEN** ambos valores quedan persistidos y consultables, y el negocio sigue existiendo con todos sus demás datos
+
+#### Scenario: el rastro refleja la última despublicación
+- **WHEN** una ficha se despublica, se vuelve a publicar y se despublica otra vez con otro motivo
+- **THEN** quedan guardados la fecha y el motivo de la segunda despublicación, no los de la primera
+
+#### Scenario: el rastro sobrevive a las demás transiciones
+- **WHEN** una ficha despublicada se rechaza, o se publica de nuevo
+- **THEN** su fecha y su motivo de despublicación siguen guardados, sin borrarse ni alterarse
+
+#### Scenario: migración del rastro de despublicación sobre una base con datos
+- **WHEN** se aplica la migración que agrega estos dos campos sobre una base que ya tiene negocios publicados, en revisión y rechazados
+- **THEN** todas las filas siguen ahí con sus datos intactos, los dos campos nuevos quedan nulos en todas y los CHECK de `estado` y `origen` siguen vigentes
+
 ### Requirement: La colonia admite "Otra" con texto libre pendiente de normalizar
 
 El sistema DEBE permitir registrar un negocio sin colonia de catálogo, guardando el texto libre que capturó (PRD §6.1, Apéndice A). Un negocio en esa condición DEBE ser identificable como pendiente de normalizar, y el admin DEBE poder normalizarlo asignándole después una colonia del catálogo.
@@ -96,11 +173,35 @@ El sistema DEBE permitir registrar un negocio sin colonia de catálogo, guardand
 
 ### Requirement: Borrado definitivo de un negocio (operación ARCO)
 
-El sistema DEBE permitir eliminar definitivamente un negocio (hard delete real, no despublicar), borrando su fila y sus vínculos con giros, sin dejar datos recuperables por ninguna consulta (PRD §8).
+El sistema DEBE permitir eliminar definitivamente un negocio (hard delete real, no despublicar), **esté en el estado que esté** (`en_revision`, `publicado` o `rechazado`), borrando su fila **y todo lo que cuelgue de ella**: sus vínculos con giros, sus reportes, cualquier otra fila ligada al negocio que el modelo llegue a tener y **los archivos de su foto en el almacenamiento**, sin dejar datos ni imágenes recuperables por ninguna consulta ni por ninguna dirección del sitio (PRD §8). El borrado de los archivos DEBE incluir todas las variantes generadas: un archivo que sobrevive al borrado es el dato personal que el aviso de privacidad prometió eliminar. Si el archivo ya no estaba (por ejemplo, porque se borró antes), el borrado del negocio DEBE completarse igual y no DEBE fallar.
+
+**El arrastre DEBE estar garantizado por el modelo, no por la acción que borra**: toda relación que apunte al negocio se declara con borrado en cascada, de modo que una tabla nueva que alguien agregue después no pueda dejar filas huérfanas ni impedir un borrado ARCO. El proyecto DEBE tener una verificación automática que recorra las relaciones declaradas en el esquema de la base y falle si alguna que apunta al negocio no está en cascada, para que la invariante no dependa de que alguien la recuerde. Ningún dato ligado a un tercero (por ejemplo el aviso de un vecino que reportó la ficha) DEBE poder bloquear el borrado: los derechos ARCO del titular pesan más.
+
+El borrado DEBE ser idempotente: pedir el borrado de un identificador que ya no existe NO DEBE producir un error, sino quedarse sin efecto.
 
 #### Scenario: hard delete
-- **WHEN** se elimina definitivamente un negocio que tenía giros vinculados
-- **THEN** desaparecen su fila y todos sus vínculos con giros, y ninguna consulta posterior devuelve sus datos
+- **WHEN** se elimina definitivamente un negocio que tenía giros vinculados y foto
+- **THEN** desaparecen su fila, todos sus vínculos con giros y todas las variantes de su foto; ninguna consulta posterior devuelve sus datos y la dirección que servía su foto responde como si nunca hubiera existido
+
+#### Scenario: hard delete de un negocio con reportes
+- **WHEN** se elimina definitivamente un negocio que tenía reportes pendientes y atendidos
+- **THEN** el borrado se completa, sus reportes desaparecen con él y ninguna consulta posterior devuelve ni el negocio ni sus reportes
+
+#### Scenario: borrar en cualquier estado
+- **WHEN** se eliminan definitivamente un negocio `publicado`, uno `en_revision` y uno `rechazado`
+- **THEN** los tres desaparecen igual, sin importar su estado
+
+#### Scenario: borrado con el archivo ya ausente
+- **WHEN** se elimina definitivamente un negocio cuya foto ya no está en el almacenamiento
+- **THEN** el negocio se borra igual, sin error
+
+#### Scenario: borrado idempotente
+- **WHEN** se pide dos veces el borrado del mismo identificador
+- **THEN** la segunda vez no ocurre ningún error y no hay nada más que borrar
+
+#### Scenario: ninguna relación bloquea el borrado
+- **WHEN** se corre la verificación sobre las relaciones del esquema que apuntan al negocio
+- **THEN** todas están declaradas con borrado en cascada, y agregar una relación nueva sin cascada hace fallar la verificación
 
 ### Requirement: Migración inicial y seed reproducibles
 
@@ -116,7 +217,7 @@ El proyecto DEBE poder levantar la base de datos desde cero con la migración in
 
 ### Requirement: El esquema reserva el terreno para la gestión P1 sin implementarla
 
-El modelo `Negocio` DEBE incluir un campo opcional y único para el token del enlace de gestión (PRD §6.4), que permanece nulo en el MVP y no tiene ninguna lógica asociada. Las revisiones de edición supervisadas se modelarán como tabla propia cuando llegue E8 (ver design.md); este change no crea esa tabla.
+El modelo `Negocio` DEBE incluir un campo opcional y único para el token del enlace de gestión (PRD §6.4), que permanece nulo en el MVP y no tiene ninguna lógica asociada. Las revisiones de edición supervisadas se modelarán como tabla propia cuando llegue E8; hoy esa tabla no existe.
 
 #### Scenario: espacio reservado sin comportamiento
 - **WHEN** se registra un negocio en el MVP
@@ -189,3 +290,22 @@ El proyecto DEBE poder poblar la base de desarrollo con negocios de mentira para
 
 - **WHEN** se intenta correr el seed de demostración en un entorno de producción
 - **THEN** el comando no siembra nada y lo dice
+
+### Requirement: El seed de demostración deja fichas con foto para ver el directorio como lo verá el vecino
+
+El seed de negocios ficticios DEBE dejar al menos un negocio publicado **con foto** y al menos uno publicado **sin foto**, para poder ver en desarrollo tanto la tarjeta con imagen real como el marcador de posición. Las imágenes las DEBE generar el propio seed al ejecutarse (rectángulos de color con el nombre ficticio, por ejemplo): NO DEBEN agregarse archivos de imagen al repositorio, ni usarse fotos de negocios reales ni de personas (repo público + LFPDPPP, PRD §8). El seed DEBE seguir siendo idempotente también en esto: correrlo dos veces no deja archivos duplicados ni huérfanos.
+
+#### Scenario: sembrar con fotos
+
+- **WHEN** se corre el seed de demostración sobre una base con los catálogos poblados
+- **THEN** al menos un negocio publicado queda con su referencia de foto y sus archivos generados, y al menos uno publicado queda sin foto
+
+#### Scenario: nada de imágenes en el repositorio
+
+- **WHEN** se revisa el repositorio después de correr el seed
+- **THEN** no hay ningún archivo de imagen versionado y los archivos generados quedan en el almacenamiento local, fuera del control de versiones
+
+#### Scenario: seed de demostración idempotente con fotos
+
+- **WHEN** se corre el seed de demostración dos veces seguidas
+- **THEN** los negocios sembrados conservan una sola foto cada uno y no quedan archivos sueltos de la corrida anterior

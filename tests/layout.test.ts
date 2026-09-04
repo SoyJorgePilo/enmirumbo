@@ -21,20 +21,20 @@ vi.mock("next/navigation", async () => {
 
 import { seedCatalogos } from "../prisma/seed";
 import { sembrarNegociosDemo } from "../prisma/seed-demo";
-import ListadoCategoriaPage from "../src/app/[destino]/page";
-import BuscarPage from "../src/app/buscar/page";
+import ListadoCategoriaPage from "../src/app/(publico)/[destino]/page";
+import BuscarPage from "../src/app/(publico)/buscar/page";
 import ColaAdminPage from "../src/app/admin/cola/page";
 import AccesoAdminPage from "../src/app/admin/page";
 import DetalleRegistroAdminPage from "../src/app/admin/registros/[id]/page";
 import RegistroAprobadoPage from "../src/app/admin/registros/[id]/aprobado/page";
-import AvisoDePrivacidadPage from "../src/app/aviso-de-privacidad/page";
+import AvisoDePrivacidadPage from "../src/app/(publico)/aviso-de-privacidad/page";
 import { metadata } from "../src/app/layout";
-import FichaNegocioPage from "../src/app/negocio/[ficha]/page";
-import ReportarGraciasPage from "../src/app/negocio/[ficha]/reportar/gracias/page";
-import ReportarNegocioPage from "../src/app/negocio/[ficha]/reportar/page";
+import FichaNegocioPage from "../src/app/(publico)/negocio/[ficha]/page";
+import ReportarGraciasPage from "../src/app/(publico)/negocio/[ficha]/reportar/gracias/page";
+import ReportarNegocioPage from "../src/app/(publico)/negocio/[ficha]/reportar/page";
 import NotFoundPage from "../src/app/not-found";
-import Home from "../src/app/page";
-import TerminosPage from "../src/app/terminos/page";
+import Home from "../src/app/(publico)/page";
+import TerminosPage from "../src/app/(publico)/terminos/page";
 import { Footer } from "../src/components/footer";
 import {
   LONGITUD_MINIMA_SECRETO,
@@ -76,6 +76,27 @@ function archivosDe(dir: string, extensiones: string[]): string[] {
 const fuentesTsx = archivosDe(join(raiz, "src"), [".tsx"]);
 const fuentesTodas = archivosDe(join(raiz, "src"), [".ts", ".tsx", ".css"]);
 
+/** ¿Es una carpeta de GRUPO de rutas, `(publico)`? No aparece en la URL. */
+const esGrupoDeRutas = (segmento: string) =>
+  segmento.startsWith("(") && segmento.endsWith(")");
+
+/**
+ * URL de una página a partir de la ruta de su archivo dentro de `src/app`.
+ *
+ * MODIFICADO por el change `agregar-analitica-cookieless`: las carpetas entre
+ * paréntesis son grupos de rutas (`src/app/(publico)/terminos/page.tsx`) y NO
+ * son un segmento de la URL — sin esto, `/terminos` se leería como
+ * `/(publico)/terminos` y toda la revisión de enlaces se volvería mentira.
+ */
+export function rutaDePagina(rutaArchivo: string): string {
+  const relativa = rutaArchivo.slice(join(raiz, "src/app").length + 1);
+  const segmentos = relativa
+    .split("/")
+    .slice(0, -1)
+    .filter((segmento) => !esGrupoDeRutas(segmento));
+  return `/${segmentos.join("/")}`;
+}
+
 /**
  * Rutas ESTÁTICAS que existen de verdad: cada `page.tsx` bajo `src/app` que no
  * tenga segmentos dinámicos. Sirve de lista blanca de hrefs, así que agregar
@@ -87,11 +108,7 @@ const fuentesTodas = archivosDe(join(raiz, "src"), [".ts", ".tsx", ".css"]);
  */
 const rutasExistentes = new Set(
   archivosDe(join(raiz, "src/app"), ["page.tsx"])
-    .map((ruta) => {
-      const relativa = ruta.slice(join(raiz, "src/app").length + 1);
-      const segmentos = relativa.split("/").slice(0, -1);
-      return `/${segmentos.join("/")}`;
-    })
+    .map(rutaDePagina)
     .filter((ruta) => !ruta.includes("[")),
 );
 const globalsCss = readFileSync(join(raiz, "src/app/globals.css"), "utf8");
@@ -331,7 +348,13 @@ function rutaInternaExiste(href: string): boolean {
     [...idsPublicados, ...idsEnRevision].includes(segmentos[2]) &&
     (segmentos.length === 3 ||
       (segmentos.length === 4 &&
-        ["aprobado", "rechazado", "ya-resuelto"].includes(segmentos[3])))
+        // "borrar" y "despublicado" los estrena el change
+        // `agregar-despublicar-y-borrado-arco`: el detalle enlaza a la
+        // pantalla de confirmación del borrado, y la acción de despublicar
+        // lleva a la suya.
+        ["aprobado", "borrar", "despublicado", "rechazado", "ya-resuelto"].includes(
+          segmentos[3],
+        )))
   );
 }
 
@@ -396,6 +419,39 @@ function problemasDeEnlaces(html: string): string[] {
   }
   return problemas;
 }
+
+// layout-base ADDED por el change `agregar-analitica-cookieless` · Requirement
+// "El panel del admin queda fuera de la medición" (tasks.md #5): las páginas
+// públicas viven en un grupo de rutas, y un grupo no es un segmento de URL.
+describe("layout-base · los grupos de rutas no cambian ninguna URL", () => {
+  it("la carpeta entre paréntesis no aparece en la ruta que se revisa", () => {
+    const app = join(raiz, "src/app");
+    expect(rutaDePagina(join(app, "(publico)/page.tsx"))).toBe("/");
+    expect(rutaDePagina(join(app, "(publico)/terminos/page.tsx"))).toBe("/terminos");
+    expect(rutaDePagina(join(app, "(publico)/registro/gracias/page.tsx"))).toBe(
+      "/registro/gracias",
+    );
+    // Y lo que no es grupo sigue contando como segmento.
+    expect(rutaDePagina(join(app, "admin/cola/page.tsx"))).toBe("/admin/cola");
+    expect(rutaDePagina(join(app, "page.tsx"))).toBe("/");
+  });
+
+  it("las rutas públicas siguen existiendo con la misma URL de siempre", () => {
+    for (const ruta of [
+      "/",
+      "/registro",
+      "/registro/gracias",
+      "/buscar",
+      "/aviso-de-privacidad",
+      "/terminos",
+    ]) {
+      expect(rutasExistentes, ruta).toContain(ruta);
+    }
+    for (const ruta of rutasExistentes) {
+      expect(ruta, ruta).not.toContain("(");
+    }
+  });
+});
 
 describe("layout-base · header con marca y posicionamiento (scenario 1)", () => {
   it('el header lleva el wordmark "NecesitoUno" y el posicionamiento "Tizayuca"', () => {
@@ -597,7 +653,7 @@ describe("layout-base · enlaces internos y externos de las páginas servidas", 
       expect(html).not.toContain("/admin");
     }
     // Tampoco en el código de las superficies públicas (header, footer, home).
-    for (const ruta of ["src/components/header.tsx", "src/components/footer.tsx", "src/app/page.tsx"]) {
+    for (const ruta of ["src/components/header.tsx", "src/components/footer.tsx", "src/app/(publico)/page.tsx"]) {
       expect(readFileSync(join(raiz, ruta), "utf8")).not.toContain("/admin");
     }
   });
@@ -640,8 +696,14 @@ describe("layout-base · enlaces internos y externos de las páginas servidas", 
       problemasDeEnlaces('<a href="/admin/registros/id-que-no-existe">x</a>'),
     ).toHaveLength(1);
     expect(
-      problemasDeEnlaces(`<a href="/admin/registros/${idsEnRevision[0]}/borrar">x</a>`),
+      problemasDeEnlaces(
+        `<a href="/admin/registros/${idsEnRevision[0]}/pantalla-inventada">x</a>`,
+      ),
     ).toHaveLength(1);
+    // `/borrar` sí existe desde el change `agregar-despublicar-y-borrado-arco`.
+    expect(
+      problemasDeEnlaces(`<a href="/admin/registros/${idsEnRevision[0]}/borrar">x</a>`),
+    ).toEqual([]);
     expect(problemasDeEnlaces('<a href="/admin/pantalla-inventada">x</a>')).toHaveLength(1);
   });
 
@@ -768,7 +830,7 @@ describe("layout-base · sin JS de cliente (scenario 11)", () => {
   // La lista es por exclusión, no fija: cualquier archivo nuevo de `src/` que
   // no sea del registro entra solo a la vigilancia (nota menor de la etapa C).
   const rutasDelRegistro = [
-    join(raiz, "src/app/registro"),
+    join(raiz, "src/app/(publico)/registro"),
     join(raiz, "src/components/registro"),
   ];
   const fuentesLayoutBase = fuentesTodas.filter(
@@ -827,7 +889,7 @@ describe("layout-base · página 404 en español", () => {
 
 // layout-base MODIFIED por el change agregar-formulario-registro.
 describe("layout-base · entrada al registro desde la home", () => {
-  const homeTsx = readFileSync(join(raiz, "src/app/page.tsx"), "utf8");
+  const homeTsx = readFileSync(join(raiz, "src/app/(publico)/page.tsx"), "utf8");
   const botonPrimario = readFileSync(join(raiz, "src/lib/estilos-boton.ts"), "utf8");
 
   // Scenario: entrada al registro desde la home

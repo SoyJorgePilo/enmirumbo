@@ -6,6 +6,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { seedCatalogos } from "../prisma/seed";
 import { PrismaClient } from "../src/generated/prisma/client";
+import { borrarNegocioDefinitivamente } from "../src/lib/negocio";
 import { crearClientePrueba } from "./db";
 
 // Spec: modelo-datos (delta del change `agregar-boton-reportar`) · Requirement
@@ -298,5 +299,40 @@ describe("modelo-datos · la tabla Reporte en el cliente Prisma", () => {
     expect(await prisma.reporte.findUnique({ where: { id: uno.id } })).toBeNull();
     expect(await prisma.reporte.findUnique({ where: { id: dos.id } })).toBeNull();
     expect(await prisma.reporte.count({ where: { negocioId: condenadoId } })).toBe(0);
+  });
+
+  /**
+   * Punto de integración con T-015 (despublicar y borrado ARCO), que fusionó a
+   * `main` mientras este change estaba en el pipeline. El test de arriba borra
+   * con `prisma.negocio.delete`; el panel NO usa esa ruta: `borrarNegocio`
+   * delega en `borrarNegocioDefinitivamente`, que borra con `deleteMany` para
+   * que un doble toque no lance. Son dos caminos distintos hasta la base y la
+   * cascada tiene que arrastrar los reportes por los dos, así que el camino
+   * que de verdad ejecuta el admin se prueba aparte y con filas reales.
+   */
+  // Scenario: hard delete de un negocio con reportes (por el camino del panel)
+  it("el borrado ARCO del panel también se lleva los reportes, sin huérfanos", async () => {
+    const condenadoId = await alta("7710008104");
+    await prisma.reporte.create({ data: { negocioId: condenadoId, motivo: "cerrado" } });
+    await prisma.reporte.create({
+      data: {
+        negocioId: condenadoId,
+        motivo: "datos_incorrectos",
+        estado: "atendido",
+        atendidoEn: new Date(),
+      },
+    });
+    expect(await prisma.reporte.count({ where: { negocioId: condenadoId } })).toBe(2);
+
+    expect(await borrarNegocioDefinitivamente(prisma, condenadoId)).toBe(true);
+
+    expect(await prisma.negocio.findUnique({ where: { id: condenadoId } })).toBeNull();
+    // Con SQL crudo, no con Prisma: lo que se vigila es que no queden filas en
+    // la tabla, no que el cliente sepa filtrarlas.
+    const huerfanos = await prisma.$queryRawUnsafe<Array<{ n: bigint | number }>>(
+      `SELECT COUNT(*) AS n FROM "Reporte" WHERE "negocioId" = ?`,
+      condenadoId,
+    );
+    expect(Number(huerfanos[0].n)).toBe(0);
   });
 });

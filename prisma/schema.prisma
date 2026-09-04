@@ -69,6 +69,12 @@ model Negocio {
   registradoEn DateTime @default(now())
   publicadoEn  DateTime?
 
+  // Rastro del rechazo (PRD §6.3 y §8): nulos mientras el negocio no haya
+  // sido rechazado, y vuelven a nulos si corrige y reenvía. `rechazadoEn` es
+  // lo que habilitará la purga de rechazados a los 90 días (E0-3).
+  rechazadoEn   DateTime?
+  motivoRechazo String?
+
   // Giros asignados por el admin al aprobar (PRD §6.3, Apéndice B)
   giros Giro[]
 

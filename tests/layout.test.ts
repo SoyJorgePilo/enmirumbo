@@ -2,17 +2,44 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+
+// El panel de revisión (E3) solo se pinta con sesión: `cookies()` y
+// `headers()` no existen fuera de un request. Se simulan igual que en
+// `tests/admin-paginas.test.ts` para poder revisar SUS enlaces aquí, junto a
+// los del resto del sitio. Ninguna página pública usa estas APIs, así que la
+// simulación no toca lo demás.
+vi.mock("next/headers", async () => {
+  const simulado = await import("./admin-mocks");
+  return { cookies: simulado.cookies, headers: simulado.headers };
+});
+vi.mock("next/navigation", async () => {
+  const simulado = await import("./admin-mocks");
+  const real = await vi.importActual<typeof import("next/navigation")>("next/navigation");
+  return { ...real, redirect: simulado.redirect, notFound: simulado.notFound };
+});
 
 import { seedCatalogos } from "../prisma/seed";
 import { sembrarNegociosDemo } from "../prisma/seed-demo";
 import ListadoCategoriaPage from "../src/app/[categoria]/page";
+import ColaAdminPage from "../src/app/admin/cola/page";
+import AccesoAdminPage from "../src/app/admin/page";
+import DetalleRegistroAdminPage from "../src/app/admin/registros/[id]/page";
+import RegistroAprobadoPage from "../src/app/admin/registros/[id]/aprobado/page";
 import { metadata } from "../src/app/layout";
 import FichaNegocioPage from "../src/app/negocio/[ficha]/page";
 import NotFoundPage from "../src/app/not-found";
 import Home from "../src/app/page";
 import { Footer } from "../src/components/footer";
+import {
+  LONGITUD_MINIMA_SECRETO,
+  VARIABLE_CONTRASENA,
+  VARIABLE_SECRETO_SESION,
+  VARIABLE_URL_SITIO,
+} from "../src/lib/admin/config";
+import { NOMBRE_COOKIE_SESION, crearValorDeSesion } from "../src/lib/admin/sesion";
 import { construirSegmentoFicha } from "../src/lib/ficha-url";
+import { peticion, reiniciarPeticion } from "./admin-mocks";
 import { crearClientePrueba } from "./db";
 
 // Deuda registrada en el change agregar-layout-base (reports/b-dev.md):
@@ -75,7 +102,21 @@ let htmlFicha = "";
 let slugsCategorias: string[] = [];
 let idsPublicados: string[] = [];
 
+// Pantallas del panel (E3): también tienen que cumplir la revisión de enlaces.
+let htmlAccesoAdmin = "";
+let htmlColaAdmin = "";
+let htmlDetalleAdmin = "";
+let htmlAprobadoAdmin = "";
+let idsEnRevision: string[] = [];
+
+const SECRETO_PANEL = "s".repeat(LONGITUD_MINIMA_SECRETO);
+const URL_SITIO_PANEL = "https://necesitouno.example";
+
 beforeAll(async () => {
+  process.env[VARIABLE_CONTRASENA] = "contrasena-de-prueba-nada-real";
+  process.env[VARIABLE_SECRETO_SESION] = SECRETO_PANEL;
+  process.env[VARIABLE_URL_SITIO] = URL_SITIO_PANEL;
+
   const prisma = crearClientePrueba();
   await prisma.negocio.deleteMany();
   await seedCatalogos(prisma);
@@ -91,6 +132,12 @@ beforeAll(async () => {
   idsPublicados = (
     await prisma.negocio.findMany({
       where: { estado: "publicado" },
+      select: { id: true },
+    })
+  ).map((n) => n.id);
+  idsEnRevision = (
+    await prisma.negocio.findMany({
+      where: { estado: "en_revision" },
       select: { id: true },
     })
   ).map((n) => n.id);
@@ -118,9 +165,37 @@ beforeAll(async () => {
     searchParams: Promise.resolve({}),
   });
   htmlFicha = renderToStaticMarkup(createElement(() => ficha));
+
+  // Panel: la pantalla de acceso se ve sin sesión; el resto, con una cookie
+  // firmada de verdad por el mismo módulo que usa producción.
+  reiniciarPeticion();
+  const acceso = await AccesoAdminPage({
+    params: Promise.resolve({}),
+    searchParams: Promise.resolve({}),
+  });
+  htmlAccesoAdmin = renderToStaticMarkup(createElement(() => acceso));
+
+  peticion.cookies[NOMBRE_COOKIE_SESION] = crearValorDeSesion(SECRETO_PANEL);
+  const cola = await ColaAdminPage();
+  htmlColaAdmin = renderToStaticMarkup(createElement(() => cola));
+
+  const detalle = await DetalleRegistroAdminPage({
+    params: Promise.resolve({ id: idsEnRevision[0] }),
+    searchParams: Promise.resolve({}),
+  });
+  htmlDetalleAdmin = renderToStaticMarkup(createElement(() => detalle));
+
+  const aprobado = await RegistroAprobadoPage({
+    params: Promise.resolve({ id: idsPublicados[0] }),
+    searchParams: Promise.resolve({}),
+  });
+  htmlAprobadoAdmin = renderToStaticMarkup(createElement(() => aprobado));
 });
 
 afterAll(async () => {
+  delete process.env[VARIABLE_CONTRASENA];
+  delete process.env[VARIABLE_SECRETO_SESION];
+  delete process.env[VARIABLE_URL_SITIO];
   const prisma = crearClientePrueba();
   await prisma.negocio.deleteMany({ where: { whatsapp: { startsWith: "7719995" } } });
   await prisma.$disconnect();
@@ -181,6 +256,20 @@ function problemasDeEnlaces(html: string): string[] {
       segmentos.length === 2 &&
       segmentos[0] === "negocio" &&
       idsPublicados.some((id) => segmentos[1].endsWith(id))
+    ) {
+      continue;
+    }
+    // Panel de revisión (E3): `/admin/registros/<id>` y sus sub-rutas de
+    // confirmación resuelven contra registros que existen de verdad, igual que
+    // la ficha pública. Una ruta del panel inventada sigue siendo un problema.
+    if (
+      segmentos.length >= 3 &&
+      segmentos[0] === "admin" &&
+      segmentos[1] === "registros" &&
+      [...idsPublicados, ...idsEnRevision].includes(segmentos[2]) &&
+      (segmentos.length === 3 ||
+        (segmentos.length === 4 &&
+          ["aprobado", "rechazado", "ya-resuelto"].includes(segmentos[3])))
     ) {
       continue;
     }
@@ -256,6 +345,48 @@ describe("layout-base · enlaces internos y externos de las páginas servidas", 
     expect(llamar[0]).not.toContain("target=");
   });
 
+  // revision-admin · Requirement "El panel no se indexa ni se enlaza desde el
+  // sitio público" + "Enlaces internos a rutas existentes…" (tasks.md #24).
+  it("las pantallas del panel solo enlazan a rutas del panel que existen", () => {
+    expect(problemasDeEnlaces(htmlAccesoAdmin)).toEqual([]);
+    expect(problemasDeEnlaces(htmlColaAdmin)).toEqual([]);
+    expect(problemasDeEnlaces(htmlDetalleAdmin)).toEqual([]);
+    expect(problemasDeEnlaces(htmlAprobadoAdmin)).toEqual([]);
+    // Y de verdad hay enlaces que revisar en esas pantallas.
+    expect(htmlColaAdmin).toMatch(/<a[^>]+href="\/admin\/registros\//);
+  });
+
+  it("los wa.me que abre el panel llevan rel de protección y pestaña nueva", () => {
+    for (const html of [htmlDetalleAdmin, htmlAprobadoAdmin]) {
+      const externos = [...html.matchAll(/<a\s[^>]*>/g)]
+        .map((m) => m[0])
+        .filter((anchor) => /href="https:\/\/wa\.me\//.test(anchor));
+      expect(externos.length).toBeGreaterThanOrEqual(1);
+      for (const anchor of externos) {
+        expect(anchor).toContain('target="_blank"');
+        expect(anchor).toContain('rel="noopener noreferrer"');
+      }
+    }
+  });
+
+  // Scenario: sin enlaces desde lo público
+  it("ninguna página pública enlaza ni menciona la ruta del panel", () => {
+    for (const html of [
+      htmlHome,
+      htmlListado,
+      htmlListadoFiltrado,
+      htmlFicha,
+      html404,
+      htmlFooter,
+    ]) {
+      expect(html).not.toContain("/admin");
+    }
+    // Tampoco en el código de las superficies públicas (header, footer, home).
+    for (const ruta of ["src/components/header.tsx", "src/components/footer.tsx", "src/app/page.tsx"]) {
+      expect(readFileSync(join(raiz, ruta), "utf8")).not.toContain("/admin");
+    }
+  });
+
   // Scenario: enlace interno a una ruta inexistente (la verificación falla)
   it("señala un enlace inventado, uno externo sin rel y un tel: con pestaña nueva", () => {
     expect(problemasDeEnlaces('<a href="/aviso-de-privacidad">Aviso</a>')).toHaveLength(
@@ -274,6 +405,18 @@ describe("layout-base · enlaces internos y externos de las páginas servidas", 
     // Y no se queja de lo que sí es correcto
     expect(problemasDeEnlaces('<a href="/servicios-del-hogar">x</a>')).toEqual([]);
     expect(problemasDeEnlaces('<a href="/registro">x</a>')).toEqual([]);
+    expect(problemasDeEnlaces('<a href="/admin/cola">x</a>')).toEqual([]);
+    expect(
+      problemasDeEnlaces(`<a href="/admin/registros/${idsEnRevision[0]}">x</a>`),
+    ).toEqual([]);
+    // Una ruta del panel inventada sigue rompiendo la revisión.
+    expect(
+      problemasDeEnlaces('<a href="/admin/registros/id-que-no-existe">x</a>'),
+    ).toHaveLength(1);
+    expect(
+      problemasDeEnlaces(`<a href="/admin/registros/${idsEnRevision[0]}/borrar">x</a>`),
+    ).toHaveLength(1);
+    expect(problemasDeEnlaces('<a href="/admin/pantalla-inventada">x</a>')).toHaveLength(1);
   });
 });
 
@@ -458,10 +601,14 @@ describe("layout-base · entrada al registro desde la home", () => {
 });
 
 describe("layout-base · sin rastros de la plantilla (scenario 13)", () => {
+  // "vercel" a secas se afinó a los rastros REALES de la plantilla (el logo,
+  // los enlaces a vercel.com/vercel.app): `VERCEL_ENV` es una variable de
+  // entorno legítima que el panel mira para no abrirse mal configurado en
+  // producción, igual que ya hacía `prisma/seed-demo.ts`.
   it("no queda nada de create-next-app en src/", () => {
     for (const ruta of fuentesTodas) {
-      expect(readFileSync(ruta, "utf8")).not.toMatch(
-        /next\.svg|vercel|create next app|Get started|geist|prefers-color-scheme/i,
+      expect(readFileSync(ruta, "utf8"), ruta).not.toMatch(
+        /next\.svg|vercel\.svg|vercel\.(com|app)|create next app|Get started|geist|prefers-color-scheme/i,
       );
     }
   });

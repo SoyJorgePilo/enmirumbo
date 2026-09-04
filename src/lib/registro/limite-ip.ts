@@ -27,60 +27,109 @@ export const VENTANA_LIMITE_MS = 60 * 60 * 1000;
  */
 export const MAX_IPS_RASTREADAS = 5000;
 
+export type CupoPorIp = {
+  /** ¿Esta IP ya agotó su cupo dentro de la ventana? */
+  bloqueada(ip: string | null, ahora?: Date): boolean;
+  /** Apunta un evento contra el cupo de la IP. */
+  registrar(ip: string | null, ahora?: Date): void;
+  /** Solo para pruebas: vacía el conteo del proceso. */
+  reiniciar(): void;
+  /** Solo para pruebas: cuántas IPs se están rastreando ahora mismo. */
+  tamano(): number;
+};
+
 /**
- * IP → marcas de tiempo (ms) de sus altas recientes. El orden de inserción es
- * el de uso más reciente (cada alta borra y vuelve a insertar la clave), así
- * que desalojar por el frente desaloja lo más viejo.
+ * Contador de eventos por IP con ventana deslizante, en memoria del proceso.
+ *
+ * Lo usa el cupo de altas del formulario público y —con su propia ventana y
+ * su propio máximo— el límite de intentos de acceso del panel (design.md §4
+ * del change `agregar-panel-admin`). Cada cupo tiene su propio mapa: agotar
+ * los intentos del panel no consume el cupo de altas ni al revés.
  */
-const altasPorIp = new Map<string, number[]>();
+export function crearCupoPorIp(opciones: {
+  maximo: number;
+  ventanaMs: number;
+  maxIpsRastreadas?: number;
+}): CupoPorIp {
+  const { maximo, ventanaMs } = opciones;
+  const maxIps = opciones.maxIpsRastreadas ?? MAX_IPS_RASTREADAS;
 
-function recientes(ip: string, ahora: Date): number[] {
-  const desde = ahora.getTime() - VENTANA_LIMITE_MS;
-  const marcas = (altasPorIp.get(ip) ?? []).filter((marca) => marca > desde);
-  if (marcas.length > 0) altasPorIp.set(ip, marcas);
-  else altasPorIp.delete(ip);
-  return marcas;
+  /**
+   * IP → marcas de tiempo (ms) de sus eventos recientes. El orden de
+   * inserción es el de uso más reciente (cada evento borra y vuelve a
+   * insertar la clave), así que desalojar por el frente desaloja lo más viejo.
+   */
+  const marcasPorIp = new Map<string, number[]>();
+
+  function recientes(ip: string, ahora: Date): number[] {
+    const desde = ahora.getTime() - ventanaMs;
+    const marcas = (marcasPorIp.get(ip) ?? []).filter((marca) => marca > desde);
+    if (marcas.length > 0) marcasPorIp.set(ip, marcas);
+    else marcasPorIp.delete(ip);
+    return marcas;
+  }
+
+  /** Tira lo caducado y, si aún sobra, desaloja las IPs menos recientes. */
+  function podar(ahora: Date): void {
+    const desde = ahora.getTime() - ventanaMs;
+    for (const [ip, marcas] of marcasPorIp) {
+      const vigentes = marcas.filter((marca) => marca > desde);
+      if (vigentes.length === 0) marcasPorIp.delete(ip);
+      else if (vigentes.length !== marcas.length) marcasPorIp.set(ip, vigentes);
+    }
+    while (marcasPorIp.size > maxIps) {
+      const masVieja = marcasPorIp.keys().next();
+      if (masVieja.done) break;
+      marcasPorIp.delete(masVieja.value);
+    }
+  }
+
+  return {
+    bloqueada(ip, ahora = new Date()) {
+      if (!ip) return false;
+      return recientes(ip, ahora).length >= maximo;
+    },
+    registrar(ip, ahora = new Date()) {
+      if (!ip) return;
+      const marcas = [...recientes(ip, ahora), ahora.getTime()];
+      // Borrar antes de insertar mueve la clave al final: orden = uso reciente.
+      marcasPorIp.delete(ip);
+      marcasPorIp.set(ip, marcas);
+      podar(ahora);
+    },
+    reiniciar() {
+      marcasPorIp.clear();
+    },
+    tamano() {
+      return marcasPorIp.size;
+    },
+  };
 }
 
-/** Tira lo caducado y, si aún sobra, desaloja las IPs menos recientes. */
-function podar(ahora: Date): void {
-  const desde = ahora.getTime() - VENTANA_LIMITE_MS;
-  for (const [ip, marcas] of altasPorIp) {
-    const vigentes = marcas.filter((marca) => marca > desde);
-    if (vigentes.length === 0) altasPorIp.delete(ip);
-    else if (vigentes.length !== marcas.length) altasPorIp.set(ip, vigentes);
-  }
-  while (altasPorIp.size > MAX_IPS_RASTREADAS) {
-    const masVieja = altasPorIp.keys().next();
-    if (masVieja.done) break;
-    altasPorIp.delete(masVieja.value);
-  }
-}
+/** Cupo de altas del formulario público: 3 por hora y por IP. */
+const cupoDeAltas = crearCupoPorIp({
+  maximo: ALTAS_POR_IP_POR_HORA,
+  ventanaMs: VENTANA_LIMITE_MS,
+});
 
 /** ¿Esta IP ya agotó su cupo de la última hora? */
 export function ipBloqueada(ip: string | null, ahora: Date = new Date()): boolean {
-  if (!ip) return false;
-  return recientes(ip, ahora).length >= ALTAS_POR_IP_POR_HORA;
+  return cupoDeAltas.bloqueada(ip, ahora);
 }
 
 /** Apunta un alta contra el cupo de la IP. */
 export function registrarAlta(ip: string | null, ahora: Date = new Date()): void {
-  if (!ip) return;
-  const marcas = [...recientes(ip, ahora), ahora.getTime()];
-  // Borrar antes de insertar mueve la clave al final: orden = uso reciente.
-  altasPorIp.delete(ip);
-  altasPorIp.set(ip, marcas);
-  podar(ahora);
+  cupoDeAltas.registrar(ip, ahora);
 }
 
 /** Solo para pruebas: vacía el conteo del proceso. */
 export function reiniciarLimitePorIp(): void {
-  altasPorIp.clear();
+  cupoDeAltas.reiniciar();
 }
 
 /** Solo para pruebas: cuántas IPs se están rastreando ahora mismo. */
 export function tamanoLimitePorIp(): number {
-  return altasPorIp.size;
+  return cupoDeAltas.tamano();
 }
 
 /**

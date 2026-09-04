@@ -497,10 +497,10 @@ describe("adversarial · registro de negocios", () => {
 
   // ── 7. Transiciones ilegales de estado desde el formulario público ────────
 
-  it.each(["rechazado", "publicado"])(
+  it.each(["en_revision", "publicado"])(
     "un número con ficha en estado %s no se puede volver a registrar ni se altera",
     async (estado) => {
-      const whatsapp = estado === "rechazado" ? "7719992080" : "7719992081";
+      const whatsapp = estado === "en_revision" ? "7719992080" : "7719992081";
       await prisma.negocio.create({
         data: {
           nombre: "Ficha Ficticia Previa",
@@ -527,6 +527,56 @@ describe("adversarial · registro de negocios", () => {
       expect(await prisma.negocio.count({ where: { whatsapp } })).toBe(1);
     },
   );
+
+  // MODIFICADO por el change agregar-panel-admin: una ficha `rechazado` SÍ se
+  // puede corregir y volver a enviar (PRD §6.3, spec registro-negocio). Lo que
+  // sigue prohibido es que ese reenvío ascienda la ficha: nada de publicarse
+  // solo, ni de cambiarse el origen, los giros o el token de gestión.
+  it("un reenvío sobre una ficha rechazada la regresa a revisión, nunca la publica", async () => {
+    const whatsapp = "7719992082";
+    const giro = await prisma.giro.findFirstOrThrow({ orderBy: { id: "asc" } });
+    const previa = await prisma.negocio.create({
+      data: {
+        nombre: "Ficha Ficticia Previa",
+        categoriaId,
+        whatsapp,
+        consintioAvisoEn: new Date(),
+        estado: "rechazado",
+        origen: "siembra",
+        tokenGestion: "token-ficticio-adversarial",
+        rechazadoEn: new Date("2026-01-02"),
+        motivoRechazo: "Motivo ficticio del rechazo",
+        giros: { connect: [{ id: giro.id }] },
+      },
+    });
+
+    const resultado = await procesar(
+      envio({
+        nombre: "Intento Ficticio de Relanzamiento",
+        whatsapp,
+        estado: "publicado",
+        origen: "organico",
+        publicadoEn: "2026-01-01T00:00:00.000Z",
+        tokenGestion: "token-inventado-por-el-cliente",
+        giros: String(giro.id),
+      }),
+    );
+
+    expect(resultado.exito).toBe(true);
+    const despues = await prisma.negocio.findUniqueOrThrow({
+      where: { whatsapp },
+      include: { giros: true },
+    });
+    expect(despues.id).toBe(previa.id);
+    expect(despues.estado).toBe("en_revision");
+    expect(despues.publicadoEn).toBeNull();
+    expect(despues.origen).toBe("siembra");
+    expect(despues.tokenGestion).toBe("token-ficticio-adversarial");
+    expect(despues.giros.map((g) => g.id)).toEqual([giro.id]);
+    expect(despues.rechazadoEn).toBeNull();
+    expect(despues.motivoRechazo).toBeNull();
+    expect(await prisma.negocio.count({ where: { whatsapp } })).toBe(1);
+  });
 
   // ── 8. Carrera real contra la constraint de unicidad ──────────────────────
 

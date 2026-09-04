@@ -6,7 +6,7 @@
 **Referencias PRD:** §9-10 (analítica desde el día 1, eventos definidos, exclusión de bots, sin banner), ADR-005
 **Depende de:** T-004 (directorio), T-003 (formulario)
 **OpenSpec change:** `agregar-analitica-cookieless`
-**PR:** —
+**PR:** [#14](https://github.com/SoyJorgePilo/necesitouno/pull/14)
 
 ## Contexto
 

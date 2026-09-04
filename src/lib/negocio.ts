@@ -15,4 +15,6 @@ export type OrigenNegocio = (typeof ORIGENES_NEGOCIO)[number];
 export const ESTADO_NEGOCIO_DEFAULT: EstadoNegocio = "en_revision";
 /** Único estado que el directorio público puede mostrar (PRD §6.3 y §8). */
 export const ESTADO_NEGOCIO_PUBLICADO: EstadoNegocio = "publicado";
+/** Estado al que lleva el rechazo del admin (PRD §6.3). */
+export const ESTADO_NEGOCIO_RECHAZADO: EstadoNegocio = "rechazado";
 export const ORIGEN_NEGOCIO_DEFAULT: OrigenNegocio = "organico";

@@ -104,6 +104,30 @@ describe("modelo-datos · seed de demostración", () => {
     expect(publicados.every((n) => n.publicadoEn instanceof Date)).toBe(true);
   });
 
+  // modelo-datos MODIFIED por agregar-panel-admin ·
+  // Scenario: el seed de demostración incluye un rechazo con motivo
+  it("el negocio rechazado trae fecha y motivo de rechazo ficticios", async () => {
+    const rechazados = await prisma.negocio.findMany({ where: { estado: "rechazado" } });
+    expect(rechazados.length).toBeGreaterThanOrEqual(1);
+    for (const rechazado of rechazados) {
+      expect(rechazado.rechazadoEn).toBeInstanceOf(Date);
+      expect((rechazado.motivoRechazo ?? "").trim().length).toBeGreaterThan(0);
+      // El rechazo llegó después del registro, como en la operación real.
+      expect(rechazado.rechazadoEn!.getTime()).toBeGreaterThanOrEqual(
+        rechazado.registradoEn.getTime(),
+      );
+    }
+
+    // Los que no están rechazados no arrastran rastro de rechazo.
+    const otros = await prisma.negocio.findMany({
+      where: { estado: { not: "rechazado" } },
+    });
+    for (const negocio of otros) {
+      expect(negocio.rechazadoEn).toBeNull();
+      expect(negocio.motivoRechazo).toBeNull();
+    }
+  });
+
   // Scenario: datos ficticios y nada real
   it("todos los WhatsApp son de la serie de pruebas 771999xxxx", async () => {
     const negocios = await prisma.negocio.findMany();

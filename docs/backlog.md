@@ -39,6 +39,7 @@
 | E3-3 | Aprobar (publica la ficha) / rechazar (con motivo); normalizar colonia "Otra" |
 | E3-4 | Botón "Reportar" en ficha pública → entra a la cola del admin |
 | E3-5 | Indicador de pendientes >48h (meta operativa del PRD) |
+| E3-6 | Borrado definitivo desde el panel (derechos ARCO, PRD §8 — hoy se atendería a mano contra la base; el PRD compromete ≤20 días hábiles, necesario antes del lanzamiento) |
 
 ## E4 · Deporte en Tizayuca (P0 — PRD §6.5)
 

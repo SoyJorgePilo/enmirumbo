@@ -9,14 +9,21 @@
  *   1. campo trampa (honeypot) → se finge éxito sin guardar;
  *   2. cupo de la IP;
  *   3. validación y normalización de todo campo;
- *   4. una sola ficha por número (consulta previa + constraint de la base);
+ *   4. una sola ficha por número (consulta previa + constraint de la base),
+ *      con una excepción: si esa ficha está `rechazado`, el envío no es un
+ *      duplicado sino una corrección, y actualiza la ficha existente
+ *      (design.md §6 del change `agregar-panel-admin`);
  *   5. alta con estado, origen y constancia de consentimiento puestos aquí.
  *
  * Ningún dato capturado (número, nombre, dirección) se escribe en el log:
  * solo eventos y conteos (design.md §7).
  */
 
-import { ESTADO_NEGOCIO_DEFAULT, ORIGEN_NEGOCIO_DEFAULT } from "@/lib/negocio";
+import {
+  ESTADO_NEGOCIO_DEFAULT,
+  ESTADO_NEGOCIO_RECHAZADO,
+  ORIGEN_NEGOCIO_DEFAULT,
+} from "@/lib/negocio";
 
 import { ipBloqueada, registrarAlta } from "./limite-ip";
 import { MENSAJES_ERROR_REGISTRO } from "./textos";
@@ -32,8 +39,15 @@ export type ClienteRegistro = {
   categoria: { findMany(): Promise<Array<{ id: number }>> };
   colonia: { findMany(): Promise<Array<{ id: number }>> };
   negocio: {
-    findUnique(args: { where: { whatsapp: string } }): Promise<unknown>;
+    findUnique(args: {
+      where: { whatsapp: string };
+      select: { id: true; estado: true };
+    }): Promise<{ id: string; estado: string } | null>;
     create(args: { data: Record<string, unknown> }): Promise<unknown>;
+    updateMany(args: {
+      where: { id: string; estado: string };
+      data: Record<string, unknown>;
+    }): Promise<{ count: number }>;
     count(args: { where: { registradoEn: { gte: Date } } }): Promise<number>;
   };
 };
@@ -163,16 +177,78 @@ export async function procesarRegistro(
   registrarAlta(contexto.ip, ahora);
 
   // 4. Una sola ficha por número (PRD §6.1), ya normalizado a 10 dígitos.
+  //    Excepción: una ficha `rechazado` puede corregir y volver a enviar
+  //    (PRD §6.3), y entonces se actualiza esa misma fila.
+  let existente: { id: string; estado: string } | null;
   try {
-    const existente = await contexto.prisma.negocio.findUnique({
+    existente = await contexto.prisma.negocio.findUnique({
       where: { whatsapp: datos.whatsapp },
+      select: { id: true, estado: true },
     });
-    if (existente) {
-      return rechazo({ whatsapp: MENSAJES_ERROR_REGISTRO.whatsappDuplicado });
-    }
   } catch (error) {
     console.error(`[registro] falló la consulta de duplicado: ${resumenDeError(error)}`);
     return rechazo({ general: MENSAJES_ERROR_REGISTRO.servidor });
+  }
+
+  if (existente && existente.estado !== ESTADO_NEGOCIO_RECHAZADO) {
+    return rechazo({ whatsapp: MENSAJES_ERROR_REGISTRO.whatsappDuplicado });
+  }
+
+  if (existente) {
+    // 4b. Reenvío tras un rechazo (design.md §6 de agregar-panel-admin).
+    //
+    // Se pisan los datos con los del envío nuevo y se limpia el rastro del
+    // rechazo: si no, la purga de rechazados a los 90 días se llevaría un
+    // registro que ya está otra vez en la cola. `registradoEn` también se
+    // reinicia, porque es el reloj del indicador de 48 horas del panel: si no,
+    // todo reenvío entraría a la cola ya marcado como atrasado.
+    //
+    // Lo que NO se toca por construcción: `origen`, los giros, `tokenGestion`
+    // y `publicadoEn` no están en `datos` (los fija el servidor, ver
+    // `DatosNegocioValidados`), así que un envío no puede autopublicarse.
+    //
+    // `consintioAvisoEn` TAMPOCO se toca (hallazgo MEDIO 4 de la etapa C, que
+    // corrige lo que decía design.md §6): es la constancia LFPDPPP de que el
+    // titular consintió el aviso (PRD §8), y este formulario es anónimo —
+    // quien reenvía puede no ser el dueño. Pisarla sustituiría la evidencia
+    // del titular por una atribuible a un tercero. El envío nuevo sí exige el
+    // checkbox (lo valida `validarRegistro`, si no, no se llega hasta aquí),
+    // así que la ficha nunca queda sin consentimiento: se conserva el más
+    // antiguo, que es el que prueba el consentimiento original.
+    //
+    // Al dueño no se le dice nada del rechazo anterior: ve la misma pantalla
+    // de gracias que cualquier registro nuevo. El formulario es anónimo y
+    // cualquiera podría escribir un número ajeno.
+    //
+    // La escritura va CONDICIONADA a que la ficha siga rechazada (design.md
+    // §5, hallazgo MEDIO 2 de la etapa C): entre la consulta de arriba y esta
+    // línea el admin pudo haberla resuelto desde el panel, y un `update` por
+    // id la regresaría a la cola pisando esa resolución. Si no afecta ninguna
+    // fila, ya no era un reenvío: es el duplicado de siempre.
+    let afectadas: number;
+    try {
+      const escritura = await contexto.prisma.negocio.updateMany({
+        where: { id: existente.id, estado: ESTADO_NEGOCIO_RECHAZADO },
+        data: {
+          ...datos,
+          registradoEn: ahora,
+          estado: ESTADO_NEGOCIO_DEFAULT,
+          rechazadoEn: null,
+          motivoRechazo: null,
+        },
+      });
+      afectadas = escritura.count;
+    } catch (error) {
+      console.error(`[registro] no se pudo guardar el reenvío: ${resumenDeError(error)}`);
+      return rechazo({ general: MENSAJES_ERROR_REGISTRO.servidor });
+    }
+
+    if (afectadas === 0) {
+      return rechazo({ whatsapp: MENSAJES_ERROR_REGISTRO.whatsappDuplicado });
+    }
+
+    await avisarSiHayDemasiadasAltas(contexto, ahora);
+    return { exito: true };
   }
 
   // 5. Alta. El estado, el origen y la constancia del consentimiento los fija

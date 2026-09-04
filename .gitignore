@@ -52,3 +52,15 @@ prisma/*.db-journal
 
 # cliente Prisma generado
 /src/generated/
+
+# andamiaje del pipeline de agentes
+# Solo se versionan las definiciones (agentes y comandos). Todo lo demás que
+# aparezca bajo .claude/ queda fuera: en particular .claude/worktrees/, donde
+# cada agente clona el repo con su propio .next/ compilado y su propio
+# prisma/dev.db. Las reglas de arriba están ancladas a la raíz (/.next/,
+# prisma/*.db), así que NO alcanzan a esas copias: sin esta regla, un
+# `git add -A` publicaría cientos de MB y una base de datos con datos de
+# negocios en un repo público (CLAUDE.md, regla dura + LFPDPPP).
+.claude/*
+!.claude/agents/
+!.claude/commands/

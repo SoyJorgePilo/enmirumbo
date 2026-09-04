@@ -14,6 +14,11 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Cliente Prisma generado (no se commitea ni se lintéa):
     "src/generated/**",
+    // Andamiaje del pipeline de agentes: definiciones, comandos y worktrees
+    // temporales (que traen su propio `.next/` compilado dentro). Nada de eso
+    // es código del producto; el ignore de `.next/**` de arriba solo alcanza
+    // al de la raíz.
+    ".claude/**",
   ]),
 ]);
 

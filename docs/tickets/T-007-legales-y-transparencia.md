@@ -1,11 +1,11 @@
 # T-007 · Publicar las páginas legales y transparentar el uso de datos
 
-**Estado:** pendiente
+**Estado:** en-review
 **Prioridad:** P0
 **Épica:** E6-1, E6-2, E1-6 (docs/backlog.md)
 **Referencias PRD:** §8 (LFPDPPP 2025, elementos mínimos del aviso), §6.3 (reglas de moderación → términos), §6.1 (checkbox con link al integral)
 **Depende de:** T-002 (footer), T-003 (formulario)
-**OpenSpec change:** —
+**OpenSpec change:** `agregar-paginas-legales`
 **PR:** —
 
 ## Contexto
@@ -14,12 +14,12 @@ El sitio ya recibe y publica datos personales de negocios, pero el aviso de priv
 
 ## Criterios de aceptación
 
-- [ ] Existe la página del aviso de privacidad integral con los elementos mínimos LFPDPPP del PRD §8: identidad y domicilio del responsable, datos tratados, finalidades, medios para limitar uso o divulgación, mecanismo de derechos ARCO (con el plazo de ≤20 días hábiles) y procedimiento de cambios — con placeholders claramente marcados donde falten datos del responsable que solo el humano puede dar
-- [ ] Existe la página de términos y condiciones: intermediario informativo, deslinde de las operaciones entre vecinos y negocios, y las reglas de moderación del PRD §6.3 publicadas
-- [ ] El footer enlaza ambas páginas (los enlaces que T-002 dejó previstos, con área táctil ≥44px)
-- [ ] El aviso simplificado del formulario dice de forma llana que el nombre del negocio, WhatsApp, teléfono y demás datos de la ficha serán públicos en el directorio (E1-6/M3), y enlaza al aviso integral
-- [ ] Ambas páginas son indexables, en español mexicano llano (el público no es abogado), mobile-first y sin JS de cliente
-- [ ] La lista blanca de enlaces (`tests/layout.test.ts`) reconoce las rutas nuevas; el scenario del footer "sin enlaces muertos" se actualiza conforme al delta de spec
+- [x] Existe la página del aviso de privacidad integral con los elementos mínimos LFPDPPP del PRD §8: identidad y domicilio del responsable, datos tratados, finalidades, medios para limitar uso o divulgación, mecanismo de derechos ARCO (con el plazo de ≤20 días hábiles) y procedimiento de cambios — con placeholders claramente marcados donde falten datos del responsable que solo el humano puede dar
+- [x] Existe la página de términos y condiciones: intermediario informativo, deslinde de las operaciones entre vecinos y negocios, y las reglas de moderación del PRD §6.3 publicadas
+- [x] El footer enlaza ambas páginas (los enlaces que T-002 dejó previstos, con área táctil ≥44px)
+- [x] El aviso simplificado del formulario dice de forma llana que el nombre del negocio, WhatsApp, teléfono y demás datos de la ficha serán públicos en el directorio (E1-6/M3), y enlaza al aviso integral
+- [x] Ambas páginas son indexables, en español mexicano llano (el público no es abogado), mobile-first y sin JS de cliente
+- [x] La lista blanca de enlaces (`tests/layout.test.ts`) reconoce las rutas nuevas; el scenario del footer "sin enlaces muertos" se actualiza conforme al delta de spec
 
 ## Fuera de alcance de este ticket
 

@@ -1,11 +1,11 @@
 # T-014 · Habilitar la edición con enlace de gestión
 
-**Estado:** pendiente
+**Estado:** en-desarrollo
 **Prioridad:** P1 (antes de escalar; no bloquea el lanzamiento)
 **Épica:** E8-1, E8-2, E8-3, E8-4 (docs/backlog.md)
 **Referencias PRD:** §6.4, §7 Flujos C y D
 **Depende de:** T-005 (panel), T-003 (formulario)
-**OpenSpec change:** —
+**OpenSpec change:** `agregar-enlace-de-gestion`
 **PR:** —
 
 ## Contexto

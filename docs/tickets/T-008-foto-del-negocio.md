@@ -6,7 +6,7 @@
 **Referencias PRD:** §6.1 (política de foto), §6.2 (tarjetas y ficha con foto), §6.3 (el admin rechaza fotos que no cumplan)
 **Depende de:** T-003 (formulario), T-004 (directorio), T-005 (el admin revisa la foto en el panel)
 **OpenSpec change:** `agregar-foto-negocio`
-**PR:** —
+**PR:** [#11](https://github.com/SoyJorgePilo/necesitouno/pull/11) (en borrador: bloqueado por el párrafo de la foto en el aviso de privacidad, ver `reports/d-validacion.md` §1)
 
 ## Contexto
 

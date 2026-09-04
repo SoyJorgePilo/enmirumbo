@@ -6,7 +6,7 @@
 **Referencias PRD:** §8 (LFPDPPP: constancia de consentimiento)
 **Depende de:** T-007 (páginas legales)
 **OpenSpec change:** `versionar-aviso-privacidad`
-**PR:** —
+**PR:** [#15](https://github.com/SoyJorgePilo/necesitouno/pull/15)
 
 ## Contexto
 

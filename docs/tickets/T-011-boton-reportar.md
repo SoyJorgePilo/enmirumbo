@@ -1,11 +1,11 @@
 # T-011 · Agregar el botón "Reportar" en la ficha pública
 
-**Estado:** pendiente
+**Estado:** en-desarrollo
 **Prioridad:** P0
 **Épica:** E3-4 (docs/backlog.md)
 **Referencias PRD:** §6.3 ("Botón Reportar en cada ficha pública para negocios falsos o cerrados")
 **Depende de:** T-004 (ficha), T-005 (panel)
-**OpenSpec change:** —
+**OpenSpec change:** `agregar-boton-reportar`
 **PR:** —
 
 ## Contexto
@@ -31,3 +31,4 @@
 
 - Toca ficha pública (`src/app/negocio/`), panel (`src/app/admin/`) y modelo (tabla `Reporte`) — coordinar el orden de merge con los PRs de foto y SEO abiertos (mismo territorio de ficha).
 - El comentario libre se muestra SOLO en el panel (superficie autenticada) — mismo tratamiento de escape que el resto de datos capturados.
+- **Hallazgo confirmado al especificar (2026-09-04): el panel NO tiene acción de despublicar.** `aprobarRegistro` y `rechazarRegistro` (`src/lib/admin/transiciones.ts`) solo surten efecto sobre registros en `en_revision`; sobre una ficha `publicado` el panel responde "Este registro ya lo habías resuelto.". El admin podrá leer y atender reportes, pero no bajar la ficha de un negocio que cerró o resultó falso sin tocar la base a mano. Conforme al "fuera de alcance" de este ticket, queda como **ticket propio de E3** (transición `publicado → en_revision` o estado `despublicado`), a priorizar junto con este.

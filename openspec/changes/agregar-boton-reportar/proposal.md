@@ -34,7 +34,7 @@ La verificación por WhatsApp del PRD §6.3 se hace una sola vez, al aprobar: de
 
 ## Fuera de este change
 
-- **Hallazgo confirmado — el panel no tiene "despublicar":** hoy `aprobarRegistro` y `rechazarRegistro` (`src/lib/admin/transiciones.ts`) solo surten efecto sobre registros en `en_revision`; sobre un negocio `publicado` el panel responde "Este registro ya lo habías resuelto.". Es decir, el admin puede leer un reporte y marcarlo atendido, pero **no tiene ninguna herramienta para bajar la ficha de un negocio que ya cerró o que resultó falso**: tendría que tocar la base a mano. El ticket T-011 dejó explícitamente este flujo fuera de alcance ("si no existe despublicar como acción, anotarlo como hallazgo para ticket"), así que este change **no** especifica la transición `publicado → en_revision` ni un estado `despublicado`. Queda como hallazgo para un ticket propio de E3, que conviene priorizar junto con este: sin él, el reporte informa pero no repara. Ver duda 1.
+- **Hallazgo confirmado — el panel no tiene "despublicar":** hoy `aprobarRegistro` y `rechazarRegistro` (`src/lib/admin/transiciones.ts`) solo surten efecto sobre registros en `en_revision`; sobre un negocio `publicado` el panel responde "Este registro ya lo habías resuelto.". Es decir, el admin puede leer un reporte y marcarlo atendido, pero **no tiene ninguna herramienta para bajar la ficha de un negocio que ya cerró o que resultó falso**: tendría que tocar la base a mano. El ticket T-011 dejó explícitamente este flujo fuera de alcance ("si no existe despublicar como acción, anotarlo como hallazgo para ticket"), así que este change **no** especifica la transición `publicado → en_revision` ni un estado `despublicado`. Queda en el ticket **T-015**, junto con el borrado definitivo ARCO (E3-6), priorizado enseguida: sin él, el reporte informa pero no repara.
 - **Notificaciones al admin** (correo, WhatsApp o alerta) cuando entra un reporte: el admin revisa el panel, con la misma meta de 48 horas.
 - **Historial de reportes atendidos en el panel** (hoy la sección lista solo los pendientes) y métricas de reportes por negocio.
 - **Reportes con evidencia** (fotos, links) y campo de motivo libre fuera de la lista cerrada.
@@ -42,3 +42,9 @@ La verificación por WhatsApp del PRD §6.3 se hace una sola vez, al aprobar: de
 - **Reportes sembrados en el seed de demostración** (`prisma/seed-demo.ts`): el ticket no lo pide y las suites crean sus propias fixtures; si al operar el panel se quiere ver la sección con datos, es un chore de una línea.
 - **Purga de reportes por antigüedad**: los reportes no traen datos personales, así que no caen bajo la purga de 90 días del PRD §8; si el volumen crece, se decide con la base de producción (E0-3).
 - **Alerta por volumen diario de reportes** (el equivalente a la que ya existe para altas, PRD §8): el tope por negocio y el cupo por IP cubren el abuso que el ticket pide; la alerta de volumen es del ticket de analítica/operación (T-010).
+
+## Dudas resueltas en la aprobación
+
+1. **Despublicar**: aprobado el alcance acotado (reportar + atender). Despublicar y borrado ARCO van juntos en el ticket T-015 (ya creado), priorizado enseguida.
+2. **Literales**: aprobados "Reportar este negocio", los motivos coloquiales, y SIN opción "Otro".
+3. **Números anti-abuso**: aprobados 3/hora por IP con contador propio, tope de 10 pendientes por negocio, comentario ≤300.

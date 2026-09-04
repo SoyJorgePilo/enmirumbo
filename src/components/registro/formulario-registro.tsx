@@ -9,7 +9,9 @@ import { ejemploParaCategoriaElegida } from "@/lib/registro/ejemplos";
 import {
   ACCEPT_FOTO,
   COLONIA_OTRA_VALOR,
+  EJEMPLO_HORARIO,
   LIMITES_LONGITUD,
+  TEXTO_AYUDA_HORARIO,
   TEXTO_CASILLA_SIN_FOTO,
   TEXTO_POLITICA_FOTO,
 } from "@/lib/registro/textos";
@@ -297,11 +299,16 @@ export function FormularioRegistro({
         <label htmlFor="telefonoFijo" className="text-sm font-semibold text-tinta">
           Teléfono fijo (opcional)
         </label>
+        {/* `inputMode="tel"`, no `numeric` (enmienda aprobada por el fundador,
+            revisión visual lote 2): el fijo se escribe con separadores —"(775)
+            123-45-67", "+52 775…"— y el teclado numérico puro no ofrece
+            paréntesis, guion ni "+". El WhatsApp, que son 10 dígitos pelones,
+            sí conserva el numérico. */}
         <input
           type="tel"
           id="telefonoFijo"
           name="telefonoFijo"
-          inputMode="numeric"
+          inputMode="tel"
           maxLength={LIMITES_LONGITUD.telefonoFijo}
           defaultValue={valores.telefonoFijo}
           aria-invalid={Boolean(errores.telefonoFijo)}
@@ -338,12 +345,17 @@ export function FormularioRegistro({
           id="horario"
           name="horario"
           maxLength={LIMITES_LONGITUD.horario}
-          placeholder="ej. L-S 9am-7pm"
+          placeholder={EJEMPLO_HORARIO}
           defaultValue={valores.horario}
           aria-invalid={Boolean(errores.horario)}
           aria-describedby={errores.horario ? "horario-error" : undefined}
           className={claseCampo(Boolean(errores.horario))}
         />
+        {/* Ayuda siempre visible, con el mismo trato que la del WhatsApp: el
+            campo es texto libre y esta línea lo dice con ejemplos, para que
+            nadie sienta que tiene que rellenar un formato (enmienda aprobada
+            por el fundador, revisión visual lote 2). */}
+        <p className="text-sm text-tinta-suave">{TEXTO_AYUDA_HORARIO}</p>
         <MensajeError id="horario-error" texto={errores.horario} />
       </div>
 

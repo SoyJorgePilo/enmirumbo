@@ -66,6 +66,13 @@ export const MENSAJES_ERROR_REGISTRO = {
   avisoDesfasado:
     "El aviso de privacidad cambió mientras llenabas esto. Léelo otra vez y vuelve a marcar la casilla.",
   queOfreces: mensajeLimiteLongitud(LIMITES_LONGITUD.queOfreces),
+  /**
+   * Teléfono fijo con algo que no es un teléfono (enmienda aprobada por el
+   * fundador, revisión visual lote 2). Dice qué SÍ se puede escribir, no solo
+   * qué está mal: la gente captura "(775) 123-45-67" y eso es válido.
+   */
+  telefonoFijo:
+    "Revisa el teléfono fijo: escribe solo números (puedes usar espacios, guiones o paréntesis)",
   facebookUrl: "El link de Facebook debe empezar con http:// o https://",
   whatsappDuplicado:
     "Este número ya tiene una ficha registrada. Si es tu negocio, no hace falta registrarlo otra vez: te vamos a pasar por WhatsApp el enlace para editarlo.",
@@ -73,6 +80,20 @@ export const MENSAJES_ERROR_REGISTRO = {
     "Ya recibimos varios registros desde aquí. Espera un rato y vuelve a intentar.",
   servidor: "No pudimos guardar tu registro. Vuelve a intentarlo en un momento.",
 } as const;
+
+/**
+ * Ejemplo dentro del campo "Horario (opcional)" y su línea de ayuda (enmienda
+ * aprobada por el fundador, revisión visual lote 2, spec `registro-negocio`).
+ *
+ * El ejemplo viejo era "ej. L-S 9am-7pm": una abreviatura de agenda que un
+ * negocio no escribe solo. El nuevo se lee como habla el dueño, y la ayuda
+ * aclara —con las abreviaturas incluidas— que vale cualquier redacción: el
+ * campo sigue siendo texto libre y el servidor no lo reformatea ni lo rechaza.
+ */
+export const EJEMPLO_HORARIO = "Lunes a sábado de 9 de la mañana a 7 de la tarde";
+
+export const TEXTO_AYUDA_HORARIO =
+  "Escríbelo como se lo dirías a un cliente: 'L-S 9am-7pm', 'Todos los días de 8 a 8', 'Solo fines de semana'.";
 
 /**
  * Política de foto del PRD §6.1, texto de ayuda visible ANTES de elegir el

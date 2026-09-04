@@ -191,7 +191,12 @@ describe("adversarial · entrada hostil del formulario público pintada en el pa
         queOfreces: OFRECE_HOSTIL,
         direccion: DIRECCION_HOSTIL,
         horario: `<b>24/7</b>`,
-        telefonoFijo: `771"777"6001`,
+        // El teléfono fijo YA NO admite cualquier texto (enmienda aprobada por
+        // el fundador, revisión visual lote 2: solo dígitos y separadores), así
+        // que aquí va uno legítimo. Que el panel escape un fijo hostil se
+        // prueba abajo, con una fila escrita directo en la base — que es la
+        // única forma en que hoy puede existir una.
+        telefonoFijo: `(771) 777-6001`,
       }),
       { prisma, ip: IP },
     );
@@ -218,6 +223,32 @@ describe("adversarial · entrada hostil del formulario público pintada en el pa
     expect(html).not.toContain(DIRECCION_HOSTIL);
     // Y sí está el contenido, escapado (el admin tiene que verlo tal cual).
     expect(html).toContain("&lt;img src=x onerror=");
+    expect(html).toContain("&lt;script&gt;");
+  });
+
+  // El formulario público ya no deja entrar un fijo con comillas ni etiquetas
+  // (enmienda aprobada por el fundador, revisión visual lote 2), pero pueden
+  // existir filas viejas o sembradas a mano: el panel tiene que seguir
+  // escapándolas. La defensa sigue siendo escapar al pintar, no confiar en que
+  // la entrada venga limpia.
+  it("un fijo hostil escrito directo en la base se pinta escapado en el detalle", async () => {
+    const fijoHostil = `771"><script>alert(1)</script>`;
+    const fila = await prisma.negocio.create({
+      data: {
+        nombre: "Refaccionaria Sembrada a Mano (ficticia)",
+        categoriaId,
+        whatsapp: "7719996009",
+        coloniaId,
+        telefonoFijo: fijoHostil,
+        consintioAvisoEn: new Date(),
+      },
+    });
+
+    conSesion();
+    const html = sinScriptsDeReact(await abrirDetalle(fila.id));
+
+    expect(html).not.toContain(fijoHostil);
+    expect(html).not.toContain("<script");
     expect(html).toContain("&lt;script&gt;");
   });
 

@@ -6,7 +6,7 @@
 **Referencias PRD:** §8 (rendimiento, LFPDPPP), ADR-004 (Supabase Postgres recomendado), ADR-006, ADR-007 (Vercel Hobby recomendado)
 **Depende de:** todo lo mergeado
 **OpenSpec change:** `preparar-deploy-produccion`
-**PR:** —
+**PR:** [#19](https://github.com/SoyJorgePilo/necesitouno/pull/19)
 
 ## Contexto
 

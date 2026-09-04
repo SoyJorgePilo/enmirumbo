@@ -256,12 +256,27 @@ describe("directorio-publico · solo campos públicos (design.md §5)", () => {
       join(raiz, "src/lib/directorio.ts"),
     ]);
 
-    // El módulo del panel solo lo usa para ESCRIBIR: nunca dentro de un `where`.
+    // El módulo del panel lo ESCRIBE (aprobar) y, desde el change
+    // `agregar-despublicar-y-borrado-arco`, lo nombra en un `where` en un solo
+    // sitio: la escritura CONDICIONADA de `despublicarFicha` (`updateMany` con
+    // `estado: publicado`), que evita que dos pestañas se pisen la bajada de
+    // una ficha. Eso no es filtrar qué se muestra —eso sigue viviendo solo en
+    // `src/lib/directorio.ts`—, así que ninguna LECTURA del panel puede
+    // colgarse de este estado.
     const transiciones = readFileSync(join(raiz, "src/lib/admin/transiciones.ts"), "utf8");
-    expect(transiciones).not.toMatch(
-      /where:\s*\{[^}]*(ESTADO_NEGOCIO_PUBLICADO|"publicado")/,
-    );
     expect(transiciones).toMatch(/data:\s*\{[\s\S]{0,80}estado:\s*ESTADO_NEGOCIO_PUBLICADO/);
+    const wheresConPublicado = [
+      ...transiciones.matchAll(
+        /where:\s*\{[^}]*(?:ESTADO_NEGOCIO_PUBLICADO|"publicado")[^}]*\}/g,
+      ),
+    ].map((encontrado) => encontrado[0]);
+    expect(wheresConPublicado).toEqual(["where: { id, estado: ESTADO_NEGOCIO_PUBLICADO }"]);
+    expect(transiciones).toMatch(
+      /updateMany\(\{\s*where:\s*\{ id, estado: ESTADO_NEGOCIO_PUBLICADO \}/,
+    );
+    expect(transiciones).not.toMatch(
+      /find(Many|Unique)\([\s\S]{0,200}ESTADO_NEGOCIO_PUBLICADO/,
+    );
   });
 });
 

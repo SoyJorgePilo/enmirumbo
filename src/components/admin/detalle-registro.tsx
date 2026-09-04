@@ -1,3 +1,4 @@
+import { ETIQUETA_CUANDO_DESPUBLICO, ETIQUETA_POR_QUE_DESPUBLICO } from "@/lib/admin/textos";
 import type { RegistroAdminDetalle } from "@/lib/admin/consultas";
 
 const FORMATO_FECHA = new Intl.DateTimeFormat("es-MX", {
@@ -91,6 +92,18 @@ export function DetalleRegistro({ registro }: { registro: RegistroAdminDetalle }
           )}
           {registro.motivoRechazo && (
             <Dato etiqueta="Motivo del rechazo" valor={registro.motivoRechazo} />
+          )}
+          {registro.despublicadoEn && (
+            <Dato
+              etiqueta={ETIQUETA_CUANDO_DESPUBLICO}
+              valor={FORMATO_FECHA.format(registro.despublicadoEn)}
+            />
+          )}
+          {registro.motivoDespublicacion && (
+            <Dato
+              etiqueta={ETIQUETA_POR_QUE_DESPUBLICO}
+              valor={registro.motivoDespublicacion}
+            />
           )}
         </dl>
       </div>

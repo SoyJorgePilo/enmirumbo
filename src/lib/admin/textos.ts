@@ -78,6 +78,60 @@ export function mensajeAvisoRechazo(nombreNegocio: string, motivo: string): stri
 // ── Transición sobre un registro ya resuelto ────────────────────────────────
 export const MENSAJE_YA_RESUELTO = "Este registro ya lo habías resuelto.";
 
+// ── Despublicar (spec agregar-despublicar-y-borrado-arco, revision-admin) ──
+export const BOTON_DESPUBLICAR = "Despublicar";
+export const ETIQUETA_MOTIVO_DESPUBLICAR = "¿Por qué la despublicas?";
+/** Texto de ayuda del campo (duda 2 de la propuesta): evita que una nota
+ * interna viaje por accidente al negocio dentro del aviso de WhatsApp. */
+export const AYUDA_MOTIVO_DESPUBLICAR =
+  "Este motivo se le enviará al negocio por WhatsApp.";
+export const ERROR_MOTIVO_DESPUBLICAR_VACIO = "Escribe por qué la despublicas";
+/**
+ * Sin literal en la spec: copy propuesto (enmienda del hallazgo BAJO 3 de la
+ * etapa C). El motivo no se recorta en silencio porque viaja dentro del
+ * WhatsApp que se le manda al negocio, y una frase cortada a media palabra es
+ * un mensaje roto a un tercero. El número sale de la constante para que texto y
+ * cota no se puedan desincronizar.
+ */
+export function errorMotivoDespublicarLargo(limite: number): string {
+  return `El motivo no puede pasar de ${limite} caracteres. Recórtalo un poco: así, completo, es como le va a llegar al negocio.`;
+}
+export const MENSAJE_DESPUBLICADO = "Ya la despublicaste.";
+export const MENSAJE_YA_NO_PUBLICADA = "Esta ficha ya no estaba publicada.";
+export const ETIQUETA_CUANDO_DESPUBLICO = "Cuándo la despublicaste";
+export const ETIQUETA_POR_QUE_DESPUBLICO = "Por qué la despublicaste";
+
+export function mensajeAvisoDespublicacion(
+  nombreNegocio: string,
+  motivo: string,
+): string {
+  return `Hola, te escribo de NecesitoUno Tizayuca. Bajamos del directorio la ficha de «${nombreNegocio}»: ${motivo}. Si quieres que la volvamos a publicar o tienes alguna duda, contéstame por aquí.`;
+}
+
+// ── Cola: ficha que llegó por una despublicación ────────────────────────────
+export const ETIQUETA_COLA_DESPUBLICADA = "Ya estaba publicada, la despublicaste";
+
+// ── Borrado definitivo (operación ARCO) ─────────────────────────────────────
+export const BOTON_BORRAR_DEFINITIVAMENTE = "Borrar definitivamente";
+export const ENCABEZADO_CONFIRMAR_BORRADO = "¿Seguro que quieres borrar esta ficha?";
+
+export function textoAdvertenciaBorrado(nombreNegocio: string): string {
+  return `Esto borra para siempre el registro de «${nombreNegocio}», sus giros y sus reportes. No hay papelera y no se puede deshacer.`;
+}
+
+export const RECORDATORIO_TRAMITE_ARCO =
+  "Antes de borrar: confirma por WhatsApp, desde el número con el que se registró, que quien lo pide es el dueño del negocio. Tienes 20 días hábiles para contestarle.";
+export const ETIQUETA_CONFIRMAR_BORRAR = "Escribe BORRAR para confirmar";
+export const BOTON_CONFIRMAR_BORRADO = "Sí, borrar para siempre";
+export const TEXTO_MEJOR_NO_REGRESAR = "Mejor no, regresar";
+export const ERROR_PALABRA_BORRAR = "Para borrar, escribe BORRAR en el campo.";
+export const MENSAJE_BORRADO_HECHO = "Ya se borró para siempre.";
+export const MENSAJE_YA_NO_EXISTE = "Esta ficha ya no existe.";
+/** Palabra exacta que el admin debe teclear (se compara sin mayúsculas ni
+ * espacios de sobra — design.md §4). Vive aquí para que el formulario y la
+ * futura Server Action del dev usen la misma constante. */
+export const PALABRA_CONFIRMACION_BORRADO = "BORRAR";
+
 // ── Navegación y avisos operativos del panel ────────────────────────────────
 // Sin literal en la spec: copy propuesto (ver reports/a-ui.md y b-dev.md).
 export const TEXTO_VOLVER_A_LA_COLA = "Volver a la cola";

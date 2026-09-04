@@ -15,7 +15,11 @@ vi.mock("next/navigation", async () => {
 
 import { seedCatalogos } from "../prisma/seed";
 import { aprobarRegistroAccion } from "../src/app/admin/registros/[id]/accion-aprobar";
+import { borrarRegistroAccion } from "../src/app/admin/registros/[id]/accion-borrar";
+import { despublicarRegistroAccion } from "../src/app/admin/registros/[id]/accion-despublicar";
 import { rechazarRegistroAccion } from "../src/app/admin/registros/[id]/accion-rechazar";
+import ConfirmarBorradoPage from "../src/app/admin/registros/[id]/borrar/page";
+import RegistroDespublicadoPage from "../src/app/admin/registros/[id]/despublicado/page";
 import DetalleRegistroAdminPage from "../src/app/admin/registros/[id]/page";
 import RegistroRechazadoPage from "../src/app/admin/registros/[id]/rechazado/page";
 import ListadoCategoriaPage from "../src/app/[categoria]/page";
@@ -32,8 +36,18 @@ import {
   crearValorDeSesion,
   haySesionValida,
 } from "../src/lib/admin/sesion";
-import { mensajeAvisoRechazo, mensajeVerificacion } from "../src/lib/admin/textos";
-import { aprobarRegistro, rechazarRegistro } from "../src/lib/admin/transiciones";
+import {
+  errorMotivoDespublicarLargo,
+  mensajeAvisoDespublicacion,
+  mensajeAvisoRechazo,
+  mensajeVerificacion,
+} from "../src/lib/admin/textos";
+import {
+  LIMITE_MOTIVO_DESPUBLICACION,
+  aprobarRegistro,
+  despublicarFicha,
+  rechazarRegistro,
+} from "../src/lib/admin/transiciones";
 import { construirSegmentoFicha } from "../src/lib/ficha-url";
 import { reiniciarLimitePorIp } from "../src/lib/registro/limite-ip";
 import { procesarRegistro } from "../src/lib/registro/procesar";
@@ -574,6 +588,8 @@ describe("adversarial · la guarda se invoca antes de leer o escribir nada", () 
     "obtenerColaDeRevision(",
     "aprobarRegistro(",
     "rechazarRegistro(",
+    "despublicarFicha(",
+    "borrarNegocio(",
   ];
 
   it("en cada ruta y acción, `requerirSesionAdmin()` aparece antes del primer acceso a datos", () => {
@@ -996,5 +1012,204 @@ describe("adversarial · el reenvío y la constancia LFPDPPP del titular", () =>
     expect(despues.consintioAvisoEn.getTime()).toBeLessThan(
       despues.registradoEn.getTime(),
     );
+  });
+});
+
+// ── 10. Despublicar y borrado definitivo (change agregar-despublicar-y-borrado-arco) ──
+
+describe("adversarial · despublicar y borrar sin sesión o con entrada manipulada", () => {
+  /** Ficha publicada con datos capturados por el formulario público. */
+  async function fichaPublicada(sufijo: string): Promise<string> {
+    const fila = await prisma.negocio.create({
+      data: {
+        nombre: "Negocio Ficticio Publicado",
+        categoriaId,
+        coloniaId,
+        whatsapp: `771999610${sufijo}`,
+        consintioAvisoEn: new Date(),
+        estado: "publicado",
+        publicadoEn: new Date(),
+      },
+    });
+    return fila.id;
+  }
+
+  const abrirConfirmacionBorrado = (id: string) =>
+    render(
+      ConfirmarBorradoPage({
+        params: Promise.resolve({ id }),
+        searchParams: Promise.resolve({}),
+      }) as Promise<React.ReactElement>,
+    );
+
+  // Scenario: despublicar sin sesión
+  it("un POST de despublicar sin cookie no baja la ficha ni devuelve nada suyo", async () => {
+    const id = await fichaPublicada("1");
+    const formData = new FormData();
+    formData.set("motivo", "motivo mandado sin sesión");
+
+    const url = await urlDeRedireccion(() => despublicarRegistroAccion(id, formData));
+
+    expect(url).toBe("/admin");
+    expect(url).not.toContain(id);
+    const negocio = await prisma.negocio.findUniqueOrThrow({ where: { id } });
+    expect(negocio.estado).toBe("publicado");
+    expect(negocio.despublicadoEn).toBeNull();
+    expect(negocio.motivoDespublicacion).toBeNull();
+  });
+
+  // Scenario: borrar sin sesión
+  it("un POST de borrado sin cookie, con la palabra correcta, no borra nada", async () => {
+    const id = await fichaPublicada("2");
+    const formData = new FormData();
+    formData.set("confirmarBorrado", "BORRAR");
+
+    const url = await urlDeRedireccion(() => borrarRegistroAccion(id, formData));
+
+    expect(url).toBe("/admin");
+    expect(await prisma.negocio.findUnique({ where: { id } })).not.toBeNull();
+  });
+
+  // Scenario: la pantalla de confirmación sin sesión
+  it("un GET de la pantalla de confirmación sin cookie no dice si el id existe", async () => {
+    const id = await fichaPublicada("3");
+
+    const existente = await urlDeRedireccion(() => abrirConfirmacionBorrado(id));
+    const inventado = await urlDeRedireccion(() =>
+      abrirConfirmacionBorrado("no-existe-este-id"),
+    );
+
+    expect(existente).toBe("/admin");
+    expect(existente).toBe(inventado);
+  });
+
+  it("un POST de borrado con un id inexistente no produce error del servidor", async () => {
+    conSesion();
+    const formData = new FormData();
+    formData.set("confirmarBorrado", "BORRAR");
+
+    expect(
+      await urlDeRedireccion(() => borrarRegistroAccion("no-existe-este-id", formData)),
+    ).toBe("/admin/borrado-hecho?resultado=ya-no-existe");
+  });
+
+  it("un POST de borrado con un id vacío tampoco truena ni borra a nadie", async () => {
+    const id = await fichaPublicada("4");
+    conSesion();
+    const formData = new FormData();
+    formData.set("confirmarBorrado", "BORRAR");
+
+    expect(await urlDeRedireccion(() => borrarRegistroAccion("", formData))).toBe(
+      "/admin/borrado-hecho?resultado=ya-no-existe",
+    );
+    expect(await prisma.negocio.findUnique({ where: { id } })).not.toBeNull();
+  });
+
+  it("el campo del motivo repetido vale por el primero, no se concatena", async () => {
+    const id = await fichaPublicada("5");
+    conSesion();
+    const formData = new FormData();
+    formData.append("motivo", "Motivo real");
+    formData.append("motivo", "Motivo colado");
+
+    await urlDeRedireccion(() => despublicarRegistroAccion(id, formData));
+
+    const negocio = await prisma.negocio.findUniqueOrThrow({ where: { id } });
+    expect(negocio.motivoDespublicacion).toBe("Motivo real");
+    expect(negocio.motivoDespublicacion).not.toContain("Motivo colado");
+  });
+
+  it("un motivo que no es texto (un archivo) se trata como vacío y no despublica", async () => {
+    const id = await fichaPublicada("6");
+    conSesion();
+    const formData = new FormData();
+    formData.set("motivo", new File(["contenido"], "motivo.txt"));
+
+    expect(await urlDeRedireccion(() => despublicarRegistroAccion(id, formData))).toBe(
+      `/admin/registros/${id}?errorDespublicar=motivo`,
+    );
+    expect((await prisma.negocio.findUniqueOrThrow({ where: { id } })).estado).toBe(
+      "publicado",
+    );
+  });
+
+  it("un motivo de 10 000 caracteres se rechaza con su error, sin escribir nada", async () => {
+    const id = await fichaPublicada("7");
+    conSesion();
+    const formData = new FormData();
+    formData.set("motivo", "x".repeat(10_000));
+
+    // Hallazgo BAJO 3 de la etapa C: recortarlo en silencio mandaba al negocio
+    // un WhatsApp cortado a media palabra. Ahora el admin ve el error y lo
+    // acorta él.
+    expect(await urlDeRedireccion(() => despublicarRegistroAccion(id, formData))).toBe(
+      `/admin/registros/${id}?errorDespublicar=longitud`,
+    );
+
+    const negocio = await prisma.negocio.findUniqueOrThrow({ where: { id } });
+    expect(negocio.estado).toBe("publicado");
+    expect(negocio.motivoDespublicacion).toBeNull();
+
+    // Y el detalle pinta el mensaje, con la cota real dentro.
+    const html = await abrirDetalle(id, { errorDespublicar: "longitud" });
+    expect(html.replace(/\s+/g, " ")).toContain(
+      errorMotivoDespublicarLargo(LIMITE_MOTIVO_DESPUBLICACION),
+    );
+    expect(html).toContain(String(LIMITE_MOTIVO_DESPUBLICACION));
+  });
+
+  it("un motivo con &, saltos de línea y URL no altera el wa.me del aviso", async () => {
+    const resultado = await procesarRegistro(envio({ nombre: "Negocio Ficticio Uno" }), {
+      prisma,
+      ip: IP,
+    });
+    expect(resultado.exito).toBe(true);
+    const fila = await prisma.negocio.findUniqueOrThrow({
+      where: { whatsapp: "7719996001" },
+    });
+    await aprobarRegistro(prisma, fila.id, {
+      girosIds: [],
+      coloniaId: null,
+      origen: "organico",
+    });
+
+    const motivo = `Cerró&text=https://evil.example\nsegunda línea #hash "comillas"`;
+    expect(await despublicarFicha(prisma, fila.id, motivo)).toEqual({
+      resultado: "despublicada",
+    });
+
+    conSesion();
+    const url = enlaceWhatsapp(
+      await render(
+        RegistroDespublicadoPage({
+          params: Promise.resolve({ id: fila.id }),
+          searchParams: Promise.resolve({}),
+        }) as Promise<React.ReactElement>,
+      ),
+    );
+
+    expect(url.host).toBe("wa.me");
+    expect([...url.searchParams.keys()]).toEqual(["text"]);
+    expect(url.searchParams.get("text")).toBe(
+      mensajeAvisoDespublicacion("Negocio Ficticio Uno", motivo),
+    );
+  });
+
+  it("la pantalla de confirmación del borrado escapa el nombre hostil del negocio", async () => {
+    const resultado = await procesarRegistro(envio({ nombre: NOMBRE_HOSTIL }), {
+      prisma,
+      ip: IP,
+    });
+    expect(resultado.exito).toBe(true);
+    const fila = await prisma.negocio.findUniqueOrThrow({
+      where: { whatsapp: "7719996001" },
+    });
+
+    conSesion();
+    const html = sinScriptsDeReact(await abrirConfirmacionBorrado(fila.id));
+    // El payload sigue ahí, pero como TEXTO: ni una etiqueta viva.
+    expect(html).not.toMatch(/<img/i);
+    expect(html).not.toMatch(/onerror="/);
+    expect(html).toContain("&lt;img src=x onerror=&quot;alert(1)&quot;&gt;");
   });
 });

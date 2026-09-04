@@ -29,6 +29,14 @@ export type RegistroColaItem = {
   esperaTexto: string;
   /** Lleva más de 48 horas esperando (PRD §10). */
   atrasado: boolean;
+  /**
+   * `true` cuando este renglón llegó a la cola por una despublicación y no por
+   * un alta nueva (spec `agregar-despublicar-y-borrado-arco`, requirement
+   * "Cola de revisión…", etiqueta "Ya estaba publicada, la despublicaste").
+   * Es `false` si el negocio reenvió sus datos después de la despublicación:
+   * entonces lo último que le pasó fue el reenvío, y por ahí entró a la cola.
+   */
+  vieneDeDespublicacion: boolean;
 };
 
 /** Todo lo que el detalle del panel muestra de un registro. */
@@ -57,6 +65,21 @@ export type RegistroAdminDetalle = {
   consintioAvisoEn: Date;
   rechazadoEn: Date | null;
   motivoRechazo: string | null;
+  /**
+   * Rastro de la última despublicación (spec `agregar-despublicar-y-
+   * borrado-arco`): nulos si la ficha nunca se despublicó, y entonces el
+   * detalle no pinta sus rótulos ("Cuándo la despublicaste" / "Por qué la
+   * despublicaste"). El motivo es interno del panel: no sale a lo público.
+   */
+  despublicadoEn: Date | null;
+  motivoDespublicacion: string | null;
+  /**
+   * Ids de los giros ya asignados (requirement "Aprobar asigna giros…",
+   * scenario "republicar conserva los giros"): el formulario de aprobar llega
+   * con ellos marcados para que republicar una ficha despublicada no los
+   * borre en silencio (`aprobarRegistro` hace `giros: { set: … }`).
+   */
+  girosIds: number[];
 };
 
 /** Lo poco que estas consultas necesitan de Prisma (facilita probarlas). */
@@ -71,6 +94,7 @@ type FilaCola = {
   id: string;
   nombre: string;
   registradoEn: Date;
+  despublicadoEn: Date | null;
   coloniaOtra: string | null;
   colonia: { nombre: string } | null;
 };
@@ -89,12 +113,30 @@ type FilaDetalle = FilaCola & {
   consintioAvisoEn: Date;
   rechazadoEn: Date | null;
   motivoRechazo: string | null;
+  motivoDespublicacion: string | null;
   categoria: { nombre: string };
+  giros: Array<{ id: number }>;
 };
 
 /** Horas completas que lleva esperando un registro. */
 function horasEsperando(registradoEn: Date, ahora: Date): number {
   return Math.floor((ahora.getTime() - registradoEn.getTime()) / HORA_MS);
+}
+
+/**
+ * Cuándo entró el registro a la cola: lo más reciente que le pasó, entre su
+ * registro (o reenvío, que pisa `registradoEn`) y su despublicación
+ * (design.md §3). Una ficha registrada hace ocho meses y despublicada hoy
+ * lleva esperando desde hoy; si después de despublicarla el negocio reenvía,
+ * manda el reenvío. Así el reloj sobrevive a cualquier orden de eventos sin
+ * tener que limpiar el rastro de la despublicación en tres flujos distintos.
+ */
+export function entradaALaCola(
+  registradoEn: Date,
+  despublicadoEn: Date | null,
+): Date {
+  if (despublicadoEn === null) return registradoEn;
+  return despublicadoEn.getTime() > registradoEn.getTime() ? despublicadoEn : registradoEn;
 }
 
 /**
@@ -125,6 +167,13 @@ export function contarAtrasados(cola: ReadonlyArray<RegistroColaItem>): number {
  * Registros en revisión, del más antiguo al más reciente (el que lleva más
  * tiempo esperando, arriba). El "ahora" se inyecta para poder probar el
  * indicador de 48 horas sin depender del reloj.
+ *
+ * La espera —y el orden— se cuentan desde `entradaALaCola`, no desde
+ * `registradoEn` a secas: una ficha despublicada hoy no puede aparecer arriba
+ * y marcada como atrasada solo porque su negocio se registró hace meses. El
+ * orden final se calcula en memoria porque ese máximo no es una columna; la
+ * cola es la lista de pendientes de un solo admin, así que son decenas de
+ * filas, no miles.
  */
 export async function obtenerColaDeRevision(
   prisma: ClientePanel,
@@ -137,19 +186,33 @@ export async function obtenerColaDeRevision(
       id: true,
       nombre: true,
       registradoEn: true,
+      despublicadoEn: true,
       coloniaOtra: true,
       colonia: { select: { nombre: true } },
     },
   })) as FilaCola[];
 
-  return filas.map((fila) => ({
-    id: fila.id,
-    nombre: fila.nombre,
-    coloniaTexto:
-      fila.colonia?.nombre ?? fila.coloniaOtra?.trim() ?? "Colonia no capturada",
-    esperaTexto: textoEspera(fila.registradoEn, ahora),
-    atrasado: estaAtrasado(fila.registradoEn, ahora),
-  }));
+  return filas
+    .map((fila) => ({
+      fila,
+      entrada: entradaALaCola(fila.registradoEn, fila.despublicadoEn),
+    }))
+    .sort(
+      (uno, otro) =>
+        uno.entrada.getTime() - otro.entrada.getTime() ||
+        uno.fila.id.localeCompare(otro.fila.id),
+    )
+    .map(({ fila, entrada }) => ({
+      id: fila.id,
+      nombre: fila.nombre,
+      coloniaTexto:
+        fila.colonia?.nombre ?? fila.coloniaOtra?.trim() ?? "Colonia no capturada",
+      esperaTexto: textoEspera(entrada, ahora),
+      atrasado: estaAtrasado(entrada, ahora),
+      vieneDeDespublicacion:
+        fila.despublicadoEn !== null &&
+        fila.despublicadoEn.getTime() > fila.registradoEn.getTime(),
+    }));
 }
 
 /**
@@ -184,6 +247,9 @@ export async function obtenerRegistroParaPanel(
       consintioAvisoEn: true,
       rechazadoEn: true,
       motivoRechazo: true,
+      despublicadoEn: true,
+      motivoDespublicacion: true,
+      giros: { select: { id: true } },
     },
   })) as FilaDetalle | null;
 
@@ -211,5 +277,8 @@ export async function obtenerRegistroParaPanel(
     consintioAvisoEn: fila.consintioAvisoEn,
     rechazadoEn: fila.rechazadoEn,
     motivoRechazo: fila.motivoRechazo,
+    despublicadoEn: fila.despublicadoEn,
+    motivoDespublicacion: fila.motivoDespublicacion,
+    girosIds: fila.giros.map((giro) => giro.id),
   };
 }

@@ -265,7 +265,13 @@ function rutaInternaExiste(href: string): boolean {
     [...idsPublicados, ...idsEnRevision].includes(segmentos[2]) &&
     (segmentos.length === 3 ||
       (segmentos.length === 4 &&
-        ["aprobado", "rechazado", "ya-resuelto"].includes(segmentos[3])))
+        // "borrar" y "despublicado" los estrena el change
+        // `agregar-despublicar-y-borrado-arco`: el detalle enlaza a la
+        // pantalla de confirmación del borrado, y la acción de despublicar
+        // lleva a la suya.
+        ["aprobado", "borrar", "despublicado", "rechazado", "ya-resuelto"].includes(
+          segmentos[3],
+        )))
   );
 }
 
@@ -530,8 +536,14 @@ describe("layout-base · enlaces internos y externos de las páginas servidas", 
       problemasDeEnlaces('<a href="/admin/registros/id-que-no-existe">x</a>'),
     ).toHaveLength(1);
     expect(
-      problemasDeEnlaces(`<a href="/admin/registros/${idsEnRevision[0]}/borrar">x</a>`),
+      problemasDeEnlaces(
+        `<a href="/admin/registros/${idsEnRevision[0]}/pantalla-inventada">x</a>`,
+      ),
     ).toHaveLength(1);
+    // `/borrar` sí existe desde el change `agregar-despublicar-y-borrado-arco`.
+    expect(
+      problemasDeEnlaces(`<a href="/admin/registros/${idsEnRevision[0]}/borrar">x</a>`),
+    ).toEqual([]);
     expect(problemasDeEnlaces('<a href="/admin/pantalla-inventada">x</a>')).toHaveLength(1);
   });
 

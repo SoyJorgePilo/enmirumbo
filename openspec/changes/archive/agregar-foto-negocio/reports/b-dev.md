@@ -547,3 +547,93 @@ reporte de `noBorrables`), `specs/registro-negocio/spec.md` (enmienda ajustada
 + scenario nuevo), `README.md`, `tasks.md` (tareas 35–37),
 `tests/foto-concurrencia.test.ts` (+2), `tests/fotos-huerfanas.test.ts` (+6).
 **No toqué** ninguno de los tres archivos de prueba de la etapa C.
+
+---
+
+# Iteración 4 · enmienda legal
+
+El validador aprobó el código y bloqueó el PR por una razón buena: el aviso de
+privacidad que publicó T-007 dice, palabra por palabra, **"Hoy el formulario
+todavía no pide fotos; el día que las pida, aquí te decimos qué se puede
+publicar en ellas"**, y este change lo vuelve falso en el momento del merge. Un
+aviso de privacidad que describe mal el tratamiento no es un desliz de copy: es
+un defecto legal (LFPDPPP, PRD §8).
+
+**Gates al cierre:** `npm run lint` limpio · `npm run build` OK · `npm test`
+**1548/1548** (la suite ya incluye lo que aterrizó de T-007/T-009).
+
+## Qué se hizo
+
+**Delta nuevo:** `openspec/changes/agregar-foto-negocio/specs/paginas-legales/spec.md`,
+encabezado con la marca **"Enmienda aprobada: T-008 cumple la promesa del
+texto"** y el porqué. Dos requirements `MODIFIED`, cada uno completo para que
+la consolidación del validador sea mecánica:
+
+1. **"El aviso integral advierte que el WhatsApp y el teléfono quedan
+   públicos"** — su prosa (el punto (b) ya no aplaza la política ni habla de
+   `fotoUrl`, que además dejó de existir) y el **scenario de la línea 84**, que
+   era justo el que fijaba "y que hoy el formulario todavía no pide fotos".
+2. **"Texto completo del aviso de privacidad integral"** — el párrafo de la
+   sección "Qué queda público y qué no".
+
+**El párrafo nuevo del aviso**, en el tono del documento (tuteo, español llano,
+segunda persona), fluyendo con el párrafo de "Cómo llegar" que lo precede:
+
+> Si subes una foto de tu negocio, esa foto es pública igual que lo demás. La
+> foto es opcional y debe mostrar tu local, tus productos o tu trabajo: que no
+> salgan personas que se puedan reconocer, porque este aviso cubre tus datos y
+> no la imagen de otras personas. Si una foto no cumple, no la publicamos y te
+> decimos por qué al revisar tu registro. Antes de guardarla la comprimimos y
+> le quitamos los datos ocultos que trae el archivo —como la ubicación GPS de
+> dónde se tomó—: eso no se publica ni se conserva.
+
+Sobre la redacción, respecto de la propuesta del orquestador: mantiene las tres
+ideas pedidas (es pública, qué se puede retratar y no, y qué pasa si no
+cumple), y agrega dos cosas que el aviso debía decir y no decía. Una, que **la
+foto es opcional** —el aviso enumera lo que se publica, y omitirlo sugeriría
+que es obligatoria—. Y dos, **qué hacemos con los metadatos**: el pipeline
+borra el EXIF (incluida la ubicación GPS de la toma) y eso es exactamente el
+tipo de dato personal del que un aviso tiene que hablar; callarlo era perder la
+oportunidad de declarar la única minimización real que hace el sistema. Las dos
+son verdad comprobada por tests (`tests/fotos-procesar.test.ts`, bloque de
+metadatos), no promesas.
+
+También se ajustó el "porque este aviso no cubre la imagen de otras personas" a
+**"porque este aviso cubre tus datos y no la imagen de otras personas"**: dicho
+en positivo primero, se entiende de una lectura, que es el criterio del
+requirement "nada de esto necesita conocimiento legal para entenderse".
+
+## Código y tests
+
+- `src/lib/legales/textos.ts`: el literal y el comentario que señalaba a T-008
+  como pendiente (ahora apunta al delta y a `TEXTO_POLITICA_FOTO`, que es la
+  misma política contada desde el formulario).
+- `tests/legales-paginas.test.ts`: el bloque del texto esperado completo y el
+  `it` del scenario, que pasa de dos aserciones a seis — incluida
+  `not.toContain("todavía no pide fotos")`, para que la promesa vieja no pueda
+  volver por un merge descuidado.
+- `tests/legales-adversarial.test.ts`: el comentario del mapa de campos
+  públicos (`fotoClave`) decía que T-008 no podía tocar el aviso; ya no es
+  cierto. El mapa en sí no cambia: sigue exigiendo que el aviso mencione "una
+  foto de tu negocio", y el texto nuevo lo hace.
+
+## Coordinación con T-012 (importante)
+
+**Hoy no existe ningún guardián de versión ni huella del texto legal**, lo
+verifiqué buscando en `src/lib/legales/` y en la suite: `ultimaActualizacion`
+es literalmente el placeholder `[FECHA DE PUBLICACIÓN]` y no hay hash ni número
+de versión que fijar. Por eso esta enmienda no tiene nada que subir.
+
+**Lo que T-012 tiene que saber:** este change es un cambio de contenido del
+aviso, del tipo que el propio documento promete anunciar en su sección "Cambios
+a este aviso". En cuanto T-012 introduzca fecha real de publicación y/o versión
+(y con más razón si añade una huella del texto como guardián de CI), esa
+versión hay que subirla con este contenido ya dentro, y la nota de cambios debe
+mencionar que se agregó la política de fotos. Anotado aquí porque el orden de
+merge lo decide el pipeline, no yo.
+
+## Archivos tocados en esta iteración
+
+Nuevo: `openspec/changes/agregar-foto-negocio/specs/paginas-legales/spec.md`.
+Modificados: `src/lib/legales/textos.ts`, `tests/legales-paginas.test.ts`,
+`tests/legales-adversarial.test.ts`, `tasks.md` (tareas 38–39).

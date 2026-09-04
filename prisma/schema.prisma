@@ -106,6 +106,17 @@ model Negocio {
   rechazadoEn   DateTime?
   motivoRechazo String?
 
+  // Rastro de la última despublicación (spec `modelo-datos`, requirement "El
+  // negocio guarda el rastro de su despublicación"): nulos mientras la ficha
+  // nunca se haya despublicado, y se sobrescriben en cada despublicación
+  // posterior. NO se limpian en ninguna transición: son historia útil dentro
+  // del panel. Para que ese rastro viejo no ensucie la cola, la espera se
+  // cuenta desde `max(registradoEn, despublicadoEn)` (src/lib/admin/consultas.ts).
+  // El motivo es un dato interno del panel, como `motivoRechazo`: nunca sale
+  // a una página pública.
+  despublicadoEn       DateTime?
+  motivoDespublicacion String?
+
   // Giros asignados por el admin al aprobar (PRD §6.3, Apéndice B)
   giros Giro[]
 

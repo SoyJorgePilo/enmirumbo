@@ -61,7 +61,7 @@ El elemento (4) DEBE describir la operación real de hoy y no prometer automatis
 
 El aviso integral DEBE decir con claridad, en su propia sección, qué información de la ficha queda visible para cualquier persona en internet —incluidos el nombre del negocio, el WhatsApp y el teléfono fijo, con botones para escribir o marcar directo—, que la colonia se publica pero el domicilio exacto no, salvo que el propio dueño lo escriba, que los buscadores pueden indexar la ficha, y qué datos NO se publican nunca (la fecha de registro, las notas internas de la revisión y el motivo de un rechazo). Es el mismo mensaje que el aviso simplificado del formulario, aquí en su versión completa.
 
-La enumeración DEBE cuadrar exactamente con lo que la ficha pública sirve hoy, así que incluye además: (a) que la dirección o las referencias que el dueño escriba alimentan el botón "Cómo llegar" de la ficha, que abre Google Maps con esa dirección en el teléfono de quien lo toca (`construirEnlaceComoLlegar` en `src/lib/enlaces.ts`) —el dato no se comparte con nadie desde el servidor, pero sale hacia un tercero en cuanto un vecino usa el botón, y el dueño tiene derecho a saberlo antes de escribirlo—; y (b) que la foto del negocio, si la ficha llega a llevarla, también es pública, porque `fotoUrl` ya está en la proyección pública (`src/lib/directorio.ts`) aunque el formulario todavía no capture fotos. La política de publicación de la foto (qué se puede retratar) la escribe la capacidad que capture fotos: aquí solo se declara que es pública y que las reglas se publicarán.
+La enumeración DEBE cuadrar exactamente con lo que la ficha pública sirve hoy, así que incluye además: (a) que la dirección o las referencias que el dueño escriba alimentan el botón "Cómo llegar" de la ficha, que abre Google Maps con esa dirección en el teléfono de quien lo toca (`construirEnlaceComoLlegar` en `src/lib/enlaces.ts`) —el dato no se comparte con nadie desde el servidor, pero sale hacia un tercero en cuanto un vecino usa el botón, y el dueño tiene derecho a saberlo antes de escribirlo—; y (b) que la foto del negocio es pública, con la política de qué se puede retratar y qué pasa si no se cumple. El formulario captura fotos, así que el aviso DEBE decir qué se acepta (el local, los productos o el trabajo), qué no (personas que se puedan reconocer, porque este aviso cubre los datos del titular y no la imagen de terceros) y que una foto que no cumpla no se publica. DEBE decir además que la imagen se guarda comprimida y sin los metadatos que trae el archivo —la ubicación GPS de la toma, entre otros—, porque ese dato no se publica ni se conserva.
 
 #### Scenario: el aviso dice que el WhatsApp queda a la vista
 
@@ -81,7 +81,7 @@ La enumeración DEBE cuadrar exactamente con lo que la ficha pública sirve hoy,
 #### Scenario: la foto del negocio también es pública
 
 - **WHEN** el dueño lee la misma sección
-- **THEN** lee que, si su ficha llega a llevar una foto de su negocio, esa foto también es pública, y que hoy el formulario todavía no pide fotos
+- **THEN** lee que, si sube una foto de su negocio, esa foto también es pública; que debe mostrar su local, sus productos o su trabajo y no personas que se puedan reconocer; que una foto que no cumple no se publica; y que la imagen se guarda comprimida y sin los metadatos del archivo, como la ubicación GPS
 
 #### Scenario: lo que nunca se publica
 
@@ -137,7 +137,7 @@ Publicamos tu colonia, no tu domicilio exacto. Si tú escribes una dirección o 
 
 Esa dirección también alimenta el botón "Cómo llegar" de tu ficha: quien lo toca abre Google Maps en su teléfono, buscando lo que escribiste junto con tu colonia y "Tizayuca, Hidalgo".
 
-Si tu ficha llega a llevar una foto de tu negocio, esa foto es pública igual que lo demás. Hoy el formulario todavía no pide fotos; el día que las pida, aquí te decimos qué se puede publicar en ellas.
+Si subes una foto de tu negocio, esa foto es pública igual que lo demás. La foto es opcional y debe mostrar tu local, tus productos o tu trabajo: que no salgan personas que se puedan reconocer, porque este aviso cubre tus datos y no la imagen de otras personas. Si una foto no cumple, no la publicamos y te decimos por qué al revisar tu registro. Antes de guardarla la comprimimos y le quitamos los datos ocultos que trae el archivo —como la ubicación GPS de dónde se tomó—: eso no se publica ni se conserva.
 
 Buscadores como Google pueden encontrar tu ficha y mostrarla en sus resultados. Para eso está hecho el directorio.
 
@@ -338,7 +338,11 @@ La línea suelta "Aviso de privacidad" es el enlace a `/aviso-de-privacidad`.
 
 Todo dato que solo una persona puede aportar (nombre o razón social del responsable, domicilio, correo de contacto/ARCO, WhatsApp del directorio, fecha de publicación y jurisdicción) DEBE aparecer en la página como un placeholder visible entre corchetes con la indicación de que falta completarlo, nunca como un dato inventado, un espacio en blanco o texto de relleno. Mientras quede al menos un placeholder sin completar, ambas páginas DEBEN mostrar arriba, de forma visible, la marca de borrador con el texto literal "Ojo: este texto todavía es un borrador. Nos faltan los datos que ves entre corchetes y la revisión legal antes de que el directorio se lance." Los placeholders pendientes DEBEN estar declarados en un solo lugar del código, de modo que la verificación automática pueda listarlos y el checklist de lanzamiento no dependa de que alguien los busque a ojo.
 
-Los datos que faltan no son lo único pendiente antes de retirar la marca de borrador. El aviso compromete una operación —atender las solicitudes ARCO en ≤20 días hábiles, despublicar y borrar de forma definitiva, y eliminar los datos de los registros rechazados a los 90 días— que hoy se hace a mano contra la base: el panel solo aprueba y rechaza, y ninguna purga automática existe. Junto a los placeholders DEBE declararse, en el mismo módulo y en la misma forma recorrible, la lista de esos **pendientes operativos**, cada uno con el ticket que lo resuelve, para que la revisión legal y el checklist de lanzamiento los vean sin buscarlos a ojo. Esta lista NO se publica en las páginas: el texto legal dice lo que el responsable se compromete a hacer, no el estado del backlog; lo que las páginas no DEBEN hacer es prometer automatismos que no existen.
+Los datos que faltan no son lo único pendiente antes de retirar la marca de borrador. El aviso compromete una operación —atender las solicitudes ARCO en ≤20 días hábiles y eliminar los datos de los registros rechazados a los 90 días— y junto a los placeholders DEBE declararse, en el mismo módulo y en la misma forma recorrible, la lista de los **pendientes operativos** que siguen sin resolverse, cada uno con el ticket que lo resuelve, para que la revisión legal y el checklist de lanzamiento los vean sin buscarlos a ojo. Esta lista NO se publica en las páginas: el texto legal dice lo que el responsable se compromete a hacer, no el estado del backlog; lo que las páginas no DEBEN hacer es prometer automatismos que no existen.
+
+Un pendiente DEBE salir de esa lista **solo en la parte que el panel ya puede hacer de verdad, no entero**, porque un checklist de lanzamiento que miente por omisión es peor que un renglón de más. De las cuatro letras de ARCO, el panel resuelve la cancelación y la oposición —despublicar una ficha y borrar un registro de forma definitiva son acciones suyas—, así que esa parte ya no DEBE aparecer como pendiente; **el acceso y la rectificación sí DEBEN seguir declarados**, con su ticket, porque el aviso los promete ("escríbenos y los quitamos", "rectificarlos si están mal") y el panel no tiene ninguna pantalla para entregarle al negocio una copia de sus datos, corregirlos ni quitar un campo de su ficha: eso sigue haciéndose a mano contra la base. También sigue en la lista, con su ticket, la purga de los registros rechazados a los 90 días, que no existe.
+
+Los textos publicados del aviso y de los términos no dependen de esta lista y siguen siendo verdad: la despublicación y el borrado se ejecutan a mano y a petición del titular, después de que el admin verifica la titularidad por WhatsApp; el titular sigue sin tener "un botón que lo haga solo".
 
 #### Scenario: el domicilio del responsable todavía no existe
 
@@ -358,7 +362,22 @@ Los datos que faltan no son lo único pendiente antes de retirar la marca de bor
 #### Scenario: los pendientes operativos también están declarados
 
 - **WHEN** la revisión legal o el checklist de lanzamiento revisan qué falta antes de retirar la marca de borrador
-- **THEN** encuentran, junto a la lista de placeholders y en el mismo módulo, la lista de pendientes operativos —el flujo ARCO en el panel y la purga de los rechazados a los 90 días—, cada uno con su ticket, y ninguno de ellos aparece publicado en las páginas legales
+- **THEN** encuentran, junto a la lista de placeholders y en el mismo módulo, la lista de pendientes operativos —el acceso y la rectificación en el panel y la purga de los rechazados a los 90 días—, cada uno con su ticket, y ninguno de ellos aparece publicado en las páginas legales
+
+#### Scenario: el pendiente ARCO quedó acotado, no retirado
+
+- **WHEN** la revisión legal busca en esa lista qué falta de los derechos ARCO
+- **THEN** lee que lo pendiente son el acceso y la rectificación —entregarle al negocio una copia de sus datos, corregirlos o quitar un campo de su ficha—, con la nota de que despublicar y borrar ya son acciones del panel, y ningún pendiente sigue diciendo que falta despublicar o borrar
+
+#### Scenario: la purga sigue pendiente
+
+- **WHEN** se revisa la misma lista
+- **THEN** sigue apareciendo la eliminación de los datos de los registros rechazados a los 90 días, con su ticket
+
+#### Scenario: el texto legal no cambia porque el panel estrene acciones
+
+- **WHEN** se comparan `/aviso-de-privacidad` y `/terminos` con el texto aprobado en esta spec después de que el panel estrena despublicar y borrar
+- **THEN** coinciden párrafo por párrafo: siguen diciendo que todo se atiende a mano y a petición, con confirmación en un máximo de 20 días hábiles
 
 ### Requirement: Las dos páginas legales son indexables y tienen metadata propia
 

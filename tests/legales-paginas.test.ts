@@ -71,7 +71,7 @@ Publicamos tu colonia, no tu domicilio exacto. Si tú escribes una dirección o 
 
 Esa dirección también alimenta el botón "Cómo llegar" de tu ficha: quien lo toca abre Google Maps en su teléfono, buscando lo que escribiste junto con tu colonia y "Tizayuca, Hidalgo".
 
-Si tu ficha llega a llevar una foto de tu negocio, esa foto es pública igual que lo demás. Hoy el formulario todavía no pide fotos; el día que las pida, aquí te decimos qué se puede publicar en ellas.
+Si subes una foto de tu negocio, esa foto es pública igual que lo demás. La foto es opcional y debe mostrar tu local, tus productos o tu trabajo: que no salgan personas que se puedan reconocer, porque este aviso cubre tus datos y no la imagen de otras personas. Si una foto no cumple, no la publicamos y te decimos por qué al revisar tu registro. Antes de guardarla la comprimimos y le quitamos los datos ocultos que trae el archivo —como la ubicación GPS de dónde se tomó—: eso no se publica ni se conserva.
 
 Buscadores como Google pueden encontrar tu ficha y mostrarla en sus resultados. Para eso está hecho el directorio.
 
@@ -511,13 +511,23 @@ describe("paginas-legales · qué queda público y qué no (E1-6 / hallazgo M3)"
     );
   });
 
-  // Scenario: la foto del negocio también es pública (enmienda MEDIO-2)
-  it("declara que la foto del negocio, si la ficha llega a llevarla, es pública", () => {
+  // Scenario: la foto del negocio también es pública (enmienda MEDIO-2,
+  // ampliada por T-008: el formulario ya pide fotos, así que el aviso trae la
+  // política completa en vez de prometerla)
+  it("declara que la foto del negocio es pública y con qué reglas", () => {
     expect(texto()).toContain(
-      "Si tu ficha llega a llevar una foto de tu negocio, esa foto es pública igual que lo demás.",
+      "Si subes una foto de tu negocio, esa foto es pública igual que lo demás.",
     );
-    // Y no promete que hoy se capturen: el formulario todavía no las pide.
-    expect(texto()).toContain("Hoy el formulario todavía no pide fotos");
+    // Qué se puede retratar y qué no (PRD §6.1).
+    expect(texto()).toContain("debe mostrar tu local, tus productos o tu trabajo");
+    expect(texto()).toContain("que no salgan personas que se puedan reconocer");
+    // Qué pasa si no cumple (PRD §6.3: lo resuelve la revisión).
+    expect(texto()).toContain("Si una foto no cumple, no la publicamos");
+    // Y qué hacemos con los metadatos, que es lo que de verdad protege al
+    // titular: la ubicación de la toma no se publica ni se guarda.
+    expect(texto()).toContain("la ubicación GPS de dónde se tomó");
+    // La promesa vieja ya no está: el formulario SÍ pide fotos.
+    expect(texto()).not.toContain("todavía no pide fotos");
   });
 
   it("avisa que los buscadores pueden indexar la ficha", () => {

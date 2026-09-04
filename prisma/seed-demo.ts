@@ -23,6 +23,7 @@ import { datosDeBusqueda } from "../src/lib/busqueda";
 import { almacenDeFotos, type AlmacenFotos } from "../src/lib/fotos/almacen";
 import { esClaveFotoValida, generarClaveFoto } from "../src/lib/fotos/clave";
 import { procesarFoto } from "../src/lib/fotos/procesar";
+import { VERSION_AVISO } from "../src/lib/legales/version";
 import type { EstadoNegocio } from "../src/lib/negocio";
 import {
   type EntornoScriptDb,
@@ -45,6 +46,12 @@ export type NegocioDemo = {
   publicadoEn?: string;
   /** Fecha del rechazo; solo tiene sentido con estado `rechazado`. */
   rechazadoEn?: string;
+  /**
+   * Cuándo entró a la cola. Por defecto, la fecha común de siembra; se
+   * sobreescribe cuando la historia del negocio lo pide (un reenvío reinicia
+   * este reloj, así que la ficha que trae reaceptación tiene la suya).
+   */
+  registradoEn?: string;
   /** Motivo que escribió el admin al rechazar (ficticio). */
   motivoRechazo?: string;
   queOfreces?: string;
@@ -68,6 +75,28 @@ export type NegocioDemo = {
    * foto…").
    */
   conFoto?: boolean;
+  /**
+   * Ficha anterior al versionado del aviso (change
+   * `versionar-aviso-privacidad`): su constancia se queda SIN versión, como
+   * las que existían antes de que hubiera una. Sirve para ver en el panel el
+   * caso "versión no registrada".
+   */
+  sinVersionDeAviso?: boolean;
+  /**
+   * Versión que quedó en la constancia, cuando NO es la vigente. Sirve para
+   * sembrar el caso de la reaceptación: hace falta una constancia de una
+   * versión anterior a la vigente para que un reenvío pueda haber aceptado
+   * una posterior.
+   */
+  versionDeLaConstancia?: string;
+  /**
+   * Reaceptación: cuándo un reenvío aceptó la versión vigente, siendo la de
+   * su constancia anterior. Solo tiene sentido junto con
+   * `versionDeLaConstancia`: la reaceptación se anota únicamente cuando la
+   * vigente es POSTERIOR a la de la constancia (iteración 2, hallazgos
+   * MEDIO-3 y MEDIO-4 de la etapa C).
+   */
+  reconsintioAvisoEn?: string;
 };
 
 /**
@@ -215,11 +244,18 @@ export const NEGOCIOS_DEMO: NegocioDemo[] = [
   },
   {
     // En revisión: no debe aparecer en /belleza ni tener ficha.
+    //
+    // Es también el caso "ficha anterior al versionado" del change
+    // `versionar-aviso-privacidad`: su constancia no tiene versión, así que el
+    // panel muestra "versión no registrada". Y NO lleva reaceptación: "no
+    // consta" no es comparable, así que un reenvío no le estrena evidencia
+    // (iteración 2, hallazgo MEDIO-4 de la etapa C).
     nombre: "Barbería El Buen Corte Imaginario",
     categoriaSlug: "belleza",
     coloniaSlug: "tizayuca-centro",
     whatsapp: "7719995011",
     estado: "en_revision",
+    sinVersionDeAviso: true,
     queOfreces: "Corte de caballero y barba (negocio de mentira, en revisión).",
     telefonoFijo: "7717775011",
     direccion: "Calle Imaginaria 45",
@@ -235,6 +271,16 @@ export const NEGOCIOS_DEMO: NegocioDemo[] = [
     whatsapp: "7719995012",
     estado: "rechazado",
     queOfreces: "Negocio de mentira rechazado por el admin.",
+    // Caso de la REACEPTACIÓN para el panel: se registró con una versión
+    // anterior del aviso, lo rechazaron, reenvió el 1 de agosto cuando ya
+    // estaba vigente la de hoy —ahí se anotó la reaceptación y se reinició el
+    // reloj de la cola— y lo volvieron a rechazar al día siguiente. La versión
+    // "0" es tan ficticia como el negocio: hace falta una constancia anterior
+    // a la vigente para que este caso exista, y la vigente es la primera que
+    // se publica.
+    versionDeLaConstancia: "0",
+    registradoEn: "2026-08-01T09:30:00.000Z",
+    reconsintioAvisoEn: "2026-08-01T09:30:00.000Z",
     rechazadoEn: "2026-08-02T11:00:00.000Z",
     motivoRechazo:
       "El número no contesta y no pudimos confirmar que el negocio exista (motivo ficticio).",
@@ -426,6 +472,20 @@ export async function sembrarNegociosDemo(
       // así que volver a sembrar limpia el rastro de un rechazo anterior.
       rechazadoEn: demo.rechazadoEn ? new Date(demo.rechazadoEn) : null,
       motivoRechazo: demo.motivoRechazo ?? null,
+      // Constancia del consentimiento (change `versionar-aviso-privacidad`):
+      // el par fecha + versión va JUNTO y en `datos`, para que también se
+      // rellene al volver a sembrar una base que se creó antes del versionado.
+      // La versión sale del módulo que la declara salvo en las dos fichas que
+      // sirven de caso al panel: una sin versión (anterior al versionado) y
+      // otra con una anterior, que es la que puede llevar reaceptación.
+      consintioAvisoEn: new Date("2026-07-31T10:00:00.000Z"),
+      consintioAvisoVersion: demo.sinVersionDeAviso
+        ? null
+        : (demo.versionDeLaConstancia ?? VERSION_AVISO),
+      reconsintioAvisoEn: demo.reconsintioAvisoEn
+        ? new Date(demo.reconsintioAvisoEn)
+        : null,
+      reconsintioAvisoVersion: demo.reconsintioAvisoEn ? VERSION_AVISO : null,
     };
 
     await prisma.negocio.upsert({
@@ -435,8 +495,7 @@ export async function sembrarNegociosDemo(
         ...datos,
         giros: girosAlCrear,
         whatsapp: demo.whatsapp,
-        consintioAvisoEn: new Date("2026-07-31T10:00:00.000Z"),
-        registradoEn: new Date("2026-07-31T10:00:00.000Z"),
+        registradoEn: new Date(demo.registradoEn ?? "2026-07-31T10:00:00.000Z"),
       },
     });
   }

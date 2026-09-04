@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { VERSION_AVISO } from "../src/lib/legales/version";
 import {
   EJEMPLOS_QUE_OFRECES,
   EJEMPLO_QUE_OFRECES_GENERICO,
@@ -7,6 +8,7 @@ import {
   ejemploQueOfreces,
 } from "../src/lib/registro/ejemplos";
 import {
+  CAMPO_VERSION_AVISO,
   COLONIA_OTRA_VALOR,
   LIMITES_LONGITUD,
   MENSAJES_ERROR_REGISTRO,
@@ -46,10 +48,15 @@ const ID_HACIENDAS = colonias.find((c) => c.slug === "haciendas-de-tizayuca")!.i
 function validar(
   parciales: Partial<typeof VALORES_VACIOS_REGISTRO>,
   consentimiento = true,
+  // La versión del aviso que declara el envío. Por defecto, la vigente: la
+  // que el formulario pinta en su campo oculto (change
+  // `versionar-aviso-privacidad`).
+  versionAvisoDeclarada: string = VERSION_AVISO,
 ) {
   return validarRegistro({
     campos: { ...VALORES_VACIOS_REGISTRO, ...parciales },
     consentimiento,
+    versionAvisoDeclarada,
     categorias,
     colonias,
   });
@@ -109,6 +116,37 @@ describe("validarRegistro · obligatorios", () => {
     expect(resultado.errores).toEqual({
       consentimiento: MENSAJES_ERROR_REGISTRO.consentimiento,
     });
+  });
+
+  // Change `versionar-aviso-privacidad` · Scenario: el aviso cambió a media
+  // captura / versión inventada en el envío
+  it.each(["", "0", "2", "  ", "no-es-una-version"])(
+    "con la versión del aviso %j no valida, y el mensaje va junto a la casilla",
+    (version) => {
+      const resultado = validar(OBLIGATORIOS, true, version);
+
+      expect(resultado.ok).toBe(false);
+      if (resultado.ok) return;
+      expect(resultado.errores).toEqual({
+        consentimiento: MENSAJES_ERROR_REGISTRO.avisoDesfasado,
+      });
+    },
+  );
+
+  it("el desfase de versión gana sobre el mensaje de marcar la casilla", () => {
+    // De nada sirve pedirle que marque la casilla si el texto que tenía
+    // enfrente ya no es el vigente: primero hay que releer.
+    const resultado = validar(OBLIGATORIOS, false, "0");
+
+    expect(resultado.ok).toBe(false);
+    if (resultado.ok) return;
+    expect(resultado.errores.consentimiento).toBe(
+      MENSAJES_ERROR_REGISTRO.avisoDesfasado,
+    );
+  });
+
+  it("con la versión vigente y la casilla marcada, valida", () => {
+    expect(validar(OBLIGATORIOS, true, VERSION_AVISO).ok).toBe(true);
   });
 
   it("recorta espacios de los textos antes de validar y guardar", () => {
@@ -427,6 +465,26 @@ describe("leerEnvioRegistro · lectura del FormData", () => {
   it("detecta el campo trampa del honeypot", () => {
     const envio = leerEnvioRegistro(formDataDe({ sitio_web: "http://spam.test" }));
     expect(envio.trampa).toBe("http://spam.test");
+  });
+
+  // Change `versionar-aviso-privacidad`: la versión con la que se pintó el
+  // formulario llega como un campo más y se lee sin interpretarla.
+  it("lee la versión del aviso que declara el envío, y vacía si no vino", () => {
+    expect(
+      leerEnvioRegistro(formDataDe({ [CAMPO_VERSION_AVISO]: VERSION_AVISO }))
+        .versionAvisoDeclarada,
+    ).toBe(VERSION_AVISO);
+    expect(leerEnvioRegistro(new FormData()).versionAvisoDeclarada).toBe("");
+    // Iteración 2 (BAJO-1 de la etapa C): lleva cota como cualquier otro
+    // campo, aplicada al leer.
+    expect(
+      leerEnvioRegistro(formDataDe({ [CAMPO_VERSION_AVISO]: "1".repeat(5000) }))
+        .versionAvisoDeclarada,
+    ).toHaveLength(LIMITES_LONGITUD.avisoVersion);
+    expect(
+      leerEnvioRegistro(formDataDe({ [CAMPO_VERSION_AVISO]: "99" }))
+        .versionAvisoDeclarada,
+    ).toBe("99");
   });
 
   // Etapa C, MEDIO 2: la constancia LFPDPPP no puede depender de que el campo

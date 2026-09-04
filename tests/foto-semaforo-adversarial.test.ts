@@ -22,6 +22,8 @@ import { procesarRegistro } from "../src/lib/registro/procesar";
 import { MENSAJES_ERROR_FOTO } from "../src/lib/registro/textos";
 import { crearClientePrueba } from "./db";
 import { archivoDeFormulario, bytesDeRelleno, jpegDePrueba } from "./fotos-fixtures";
+import { VERSION_AVISO } from "../src/lib/legales/version";
+import { CAMPO_VERSION_AVISO } from "../src/lib/registro/textos";
 
 /**
  * Suite adversarial de la ENMIENDA de la iteración 2 (techo de trabajo
@@ -58,6 +60,9 @@ function formulario(whatsapp: string, extra: Record<string, string | File> = {})
   datos.set("whatsapp", whatsapp);
   datos.set("coloniaId", String(coloniaId));
   datos.set("consentimiento", "on");
+  // Campo oculto con la versión del aviso que pintó el formulario
+  // (change `versionar-aviso-privacidad`): sin él, el envío se rechaza.
+  datos.set(CAMPO_VERSION_AVISO, VERSION_AVISO);
   for (const [clave, valor] of Object.entries(extra)) datos.set(clave, valor);
   return datos;
 }

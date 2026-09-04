@@ -25,6 +25,8 @@ import { MENSAJES_ERROR_FOTO, MENSAJES_ERROR_REGISTRO } from "../src/lib/registr
 import { peticion, reiniciarPeticion } from "./admin-mocks";
 import { crearClientePrueba } from "./db";
 import { archivoDeFormulario, jpegConExifYGps, jpegDePrueba } from "./fotos-fixtures";
+import { VERSION_AVISO } from "../src/lib/legales/version";
+import { CAMPO_VERSION_AVISO } from "../src/lib/registro/textos";
 
 /**
  * Suite adversarial de SEGURIDAD de la foto (etapa C del change
@@ -72,6 +74,9 @@ function formulario(
   datos.set("whatsapp", whatsapp);
   datos.set("coloniaId", String(coloniaId));
   datos.set("consentimiento", "on");
+  // Campo oculto con la versión del aviso que pintó el formulario
+  // (change `versionar-aviso-privacidad`): sin él, el envío se rechaza.
+  datos.set(CAMPO_VERSION_AVISO, VERSION_AVISO);
   for (const [clave, valor] of Object.entries(extra)) datos.set(clave, valor);
   return datos;
 }

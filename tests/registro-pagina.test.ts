@@ -14,6 +14,7 @@ import {
   ORDEN_CAMPOS_PARA_FOCO,
   primerCampoConError,
 } from "../src/components/registro/formulario-registro";
+import { VERSION_AVISO } from "../src/lib/legales/version";
 import { obtenerPrisma } from "../src/lib/prisma";
 import {
   MENSAJES_ERROR_REGISTRO,
@@ -21,6 +22,7 @@ import {
   TEXTO_AVISO_PRIVACIDAD,
   TEXTO_CONSENTIMIENTO,
   TEXTO_ENLACE_AVISO_INTEGRAL,
+  textoVersionAceptada,
 } from "../src/lib/registro/textos";
 import { VALORES_VACIOS_REGISTRO } from "../src/lib/registro/tipos";
 import { crearClientePrueba } from "./db";
@@ -186,6 +188,33 @@ describe("registro-negocio · consentimiento y aviso simplificado", () => {
     }
   });
 
+  // Scenario: la versión está a la vista antes de aceptar (change
+  // `versionar-aviso-privacidad`)
+  it("dice qué versión del aviso se está aceptando, antes de la casilla", () => {
+    const literal = `Estás aceptando la versión ${VERSION_AVISO} del aviso de privacidad.`;
+    expect(textoVersionAceptada(VERSION_AVISO)).toBe(literal);
+    expect(normalizado(htmlAviso)).toContain(literal);
+    expect(normalizado(htmlRegistro)).toContain(literal);
+    // Antes de la casilla, no después.
+    expect(htmlAviso.indexOf(literal)).toBeLessThan(htmlAviso.indexOf('id="consentimiento"'));
+    // Es la misma versión que muestra /aviso-de-privacidad y no está escrita
+    // a mano: sale del módulo que la declara.
+    expect(fuente("src/components/registro/aviso-consentimiento.tsx")).toContain(
+      "VERSION_AVISO",
+    );
+    expect(fuente("src/lib/registro/textos.ts")).not.toMatch(/versión\s+\d/i);
+  });
+
+  // Requirement "…la versión a la vista": es texto, no un campo que el dueño
+  // tenga que llenar o elegir.
+  it("la versión no le pide nada al dueño: no es un control del formulario", () => {
+    const bloque = htmlAviso.split('id="consentimiento"')[0];
+    expect(bloque).not.toMatch(/<select|<textarea/i);
+    for (const etiqueta of [...bloque.matchAll(/<input\b[^>]*>/g)].map((m) => m[0])) {
+      expect(etiqueta).toContain('type="hidden"');
+    }
+  });
+
   it("el checkbox del consentimiento es obligatorio y no viene marcado", () => {
     const checkbox = htmlRegistro.split('id="consentimiento"')[1].split(">")[0];
     expect(checkbox).toContain('required=""');
@@ -251,6 +280,41 @@ describe("registro-negocio · estado de error por campo", () => {
     expect(htmlConErrores.split('id="entregaADomicilio"')[1].split(">")[0]).toContain(
       'checked=""',
     );
+  });
+
+  // Scenario: el aviso cambió a media captura (change
+  // `versionar-aviso-privacidad`): el mensaje se pinta junto a la casilla, la
+  // casilla vuelve desmarcada y el aviso nuevo —con su versión— está a la
+  // vista, listo para releerse.
+  it("el desfase de versión se pinta junto a la casilla, con el aviso nuevo a la vista", () => {
+    const html = renderToStaticMarkup(
+      createElement(FormularioRegistro, {
+        categorias: [
+          { id: 2, nombre: "Servicios del hogar", slug: "servicios-del-hogar" },
+        ],
+        colonias: [
+          { id: 12, nombre: "Haciendas de Tizayuca", slug: "haciendas-de-tizayuca" },
+        ],
+        honeypot: null,
+        aviso: createElement(AvisoConsentimiento),
+        estadoInicial: {
+          errores: { consentimiento: MENSAJES_ERROR_REGISTRO.avisoDesfasado },
+          valores,
+        },
+      }),
+    );
+
+    expect(normalizado(html)).toContain(MENSAJES_ERROR_REGISTRO.avisoDesfasado);
+    expect(html).toContain('id="consentimiento-error"');
+    // El mensaje va DESPUÉS de la casilla en el DOM y asociado a ella.
+    const casilla = html.split('id="consentimiento"')[1].split(">")[0];
+    expect(casilla).toContain('aria-describedby="consentimiento-error"');
+    expect(casilla).not.toContain("checked");
+    // El aviso nuevo, con su versión y el campo oculto ya actualizado.
+    expect(normalizado(html)).toContain(textoVersionAceptada(VERSION_AVISO));
+    expect(html).toContain(`name="avisoVersion" value="${VERSION_AVISO}"`);
+    // Y lo capturado sigue ahí.
+    expect(html).toContain('value="Plomería Ficticia El Tubo Feliz"');
   });
 
   // Scenario: obligatorios vacíos (foco en el primero)
@@ -345,6 +409,27 @@ describe("registro-negocio · el registro funciona sin JavaScript de cliente", (
     const formulario = fuente("src/components/registro/formulario-registro.tsx");
     expect(formulario).toContain("<form action={accionFormulario}");
     expect(formulario).not.toMatch(/onSubmit|fetch\(|preventDefault/);
+  });
+
+  // Change `versionar-aviso-privacidad` (tasks.md #27): el campo oculto de la
+  // versión viaja en el HTML que pinta el servidor, así que un envío sin JS lo
+  // manda igual. Ni el módulo de la versión ni el bloque del aviso son
+  // Client Components.
+  it("el campo oculto de la versión viaja ya renderizado, sin JavaScript", () => {
+    expect(htmlRegistro).toContain(
+      `<input type="hidden" name="avisoVersion" value="${VERSION_AVISO}"/>`,
+    );
+    for (const ruta of [
+      "src/lib/legales/version.ts",
+      "src/components/registro/aviso-consentimiento.tsx",
+    ]) {
+      expect(fuente(ruta), ruta).not.toMatch(/["']use client["']/);
+    }
+    // Lo pinta el bloque del aviso (Server Component), no el formulario de
+    // cliente: así el valor no depende de que el JS haya cargado.
+    expect(fuente("src/components/registro/formulario-registro.tsx")).not.toContain(
+      "avisoVersion",
+    );
   });
 
   // Scenario: el ejemplo cambia al cambiar de categoría (sin borrar lo escrito)

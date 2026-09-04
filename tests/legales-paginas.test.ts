@@ -14,6 +14,7 @@ import {
   PLACEHOLDERS_LEGALES,
   TEXTO_MARCA_BORRADOR,
 } from "../src/lib/legales/textos";
+import { VERSION_AVISO } from "../src/lib/legales/version";
 
 // Spec: paginas-legales (change `agregar-paginas-legales`).
 //
@@ -30,7 +31,7 @@ Aviso de privacidad
 
 Ojo: este texto todavía es un borrador. Nos faltan los datos que ves entre corchetes y la revisión legal antes de que el directorio se lance.
 
-Última actualización: [FECHA DE PUBLICACIÓN]
+Versión ${VERSION_AVISO} · Última actualización: [FECHA DE PUBLICACIÓN]
 
 Este aviso explica, sin rodeos, qué datos nos das cuando registras tu negocio en NecesitoUno Tizayuca, para qué los usamos, qué queda público y cómo puedes pedirnos que los corrijamos o los borremos.
 
@@ -45,7 +46,7 @@ Para cualquier cosa relacionada con tus datos escríbenos al correo [CORREO ARCO
 Los que tú escribes en el formulario de registro:
 
 - Obligatorios: el nombre de tu negocio, la categoría, tu número de WhatsApp de 10 dígitos y tu colonia.
-- Opcionales: qué ofreces, si haces entregas o vas a domicilio, teléfono fijo, dirección o referencias, horario y el link de tu Facebook.
+- Opcionales: qué ofreces, si haces entregas o vas a domicilio, teléfono fijo, dirección o referencias, horario, el link de tu Facebook y, si la subes, una foto de tu negocio.
 
 No te pedimos CURP, RFC, credencial de elector ni datos bancarios. Si nos los mandas por WhatsApp, no los guardamos.
 
@@ -294,14 +295,38 @@ describe("paginas-legales · el texto publicado es el aprobado", () => {
 });
 
 describe("paginas-legales · el dueño abre el aviso de privacidad", () => {
-  // Scenario: el dueño abre el aviso de privacidad
-  it("encabeza con el h1 y la línea de última actualización con su fecha", () => {
+  // Scenario: el dueño abre el aviso de privacidad (MODIFIED por el change
+  // `versionar-aviso-privacidad`: la línea antepone "Versión N · ")
+  it("encabeza con el h1 y la línea de versión y última actualización con su fecha", () => {
     expect(lineasAviso[0]).toBe("Aviso de privacidad");
-    const actualizacion = lineasAviso.find((linea) =>
-      linea.startsWith("Última actualización: "),
-    );
+    const prefijo = `Versión ${VERSION_AVISO} · Última actualización: `;
+    const actualizacion = lineasAviso.find((linea) => linea.startsWith(prefijo));
     expect(actualizacion).toBeDefined();
-    expect(actualizacion?.slice("Última actualización: ".length)).not.toBe("");
+    expect(actualizacion?.slice(prefijo.length)).not.toBe("");
+    // Una sola línea de actualización, y ninguna suelta sin su versión.
+    expect(lineasAviso.filter((l) => l.includes("Última actualización: "))).toHaveLength(1);
+  });
+
+  // Scenario: la versión que se muestra es la vigente
+  it("la versión sale del literal del módulo, no escrita a mano en la página", () => {
+    for (const ruta of [
+      "src/app/aviso-de-privacidad/page.tsx",
+      "src/components/legales/documento-legal.tsx",
+    ]) {
+      expect(fuente(ruta), ruta).not.toMatch(/Versión\s+\d/);
+    }
+    expect(fuente("src/app/aviso-de-privacidad/page.tsx")).toContain("VERSION_AVISO");
+    expect(htmlAviso).toContain(`Versión ${VERSION_AVISO} · Última actualización:`);
+  });
+
+  // Requirement "Página del aviso…": la versión es del aviso, no de los
+  // términos (que hoy no se aceptan con casilla y quedan fuera del change).
+  it("/terminos conserva su línea de última actualización, sin versión", () => {
+    const actualizacion = lineasTerminos.find((linea) =>
+      linea.includes("Última actualización: "),
+    );
+    expect(actualizacion).toBe("Última actualización: [FECHA DE PUBLICACIÓN]");
+    expect(htmlTerminos).not.toMatch(/Versión\s+\d/);
   });
 
   // Scenario: el dueño abre el aviso de privacidad (dentro del layout global:
@@ -369,7 +394,7 @@ describe("paginas-legales · los seis elementos mínimos de la LFPDPPP (PRD §8)
       "Obligatorios: el nombre de tu negocio, la categoría, tu número de WhatsApp de 10 dígitos y tu colonia.",
     );
     expect(texto).toContain(
-      "Opcionales: qué ofreces, si haces entregas o vas a domicilio, teléfono fijo, dirección o referencias, horario y el link de tu Facebook.",
+      "Opcionales: qué ofreces, si haces entregas o vas a domicilio, teléfono fijo, dirección o referencias, horario, el link de tu Facebook y, si la subes, una foto de tu negocio.",
     );
     expect(texto).toContain("No te pedimos CURP, RFC, credencial de elector ni datos bancarios.");
   });

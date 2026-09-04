@@ -15,11 +15,13 @@ import {
   reiniciarLimitePorIp,
   tamanoLimitePorIp,
 } from "../src/lib/registro/limite-ip";
+import { VERSION_AVISO } from "../src/lib/legales/version";
 import {
   procesarRegistro,
   type ClienteRegistro,
 } from "../src/lib/registro/procesar";
 import {
+  CAMPO_VERSION_AVISO,
   COLONIA_OTRA_VALOR,
   LIMITES_LONGITUD,
   MENSAJES_ERROR_REGISTRO,
@@ -57,6 +59,9 @@ describe("adversarial · registro de negocios", () => {
       whatsapp: "7719992001",
       coloniaId: String(coloniaId),
       consentimiento: "on",
+      // Campo oculto con la versión del aviso que pintó el formulario
+      // (change `versionar-aviso-privacidad`): sin él, el envío se rechaza.
+      [CAMPO_VERSION_AVISO]: VERSION_AVISO,
       ...campos,
     };
     for (const [clave, valor] of Object.entries(base)) {
@@ -458,6 +463,103 @@ describe("adversarial · registro de negocios", () => {
       expect(await buscar(whatsapp)).toBeNull();
       reiniciarLimitePorIp();
     }
+  });
+
+  // ── 6b. La versión del aviso consentido (T-012) ───────────────────────────
+  //
+  // El campo oculto de la versión es entrada del cliente como cualquier otra:
+  // lo peor que puede conseguir quien lo manipule es que se le vuelva a pedir
+  // la casilla. Nunca puede sellar una constancia con la versión que él diga,
+  // ni saltarse el checkbox, ni pisar la constancia de una ficha ajena.
+  it("ninguna versión hostil consigue guardar una constancia con esa versión", async () => {
+    const hostiles = [
+      "0",
+      "99",
+      "1.0",
+      "1; DROP TABLE Negocio",
+      '<script>alert("v")</script>',
+      "1,1",
+      "1".repeat(500),
+      "١", // dígito uno en árabe-índigo: no es la cadena "1"
+    ];
+    let sufijo = 80;
+    for (const version of hostiles) {
+      const whatsapp = `77199920${sufijo}`;
+      sufijo += 1;
+      const resultado = await procesar(
+        envio({ whatsapp, [CAMPO_VERSION_AVISO]: version }),
+      );
+
+      expect(resultado.exito, `versión=${JSON.stringify(version)}`).toBe(false);
+      if (!resultado.exito) {
+        expect(resultado.estado.errores.consentimiento).toBe(
+          MENSAJES_ERROR_REGISTRO.avisoDesfasado,
+        );
+      }
+      expect(await buscar(whatsapp), `versión=${JSON.stringify(version)}`).toBeNull();
+      reiniciarLimitePorIp();
+    }
+    // Los espacios alrededor sí se toleran, como en cualquier otro campo del
+    // formulario (`leerEnvioRegistro` recorta): eso no permite sellar otra
+    // versión, solo evita que un espacio de más rechace un envío legítimo.
+    const conEspacios = await procesar(
+      envio({ whatsapp: "7719992099", [CAMPO_VERSION_AVISO]: `  ${VERSION_AVISO}  ` }),
+    );
+    expect(conEspacios.exito).toBe(true);
+    expect((await buscar("7719992099"))?.consintioAvisoVersion).toBe(VERSION_AVISO);
+
+    // Y ninguna de esas cadenas quedó guardada en ninguna ficha.
+    const versiones = await prisma.negocio.findMany({
+      where: { whatsapp: { startsWith: "771999" } },
+      select: { consintioAvisoVersion: true, reconsintioAvisoVersion: true },
+    });
+    for (const fila of versiones) {
+      expect([VERSION_AVISO, null]).toContain(fila.consintioAvisoVersion);
+      expect([VERSION_AVISO, null]).toContain(fila.reconsintioAvisoVersion);
+    }
+  });
+
+  it("mandar el campo de versión repetido no cuela la segunda copia", async () => {
+    // `FormData` admite claves repetidas; el servidor lee la primera. Aquí la
+    // primera es basura, así que el envío tiene que rebotar: no vale mandar
+    // una buena al final para que "gane".
+    const formData = envio({ whatsapp: "7719992090" });
+    formData.delete(CAMPO_VERSION_AVISO);
+    formData.append(CAMPO_VERSION_AVISO, "99");
+    formData.append(CAMPO_VERSION_AVISO, VERSION_AVISO);
+
+    const resultado = await procesar(formData);
+
+    expect(resultado.exito).toBe(false);
+    expect(await buscar("7719992090")).toBeNull();
+  });
+
+  it("una versión válida no exime de marcar la casilla", async () => {
+    const resultado = await procesar(
+      envio({ whatsapp: "7719992091", consentimiento: "" }),
+    );
+
+    expect(resultado.exito).toBe(false);
+    if (!resultado.exito) {
+      expect(resultado.estado.errores.consentimiento).toBe(
+        MENSAJES_ERROR_REGISTRO.consentimiento,
+      );
+    }
+    expect(await buscar("7719992091")).toBeNull();
+  });
+
+  it("el campo de versión no viaja de vuelta al formulario ni al log", async () => {
+    const avisos: string[] = [];
+    vi.spyOn(console, "warn").mockImplementation((...args) =>
+      avisos.push(args.join(" ")),
+    );
+
+    const resultado = await procesar(
+      envio({ whatsapp: "7719992092", [CAMPO_VERSION_AVISO]: "version-inventada-99" }),
+    );
+
+    expect(JSON.stringify(resultado)).not.toContain("version-inventada-99");
+    expect(avisos.join("\n")).not.toContain("version-inventada-99");
   });
 
   it("el checkbox marcado por el navegador (valor 'on') sí consiente", async () => {

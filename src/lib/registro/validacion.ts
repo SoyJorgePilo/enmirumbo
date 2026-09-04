@@ -9,9 +9,11 @@
  */
 
 import { LIMITE_BYTES_FOTO } from "@/lib/fotos/limites";
+import { VERSION_AVISO } from "@/lib/legales/version";
 import { normalizarWhatsapp } from "@/lib/whatsapp";
 
 import {
+  CAMPO_VERSION_AVISO,
   COLONIA_OTRA_VALOR,
   LIMITES_LONGITUD,
   MENSAJES_ERROR_FOTO,
@@ -30,6 +32,13 @@ export type EnvioRegistro = {
   campos: CamposFormularioRegistro;
   /** El checkbox del aviso de privacidad venía marcado. */
   consentimiento: boolean;
+  /**
+   * Versión del aviso con la que el formulario se pintó, tal como llegó
+   * (change `versionar-aviso-privacidad`). Cadena vacía si no vino. Solo
+   * sirve para detectar el desfase: la versión que se guarda es la del
+   * servidor.
+   */
+  versionAvisoDeclarada: string;
   /** Contenido del campo trampa (honeypot): vacío en un envío humano. */
   trampa: string;
   /**
@@ -49,6 +58,12 @@ export type ResultadoValidacion =
 export type EntradaValidacion = {
   campos: CamposFormularioRegistro;
   consentimiento: boolean;
+  /**
+   * Versión del aviso que declaró el envío. Se compara con la vigente del
+   * servidor; si no coinciden, el envío no se guarda (requirement "Nadie
+   * consiente una versión del aviso que no tuvo enfrente").
+   */
+  versionAvisoDeclarada: string;
   categorias: ReadonlyArray<{ id: number }>;
   colonias: ReadonlyArray<{ id: number }>;
   /**
@@ -127,6 +142,14 @@ export function leerEnvioRegistro(formData: FormData): EnvioRegistro {
       facebookUrl: texto(formData, "facebookUrl"),
     },
     consentimiento: casilla(formData, "consentimiento"),
+    // Cota como la de cualquier otro campo (hallazgo BAJO-1 de la etapa C):
+    // se recorta al leer, en el borde. Truncar no puede convertir una cadena
+    // hostil en la versión vigente —seguiría teniendo que ser igual carácter
+    // por carácter—, solo evita pasear un payload desproporcionado.
+    versionAvisoDeclarada: texto(formData, CAMPO_VERSION_AVISO).slice(
+      0,
+      LIMITES_LONGITUD.avisoVersion,
+    ),
     trampa: texto(formData, CAMPO_TRAMPA),
   };
 }
@@ -187,12 +210,20 @@ function recortar(campos: CamposFormularioRegistro): CamposFormularioRegistro {
 export function validarRegistro({
   campos: capturados,
   consentimiento,
+  versionAvisoDeclarada,
   categorias,
   colonias,
   foto = null,
 }: EntradaValidacion): ResultadoValidacion {
   const campos = recortar(capturados);
   const errores: ErroresFormularioRegistro = {};
+
+  // Nadie consiente una versión del aviso que no tuvo enfrente (requirement
+  // del mismo nombre): si el aviso estrenó versión entre que el formulario se
+  // pintó y llegó este envío —o si el dato no llegó— no se guarda nada y se
+  // pide releer. Esto se decide ANTES de tocar la base: es una comparación de
+  // dos cadenas, y de todos modos el envío no va a prosperar.
+  const avisoDesfasado = versionAvisoDeclarada !== VERSION_AVISO;
 
   // Tope de entrada del PRD §6.1. Se mira aquí, con el resto de los campos,
   // porque es comparar un número: no cuesta nada y evita que un archivo
@@ -256,7 +287,11 @@ export function validarRegistro({
     errores.coloniaId = MENSAJES_ERROR_REGISTRO.coloniaId;
   }
 
-  if (!consentimiento) {
+  // El desfase gana sobre "marca la casilla": de nada sirve pedirle que la
+  // marque si el texto que tenía enfrente ya no es el vigente.
+  if (avisoDesfasado) {
+    errores.consentimiento = MENSAJES_ERROR_REGISTRO.avisoDesfasado;
+  } else if (!consentimiento) {
     errores.consentimiento = MENSAJES_ERROR_REGISTRO.consentimiento;
   }
 

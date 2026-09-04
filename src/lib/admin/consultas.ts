@@ -61,6 +61,15 @@ export type RegistroAdminDetalle = {
   publicadoEn: Date | null;
   /** Constancia del consentimiento del aviso de privacidad (PRD §8). */
   consintioAvisoEn: Date;
+  /**
+   * Versión del aviso que se aceptó en esa constancia, o `null` si la ficha
+   * es anterior al versionado (change `versionar-aviso-privacidad`): el panel
+   * lo dice, no inventa una versión.
+   */
+  consintioAvisoVersion: string | null;
+  /** Reaceptación: cuándo y qué versión, si un reenvío aceptó otra distinta. */
+  reconsintioAvisoEn: Date | null;
+  reconsintioAvisoVersion: string | null;
   rechazadoEn: Date | null;
   motivoRechazo: string | null;
 };
@@ -94,6 +103,9 @@ type FilaDetalle = FilaCola & {
   origen: string;
   publicadoEn: Date | null;
   consintioAvisoEn: Date;
+  consintioAvisoVersion: string | null;
+  reconsintioAvisoEn: Date | null;
+  reconsintioAvisoVersion: string | null;
   rechazadoEn: Date | null;
   motivoRechazo: string | null;
   categoria: { nombre: string };
@@ -190,6 +202,9 @@ export async function obtenerRegistroParaPanel(
       origen: true,
       publicadoEn: true,
       consintioAvisoEn: true,
+      consintioAvisoVersion: true,
+      reconsintioAvisoEn: true,
+      reconsintioAvisoVersion: true,
       rechazadoEn: true,
       motivoRechazo: true,
     },
@@ -218,6 +233,9 @@ export async function obtenerRegistroParaPanel(
     registradoEn: fila.registradoEn,
     publicadoEn: fila.publicadoEn,
     consintioAvisoEn: fila.consintioAvisoEn,
+    consintioAvisoVersion: fila.consintioAvisoVersion,
+    reconsintioAvisoEn: fila.reconsintioAvisoEn,
+    reconsintioAvisoVersion: fila.reconsintioAvisoVersion,
     rechazadoEn: fila.rechazadoEn,
     motivoRechazo: fila.motivoRechazo,
   };

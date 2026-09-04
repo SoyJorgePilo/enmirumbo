@@ -1,9 +1,12 @@
 import Link from "next/link";
 
+import { VERSION_AVISO } from "@/lib/legales/version";
 import {
+  CAMPO_VERSION_AVISO,
   TEXTO_AVISO_PRIVACIDAD,
   TEXTO_CONSENTIMIENTO,
   TEXTO_ENLACE_AVISO_INTEGRAL,
+  textoVersionAceptada,
 } from "@/lib/registro/textos";
 
 /**
@@ -33,6 +36,24 @@ export function AvisoConsentimiento() {
       >
         {TEXTO_ENLACE_AVISO_INTEGRAL}
       </Link>
+      {/*
+        Qué versión del aviso se está aceptando (change
+        `versionar-aviso-privacidad`): es TEXTO, no un campo que el dueño
+        tenga que llenar o elegir. La versión sale del módulo que la declara,
+        la misma que muestra `/aviso-de-privacidad`.
+      */}
+      <p className="text-sm font-semibold text-tinta">
+        {textoVersionAceptada(VERSION_AVISO)}
+      </p>
+      {/*
+        La versión con la que se pintó este formulario, de vuelta al servidor
+        (design.md §3). Se usa SOLO para comparar: si el aviso estrenó versión
+        mientras el dueño llenaba, el envío no se guarda y se le pide releer.
+        La versión que se sella siempre es la del servidor, así que mandar
+        cualquier cosa aquí solo consigue que se vuelva a pedir la casilla.
+        Va renderizado en el servidor: viaja en el HTML y funciona sin JS.
+      */}
+      <input type="hidden" name={CAMPO_VERSION_AVISO} value={VERSION_AVISO} />
       <label
         htmlFor="consentimiento"
         className="flex min-h-11 cursor-pointer items-start gap-3 text-sm text-tinta"

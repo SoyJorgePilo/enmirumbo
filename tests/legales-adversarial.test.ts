@@ -153,13 +153,18 @@ describe("adversarial · la marca de borrador no se puede quitar por accidente",
   });
 
   it("la marca no depende de una prop que quien pinte pueda apagar", () => {
-    // `DocumentoLegalView` recibe solo el documento: no hay forma de pedirle
-    // "píntalo sin la advertencia" desde una página nueva.
+    // `DocumentoLegalView` solo recibe el documento y —desde el change
+    // `versionar-aviso-privacidad`— la versión del aviso, que es un dato que
+    // se PINTA, no un interruptor: no hay forma de pedirle "píntalo sin la
+    // advertencia" desde una página nueva. Si alguien agrega otra prop, este
+    // caso salta y hay que volver a justificarla aquí.
     const componente = readFileSync(
       join(raiz, "src/components/legales/documento-legal.tsx"),
       "utf8",
     );
-    expect(componente).toMatch(/\{\s*documento\s*\}\s*:\s*\{\s*documento:\s*DocumentoLegal/);
+    expect(componente).toMatch(
+      /\{\s*documento,\s*version,?\s*\}\s*:\s*\{\s*documento:\s*DocumentoLegal;\s*version\?:\s*string;?\s*\}/,
+    );
     expect(componente).not.toMatch(/borrador\s*\?\?|mostrarBorrador|ocultarBorrador/);
   });
 });
@@ -328,6 +333,12 @@ const NEGOCIO_PRUEBA = {
   token: "token-de-gestion-ficticio-legales-4d2e",
   registradoEn: new Date("2026-07-31T10:00:00.000Z"),
   consintioAvisoEn: new Date("2026-07-31T10:05:00.000Z"),
+  // Change `versionar-aviso-privacidad`: la versión aceptada y la
+  // reaceptación son datos internos del panel. Valores reconocibles a
+  // propósito, para poder buscarlos en el HTML servido.
+  consintioAvisoVersion: "version-legales-ficticia-3",
+  reconsintioAvisoEn: new Date("2026-08-09T10:00:00.000Z"),
+  reconsintioAvisoVersion: "reaceptacion-legales-ficticia-4",
 };
 
 describe("adversarial · lo que el aviso promete vs. lo que la ficha publica", () => {
@@ -361,6 +372,9 @@ describe("adversarial · lo que el aviso promete vs. lo que la ficha publica", (
         publicadoEn: new Date("2026-08-15T10:00:00.000Z"),
         registradoEn: NEGOCIO_PRUEBA.registradoEn,
         consintioAvisoEn: NEGOCIO_PRUEBA.consintioAvisoEn,
+        consintioAvisoVersion: NEGOCIO_PRUEBA.consintioAvisoVersion,
+        reconsintioAvisoEn: NEGOCIO_PRUEBA.reconsintioAvisoEn,
+        reconsintioAvisoVersion: NEGOCIO_PRUEBA.reconsintioAvisoVersion,
         // Fila deliberadamente sucia: rastro de un rechazo anterior y token de
         // gestión sobre una ficha ya publicada. El aviso promete que nada de
         // esto se ve; se comprueba en el peor caso, no en el limpio.
@@ -415,8 +429,16 @@ describe("adversarial · lo que el aviso promete vs. lo que la ficha publica", (
       NEGOCIO_PRUEBA.token,
       "2026-07-31",
       "2026-08-01",
+      "2026-08-09",
       "2026-08-15",
       "consintioAvisoEn",
+      // Change `versionar-aviso-privacidad`: la constancia completa (fecha,
+      // versión y reaceptación) es un dato interno del panel.
+      NEGOCIO_PRUEBA.consintioAvisoVersion,
+      NEGOCIO_PRUEBA.reconsintioAvisoVersion,
+      "consintioAvisoVersion",
+      "reconsintioAvisoEn",
+      "reconsintioAvisoVersion",
       "tokenGestion",
       "motivoRechazo",
       "registradoEn",

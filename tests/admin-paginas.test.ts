@@ -33,6 +33,7 @@ import {
   VARIABLE_URL_SITIO,
 } from "../src/lib/admin/config";
 import { NOMBRE_COOKIE_SESION, crearValorDeSesion } from "../src/lib/admin/sesion";
+import { VERSION_AVISO } from "../src/lib/legales/version";
 import {
   BOTON_APROBAR,
   BOTON_AVISAR_WHATSAPP,
@@ -383,6 +384,61 @@ describe("revision-admin · detalle del registro con sesión", () => {
     expect(html).toContain("Servicios del hogar");
     expect(html).toContain("Fecha de registro");
     expect(html).toContain("Consentimiento del aviso de privacidad");
+  });
+
+  // ── La versión del consentimiento (change versionar-aviso-privacidad) ─────
+
+  // Scenario: detalle completo (la constancia con su versión)
+  it("muestra la constancia como fecha y, entre paréntesis, la versión aceptada", async () => {
+    await prisma.negocio.update({
+      where: { id: idCompleto },
+      data: { consintioAvisoVersion: VERSION_AVISO },
+    });
+
+    const html = normalizado(await abrirDetalle(idCompleto));
+    expect(html).toContain("Consentimiento del aviso de privacidad");
+    expect(html).toMatch(
+      new RegExp(`2026[^<]*\\(versión ${VERSION_AVISO}\\)`),
+    );
+    expect(html).not.toContain("versión no registrada");
+    // Sin reaceptación, esa línea no aparece.
+    expect(html).not.toContain("El reenvío aceptó la versión");
+  });
+
+  // Scenario: registro anterior al versionado
+  it("una ficha sin versión registrada lo dice, en vez de inventar una", async () => {
+    // `idMinimo` se sembró sin versión: es una ficha anterior al versionado.
+    const html = normalizado(await abrirDetalle(idMinimo));
+    expect(html).toContain("Consentimiento del aviso de privacidad");
+    expect(html).toContain("(versión no registrada)");
+    expect(html).not.toMatch(/\(versión \d/);
+    expect(html).not.toContain("El reenvío aceptó la versión");
+  });
+
+  // Scenario: registro cuyo reenvío aceptó una versión posterior
+  //
+  // ITERACIÓN 2 (hallazgo MEDIO-4 de la etapa C): la etiqueta describe EL
+  // HECHO —un reenvío del formulario público aceptó la versión N— y ya no se
+  // lo atribuye al titular ("Aceptó…"), porque ese formulario es anónimo.
+  it("muestra la reaceptación aparte, atribuida al reenvío y no al titular", async () => {
+    await prisma.negocio.update({
+      where: { id: idCompleto },
+      data: {
+        consintioAvisoVersion: "0",
+        reconsintioAvisoEn: new Date("2026-09-20T11:30:00.000Z"),
+        reconsintioAvisoVersion: VERSION_AVISO,
+      },
+    });
+
+    const html = normalizado(await abrirDetalle(idCompleto));
+    // La constancia original, con su versión de siempre.
+    expect(html).toMatch(/2026[^<]*\(versión 0\)/);
+    // Y la reaceptación, con su etiqueta literal y la fecha del reenvío.
+    expect(html).toContain(`El reenvío aceptó la versión ${VERSION_AVISO} del aviso`);
+    expect(html).toMatch(/El reenvío aceptó la versión[^<]*<\/dt><dd[^>]*>[^<]*2026/);
+    // No se le atribuye al titular ni se afirma la dirección del cambio sin
+    // haberla comprobado.
+    expect(html).not.toContain("Aceptó una versión más nueva");
   });
 
   // Scenario: detalle de un registro con solo obligatorios

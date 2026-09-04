@@ -328,6 +328,16 @@ describe("revision-admin · toda ruta y toda acción del panel invocan la guarda
     "src/app/admin/[...resto]/page.tsx",
   ];
 
+  /**
+   * La ruta que sirve las fotos del panel también exige sesión, pero NO puede
+   * redirigir: la spec `revision-admin` pide que sin sesión responda "la misma
+   * respuesta de no encontrado que daría el sitio público" (una redirección al
+   * acceso sería una respuesta distinta y delataría la ruta). Por eso usa
+   * `haySesionAdmin()` en vez de `requerirSesionAdmin()`, y por eso se
+   * verifica aparte, abajo.
+   */
+  const GUARDA_SIN_REDIRECCION = ["src/app/admin/foto/[clave]/[variante]/route.ts"];
+
   function archivosDe(dir: string): string[] {
     return readdirSync(dir, { withFileTypes: true }).flatMap((entrada) => {
       const ruta = join(dir, entrada.name);
@@ -347,9 +357,30 @@ describe("revision-admin · toda ruta y toda acción del panel invocan la guarda
 
   it("cada archivo del panel llama a requerirSesionAdmin() antes de nada", () => {
     for (const ruta of archivos) {
-      if (EXCEPCIONES.includes(ruta)) continue;
+      if (EXCEPCIONES.includes(ruta) || GUARDA_SIN_REDIRECCION.includes(ruta)) continue;
       const codigo = readFileSync(join(raiz, ruta), "utf8");
       expect(codigo, ruta).toContain("await requerirSesionAdmin();");
+    }
+  });
+
+  // Spec `revision-admin`, scenario "la foto del registro en revisión no sale
+  // del panel" (change `agregar-foto-negocio`).
+  it("la ruta de fotos del panel exige sesión, pero responde 404 en vez de redirigir", () => {
+    for (const ruta of GUARDA_SIN_REDIRECCION) {
+      expect(archivos, "la excepción sigue existiendo").toContain(ruta);
+      const codigo = readFileSync(join(raiz, ruta), "utf8");
+      const cuerpo = codigo.slice(codigo.lastIndexOf("\nimport "));
+      expect(codigo, ruta).toContain("await haySesionAdmin()");
+      // Nada de redirigir: eso delataría que la ruta existe. Se mira el
+      // cuerpo, no los comentarios de arriba (que sí explican por qué).
+      expect(cuerpo, ruta).not.toContain("redirect(");
+      expect(cuerpo, ruta).not.toContain("requerirSesionAdmin(");
+      // La sesión se resuelve antes de pedir siquiera el cliente de la base.
+      expect(cuerpo.indexOf("await haySesionAdmin()")).toBeLessThan(
+        cuerpo.indexOf("obtenerPrisma()"),
+      );
+      // Y quien decide qué se sirve recibe explícitamente si hay sesión.
+      expect(codigo, ruta).toContain("conSesionAdmin");
     }
   });
 

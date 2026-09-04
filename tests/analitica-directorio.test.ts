@@ -4,7 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { seedCatalogos } from "../prisma/seed";
 import { sembrarNegociosDemo } from "../prisma/seed-demo";
-import ListadoCategoriaPage from "../src/app/(publico)/[categoria]/page";
+import ListadoCategoriaPage from "../src/app/(publico)/[destino]/page";
 import BuscarPage from "../src/app/(publico)/buscar/page";
 import FichaNegocioPage from "../src/app/(publico)/negocio/[ficha]/page";
 import { construirSegmentoFicha } from "../src/lib/ficha-url";
@@ -87,7 +87,7 @@ beforeAll(async () => {
 
   htmlListado = await render(
     ListadoCategoriaPage({
-      params: Promise.resolve({ categoria: "servicios-del-hogar" }),
+      params: Promise.resolve({ destino: "servicios-del-hogar" }),
       searchParams: Promise.resolve({}),
     }),
   );

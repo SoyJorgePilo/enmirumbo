@@ -17,8 +17,17 @@ export type TarjetaNegocioProps = {
   /** Slug de la colonia del catálogo; `null` si capturó "Otra" (→ `otra`). */
   coloniaSlug: string | null;
   entregaADomicilio: boolean;
-  /** `null` mientras no exista foto real (E1-3, fuera de este change). */
-  fotoUrl?: string | null;
+  /**
+   * Lo guardado en `Negocio.fotoClave`, tal cual: `MarcadorFoto` lo pasa por
+   * el validador de render antes de pintarlo (M1 de T-004).
+   */
+  fotoClave?: string | null;
+  /**
+   * Solo en `true` para la primera tarjeta visible del listado (spec
+   * `directorio-publico`, "El peso de las fotos no rompe el presupuesto de
+   * 4G": el resto carga diferido). Por defecto `false`.
+   */
+  prioridad?: boolean;
   /** Href ya armado hacia la ficha (`/negocio/<slug>-<id>`). */
   hrefFicha: string;
   /**
@@ -47,14 +56,20 @@ export function TarjetaNegocio({
   categoriaSlug,
   coloniaSlug,
   entregaADomicilio,
-  fotoUrl,
+  fotoClave,
+  prioridad = false,
   hrefFicha,
   hrefWhatsapp,
 }: TarjetaNegocioProps) {
   return (
     <article className="relative flex gap-4 rounded-xl border border-borde bg-fondo p-4">
       <div className="relative aspect-square w-20 shrink-0 overflow-hidden rounded-lg">
-        <MarcadorFoto fotoUrl={fotoUrl} />
+        <MarcadorFoto
+          fotoClave={fotoClave}
+          variante="tarjeta"
+          alt={`Foto de ${nombre}`}
+          prioridad={prioridad}
+        />
       </div>
 
       <div className="flex flex-1 flex-col gap-1.5">

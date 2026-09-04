@@ -158,7 +158,7 @@ export default async function BuscarPage({
       </h1>
       <Buscador valorInicial={consulta.enElCampo} />
       <ul className="flex flex-col gap-4">
-        {resultados.map((negocio) => (
+        {resultados.map((negocio, indice) => (
           <li key={negocio.id}>
             <TarjetaNegocio
               nombre={negocio.nombre}
@@ -166,7 +166,8 @@ export default async function BuscarPage({
               categoriaSlug={negocio.categoriaSlug}
               coloniaSlug={negocio.coloniaSlug}
               entregaADomicilio={negocio.entregaADomicilio}
-              fotoUrl={negocio.fotoUrl}
+              fotoClave={negocio.fotoClave}
+              prioridad={indice === 0}
               hrefFicha={`/negocio/${construirSegmentoFicha(negocio.nombre, negocio.id)}`}
               hrefWhatsapp={construirEnlaceWhatsapp(negocio.whatsapp)}
             />

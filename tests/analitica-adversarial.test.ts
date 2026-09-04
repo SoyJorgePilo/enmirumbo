@@ -5,7 +5,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { seedCatalogos } from "../prisma/seed";
-import ListadoCategoriaPage from "../src/app/(publico)/[categoria]/page";
+import ListadoCategoriaPage from "../src/app/(publico)/[destino]/page";
 import BuscarPage, {
   TITULO_BUSCAR,
   metadata as metadataBuscar,
@@ -274,7 +274,7 @@ describe("analitica adversarial · un valor hostil no puede romper la etiqueta",
     conMedicion();
     const html = await renderEnElTroncoPublico(
       ListadoCategoriaPage({
-        params: Promise.resolve({ categoria: "servicios-del-hogar" }),
+        params: Promise.resolve({ destino: "servicios-del-hogar" }),
         searchParams: Promise.resolve({}),
       }),
     );
@@ -321,7 +321,7 @@ describe("analitica adversarial · texto libre que YA parece un slug", () => {
         pagina === "listado"
           ? await render(
               ListadoCategoriaPage({
-                params: Promise.resolve({ categoria: "servicios-del-hogar" }),
+                params: Promise.resolve({ destino: "servicios-del-hogar" }),
                 searchParams: Promise.resolve({}),
               }),
             )
@@ -362,7 +362,7 @@ describe("analitica adversarial · texto libre que YA parece un slug", () => {
   it("un negocio sin publicar no aporta ni un atributo de medición", async () => {
     const listado = await render(
       ListadoCategoriaPage({
-        params: Promise.resolve({ categoria: "servicios-del-hogar" }),
+        params: Promise.resolve({ destino: "servicios-del-hogar" }),
         searchParams: Promise.resolve({}),
       }),
     );
@@ -395,7 +395,7 @@ describe("analitica adversarial · texto libre que YA parece un slug", () => {
         categoriaSlug: '"><script>alert(1)</script>',
         coloniaSlug: "  Colonia Ñ 😀  ",
         entregaADomicilio: false,
-        fotoUrl: null,
+        fotoClave: null,
         hrefFicha: "/negocio/x-1",
         hrefWhatsapp: "https://wa.me/5215500000000",
       }),
@@ -497,7 +497,18 @@ describe("analitica adversarial · el grupo (publico) es la frontera de la medic
         searchParams: Promise.resolve({}),
       }),
     );
-    expect([...html.matchAll(/<script\b/g)]).toHaveLength(0);
+    // Lo que la spec prohíbe sin configuración es el script HACIA UN DOMINIO
+    // EXTERNO ("el navegador no pide nada fuera del sitio"): cero `<script>`
+    // con `src`. La ficha sí trae un `<script type="application/ld+json">`
+    // desde el change `agregar-seo-local` —es el Schema.org que Google lee—:
+    // no carga nada, no ejecuta nada y no sale del sitio. Se fija aquí cuál es
+    // el único inline permitido, para que un `<script>` de verdad no se cuele
+    // aprovechando la excepción.
+    expect([...html.matchAll(/<script\b[^>]*\bsrc=/g)]).toHaveLength(0);
+    const inlines = [...html.matchAll(/<script\b[^>]*>/g)].map(([etiqueta]) => etiqueta);
+    for (const etiqueta of inlines) {
+      expect(etiqueta, etiqueta).toContain('type="application/ld+json"');
+    }
     expect(html).not.toContain("umami.is");
     expect(html).not.toContain("data-website-id");
   });

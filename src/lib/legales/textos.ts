@@ -206,9 +206,14 @@ export const AVISO_PRIVACIDAD: DocumentoLegal = {
         // Enmienda de la auditoría de seguridad (MEDIO-2): la enumeración
         // tiene que cuadrar con lo que la ficha sirve de verdad. La dirección
         // alimenta el botón "Cómo llegar" (`construirEnlaceComoLlegar` en
-        // `src/lib/enlaces.ts`), y `fotoUrl` ya viaja en la proyección pública
-        // (`src/lib/directorio.ts`) aunque el formulario todavía no capture
-        // fotos: T-008 tiene que volver aquí a escribir su política.
+        // `src/lib/enlaces.ts`).
+        //
+        // Enmienda de T-008 (`agregar-foto-negocio`, delta `paginas-legales`):
+        // el formulario YA pide fotos, así que aquí se escribe la política que
+        // este mismo aviso prometía —qué se puede retratar, qué no y qué pasa
+        // si no cumple (PRD §6.1 y §6.3)—, más lo que hacemos con los
+        // metadatos. Es el mismo texto de `TEXTO_POLITICA_FOTO`
+        // (`src/lib/registro/textos.ts`) contado desde el aviso.
         {
           tipo: "parrafo",
           texto:
@@ -217,7 +222,7 @@ export const AVISO_PRIVACIDAD: DocumentoLegal = {
         {
           tipo: "parrafo",
           texto:
-            "Si tu ficha llega a llevar una foto de tu negocio, esa foto es pública igual que lo demás. Hoy el formulario todavía no pide fotos; el día que las pida, aquí te decimos qué se puede publicar en ellas.",
+            "Si subes una foto de tu negocio, esa foto es pública igual que lo demás. La foto es opcional y debe mostrar tu local, tus productos o tu trabajo: que no salgan personas que se puedan reconocer, porque este aviso cubre tus datos y no la imagen de otras personas. Si una foto no cumple, no la publicamos y te decimos por qué al revisar tu registro. Antes de guardarla la comprimimos y le quitamos los datos ocultos que trae el archivo —como la ubicación GPS de dónde se tomó—: eso no se publica ni se conserva.",
         },
         {
           tipo: "parrafo",

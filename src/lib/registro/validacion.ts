@@ -8,11 +8,13 @@
  * panel (E3) y la edición (E8) la pueden reutilizar.
  */
 
+import { LIMITE_BYTES_FOTO } from "@/lib/fotos/limites";
 import { normalizarWhatsapp } from "@/lib/whatsapp";
 
 import {
   COLONIA_OTRA_VALOR,
   LIMITES_LONGITUD,
+  MENSAJES_ERROR_FOTO,
   MENSAJES_ERROR_REGISTRO,
   mensajeLimiteLongitud,
 } from "./textos";
@@ -23,13 +25,21 @@ import {
   type ErroresFormularioRegistro,
 } from "./tipos";
 
-/** Lo que llega en un envío del formulario, ya separado en sus tres partes. */
+/** Lo que llega en un envío del formulario, ya separado en sus partes. */
 export type EnvioRegistro = {
   campos: CamposFormularioRegistro;
   /** El checkbox del aviso de privacidad venía marcado. */
   consentimiento: boolean;
   /** Contenido del campo trampa (honeypot): vacío en un envío humano. */
   trampa: string;
+  /**
+   * La foto elegida, si la hay. Si el envío trae varios archivos en el mismo
+   * campo, es el PRIMERO con contenido: una ficha tiene una sola foto (spec
+   * `registro-negocio`, scenario "varios archivos en el mismo envío").
+   */
+  foto: File | null;
+  /** La casilla "Dejar mi ficha sin foto" venía marcada. */
+  quitarFoto: boolean;
 };
 
 export type ResultadoValidacion =
@@ -41,6 +51,13 @@ export type EntradaValidacion = {
   consentimiento: boolean;
   categorias: ReadonlyArray<{ id: number }>;
   colonias: ReadonlyArray<{ id: number }>;
+  /**
+   * La foto del envío, si la hay. Aquí solo se mira su TAMAÑO, que es
+   * comparar un número; si de verdad es una imagen se decide después, por
+   * contenido y solo cuando el envío ya pasó todas las demás defensas
+   * (`src/lib/fotos/procesar.ts`, design.md §5).
+   */
+  foto?: { size: number } | null;
 };
 
 /** Nombre del campo trampa; debe coincidir con `CampoHoneypot`. */
@@ -74,13 +91,28 @@ function casilla(formData: FormData, campo: string): boolean {
 }
 
 /**
+ * La foto del envío: el primer archivo con contenido del campo `foto`. Los
+ * demás se descartan (una ficha tiene una sola foto) y un campo de archivo
+ * vacío —que el navegador manda igual, con nombre y tamaño 0— cuenta como
+ * "no eligió foto".
+ */
+function primeraFoto(formData: FormData): File | null {
+  for (const valor of formData.getAll("foto")) {
+    if (valor instanceof File && valor.size > 0) return valor;
+  }
+  return null;
+}
+
+/**
  * Lee el envío sin interpretarlo: solo recorta espacios. Ningún campo del
  * ciclo de vida (`estado`, `origen`, `publicadoEn`, `tokenGestion`,
- * `consintioAvisoEn`) se lee aquí — si el cliente los manda, se ignoran por
- * construcción.
+ * `consintioAvisoEn`) se lee aquí — tampoco `fotoClave`, que la genera el
+ * servidor. Si el cliente los manda, se ignoran por construcción.
  */
 export function leerEnvioRegistro(formData: FormData): EnvioRegistro {
   return {
+    foto: primeraFoto(formData),
+    quitarFoto: casilla(formData, "quitarFoto"),
     campos: {
       nombre: texto(formData, "nombre"),
       categoriaId: texto(formData, "categoriaId"),
@@ -157,9 +189,17 @@ export function validarRegistro({
   consentimiento,
   categorias,
   colonias,
+  foto = null,
 }: EntradaValidacion): ResultadoValidacion {
   const campos = recortar(capturados);
   const errores: ErroresFormularioRegistro = {};
+
+  // Tope de entrada del PRD §6.1. Se mira aquí, con el resto de los campos,
+  // porque es comparar un número: no cuesta nada y evita que un archivo
+  // enorme llegue siquiera a `sharp`.
+  if (foto && foto.size > LIMITE_BYTES_FOTO) {
+    errores.foto = MENSAJES_ERROR_FOTO.demasiadoGrande;
+  }
 
   // Cotas de longitud de los campos de texto libre, todas con el mismo molde
   // de mensaje.

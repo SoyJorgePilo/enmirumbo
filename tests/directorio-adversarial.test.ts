@@ -9,7 +9,7 @@ import {
   motivoParaNoSembrar,
   sembrarNegociosDemo,
 } from "../prisma/seed-demo";
-import ListadoCategoriaPage from "../src/app/(publico)/[categoria]/page";
+import ListadoCategoriaPage from "../src/app/(publico)/[destino]/page";
 import FichaNegocioPage from "../src/app/(publico)/negocio/[ficha]/page";
 import Home from "../src/app/(publico)/page";
 import type { PrismaClient } from "../src/generated/prisma/client";
@@ -74,7 +74,10 @@ const normalizado = (html: string) => html.replace(/\s+/g, " ");
 
 async function renderListado(categoria: string, colonia?: unknown): Promise<string> {
   const elemento = await ListadoCategoriaPage({
-    params: Promise.resolve({ categoria }),
+    // El segmento dinámico de la raíz se llama `destino` desde el change
+    // `agregar-seo-local` (design.md §1): la MISMA carpeta resuelve categoría,
+    // giro y giro+colonia. La URL no cambió, solo el nombre del parámetro.
+    params: Promise.resolve({ destino: categoria }),
     // El tipo de `searchParams` promete strings; aquí se prueba a propósito lo
     // que un cliente hostil puede mandar de verdad (repetido, vacío, ausente).
     searchParams: Promise.resolve(
@@ -90,6 +93,26 @@ async function renderFicha(segmento: string): Promise<string> {
     searchParams: Promise.resolve({}),
   });
   return renderToStaticMarkup(createElement(() => elemento));
+}
+
+/**
+ * El HTML sin el bloque de datos estructurados de la ficha (change
+ * `agregar-seo-local`, spec `directorio-publico`: "El JSON-LD de la ficha NO
+ * cuenta como JavaScript de cliente: es un bloque de datos, no código
+ * ejecutable").
+ *
+ * Lo que estas pruebas vigilan es que NADA que escriba el negocio se
+ * convierta en marcado ejecutable, y el `<script type="application/ld+json">`
+ * es un bloque de datos con cada `<` escapado a `<`. Eso se prueba campo
+ * por campo (y con un nombre que trae `</script>` adentro) en
+ * `tests/seo-jsonld.test.ts`; aquí se descuenta para poder seguir exigiendo
+ * "ni un solo `<script>` más" en el resto de la respuesta.
+ */
+function sinDatosEstructurados(html: string): string {
+  return html.replace(
+    /<script type="application\/ld\+json">[\s\S]*?<\/script>/g,
+    "",
+  );
 }
 
 /** Digest del 404 de Next (`NEXT_HTTP_ERROR_FALLBACK;404`), o `null` si no hubo. */
@@ -284,7 +307,8 @@ describe("adversarial · XSS almacenado que llega desde el registro al render", 
   });
 
   it("el HTML servido no trae ninguna etiqueta ejecutable del negocio", () => {
-    for (const html of [listado, ficha]) {
+    for (const conDatos of [listado, ficha]) {
+      const html = sinDatosEstructurados(conDatos);
       expect(html).not.toMatch(/<script/i);
       expect(html).not.toMatch(/<iframe/i);
       expect(html).not.toMatch(/<img\s/i);
@@ -603,7 +627,7 @@ describe("adversarial · segmentos hostiles en la URL de la ficha", () => {
     const id = idPorWhatsapp[`${PREFIJO}105`];
     const html = await renderFicha(`<script>alert(1)</script>-marca-hostil-${id}`);
     expect(html).toContain("Ferreteria Repetida (ficticia)");
-    expect(html).not.toMatch(/<script/i);
+    expect(sinDatosEstructurados(html)).not.toMatch(/<script/i);
     expect(html).not.toContain("marca-hostil");
   });
 
@@ -889,6 +913,7 @@ describe("adversarial · el seed de demostración no puede llevar datos reales",
       expect(Object.keys(negocio)).not.toContain("latitud");
       expect(Object.keys(negocio)).not.toContain("longitud");
       expect(Object.keys(negocio)).not.toContain("fotoUrl");
+      expect(Object.keys(negocio)).not.toContain("fotoClave");
     }
   });
 

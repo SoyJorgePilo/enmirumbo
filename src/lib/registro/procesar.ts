@@ -13,13 +13,23 @@
  *      con una excepción: si esa ficha está `rechazado`, el envío no es un
  *      duplicado sino una corrección, y actualiza la ficha existente
  *      (design.md §6 del change `agregar-panel-admin`);
+ *   4.5 procesar y guardar la foto (change `agregar-foto-negocio`, design.md
+ *      §5): hasta aquí no se ha abierto ni un byte de imagen, así que un bot
+ *      —campo trampa, IP sin cupo— o un duplicado nunca cuestan CPU de
+ *      imagen ni dejan archivos;
  *   5. alta con estado, origen y constancia de consentimiento puestos aquí.
+ *
+ * La base es la que manda y el almacén es lo que se compensa: si la escritura
+ * no se concreta, la clave recién guardada se borra (nada de huérfanos).
  *
  * Ningún dato capturado (número, nombre, dirección) se escribe en el log:
  * solo eventos y conteos (design.md §7).
  */
 
 import { datosDeBusqueda } from "@/lib/busqueda";
+import { almacenDeFotos, type AlmacenFotos } from "@/lib/fotos/almacen";
+import { generarClaveFoto } from "@/lib/fotos/clave";
+import { procesarFoto } from "@/lib/fotos/procesar";
 import {
   ESTADO_NEGOCIO_DEFAULT,
   ESTADO_NEGOCIO_RECHAZADO,
@@ -27,8 +37,12 @@ import {
 } from "@/lib/negocio";
 
 import { ipBloqueada, registrarAlta } from "./limite-ip";
-import { MENSAJES_ERROR_REGISTRO } from "./textos";
-import type { EstadoAccionRegistro } from "./tipos";
+import {
+  AVISO_FOTO_NO_GUARDADA,
+  MENSAJES_ERROR_FOTO,
+  MENSAJES_ERROR_REGISTRO,
+} from "./textos";
+import type { ErroresFormularioRegistro, EstadoAccionRegistro } from "./tipos";
 import {
   leerEnvioRegistro,
   recortarParaEco,
@@ -42,8 +56,8 @@ export type ClienteRegistro = {
   negocio: {
     findUnique(args: {
       where: { whatsapp: string };
-      select: { id: true; estado: true };
-    }): Promise<{ id: string; estado: string } | null>;
+      select: { id: true; estado: true; fotoClave: true };
+    }): Promise<{ id: string; estado: string; fotoClave: string | null } | null>;
     create(args: { data: Record<string, unknown> }): Promise<unknown>;
     updateMany(args: {
       where: { id: string; estado: string };
@@ -61,6 +75,8 @@ export type ContextoRegistro = {
   ahora?: Date;
   /** Altas diarias a partir de las cuales se deja una alerta en el log. */
   umbralAltasDiarias?: number;
+  /** Dónde caen los archivos de la foto; se inyecta en pruebas (ADR-006). */
+  almacen?: AlmacenFotos;
 };
 
 export type ResultadoRegistro =
@@ -129,17 +145,43 @@ async function avisarSiHayDemasiadasAltas(
   }
 }
 
+/**
+ * Borra una clave sin dejar que el fallo del almacén tape el resultado que el
+ * dueño va a ver: si no se pudo limpiar, queda en el log y ya.
+ */
+async function limpiarClave(almacen: AlmacenFotos, clave: string | null): Promise<void> {
+  if (!clave) return;
+  try {
+    await almacen.borrar(clave);
+  } catch (error) {
+    console.error(
+      `[registro] quedó una foto sin dueño en el almacén: ${resumenDeError(error)}`,
+    );
+  }
+}
+
 export async function procesarRegistro(
   formData: FormData,
   contexto: ContextoRegistro,
 ): Promise<ResultadoRegistro> {
   const ahora = contexto.ahora ?? new Date();
-  const { campos, consentimiento, trampa } = leerEnvioRegistro(formData);
+  const almacen = contexto.almacen ?? almacenDeFotos();
+  const { campos, consentimiento, trampa, foto, quitarFoto } =
+    leerEnvioRegistro(formData);
   // Lo que vuelve al formulario va truncado a la cota de cada campo: nunca se
   // le devuelve al cliente un payload gigante que él mismo mandó (MEDIO 3).
-  const rechazo = (errores: EstadoAccionRegistro["errores"]): ResultadoRegistro => ({
+  //
+  // Y si el envío traía foto, se avisa que hay que volver a elegirla: ningún
+  // navegador repuebla un campo de archivo, y en el servidor no queda nada
+  // guardado de un envío rechazado (spec `registro-negocio`, scenario "hay que
+  // volver a elegir la foto"). El aviso no pisa un mensaje de la foto misma.
+  const rechazo = (errores: ErroresFormularioRegistro): ResultadoRegistro => ({
     exito: false,
-    estado: { errores, valores: recortarParaEco(campos) },
+    estado: {
+      errores:
+        foto && !errores.foto ? { ...errores, foto: AVISO_FOTO_NO_GUARDADA } : errores,
+      valores: recortarParaEco(campos),
+    },
   });
 
   // 1. Campo trampa: se finge el mismo éxito que un envío legítimo para no
@@ -168,7 +210,13 @@ export async function procesarRegistro(
     return rechazo({ general: MENSAJES_ERROR_REGISTRO.servidor });
   }
 
-  const validacion = validarRegistro({ campos, consentimiento, categorias, colonias });
+  const validacion = validarRegistro({
+    campos,
+    consentimiento,
+    categorias,
+    colonias,
+    foto,
+  });
   if (!validacion.ok) return rechazo(validacion.errores);
   const datos = validacion.datos;
 
@@ -180,11 +228,11 @@ export async function procesarRegistro(
   // 4. Una sola ficha por número (PRD §6.1), ya normalizado a 10 dígitos.
   //    Excepción: una ficha `rechazado` puede corregir y volver a enviar
   //    (PRD §6.3), y entonces se actualiza esa misma fila.
-  let existente: { id: string; estado: string } | null;
+  let existente: { id: string; estado: string; fotoClave: string | null } | null;
   try {
     existente = await contexto.prisma.negocio.findUnique({
       where: { whatsapp: datos.whatsapp },
-      select: { id: true, estado: true },
+      select: { id: true, estado: true, fotoClave: true },
     });
   } catch (error) {
     console.error(`[registro] falló la consulta de duplicado: ${resumenDeError(error)}`);
@@ -194,6 +242,46 @@ export async function procesarRegistro(
   if (existente && existente.estado !== ESTADO_NEGOCIO_RECHAZADO) {
     return rechazo({ whatsapp: MENSAJES_ERROR_REGISTRO.whatsappDuplicado });
   }
+
+  // 4.5 Procesar y guardar la foto (design.md §5). Recién aquí se abre la
+  //     imagen: el campo trampa, el cupo por IP, la validación de campos y el
+  //     duplicado ya quedaron atrás, así que ningún envío bloqueado por esas
+  //     defensas le cuesta al servidor un byte de procesamiento de imagen ni
+  //     deja un archivo. La clave la genera el servidor y es nueva cada vez.
+  let claveNueva: string | null = null;
+  if (foto) {
+    let procesada;
+    try {
+      procesada = await procesarFoto(Buffer.from(await foto.arrayBuffer()));
+    } catch (error) {
+      console.error(`[registro] no se pudo leer la foto del envío: ${resumenDeError(error)}`);
+      return rechazo({ foto: MENSAJES_ERROR_FOTO.errorProcesamiento });
+    }
+    if (!procesada.ok) {
+      return rechazo({ foto: MENSAJES_ERROR_FOTO[procesada.motivo] });
+    }
+
+    claveNueva = generarClaveFoto();
+    try {
+      await almacen.guardar(claveNueva, "tarjeta", procesada.variantes.tarjeta);
+      await almacen.guardar(claveNueva, "ficha", procesada.variantes.ficha);
+    } catch (error) {
+      console.error(`[registro] no se pudo guardar la foto: ${resumenDeError(error)}`);
+      // Puede haber quedado una de las dos variantes escrita: se limpia.
+      await limpiarClave(almacen, claveNueva);
+      return rechazo({ foto: MENSAJES_ERROR_FOTO.errorProcesamiento });
+    }
+  }
+
+  // Qué se escribe en la columna de la foto:
+  //   - hay archivo nuevo → la clave nueva (reemplaza a la anterior);
+  //   - casilla "Dejar mi ficha sin foto" marcada → `null`;
+  //   - ni una cosa ni la otra → la columna NO se toca.
+  // Elegir archivo gana sobre marcar la casilla: subir una foto es la acción
+  // deliberada, y así un descuido con la casilla no borra lo que se acaba de
+  // elegir. En un alta la distinción no importa (no hay foto anterior).
+  const cambiaFoto = claveNueva !== null || quitarFoto;
+  const columnaFoto = cambiaFoto ? { fotoClave: claveNueva } : {};
 
   if (existente) {
     // 4b. Reenvío tras un rechazo (design.md §6 de agregar-panel-admin).
@@ -236,6 +324,7 @@ export async function procesarRegistro(
           // del buscador se recalcula con ellos, o la ficha reenviada se
           // seguiría encontrando por el contenido del envío rechazado.
           ...datosDeBusqueda(datos.nombre, datos.queOfreces),
+          ...columnaFoto,
           registradoEn: ahora,
           estado: ESTADO_NEGOCIO_DEFAULT,
           rechazadoEn: null,
@@ -245,11 +334,25 @@ export async function procesarRegistro(
       afectadas = escritura.count;
     } catch (error) {
       console.error(`[registro] no se pudo guardar el reenvío: ${resumenDeError(error)}`);
+      await limpiarClave(almacen, claveNueva);
       return rechazo({ general: MENSAJES_ERROR_REGISTRO.servidor });
     }
 
     if (afectadas === 0) {
+      // El admin resolvió la ficha entre la consulta y la escritura: su foto
+      // anterior tiene que quedar intacta y la recién guardada, borrada. Por
+      // eso el borrado de la anterior va DESPUÉS de saber que la escritura
+      // afectó una fila, y nunca antes (design.md §5).
+      await limpiarClave(almacen, claveNueva);
       return rechazo({ whatsapp: MENSAJES_ERROR_REGISTRO.whatsappDuplicado });
+    }
+
+    // La foto anterior ya no está en ninguna ficha: sus archivos se borran de
+    // verdad, no solo se desvinculan (PRD §8; spec `registro-negocio`,
+    // requirement "El reenvío tras un rechazo permite cambiar o quitar la
+    // foto").
+    if (cambiaFoto && existente.fotoClave && existente.fotoClave !== claveNueva) {
+      await limpiarClave(almacen, existente.fotoClave);
     }
 
     await avisarSiHayDemasiadasAltas(contexto, ahora);
@@ -267,12 +370,19 @@ export async function procesarRegistro(
       data: {
         ...datos,
         ...datosDeBusqueda(datos.nombre, datos.queOfreces),
+        // La referencia de la foto la pone AQUÍ el servidor, igual que el
+        // estado, el origen y la constancia del consentimiento: `datos` nunca
+        // la trae, así que ningún campo del cliente puede fijarla.
+        fotoClave: claveNueva,
         consintioAvisoEn: ahora,
         estado: ESTADO_NEGOCIO_DEFAULT,
         origen: ORIGEN_NEGOCIO_DEFAULT,
       },
     });
   } catch (error) {
+    // El alta no se concretó: la foto recién escrita se borra (nada de
+    // huérfanos, spec `registro-negocio`).
+    await limpiarClave(almacen, claveNueva);
     // La verdad de la unicidad la sostiene la constraint: si dos envíos
     // simultáneos pasaron la consulta previa, el segundo llega aquí y ve el
     // mismo mensaje de siempre, no un error técnico (design.md §5).

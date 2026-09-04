@@ -6,7 +6,7 @@
 **Referencias PRD:** §6.2, §6.5, §7 Flujo B, §8 (rendimiento, publicar colonia y no domicilio exacto)
 **Depende de:** T-001 (modelo de datos), T-002 (layout base)
 **OpenSpec change:** `agregar-directorio-publico`
-**PR:** —
+**PR:** [#6](https://github.com/SoyJorgePilo/necesitouno/pull/6)
 
 ## Contexto
 

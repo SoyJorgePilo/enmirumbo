@@ -18,7 +18,14 @@
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 
 import { PrismaClient } from "../src/generated/prisma/client";
+import { datosDeBusqueda } from "../src/lib/busqueda";
 import type { EstadoNegocio } from "../src/lib/negocio";
+import {
+  type EntornoScriptDb,
+  apuntaABaseLocal,
+  esEntornoDeProduccion,
+  normalizarValorDeEntorno,
+} from "./guardas-entorno";
 
 export type NegocioDemo = {
   nombre: string;
@@ -38,6 +45,13 @@ export type NegocioDemo = {
   direccion?: string;
   horario?: string;
   facebookUrl?: string;
+  /**
+   * Slugs de giros del catálogo (`prisma/seed.ts`), como los asignaría el
+   * admin al aprobar. Mientras el panel (T-005) no exista, esta es la única
+   * forma de probar la búsqueda por giro (change `agregar-buscador`,
+   * design.md §3).
+   */
+  giros?: string[];
 };
 
 /**
@@ -48,6 +62,12 @@ export type NegocioDemo = {
  * Dos de "Servicios del hogar" comparten `publicadoEn` para dejar a la vista
  * el desempate por nombre. La categoría "Otro" se queda sin negocios para
  * poder ver el estado vacío del listado.
+ *
+ * Para el buscador (change `agregar-buscador`) además hay negocios con giros
+ * asignados, incluida la fonda: su giro "Fonda / comida corrida" no aparece
+ * ni en su nombre ni en su "¿Qué ofreces?", así que es el único que demuestra
+ * de verdad que se busca por giro (design.md §3). Y hay palabras clave con
+ * acentos ("Fútbol", "desparasitación") para probar la insensibilidad.
  */
 export const NEGOCIOS_DEMO: NegocioDemo[] = [
   {
@@ -63,6 +83,7 @@ export const NEGOCIOS_DEMO: NegocioDemo[] = [
     direccion: "A un lado de la primaria, calle Morelos",
     horario: "L-S 9am-7pm",
     facebookUrl: "https://www.facebook.com/plomeriaficticiatzy",
+    giros: ["plomeria"],
   },
   {
     nombre: "Electricidad Rápida JR (ficticio)",
@@ -93,6 +114,10 @@ export const NEGOCIOS_DEMO: NegocioDemo[] = [
     whatsapp: "7719995004",
     estado: "publicado",
     publicadoEn: "2026-08-05T10:00:00.000Z",
+    // Sigue siendo el negocio "solo con lo obligatorio" (sin "¿Qué ofreces?"),
+    // y por eso mismo es el fixture de la búsqueda por giro: "comida" no está
+    // en ninguno de sus textos, solo en el giro que le asignó el admin.
+    giros: ["fonda-comida-corrida"],
   },
   {
     nombre: "Estética Glamour de Mentiras",
@@ -111,13 +136,15 @@ export const NEGOCIOS_DEMO: NegocioDemo[] = [
     whatsapp: "7719995006",
     estado: "publicado",
     publicadoEn: "2026-08-07T10:00:00.000Z",
-    queOfreces: "Futbol infantil de 6 a 12 años, martes y jueves.",
+    // Con acento a propósito: quien busca "futbol" tiene que encontrarlo.
+    queOfreces: "Fútbol infantil de 6 a 12 años, martes y jueves.",
     telefonoFijo: "7717775006",
     direccion: "Cancha de la unidad deportiva (referencia inventada)",
     horario: "Ma-J 5pm-6:30pm",
     // A propósito NO es de Facebook: la ficha debe mostrar el dominio real
     // sin prometer Facebook (hallazgo M4 de T-003).
     facebookUrl: "https://halcones-ficticios.example.mx/perfil",
+    giros: ["futbol"],
   },
   {
     nombre: "Club de Natación Delfines de Mentiras",
@@ -128,6 +155,7 @@ export const NEGOCIOS_DEMO: NegocioDemo[] = [
     publicadoEn: "2026-08-08T10:00:00.000Z",
     queOfreces: "Natación para niños desde 4 años y para adultos.",
     horario: "Ma-J 5pm-8pm, S 9am-12pm",
+    giros: ["natacion"],
   },
   {
     nombre: "Abarrotes La Esperanza Inventada",
@@ -196,11 +224,7 @@ export type ResultadoSeedDemo = {
 };
 
 /** Lo único que el seed necesita saber del entorno (así se puede probar). */
-export type EntornoSeedDemo = {
-  NODE_ENV?: string;
-  VERCEL_ENV?: string;
-  /** A qué base apunta el comando (ADR-001: en dev, siempre SQLite local). */
-  DATABASE_URL?: string;
+export type EntornoSeedDemo = EntornoScriptDb & {
   /** Permiso explícito para sembrar una base que no es un archivo local. */
   SEED_DEMO_PERMITIR?: string;
 };
@@ -208,32 +232,13 @@ export type EntornoSeedDemo = {
 /** Variable con la que se asume el riesgo de sembrar una base no local. */
 export const VARIABLE_PERMISO_SEED_DEMO = "SEED_DEMO_PERMITIR";
 
-const normalizar = (valor?: string) => valor?.trim().toLowerCase() ?? "";
+const normalizar = normalizarValorDeEntorno;
 
-/**
- * Producción se detecta por entorno: el seed de demo mete datos falsos en la
- * base, así que ante la duda no corre. La comparación ignora mayúsculas y
- * espacios: `NODE_ENV=" Production "` es producción igual.
- */
-export function esEntornoDeProduccion(env: EntornoSeedDemo): boolean {
-  return (
-    normalizar(env.NODE_ENV) === "production" ||
-    normalizar(env.VERCEL_ENV) === "production"
-  );
-}
-
-/**
- * ¿La base a la que apunta el comando es un archivo SQLite local?
- *
- * ADR-001: en desarrollo la base siempre es `file:…`. Cualquier otra cosa
- * (`postgresql://`, `prisma://`, `libsql://`…) es una base remota, y una base
- * remota de este proyecto es, hoy por hoy, la de verdad. Sin `DATABASE_URL`
- * se usa el default local de `prisma7.config.ts`, así que se considera local.
- */
-export function apuntaABaseLocal(env: EntornoSeedDemo): boolean {
-  const url = normalizar(env.DATABASE_URL);
-  return url === "" || url.startsWith("file:");
-}
+// Cómo se reconoce un entorno peligroso vive en `./guardas-entorno`, que este
+// script comparte con `backfill-busqueda.ts` (iteración 2 del change
+// `agregar-buscador`, hallazgo B-1). La POLÍTICA sigue siendo de cada script:
+// aquí, producción no se abre ni con permiso.
+export { apuntaABaseLocal, esEntornoDeProduccion };
 
 /**
  * Razón por la que este comando NO debe sembrar, o `null` si puede.
@@ -296,12 +301,31 @@ export async function sembrarNegociosDemo(
       coloniaId = colonia.id;
     }
 
+    const slugsDeGiros = demo.giros ?? [];
+    for (const slug of slugsDeGiros) {
+      const giro = await prisma.giro.findUnique({ where: { slug } });
+      if (!giro) {
+        throw new Error(
+          `Falta el giro "${slug}" en el catálogo. Corre primero: npm run db:seed`,
+        );
+      }
+    }
+    // Al actualizar se usa `set` (reemplaza el vínculo entero), así el seed es
+    // idempotente también en los giros (design.md §3): una segunda corrida no
+    // deja giros repetidos ni giros viejos colgando. En el alta solo cabe
+    // `connect`, que sobre una fila nueva es lo mismo.
+    const girosAlCrear = { connect: slugsDeGiros.map((slug) => ({ slug })) };
+    const girosAlActualizar = { set: slugsDeGiros.map((slug) => ({ slug })) };
+
     const datos = {
       nombre: demo.nombre,
       categoriaId: categoria.id,
       coloniaId,
       coloniaOtra: demo.coloniaOtra ?? null,
       queOfreces: demo.queOfreces ?? null,
+      // Camino de escritura como cualquier otro: el texto del buscador lo
+      // calcula `datosDeBusqueda`, nunca se escribe a mano (design.md §1).
+      ...datosDeBusqueda(demo.nombre, demo.queOfreces),
       entregaADomicilio: demo.entregaADomicilio ?? false,
       telefonoFijo: demo.telefonoFijo ?? null,
       direccion: demo.direccion ?? null,
@@ -315,9 +339,10 @@ export async function sembrarNegociosDemo(
 
     await prisma.negocio.upsert({
       where: { whatsapp: demo.whatsapp },
-      update: datos,
+      update: { ...datos, giros: girosAlActualizar },
       create: {
         ...datos,
+        giros: girosAlCrear,
         whatsapp: demo.whatsapp,
         consintioAvisoEn: new Date("2026-07-31T10:00:00.000Z"),
         registradoEn: new Date("2026-07-31T10:00:00.000Z"),

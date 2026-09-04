@@ -7,6 +7,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { seedCatalogos } from "../prisma/seed";
 import { sembrarNegociosDemo } from "../prisma/seed-demo";
 import ListadoCategoriaPage from "../src/app/[categoria]/page";
+import BuscarPage from "../src/app/buscar/page";
 import { metadata } from "../src/app/layout";
 import FichaNegocioPage from "../src/app/negocio/[ficha]/page";
 import NotFoundPage from "../src/app/not-found";
@@ -72,6 +73,8 @@ let htmlHome = "";
 let htmlListado = "";
 let htmlListadoFiltrado = "";
 let htmlFicha = "";
+let htmlBuscar = "";
+let htmlBuscarVacio = "";
 let slugsCategorias: string[] = [];
 let idsPublicados: string[] = [];
 
@@ -118,6 +121,18 @@ beforeAll(async () => {
     searchParams: Promise.resolve({}),
   });
   htmlFicha = renderToStaticMarkup(createElement(() => ficha));
+
+  // Página de resultados (change `agregar-buscador`): sus enlaces y el
+  // destino de su buscador entran a la misma revisión.
+  const buscar = await BuscarPage({
+    searchParams: Promise.resolve({ q: "plomeria" }),
+  } as unknown as Parameters<typeof BuscarPage>[0]);
+  htmlBuscar = renderToStaticMarkup(createElement(() => buscar));
+
+  const buscarVacio = await BuscarPage({
+    searchParams: Promise.resolve({}),
+  } as unknown as Parameters<typeof BuscarPage>[0]);
+  htmlBuscarVacio = renderToStaticMarkup(createElement(() => buscarVacio));
 });
 
 afterAll(async () => {
@@ -137,11 +152,49 @@ afterAll(async () => {
  * - `tel:`: no abre pestaña (el celular cambia de app), así que no lleva
  *   `target` ni necesita `rel`.
  *
+ * MODIFIED por el change `agregar-buscador`: la misma regla aplica al destino
+ * de los formularios (el `action` del buscador). Un formulario que envía a
+ * una ruta que no existe es un control muerto igual que un enlace roto.
+ *
  * Devuelve la lista de problemas para poder probar que de verdad falla ante
  * un enlace inventado, no solo que hoy pasa.
  */
+
+/** ¿Esta ruta interna existe (estática, o dinámica con destino resuelto)? */
+function rutaInternaExiste(href: string): boolean {
+  const ruta = href.split("?")[0];
+  if (rutasExistentes.has(ruta)) return true;
+
+  const segmentos = ruta.split("/").slice(1);
+  if (segmentos.length === 1 && slugsCategorias.includes(segmentos[0])) return true;
+  return (
+    segmentos.length === 2 &&
+    segmentos[0] === "negocio" &&
+    idsPublicados.some((id) => segmentos[1].endsWith(id))
+  );
+}
+
 function problemasDeEnlaces(html: string): string[] {
   const problemas: string[] = [];
+
+  // Destino de los formularios (spec layout-base, scenario "destino del
+  // formulario de búsqueda").
+  for (const etiqueta of html.matchAll(/<form\s[^>]*>/g)) {
+    const form = etiqueta[0];
+    const action = form.match(/action="([^"]*)"/)?.[1];
+    if (action === undefined) {
+      problemas.push(`formulario sin action: ${form}`);
+      continue;
+    }
+    if (!action.startsWith("/")) {
+      problemas.push(`action que no es una ruta del sitio: ${action}`);
+      continue;
+    }
+    if (!rutaInternaExiste(action)) {
+      problemas.push(`action a una ruta inexistente: ${action}`);
+    }
+  }
+
   for (const etiqueta of html.matchAll(/<a\s[^>]*>/g)) {
     const anchor = etiqueta[0];
     const href = anchor.match(/href="([^"]*)"/)?.[1];
@@ -172,18 +225,7 @@ function problemasDeEnlaces(html: string): string[] {
       continue;
     }
 
-    const ruta = href.split("?")[0];
-    if (rutasExistentes.has(ruta)) continue;
-
-    const segmentos = ruta.split("/").slice(1);
-    if (segmentos.length === 1 && slugsCategorias.includes(segmentos[0])) continue;
-    if (
-      segmentos.length === 2 &&
-      segmentos[0] === "negocio" &&
-      idsPublicados.some((id) => segmentos[1].endsWith(id))
-    ) {
-      continue;
-    }
+    if (rutaInternaExiste(href)) continue;
 
     problemas.push(`href a una ruta inexistente: ${href}`);
   }
@@ -206,18 +248,22 @@ describe("layout-base · footer sin enlaces muertos (scenario 2)", () => {
   // layout-base (MODIFIED por agregar-formulario-registro) · Scenario: sin
   // enlaces muertos. La lista blanca ya no es la constante "/": son las rutas
   // que existen en `src/app`, más las dinámicas resueltas contra la base.
-  it("todo href literal del código de interfaz apunta a una ruta existente", () => {
-    const hrefs = fuentesTsx.flatMap((ruta) =>
-      [...readFileSync(ruta, "utf8").matchAll(/href="([^"]*)"/g)].map(
+  // MODIFIED por el change `agregar-buscador`: la misma regla cubre el
+  // `action` de los formularios, que es como el buscador sale de la home.
+  it("todo href y action literal del código de interfaz apunta a una ruta existente", () => {
+    const destinos = fuentesTsx.flatMap((ruta) =>
+      [...readFileSync(ruta, "utf8").matchAll(/(?:href|action)="([^"]*)"/g)].map(
         (m) => m[1],
       ),
     );
-    expect(hrefs.length).toBeGreaterThan(0);
+    expect(destinos.length).toBeGreaterThan(0);
     expect(rutasExistentes).toContain("/registro");
-    for (const href of hrefs) {
-      expect(rutasExistentes, `href a una ruta inexistente: ${href}`).toContain(
-        href,
-      );
+    expect(rutasExistentes).toContain("/buscar");
+    for (const destino of destinos) {
+      expect(
+        rutasExistentes,
+        `destino a una ruta inexistente: ${destino}`,
+      ).toContain(destino);
     }
   });
 });
@@ -233,6 +279,23 @@ describe("layout-base · enlaces internos y externos de las páginas servidas", 
     expect(problemasDeEnlaces(htmlFicha)).toEqual([]);
     expect(problemasDeEnlaces(html404)).toEqual([]);
     expect(problemasDeEnlaces(htmlFooter)).toEqual([]);
+    expect(problemasDeEnlaces(htmlBuscar)).toEqual([]);
+    expect(problemasDeEnlaces(htmlBuscarVacio)).toEqual([]);
+  });
+
+  // Scenario: destino del formulario de búsqueda (change `agregar-buscador`)
+  it("el buscador de la home y el de resultados envían a una ruta que existe", () => {
+    for (const [nombre, html] of [
+      ["home", htmlHome],
+      ["resultados", htmlBuscar],
+      ["consulta vacía", htmlBuscarVacio],
+    ] as const) {
+      const acciones = [...html.matchAll(/<form\s[^>]*>/g)].map(
+        (m) => m[0].match(/action="([^"]*)"/)?.[1],
+      );
+      expect(acciones, nombre).toEqual(["/buscar"]);
+      expect(rutasExistentes, nombre).toContain("/buscar");
+    }
   });
 
   // Scenario: enlaces externos protegidos
@@ -274,6 +337,20 @@ describe("layout-base · enlaces internos y externos de las páginas servidas", 
     // Y no se queja de lo que sí es correcto
     expect(problemasDeEnlaces('<a href="/servicios-del-hogar">x</a>')).toEqual([]);
     expect(problemasDeEnlaces('<a href="/registro">x</a>')).toEqual([]);
+  });
+
+  // Scenario: destino del formulario de búsqueda (la verificación falla si se
+  // cambia el `action` por una ruta inventada)
+  it("señala un formulario que envía a una ruta que no existe", () => {
+    expect(problemasDeEnlaces('<form action="/buscador" method="get"></form>')).toEqual([
+      "action a una ruta inexistente: /buscador",
+    ]);
+    expect(
+      problemasDeEnlaces('<form action="https://evil.example" method="get"></form>'),
+    ).toEqual(["action que no es una ruta del sitio: https://evil.example"]);
+    expect(problemasDeEnlaces('<form method="get"></form>')).toHaveLength(1);
+    // Y el destino de verdad no se queja.
+    expect(problemasDeEnlaces('<form action="/buscar" method="get"></form>')).toEqual([]);
   });
 });
 

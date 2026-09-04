@@ -12,6 +12,7 @@
  *    `registradoEn`, `consintioAvisoEn`, `tokenGestion` y las coordenadas.
  *    Lo que no se lee no se puede filtrar al HTML por accidente (PRD §8).
  */
+import { terminosDeBusqueda } from "@/lib/busqueda";
 import { ESTADO_NEGOCIO_PUBLICADO } from "@/lib/negocio";
 import { obtenerPrisma } from "@/lib/prisma";
 
@@ -142,6 +143,47 @@ export async function obtenerNegociosPublicados(
       estado: ESTADO_NEGOCIO_PUBLICADO,
       categoria: { slug: categoriaSlug },
       ...(coloniaSlug ? { colonia: { slug: coloniaSlug } } : {}),
+    },
+    orderBy: [{ publicadoEn: "desc" }, { nombre: "asc" }],
+    select: CAMPOS_LISTADO,
+  });
+  return filas.map(aListado);
+}
+
+/**
+ * Negocios publicados que coinciden con lo que escribió el vecino (change
+ * `agregar-buscador`, design.md §2 y §4; spec `directorio-publico`,
+ * requirements "La búsqueda cubre nombre, palabras clave y giros, y solo lo
+ * publicado" y "Coincidencia insensible a mayúsculas y acentos...").
+ *
+ * La consulta se acota y se trocea en raíces ANTES de llegar aquí
+ * (`terminosDeBusqueda`), así que lo que entra al `where` ya es `[a-z0-9]`:
+ * sin `%` ni `_`, que en un `LIKE` serían comodines y `contains` no escapa.
+ * Si no queda ningún término, se devuelve la lista vacía sin consultar nada.
+ *
+ * Se exigen TODOS los términos (`AND`), y cada uno puede coincidir en el
+ * nombre normalizado, en el "¿Qué ofreces?" normalizado o en el `slug` de
+ * alguno de sus giros —el del catálogo ya viene sin acentos, así que se
+ * compara directo (design.md §3)—. Sin ranking: el orden es el mismo del
+ * listado. El filtro de estado y la proyección de campos públicos son los del
+ * resto del módulo.
+ */
+export async function buscarNegociosPublicados(
+  consulta: string,
+): Promise<NegocioListado[]> {
+  const terminos = terminosDeBusqueda(consulta);
+  if (terminos.length === 0) return [];
+
+  const filas = await obtenerPrisma().negocio.findMany({
+    where: {
+      estado: ESTADO_NEGOCIO_PUBLICADO,
+      AND: terminos.map((termino) => ({
+        OR: [
+          { nombreNormalizado: { contains: termino } },
+          { queOfrecesNormalizado: { contains: termino } },
+          { giros: { some: { slug: { contains: termino } } } },
+        ],
+      })),
     },
     orderBy: [{ publicadoEn: "desc" }, { nombre: "asc" }],
     select: CAMPOS_LISTADO,

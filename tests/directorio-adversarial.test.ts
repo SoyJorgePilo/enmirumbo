@@ -665,8 +665,18 @@ describe("adversarial · el recorrido completo funciona sin JavaScript de client
       ),
     ];
     for (const html of paginas) {
-      expect(html).not.toMatch(/<form|<button|<input|<select|<textarea/i);
+      // MODIFIED por el change `agregar-buscador`: la home ya trae un
+      // formulario (el buscador), y eso NO es JavaScript de cliente. Lo que
+      // se prohíbe es el control que solo funciona con JS: un manejador de
+      // eventos, o un formulario sin destino resuelto por el servidor.
       expect(html).not.toMatch(/\son(click|change|submit|input)\s*=/i);
+      for (const form of [...html.matchAll(/<form\s[^>]*>/g)].map((m) => m[0])) {
+        expect(form).toMatch(/action="\/[^"]*"/);
+        expect(form).toMatch(/method="(get|post)"/i);
+      }
+      // Ningún control fuera de un formulario (un botón suelto necesitaría JS).
+      const sinFormularios = html.replace(/<form\s[^>]*>[\s\S]*?<\/form>/g, "");
+      expect(sinFormularios).not.toMatch(/<button|<input|<select|<textarea/i);
     }
   });
 

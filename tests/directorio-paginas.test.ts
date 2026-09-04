@@ -139,9 +139,23 @@ describe("directorio-publico · home con categorías y bloque de deporte", () =>
     expect(htmlHome).toContain('href="/servicios-del-hogar"');
   });
 
-  // Scenario: sin controles muertos en la home
-  it("no hay buscador ni ningún otro control sin destino", () => {
-    expect(htmlHome).not.toMatch(/<input|<form|<select|<button/);
+  // Scenario: sin controles muertos en la home (MODIFIED por el change
+  // `agregar-buscador`: la cláusula que prohibía mostrar un campo de búsqueda
+  // "mientras el buscador (E2-4) no exista" cae; lo que sigue prohibido es un
+  // control SIN destino).
+  it("todo control de la home lleva a algo: el único formulario va a /buscar", () => {
+    const formularios = [...htmlHome.matchAll(/<form\s[^>]*>/g)].map((m) => m[0]);
+    expect(formularios).toHaveLength(1);
+    expect(formularios[0]).toContain('action="/buscar"');
+    expect(formularios[0]).toContain('method="get"');
+
+    // Un solo campo (el de la búsqueda) y un solo botón (su envío): ni
+    // filtros, ni selects, ni botones que no manden a ningún lado.
+    expect(htmlHome.match(/<input\b/g)).toHaveLength(1);
+    expect(htmlHome).toContain('name="q"');
+    expect(htmlHome.match(/<button\b/g)).toHaveLength(1);
+    expect(htmlHome).toMatch(/<button type="submit"/);
+    expect(htmlHome).not.toMatch(/<select|<textarea/);
   });
 
   // Scenario: el bloque de deporte se ve al mismo nivel que las categorías
@@ -539,11 +553,21 @@ describe("directorio-publico · Server Components sin JS de cliente", () => {
       "utf8",
     );
     const listado = readFileSync(join(raiz, "src/app/[categoria]/page.tsx"), "utf8");
-    const home = readFileSync(join(raiz, "src/app/page.tsx"), "utf8");
+    // La grilla de categorías salió de la home a su propio componente (change
+    // `agregar-buscador`) para que `/buscar` ofrezca los MISMOS ocho botones.
+    const categorias = readFileSync(
+      join(raiz, "src/components/directorio/categorias-grid.tsx"),
+      "utf8",
+    );
+    const buscador = readFileSync(
+      join(raiz, "src/components/directorio/buscador.tsx"),
+      "utf8",
+    );
     const botones = readFileSync(join(raiz, "src/lib/estilos-boton.ts"), "utf8");
     expect(botones).toMatch(/\bmin-h-11\b/g);
     expect(listado).toMatch(/\bmin-h-11\b/);
-    expect(home).toMatch(/\bmin-h-16\b/); // botones grandes de categoría
+    expect(categorias).toMatch(/\bmin-h-16\b/); // botones grandes de categoría
+    expect(buscador).toMatch(/\bmin-h-11\b/); // campo de búsqueda
     expect(tarjeta).toContain("CLASE_BOTON_PRIMARIO");
   });
 });

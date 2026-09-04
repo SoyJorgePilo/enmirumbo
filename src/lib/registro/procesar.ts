@@ -16,6 +16,7 @@
  * solo eventos y conteos (design.md §7).
  */
 
+import { datosDeBusqueda } from "@/lib/busqueda";
 import { ESTADO_NEGOCIO_DEFAULT, ORIGEN_NEGOCIO_DEFAULT } from "@/lib/negocio";
 
 import { ipBloqueada, registrarAlta } from "./limite-ip";
@@ -175,12 +176,17 @@ export async function procesarRegistro(
     return rechazo({ general: MENSAJES_ERROR_REGISTRO.servidor });
   }
 
-  // 5. Alta. El estado, el origen y la constancia del consentimiento los fija
-  //    el servidor: nada de esto puede venir del cliente.
+  // 5. Alta. El estado, el origen, la constancia del consentimiento y el
+  //    texto normalizado del buscador los fija el servidor: nada de esto
+  //    puede venir del cliente. `datos` solo trae los campos que
+  //    `validarRegistro` construyó uno por uno, así que un envío con
+  //    `nombreNormalizado=...` no llega hasta aquí (spec registro-negocio,
+  //    "El alta deja la ficha lista para el buscador").
   try {
     await contexto.prisma.negocio.create({
       data: {
         ...datos,
+        ...datosDeBusqueda(datos.nombre, datos.queOfreces),
         consintioAvisoEn: ahora,
         estado: ESTADO_NEGOCIO_DEFAULT,
         origen: ORIGEN_NEGOCIO_DEFAULT,

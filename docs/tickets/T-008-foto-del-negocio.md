@@ -1,11 +1,11 @@
 # T-008 · Habilitar la foto del negocio en el registro y el directorio
 
-**Estado:** pendiente
+**Estado:** en-desarrollo
 **Prioridad:** P0
 **Épica:** E1-3 (docs/backlog.md)
 **Referencias PRD:** §6.1 (política de foto), §6.2 (tarjetas y ficha con foto), §6.3 (el admin rechaza fotos que no cumplan)
 **Depende de:** T-003 (formulario), T-004 (directorio), T-005 (el admin revisa la foto en el panel)
-**OpenSpec change:** —
+**OpenSpec change:** `agregar-foto-negocio`
 **PR:** —
 
 ## Contexto

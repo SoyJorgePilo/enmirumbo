@@ -6,7 +6,7 @@
 **Referencias PRD:** §8 (LFPDPPP 2025, elementos mínimos del aviso), §6.3 (reglas de moderación → términos), §6.1 (checkbox con link al integral)
 **Depende de:** T-002 (footer), T-003 (formulario)
 **OpenSpec change:** `agregar-paginas-legales`
-**PR:** —
+**PR:** [#9](https://github.com/SoyJorgePilo/necesitouno/pull/9)
 
 ## Contexto
 

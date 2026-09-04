@@ -2,6 +2,7 @@ import Image from "next/image";
 
 import type { VarianteFoto } from "@/lib/fotos/clave";
 import { urlDeFoto, type AmbitoFoto } from "@/lib/fotos/url";
+import { iconoDeCategoria } from "@/lib/ui/iconos-categorias";
 
 type MarcadorFotoProps = {
   /**
@@ -19,6 +20,13 @@ type MarcadorFotoProps = {
    * grande para pintar una tarjeta (presupuesto de 4G del PRD §8).
    */
   variante: VarianteFoto;
+  /**
+   * Slug de la categoría DEL NEGOCIO, para elegir el emoji del marcador cuando
+   * no hay foto (enmienda aprobada por el fundador, revisión visual lote 2).
+   * Opcional: quien solo pinta fotos reales —el panel— no tiene que pasarlo, y
+   * un slug que el mapa no conozca cae en el emoji genérico.
+   */
+  categoriaSlug?: string;
   /** `panel` solo dentro de `/admin` (ver `src/lib/fotos/url.ts`). */
   ambito?: AmbitoFoto;
   /**
@@ -39,9 +47,14 @@ type MarcadorFotoProps = {
 
 /**
  * Foto del negocio o, cuando no tiene (o cuando lo guardado no es una clave
- * del servidor), un marcador de posición neutro: ni promete una imagen ni
- * transmite información — por eso `alt=""` en ese caso (decorativo, el nombre
- * del negocio ya está en el texto de al lado). Server Component.
+ * del servidor), un marcador de posición con el EMOJI DE SU CATEGORÍA sobre el
+ * fondo de superficie (enmienda aprobada por el fundador, revisión visual lote
+ * 2: el cuadro gris con el icono de "imagen rota" parecía una foto que no
+ * cargó). Sigue sin prometer una imagen y sigue sin transmitir información al
+ * lector de pantalla: el bloque entero va `aria-hidden`, porque el nombre del
+ * negocio y su categoría ya están en el texto de al lado. Es el mismo emoji de
+ * los botones de categoría de la home (`src/lib/ui/iconos-categorias.ts`):
+ * cero bytes descargados, cero dependencias. Server Component.
  *
  * `unoptimized`: las variantes ya salen del servidor en su tamaño final y en
  * WebP (`src/lib/fotos/procesar.ts`), así que el optimizador de Next no tiene
@@ -60,6 +73,7 @@ type MarcadorFotoProps = {
 export function MarcadorFoto({
   fotoClave,
   variante,
+  categoriaSlug = "",
   ambito = "publico",
   alt = "",
   prioridad = false,
@@ -86,17 +100,9 @@ export function MarcadorFoto({
       aria-hidden="true"
       className={`flex h-full w-full items-center justify-center bg-superficie ${className}`}
     >
-      <svg
-        viewBox="0 0 24 24"
-        className="h-1/3 w-1/3 text-tinta-suave"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={1.5}
-      >
-        <rect x="3" y="5" width="18" height="14" rx="2" />
-        <circle cx="8.5" cy="10" r="1.5" />
-        <path d="M21 16l-5.5-5.5a1.5 1.5 0 0 0-2 0L4 19" />
-      </svg>
+      <span className="text-3xl leading-none">
+        {iconoDeCategoria(categoriaSlug)}
+      </span>
     </div>
   );
 }

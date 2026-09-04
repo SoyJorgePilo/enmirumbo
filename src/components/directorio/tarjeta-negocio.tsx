@@ -63,16 +63,26 @@ export function TarjetaNegocio({
 }: TarjetaNegocioProps) {
   return (
     <article className="relative flex gap-4 rounded-xl border border-borde bg-fondo p-4">
-      <div className="relative aspect-square w-20 shrink-0 overflow-hidden rounded-lg">
+      {/* `self-start`: sin él, el `align-items: stretch` del `<article>` flex
+          estira este contenedor a lo alto de la columna de texto y el
+          "cuadrado" de la foto deja de serlo (a 390px, con el nombre en dos
+          renglones, medía 80×165). Con `self-start` el hueco conserva su
+          proporción, que es justamente lo que reserva el espacio y evita el
+          salto de maquetación. */}
+      <div className="relative aspect-square w-20 shrink-0 self-start overflow-hidden rounded-lg">
         <MarcadorFoto
           fotoClave={fotoClave}
+          categoriaSlug={categoriaSlug}
           variante="tarjeta"
           alt={`Foto de ${nombre}`}
           prioridad={prioridad}
         />
       </div>
 
-      <div className="flex flex-1 flex-col gap-1.5">
+      {/* `min-w-0`: un hijo flex no baja de su ancho mínimo de contenido salvo
+          que se le diga; sin esto, un nombre larguísimo de una sola palabra
+          empujaba la tarjeta más allá de la pantalla. */}
+      <div className="flex min-w-0 flex-1 flex-col gap-1.5">
         {/* `break-words`: el nombre y la colonia los escribe el negocio y
             pueden traer una palabra larguísima; a 390px no puede sacar la
             tarjeta de la pantalla. */}

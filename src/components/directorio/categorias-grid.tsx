@@ -23,12 +23,19 @@ export type CategoriasGridProps = {
 
 export function CategoriasGrid({ categorias }: CategoriasGridProps) {
   return (
-    <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+    /*
+     * Colapso 1 → 2 → 3 (enmienda aprobada por el fundador, revisión visual
+     * lote 2): dos columnas eran el PISO, así que en un celular angosto
+     * ("Clubes y escuelas deportivas" en 140px) el nombre se partía en tres
+     * renglones. Ahora arranca en una sola columna, pasa a dos en cuanto el
+     * viewport da 352px y llega a tres de `sm` para arriba.
+     */
+    <ul className="grid grid-cols-1 gap-3 min-[22rem]:grid-cols-2 sm:grid-cols-3">
       {categorias.map((categoria) => (
         <li key={categoria.slug}>
           <Link
             href={`/${categoria.slug}`}
-            className="flex min-h-16 flex-col items-center justify-center gap-1 rounded-xl border border-borde bg-superficie px-3 py-4 text-center text-sm font-semibold text-tinta transition-colors hover:bg-borde"
+            className="flex h-full min-h-16 flex-col items-center justify-center gap-1 rounded-xl border border-borde bg-superficie px-3 py-4 text-center text-sm font-semibold text-tinta transition-colors hover:bg-borde"
           >
             <span aria-hidden="true" className="text-2xl leading-none">
               {iconoDeCategoria(categoria.slug)}

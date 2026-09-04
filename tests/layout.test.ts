@@ -820,6 +820,34 @@ describe("layout-base · contraste AA de los tokens (scenario 8)", () => {
     },
   );
 
+  // Scenario: contorno del botón secundario (enmienda aprobada por el
+  // fundador, revisión visual lote 2 · decisión B1 del paquete visual): el
+  // botón secundario es un control, no un adorno, así que su borde sube al
+  // token de controles (≥3:1) — y sigue sin usar el verde de acción, para no
+  // competir con el botón principal.
+  it("el botón secundario usa el borde de controles y no el decorativo", () => {
+    const botones = readFileSync(join(raiz, "src/lib/estilos-boton.ts"), "utf8");
+    const secundario = botones
+      .split("CLASE_BOTON_SECUNDARIO")[1]
+      .split(";")[0];
+    expect(secundario).toMatch(/\bborder-borde-control\b/);
+    expect(secundario).not.toMatch(/\bborder-borde\b(?!-)/);
+    expect(ratio(tokens["borde-control"], tokens["fondo"])).toBeGreaterThanOrEqual(3);
+  });
+
+  it("el secundario no compite con el primario: sin verde en ningún papel", () => {
+    const botones = readFileSync(join(raiz, "src/lib/estilos-boton.ts"), "utf8");
+    const secundario = botones.split("CLASE_BOTON_SECUNDARIO")[1].split(";")[0];
+    const primario = botones.split("CLASE_BOTON_PRIMARIO")[1].split(";")[0];
+    // El relleno verde es del primario, y de nadie más.
+    expect(primario).toMatch(/\bbg-accion\b/);
+    expect(secundario).not.toMatch(/\bbg-accion\b/);
+    expect(secundario).not.toMatch(/\btext-accion\b/);
+    expect(secundario).not.toMatch(/\bborder-accion\b/);
+    // El único verde que le queda es el aro de foco, igual que en el primario.
+    expect(secundario).toMatch(/\bfocus:ring-accion-fuerte\b/);
+  });
+
   it("el verde marca como texto NO cumple AA — la razón de los dos tokens sigue vigente", () => {
     expect(ratio(tokens["accion"], tokens["fondo"])).toBeLessThan(4.5);
   });

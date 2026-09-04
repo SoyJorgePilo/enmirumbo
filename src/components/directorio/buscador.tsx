@@ -13,6 +13,12 @@
  * A propósito NO agrega ningún encabezado (`h1`-`h6`) propio: quien lo monta
  * decide su título. La etiqueta del campo es un `<label>` visible, no un
  * encabezado.
+ *
+ * APILADO en celular, en fila cuando hay espacio (enmienda aprobada por el
+ * fundador, revisión visual lote 2): a 390px el botón "Buscar" se comía ~120px
+ * del ancho y el campo quedaba tan corto que ni el ejemplo cabía completo.
+ * Debajo de `sm` el campo ocupa todo el ancho y el botón va completo debajo;
+ * de `sm` para arriba vuelven a la misma fila, alineados por abajo.
  */
 import { CLASE_BOTON_SECUNDARIO } from "@/lib/estilos-boton";
 
@@ -27,7 +33,7 @@ export function Buscador({ valorInicial = "" }: BuscadorProps) {
       action="/buscar"
       method="get"
       role="search"
-      className="flex items-end gap-2"
+      className="flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-2"
     >
       <div className="min-w-0 flex-1">
         <label
@@ -50,7 +56,10 @@ export function Buscador({ valorInicial = "" }: BuscadorProps) {
        * reserva para "Registra tu negocio gratis" y el WhatsApp de cada
        * tarjeta (PRD §11) — dos verdes en la misma pantalla competirían.
        */}
-      <button type="submit" className={`${CLASE_BOTON_SECUNDARIO} shrink-0`}>
+      <button
+        type="submit"
+        className={`${CLASE_BOTON_SECUNDARIO} w-full shrink-0 sm:w-auto`}
+      >
         Buscar
       </button>
     </form>

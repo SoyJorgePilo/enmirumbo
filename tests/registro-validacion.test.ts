@@ -228,6 +228,90 @@ describe("validarRegistro · listas cerradas del catálogo", () => {
   );
 });
 
+// Enmienda aprobada por el fundador (revisión visual lote 2), spec
+// `registro-negocio`, requirement "El servidor valida todos los campos…":
+// el teléfono fijo solo admite dígitos y separadores.
+describe("validarRegistro · teléfono fijo", () => {
+  // Scenario: teléfono fijo con separadores
+  it.each([
+    "7751234567",
+    "775 123 4567",
+    "775-123-45-67",
+    "(775) 123 45 67",
+    "+52 775 123 4567",
+    "01 775 123 4567",
+  ])("acepta %s y lo guarda tal cual lo escribió el dueño", (telefonoFijo) => {
+    const resultado = validar({ ...OBLIGATORIOS, telefonoFijo });
+
+    expect(resultado.ok).toBe(true);
+    if (!resultado.ok) return;
+    expect(resultado.datos.telefonoFijo).toBe(telefonoFijo);
+  });
+
+  // Scenario: teléfono fijo con letras
+  it.each([
+    "no tengo",
+    "llámame al celu",
+    "775 123 4567 ext. 12",
+    "correo@ejemplo.mx",
+    // Marcado corto, para que lo rechace la regla del teléfono y no la cota
+    // de longitud (20 caracteres).
+    "775<b>123</b>",
+    "775_123_4567",
+    // Solo espacio literal: un salto de línea, tab o NBSP no son "espacios"
+    // según la regla (hallazgo V-2 del validador del lote 2).
+    "771\n712 3456",
+    "771\t712 3456",
+    "771\u00A0712 3456",
+  ])("rechaza %s con el mensaje literal de la spec", (telefonoFijo) => {
+    const resultado = validar({ ...OBLIGATORIOS, telefonoFijo });
+
+    expect(resultado.ok).toBe(false);
+    if (resultado.ok) return;
+    expect(resultado.errores.telefonoFijo).toBe(
+      "Revisa el teléfono fijo: escribe solo números (puedes usar espacios, guiones o paréntesis)",
+    );
+    expect(resultado.errores.telefonoFijo).toBe(
+      MENSAJES_ERROR_REGISTRO.telefonoFijo,
+    );
+  });
+
+  // Scenario: teléfono fijo sin un solo dígito
+  it.each(["()", "--", "+ ", "( ) - -"])(
+    "rechaza %s: separadores sin un solo dígito no son un teléfono",
+    (telefonoFijo) => {
+      const resultado = validar({ ...OBLIGATORIOS, telefonoFijo });
+
+      expect(resultado.ok).toBe(false);
+      if (resultado.ok) return;
+      expect(resultado.errores.telefonoFijo).toBe(
+        MENSAJES_ERROR_REGISTRO.telefonoFijo,
+      );
+    },
+  );
+
+  it("sigue siendo opcional: vacío no es error y se guarda como nulo", () => {
+    const resultado = validar({ ...OBLIGATORIOS, telefonoFijo: "   " });
+
+    expect(resultado.ok).toBe(true);
+    if (!resultado.ok) return;
+    expect(resultado.datos.telefonoFijo).toBeNull();
+  });
+
+  it("un teléfono larguísimo sigue rechazándose por su cota de longitud", () => {
+    const resultado = validar({
+      ...OBLIGATORIOS,
+      telefonoFijo: "7".repeat(LIMITES_LONGITUD.telefonoFijo + 1),
+    });
+
+    expect(resultado.ok).toBe(false);
+    if (resultado.ok) return;
+    expect(resultado.errores.telefonoFijo).toBe(
+      mensajeLimiteLongitud(LIMITES_LONGITUD.telefonoFijo),
+    );
+  });
+});
+
 describe("validarRegistro · colonia Otra", () => {
   // Scenario: registro con colonia "Otra"
   it("guarda el texto libre y deja la colonia de catálogo vacía", () => {

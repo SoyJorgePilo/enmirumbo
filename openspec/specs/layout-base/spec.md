@@ -46,6 +46,20 @@ La paleta de colores y la tipografía DEBEN estar definidas como tokens con nomb
 
 El layout DEBE verse correcto en un viewport de 390px de ancho y adaptarse hacia arriba (tablet y escritorio) sin producir scroll horizontal en ningún ancho.
 
+ENMENDADO (enmienda aprobada por el fundador, revisión visual lote 2): "sin scroll horizontal" DEBE sostenerse por construcción y estar verificado, no solo afirmado. En las pantallas públicas NO DEBE usarse ninguna clase que impida el colapso responsivo: texto forzado a una sola línea (`whitespace-nowrap`, `text-nowrap`), recorte de etiquetas (`truncate`), anchos mínimos distintos de `min-w-0` ni anchos fijos en píxeles. Toda retícula DEBE declarar una sola columna como base y agregar columnas por punto de quiebre. La suite de pruebas DEBE incluir un guardián que revise el HTML servido de las pantallas públicas y falle si alguna clase rompe esas reglas.
+
+La verificación visual a 390px DEBE hacerse con emulación de dispositivo real (el viewport de la página fijado a 390px). Una captura pedida solo con el tamaño de ventana del navegador NO es prueba válida: el navegador puede negarse a achicar la ventana por debajo del mínimo del sistema (medido: 500px en macOS), maquetar a ese ancho mayor y recortar la imagen al tamaño pedido, lo que hace ver como "desbordamiento" un contenido que en un celular real cabe completo.
+
+#### Scenario: ninguna pantalla pública bloquea el colapso responsivo
+
+- **WHEN** se revisa el HTML servido de la home, el listado, la ficha, el registro, los resultados de búsqueda y las páginas legales
+- **THEN** ninguna clase fuerza una sola línea, recorta etiquetas, fija un ancho mínimo ni fija columnas sin punto de quiebre
+
+#### Scenario: la medición del ancho no depende del tamaño de la ventana
+
+- **WHEN** alguien verifica que una pantalla no desborda a 390px
+- **THEN** lo hace con el viewport emulado en 390px y comparando el ancho de desplazamiento del documento contra el ancho del viewport, no con una captura pedida por tamaño de ventana
+
 #### Scenario: celular a 390px
 
 - **WHEN** el sitio se abre en un viewport de 390px de ancho
@@ -61,6 +75,13 @@ El layout DEBE verse correcto en un viewport de 390px de ancho y adaptarse hacia
 El layout DEBE usar HTML semántico con landmarks (`header`, `main`, `footer`) y jerarquía de encabezados correcta (un solo `h1` por página). Todas las combinaciones de tokens de color usadas para texto DEBEN cumplir contraste AA (WCAG 2.1: ≥4.5:1 en texto normal). Todo elemento interactivo del layout DEBE tener un área táctil de al menos 44px.
 
 ENMENDADO (corrección de contraste no-textual reportada por el fundador): los contornos de los controles de formulario (inputs, selects, textareas y checkboxes/radios de captura, en cualquier pantalla del sitio) DEBEN alcanzar una relación de contraste de al menos 3:1 contra el fondo sobre el que se recortan (WCAG 2.1, criterio 1.4.11). Los bordes puramente decorativos (tarjetas, separadores, pastillas de navegación) quedan fuera de esta regla.
+
+ENMENDADO (enmienda aprobada por el fundador, revisión visual lote 2): el **botón/enlace de acción secundaria** —"Buscar", "Llamar", "Cómo llegar", "Ver su página", "Ver clubes y escuelas deportivas"— es un control, no un adorno: su contorno DEBE cumplir el mismo mínimo de 3:1 contra el fondo. Ese contorno más marcado NO DEBE romper la jerarquía: el secundario sigue sin usar el verde de acción en ningún papel (ni fondo ni texto ni borde), así que la única acción con relleno verde de la pantalla sigue siendo la principal.
+
+#### Scenario: contorno del botón secundario
+
+- **WHEN** se verifica el color de borde del botón de acción secundaria contra el fondo sobre el que se recorta
+- **THEN** la relación de contraste es de al menos 3:1 y el botón sigue sin usar el verde de acción
 
 #### Scenario: contorno de los controles de formulario
 

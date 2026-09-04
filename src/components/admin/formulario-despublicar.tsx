@@ -76,7 +76,7 @@ export function FormularioDespublicar({
               ? "motivoDespublicar-ayuda motivoDespublicar-error"
               : "motivoDespublicar-ayuda"
           }
-          className="w-full rounded-lg border border-borde bg-fondo px-4 py-3 text-base text-tinta focus:outline-none focus:ring-2 focus:ring-accion-fuerte"
+          className="w-full rounded-lg border border-borde-control bg-fondo px-4 py-3 text-base text-tinta focus:outline-none focus:ring-2 focus:ring-accion-fuerte"
         />
       </div>
 

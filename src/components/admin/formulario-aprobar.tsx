@@ -80,7 +80,7 @@ export function FormularioAprobar({
                 name="giro"
                 value={giro.id}
                 defaultChecked={girosSeleccionados.includes(giro.id)}
-                className="h-5 w-5 shrink-0 rounded border-borde"
+                className="h-5 w-5 shrink-0 rounded border-borde-control"
               />
               {giro.nombre}
             </label>
@@ -107,7 +107,7 @@ export function FormularioAprobar({
             defaultValue={coloniaSeleccionada ?? ""}
             aria-invalid={Boolean(errorColonia)}
             aria-describedby={errorColonia ? "colonia-error" : undefined}
-            className="w-full rounded-lg border border-borde bg-fondo px-4 py-3 text-base text-tinta focus:outline-none focus:ring-2 focus:ring-accion-fuerte"
+            className="w-full rounded-lg border border-borde-control bg-fondo px-4 py-3 text-base text-tinta focus:outline-none focus:ring-2 focus:ring-accion-fuerte"
           >
             <option value="">Elige la colonia</option>
             {colonias.map((colonia) => (
@@ -127,7 +127,7 @@ export function FormularioAprobar({
             name="origen"
             value="organico"
             defaultChecked={origenSeleccionado === "organico"}
-            className="h-5 w-5 shrink-0 border-borde"
+            className="h-5 w-5 shrink-0 border-borde-control"
           />
           {OPCION_ORIGEN_ORGANICO}
         </label>
@@ -137,7 +137,7 @@ export function FormularioAprobar({
             name="origen"
             value="siembra"
             defaultChecked={origenSeleccionado === "siembra"}
-            className="h-5 w-5 shrink-0 border-borde"
+            className="h-5 w-5 shrink-0 border-borde-control"
           />
           {OPCION_ORIGEN_SIEMBRA}
         </label>

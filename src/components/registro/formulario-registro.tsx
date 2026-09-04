@@ -73,7 +73,7 @@ function claseCampo(tieneError: boolean): string {
   // Los errores NO se marcan solo con color (paleta de una sola vía,
   // globals.css): borde neutro más grueso + texto en negritas + "⚠" en el
   // mensaje asociado por aria-describedby son la señal, no un rojo nuevo.
-  return tieneError ? `${base} border-2 border-tinta` : `${base} border border-borde`;
+  return tieneError ? `${base} border-2 border-tinta` : `${base} border border-borde-control`;
 }
 
 function MensajeError({ id, texto }: { id: string; texto?: string }) {
@@ -288,7 +288,7 @@ export function FormularioRegistro({
           id="entregaADomicilio"
           name="entregaADomicilio"
           defaultChecked={valores.entregaADomicilio}
-          className="h-5 w-5 shrink-0 rounded border-borde"
+          className="h-5 w-5 shrink-0 rounded border-borde-control"
         />
         ¿Haces entregas o vas a domicilio? (opcional)
       </label>
@@ -383,7 +383,7 @@ export function FormularioRegistro({
           id="foto"
           name="foto"
           accept={ACCEPT_FOTO}
-          className="block min-h-11 w-full cursor-pointer rounded-lg border border-borde bg-fondo px-3 py-2.5 text-sm text-tinta file:mr-3 file:min-h-11 file:cursor-pointer file:rounded-lg file:border-0 file:bg-superficie file:px-4 file:py-2.5 file:text-sm file:font-semibold file:text-tinta"
+          className="block min-h-11 w-full cursor-pointer rounded-lg border border-borde-control bg-fondo px-3 py-2.5 text-sm text-tinta file:mr-3 file:min-h-11 file:cursor-pointer file:rounded-lg file:border-0 file:bg-superficie file:px-4 file:py-2.5 file:text-sm file:font-semibold file:text-tinta"
           aria-invalid={Boolean(errores.foto)}
           aria-describedby={errores.foto ? "foto-error" : undefined}
         />
@@ -404,7 +404,7 @@ export function FormularioRegistro({
             type="checkbox"
             id="quitarFoto"
             name="quitarFoto"
-            className="h-5 w-5 shrink-0 rounded border-borde"
+            className="h-5 w-5 shrink-0 rounded border-borde-control"
           />
           {TEXTO_CASILLA_SIN_FOTO}
         </label>

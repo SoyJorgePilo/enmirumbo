@@ -4,12 +4,19 @@
 
 ### Requirement: Layout global con header y footer en todas las páginas
 
-Toda página del sitio DEBE renderizarse dentro de un layout global con un header que muestra la marca como wordmark tipográfico "NecesitoUno" acompañado del posicionamiento "Tizayuca", y un footer al final de la página. El footer DEBE incluir los enlaces a las dos páginas legales, con los textos literales "Aviso de privacidad" y "Términos y condiciones", cada uno hacia una página que existe y con área táctil de al menos 44px.
+Toda página del sitio DEBE renderizarse dentro de un layout global con un header que muestra la marca como wordmark tipográfico "NecesitoUno", y un footer al final de la página. El footer DEBE incluir los enlaces a las dos páginas legales, con los textos literales "Aviso de privacidad" y "Términos y condiciones", cada uno hacia una página que existe y con área táctil de al menos 44px.
 
-#### Scenario: header con marca y posicionamiento
+ENMENDADO (encargo del fundador: "el header se ve limpio con solo el wordmark"): el header ya NO lleva "Tizayuca" junto al wordmark. El posicionamiento hiperlocal sigue siendo obligatorio en el producto, pero se exige en otras superficies: el `h1` de la home, el footer (que ya lo trae con "NecesitoUno Tizayuca" y "Hecho para los vecinos de Tizayuca, Hidalgo.") y toda la metadata SEO (`title`, `description`, Open Graph) del requirement "Server Component con documento en es-MX y metadata base".
+
+#### Scenario: header con el wordmark
 
 - **WHEN** un vecino abre cualquier página del sitio en su celular
-- **THEN** ve en la parte superior el wordmark "NecesitoUno" junto con "Tizayuca" como posicionamiento visible
+- **THEN** ve en la parte superior el wordmark "NecesitoUno", enlazado a la home
+
+#### Scenario: el posicionamiento hiperlocal sigue visible fuera del header
+
+- **WHEN** un vecino abre la home o llega al final de cualquier página
+- **THEN** ve "Tizayuca" en el `h1` de la home y en el footer ("NecesitoUno Tizayuca", "Hecho para los vecinos de Tizayuca, Hidalgo.")
 
 #### Scenario: footer con los enlaces legales y sin enlaces muertos
 
@@ -52,6 +59,13 @@ El layout DEBE verse correcto en un viewport de 390px de ancho y adaptarse hacia
 ### Requirement: Accesibilidad base del PRD §8
 
 El layout DEBE usar HTML semántico con landmarks (`header`, `main`, `footer`) y jerarquía de encabezados correcta (un solo `h1` por página). Todas las combinaciones de tokens de color usadas para texto DEBEN cumplir contraste AA (WCAG 2.1: ≥4.5:1 en texto normal). Todo elemento interactivo del layout DEBE tener un área táctil de al menos 44px.
+
+ENMENDADO (corrección de contraste no-textual reportada por el fundador): los contornos de los controles de formulario (inputs, selects, textareas y checkboxes/radios de captura, en cualquier pantalla del sitio) DEBEN alcanzar una relación de contraste de al menos 3:1 contra el fondo sobre el que se recortan (WCAG 2.1, criterio 1.4.11). Los bordes puramente decorativos (tarjetas, separadores, pastillas de navegación) quedan fuera de esta regla.
+
+#### Scenario: contorno de los controles de formulario
+
+- **WHEN** se verifica el color de borde de un input, select, textarea o checkbox/radio de captura contra el fondo sobre el que se recorta
+- **THEN** la relación de contraste es de al menos 3:1
 
 #### Scenario: estructura semántica
 

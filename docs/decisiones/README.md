@@ -23,7 +23,7 @@ Este proyecto documenta cada decisión técnica relevante como un **Architecture
 | [ADR-006](ADR-006-almacenamiento-imagenes.md) | Almacenamiento de las fotos de negocios | propuesta — se decide en E1-3 |
 | [ADR-007](ADR-007-hosting.md) | Hosting y deploy | **aceptada** (ejecutada en E0-3 / T-013) |
 | [ADR-008](ADR-008-modelo-por-agente.md) | Modelo de IA por agente del pipeline | aceptada |
-| [ADR-009](ADR-009-revision-pipeline-13-corridas.md) | Revisión del pipeline tras las primeras corridas (cierre del experimento UI-first, mandatos de integración) | propuesta — decide el humano con proceso v0.5 |
+| [ADR-009](ADR-009-revision-pipeline-13-corridas.md) | Revisión del pipeline tras las primeras corridas (cierre del experimento UI-first, mandatos de integración) | aceptada (aplicada en proceso v0.5) |
 
 ## Tecnologías descartadas de plano en el MVP (el porqué no, en corto)
 

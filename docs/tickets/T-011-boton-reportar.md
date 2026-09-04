@@ -1,6 +1,6 @@
 # T-011 · Agregar el botón "Reportar" en la ficha pública
 
-**Estado:** en-review
+**Estado:** hecho
 **Prioridad:** P0
 **Épica:** E3-4 (docs/backlog.md)
 **Referencias PRD:** §6.3 ("Botón Reportar en cada ficha pública para negocios falsos o cerrados")

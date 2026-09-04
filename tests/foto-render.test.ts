@@ -16,7 +16,9 @@ import { sembrarNegociosDemo } from "../prisma/seed-demo";
 import ListadoCategoriaPage from "../src/app/(publico)/[destino]/page";
 import DetalleRegistroAdminPage from "../src/app/admin/registros/[id]/page";
 import FichaNegocioPage from "../src/app/(publico)/negocio/[ficha]/page";
+import { MarcadorFoto } from "../src/components/directorio/marcador-foto";
 import type { PrismaClient } from "../src/generated/prisma/client";
+import { iconoDeCategoria } from "../src/lib/ui/iconos-categorias";
 import { NOMBRE_COOKIE_SESION, crearValorDeSesion } from "../src/lib/admin/sesion";
 import { construirSegmentoFicha } from "../src/lib/ficha-url";
 import { generarClaveFoto } from "../src/lib/fotos/clave";
@@ -97,6 +99,51 @@ beforeEach(() => {
   reiniciarPeticion();
 });
 
+// Enmienda aprobada por el fundador (revisión visual lote 2), spec
+// `directorio-publico`, requirement "La tarjeta del listado trae lo esencial…":
+// el marcador de posición muestra el emoji de la CATEGORÍA DEL NEGOCIO.
+describe("marcador sin foto: el emoji de la categoría del negocio", () => {
+  // Scenario: el marcador sin foto muestra el emoji de la categoría
+  it("pinta el emoji de la categoría en el hueco del negocio sin foto", () => {
+    const emoji = iconoDeCategoria(CATEGORIA_CON_FOTO);
+    expect(htmlListado).toContain(emoji);
+    // Una sola vez: el negocio con foto real sigue mostrando su foto.
+    expect(htmlListado.split(emoji)).toHaveLength(2);
+  });
+
+  it("el emoji va sobre el fondo de superficie y en tamaño grande", () => {
+    // El bloque del marcador, acotado: desde su `<div>` hasta que cierra.
+    const marcador = htmlListado.match(
+      /<div aria-hidden="true"[^>]*bg-superficie[^>]*>[\s\S]*?<\/div>/,
+    )?.[0];
+    expect(marcador).toBeDefined();
+    expect(marcador).toMatch(/text-(3xl|4xl)/);
+    expect(marcador).toContain(iconoDeCategoria(CATEGORIA_CON_FOTO));
+  });
+
+  it("el emoji es decorativo: no se anuncia y no agrega texto alternativo", () => {
+    const emoji = iconoDeCategoria(CATEGORIA_CON_FOTO);
+    const antesDelEmoji = htmlListado.slice(0, htmlListado.indexOf(emoji));
+    // El contenedor más cercano que lo envuelve es el que lleva `aria-hidden`.
+    expect(antesDelEmoji.lastIndexOf('aria-hidden="true"')).toBeGreaterThan(
+      antesDelEmoji.lastIndexOf("<article"),
+    );
+    expect(htmlListado).not.toContain(`alt="${emoji}"`);
+  });
+
+  it("una categoría desconocida cae en el emoji genérico, sin romper nada", () => {
+    const html = renderToStaticMarkup(
+      createElement(MarcadorFoto, {
+        fotoClave: null,
+        categoriaSlug: "categoria-que-no-existe",
+        variante: "tarjeta" as const,
+      }),
+    );
+    expect(html).toContain(iconoDeCategoria("categoria-que-no-existe"));
+    expect(html).not.toContain("<img");
+  });
+});
+
 describe("listado: la tarjeta pinta la foto real y el marcador cuando no hay", () => {
   // Scenario: contenido de la tarjeta (un negocio con foto y otro sin ella)
   it("un negocio con foto y otro sin ella en el mismo listado", () => {
@@ -136,8 +183,11 @@ describe("listado: la tarjeta pinta la foto real y el marcador cuando no hay", (
   it("la tarjeta reserva el mismo espacio con foto y sin foto", () => {
     // Un contenedor de proporción fija por tarjeta, idéntico en las dos: el
     // hueco de la imagen ya está reservado antes de que cargue.
+    // `self-start` entró con la enmienda del fundador (revisión visual lote
+    // 2): sin él la proporción cuadrada se perdía al crecer el texto de al
+    // lado, que es justo lo que este scenario quiere blindar.
     const contenedores = htmlListado.match(
-      /class="relative aspect-square w-20 shrink-0 overflow-hidden rounded-lg"/g,
+      /class="relative aspect-square w-20 shrink-0 self-start overflow-hidden rounded-lg"/g,
     );
     const tarjetas = htmlListado.match(/<article[\s>]/g);
     expect(contenedores).toHaveLength(tarjetas!.length);

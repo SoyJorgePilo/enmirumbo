@@ -57,7 +57,16 @@ export default async function Home() {
       </section>
 
       <section className="flex flex-col gap-3 rounded-xl border border-borde bg-superficie p-5">
-        <h2 className="text-xl font-bold tracking-tight">Deporte en Tizayuca</h2>
+        {/* Icono decorativo HERMANO del h2, no dentro: el encabezado sigue
+            siendo literalmente "Deporte en Tizayuca" (spec `directorio-publico`,
+            enmienda del fundador vía validador). El contenedor flex los
+            alinea visualmente sin tocar el texto del encabezado. */}
+        <div className="flex items-center gap-2">
+          <span aria-hidden="true" className="text-xl leading-none">
+            ⚽
+          </span>
+          <h2 className="text-xl font-bold tracking-tight">Deporte en Tizayuca</h2>
+        </div>
         <p className="text-tinta-suave">
           Escuelas, clubes y entrenadores para que los niños (y los grandes)
           se muevan.

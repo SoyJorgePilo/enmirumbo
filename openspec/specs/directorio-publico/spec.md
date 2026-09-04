@@ -6,6 +6,20 @@
 
 La ruta raíz (`/`) DEBE mostrar las 8 categorías del catálogo (PRD §6.1) como botones grandes, en el orden del catálogo, cada uno con el nombre de la categoría tal como está en la base y enlazado a su listado. La sección DEBE encabezarse con el texto literal "Busca por categoría". Los botones DEBEN medir al menos 44px en su dimensión menor y verse completos en un viewport de 390px. Las categorías DEBEN quedar debajo del buscador (PRD §6.2: "buscador + categorías como botones grandes"), sin que ninguno de los dos pierda protagonismo: son las dos entradas del Flujo B y ambas se ven sin hacer scroll en un celular de 390px. Ningún control de la home DEBE quedar sin destino.
 
+ENMENDADO (encargo del fundador: "los botones se ven planos"): cada botón PUEDE llevar un icono decorativo (`aria-hidden`) junto al nombre; el nombre sigue siendo el contenido accesible.
+
+ENMENDADO (enmienda aprobada por el fundador, revisión visual lote 2): la retícula de categorías DEBE colapsar de verdad al angostarse la pantalla, sin un número de columnas fijo: una sola columna en las pantallas más angostas, dos en un celular normal y tres de tablet para arriba. Ningún nombre de categoría DEBE recortarse ni quedar en una sola línea forzada: el texto quiebra en varias líneas y todos los botones de una fila conservan la misma altura.
+
+#### Scenario: la retícula colapsa a una sola columna en pantallas muy angostas
+
+- **WHEN** el vecino abre la home en un viewport de 320px
+- **THEN** los ocho botones se ven uno debajo del otro, con el nombre completo de cada categoría, sin recortes y sin scroll horizontal
+
+#### Scenario: dos columnas en celular y tres en pantalla ancha
+
+- **WHEN** la home se abre en un viewport de 390px y después en uno de tablet o escritorio
+- **THEN** las categorías se acomodan en dos columnas en el celular y en tres en la pantalla ancha, con los nombres completos en ambos casos
+
 #### Scenario: las ocho categorías visibles
 
 - **WHEN** un vecino abre la home en su celular
@@ -29,6 +43,8 @@ La ruta raíz (`/`) DEBE mostrar las 8 categorías del catálogo (PRD §6.1) com
 ### Requirement: Bloque "Deporte en Tizayuca" destacado en la home
 
 La home DEBE incluir un bloque propio titulado literalmente "Deporte en Tizayuca" (PRD §6.5), presentado al mismo nivel visual que el bloque de categorías comerciales —mismo peso de encabezado y misma jerarquía, ni más chico ni escondido abajo— con una frase de acompañamiento y una entrada al listado de la categoría "Clubes y escuelas deportivas". Que esa categoría aparezca también entre los 8 botones es intencional: el bloque no la reemplaza, la destaca.
+
+ENMENDADO (encargo del fundador, cohesión visual con el bloque de categorías): el bloque PUEDE llevar un icono decorativo `aria-hidden` junto al encabezado; el texto del encabezado es literalmente "Deporte en Tizayuca".
 
 #### Scenario: el bloque de deporte se ve al mismo nivel que las categorías
 
@@ -158,6 +174,20 @@ El listado por categoría DEBE ofrecer un filtro por colonia (PRD §6.2) que fun
 Cada negocio del listado DEBE presentarse en una tarjeta con: **su foto cuando la tiene** y, cuando no, un marcador de posición neutro que no prometa una imagen; el nombre del negocio; su colonia; la etiqueta "A domicilio" solo cuando el negocio registró que hace entregas o va a domicilio; y un botón verde de WhatsApp que abre directo la conversación con ese negocio, sin pasar por la ficha (PRD §6.2). El resto de la tarjeta DEBE llevar a la ficha del negocio. El botón de WhatsApp DEBE tener un área táctil de al menos 44px y una etiqueta accesible que diga a qué negocio se le escribe. La foto DEBE llevar un texto alternativo que nombre al negocio ("Foto de <nombre del negocio>"), mientras que el marcador de posición sigue siendo decorativo y no se anuncia. Con foto o sin ella, la tarjeta DEBE ocupar el mismo espacio y no DEBE saltar cuando la imagen termina de cargar.
 
 El botón de WhatsApp de la tarjeta DEBE declarar el evento `whatsapp-tarjeta` con las propiedades `categoria` y `colonia`, mediante atributos de marcado y sin JavaScript propio, según el contrato único de medición que fija la capacidad `layout-base` (requirement "La medición no lleva datos personales ni el texto que escribe la gente"): los valores son slugs del catálogo, y `otra` cuando la colonia no es del catálogo. La `categoria` DEBE ser la del negocio, no la de la página, para que el dato sea correcto también en la página de resultados, donde conviven negocios de categorías distintas. El evento DEBE quedar declarado aunque la medición no esté configurada: los atributos son marcado inerte y no cambian el comportamiento del botón.
+
+ENMENDADO (enmienda aprobada por el fundador, revisión visual lote 2) — **el marcador de posición ya no es un cuadro gris mudo**: cuando el negocio no tiene foto (o lo guardado no es una referencia del servidor), el marcador DEBE mostrar el emoji de **la categoría de ese negocio**, en grande y centrado sobre el fondo de superficie. El emoji es decorativo: va con `aria-hidden` y NO se anuncia, de modo que la regla de accesibilidad no cambia; el nombre del negocio sigue siendo lo que se lee. Es el mismo emoji que usan los botones de categoría de la home, y una categoría que el mapa todavía no conozca cae en un emoji genérico. Esta regla aplica dondequiera que se pinte el marcador de posición (listado por categoría, páginas de giro y giro+colonia, y resultados de búsqueda); la ficha sin foto sigue sin mostrar ningún bloque de imagen.
+
+ENMENDADO (misma revisión) — **la tarjeta es fluida**: el hueco de la foto DEBE conservar su proporción cuadrada y NO DEBE estirarse cuando el texto de al lado crece; la etiqueta "A domicilio" DEBE ocupar solo lo que mide su texto y nunca el ancho completo de la tarjeta; y el nombre y la colonia DEBEN poder quebrar en varias líneas. Nada de la tarjeta DEBE forzarse a una sola línea.
+
+#### Scenario: el marcador sin foto muestra el emoji de la categoría
+
+- **WHEN** el vecino ve en el listado un negocio de "Servicios del hogar" que no registró foto
+- **THEN** en el lugar de la foto ve el emoji de esa categoría, en grande sobre el fondo de superficie, y el lector de pantalla no lo anuncia
+
+#### Scenario: la tarjeta no se estira ni se aprieta
+
+- **WHEN** el listado se abre en un viewport de 390px con un negocio de nombre largo y etiqueta "A domicilio"
+- **THEN** el hueco de la foto sigue siendo cuadrado, la etiqueta mide solo lo que su texto y el nombre quiebra en varias líneas, sin scroll horizontal
 
 #### Scenario: contenido de la tarjeta
 
@@ -722,6 +752,13 @@ Los reportes DEBEN ser invisibles fuera del panel: un negocio reportado sigue pu
 ### Requirement: Buscador en la home que funciona sin JavaScript de cliente
 
 La home DEBE mostrar, arriba de las categorías, un buscador que sea un formulario de envío por GET hacia la página de resultados, de modo que funcione sin JavaScript de cliente. El campo DEBE tener una etiqueta visible asociada con el texto literal "Busca lo que necesitas", un ejemplo dentro del campo con el texto literal "ej. plomero, tacos, futbol infantil" y un botón de envío con el texto literal "Buscar". El campo y el botón DEBEN medir al menos 44px en su dimensión menor. El buscador NO DEBE agregar un encabezado propio: la home conserva un solo `h1` y sus encabezados de segundo nivel siguen siendo los de categorías, deporte y registro.
+
+ENMENDADO (enmienda aprobada por el fundador, revisión visual lote 2): en celular, el campo y el botón "Buscar" DEBEN ir apilados —el campo a todo lo ancho y el botón debajo, también a todo lo ancho— y solo DEBEN ponerse en una misma fila cuando la pantalla da para los dos. Esto vale igual para el buscador de la home y para el que repite la página de resultados.
+
+#### Scenario: el buscador se apila en celular
+
+- **WHEN** el vecino abre la home, o la página de resultados, en un viewport de 390px
+- **THEN** el campo ocupa todo el ancho disponible y el botón "Buscar" va completo debajo del campo, sin recortarse y sin apretar el campo
 
 #### Scenario: buscar desde la home
 

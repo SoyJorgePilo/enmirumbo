@@ -2,6 +2,8 @@
 
 **Versión:** 0.8 (propuesta) · **Fecha:** 31 de agosto de 2026 · **Estado:** Borrador
 
+> Cambios v0.9 (2026-09-04): la verificación de propiedad del número por SMS (Twilio) pasa de "fuera de alcance" a **capacidad tras bandera, apagada en el lanzamiento** (ADR-011): cuando se active, el SMS confirma el número automáticamente y el admin conserva la aprobación de la publicación — modelo híbrido que preserva el diferenciador de curaduría manual del §6.3. El flujo del MVP no cambia.
+>
 > Cambios v0.8: se cierran los huecos detectados en la validación técnica previa a la implementación — acceso del admin al panel (contraseña única, sin cuentas); catálogo cerrado de giros como base real de las páginas SEO, asignado por el admin al aprobar (nuevo Apéndice B); flujo de rechazo completo con aviso y retención de 90 días; política de duplicados (una ficha por número de WhatsApp); reglas de la foto; separación de métricas orgánicas vs sembradas con campo de origen; analítica cookieless con eventos definidos y exclusión de bots; normalización de la búsqueda (acentos, coincidencia parcial); reglas de moderación escritas; anti-abuso del formulario sin captcha; operación ARCO y retención; requisitos de accesibilidad; y expectativa realista del Schema LocalBusiness. Cambios v0.7: se adopta el nombre NecesitoUno.com — marca neutral que resuelve la pregunta abierta de branding y permite expandir a otras ciudades sin cambiar de nombre. Cambios v0.6: se agrega la categoría y el apartado destacado de clubes y escuelas deportivas — espacio inexistente en la oferta municipal, oportunidad de diferenciación y SEO sin competencia. Cambios v0.5: se integra la investigación de mercado — contexto de Tizayuca con datos INEGI, competencia real (Google Maps y grupos de Facebook), lista de colonias para el formulario, requisitos legales conforme a la LFPDPPP 2025, plan de lanzamiento en fases con umbrales de decisión, ajuste de la métrica de conversión con benchmark, y requisitos de SEO local. Cambios v0.4: autogestión de ediciones con enlace único de gestión; los cambios pasan a revisión antes de publicarse; flujo de recuperación de enlace perdido. Cambios v0.3: formulario ajustado — colonia obligatoria con lista cerrada, palabras clave, checkbox de entregas a domicilio y link opcional de Facebook. Cambios v0.2: verificación manual integrada en la revisión del admin (se elimina el código automático por WhatsApp).
 
 ## 1. Resumen
@@ -110,7 +112,7 @@ Los clubes y escuelas deportivas tienen un tratamiento destacado, no solo una ca
 
 ### 6.6 Fuera de alcance (explícitamente NO en el MVP)
 
-- Verificación automática por código (WhatsApp API, SMS, correo)
+- Verificación automática por código **como sustituto de la revisión manual**. (La verificación de propiedad del número por SMS existe como capacidad tras bandera, apagada en el lanzamiento — v0.9/ADR-011; aun activada, la publicación siempre pasa por el admin.)
 - Cuentas de usuario, contraseñas o login con redes sociales
 - Pagos, suscripciones o planes premium
 - Reseñas y calificaciones

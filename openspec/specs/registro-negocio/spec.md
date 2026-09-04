@@ -20,6 +20,18 @@ El sitio DEBE tener una página pública de registro, alcanzable desde la home, 
 
 El formulario DEBE pedir los 5 campos obligatorios del PRD §6.1 — nombre del negocio, categoría (lista cerrada de las 8 del catálogo), WhatsApp de 10 dígitos, colonia (lista cerrada del catálogo con opción "Otra" + texto libre) y checkbox de consentimiento — y DEBE ofrecer como opcionales: "¿Qué ofreces?" (máx. 200 caracteres), "¿Haces entregas o vas a domicilio?" (sí/no), teléfono fijo, dirección o referencias, horario, link de Facebook y **una foto del negocio**. Los opcionales DEBEN estar marcados visiblemente como opcionales. Las etiquetas visibles DEBEN ser, literalmente: "¿Cómo se llama tu negocio?", "¿A qué se dedica?", "Tu WhatsApp (10 dígitos)", "¿En qué colonia estás?", "¿Qué ofreces? (opcional)", "¿Haces entregas o vas a domicilio? (opcional)", "Teléfono fijo (opcional)", "Dirección o referencias (opcional)", "Horario (opcional)", "Link de tu Facebook (opcional)" y "Foto de tu negocio (opcional)".
 
+ENMENDADO (enmienda aprobada por el fundador, revisión visual lote 2): el campo "Horario (opcional)" DEBE explicarse con un ejemplo escrito como habla un negocio, no con una abreviatura de agenda. Su texto de ejemplo dentro del campo DEBE ser literalmente "Lunes a sábado de 9 de la mañana a 7 de la tarde", y debajo del campo DEBE aparecer, siempre visible, la línea de ayuda literal: "Escríbelo como se lo dirías a un cliente: 'L-S 9am-7pm', 'Todos los días de 8 a 8', 'Solo fines de semana'." El campo sigue siendo texto libre: ni el ejemplo ni la ayuda imponen un formato, y el servidor no rechaza ningún horario por su redacción.
+
+#### Scenario: el ejemplo del horario se lee como lo diría un negocio
+
+- **WHEN** el dueño llega al campo "Horario (opcional)"
+- **THEN** dentro del campo ve el ejemplo "Lunes a sábado de 9 de la mañana a 7 de la tarde" y debajo la ayuda "Escríbelo como se lo dirías a un cliente: 'L-S 9am-7pm', 'Todos los días de 8 a 8', 'Solo fines de semana'."
+
+#### Scenario: el horario sigue siendo texto libre
+
+- **WHEN** el dueño escribe su horario con otras palabras (por ejemplo "Solo fines de semana")
+- **THEN** el registro se guarda con ese texto tal cual, sin error ni reformateo
+
 #### Scenario: formulario vacío al abrir
 
 - **WHEN** el dueño abre la página de registro
@@ -103,6 +115,8 @@ El servidor DEBE normalizar el WhatsApp antes de validarlo y antes de tocar la b
 
 El servidor DEBE validar cada campo recibido, sin confiar en la validación del navegador: los obligatorios no pueden venir vacíos, la categoría y la colonia DEBEN existir en el catálogo, "¿Qué ofreces?" no puede exceder 200 caracteres, el link de Facebook solo se acepta si empieza con `http://` o `https://` (se rechaza cualquier otro esquema, incluido `javascript:` o `data:`), la foto DEBE cumplir lo que exige el requirement "El servidor solo acepta la foto si es una imagen real de máximo 5 MB", y todo campo de texto libre tiene un máximo de longitud. Los mensajes DEBEN mostrarse junto al campo correspondiente, en español claro, y el formulario DEBE conservar lo que el dueño ya había capturado. Los textos de error DEBEN ser, literalmente: "Escribe el nombre de tu negocio", "Elige una categoría", "Revisa tu número de WhatsApp: deben ser 10 dígitos", "Elige tu colonia", "Escribe el nombre de tu colonia", "Marca la casilla para poder registrar tu negocio", "Deja esto en 200 caracteres o menos", "El link de Facebook debe empezar con http:// o https://" y "El aviso de privacidad cambió mientras llenabas esto. Léelo otra vez y vuelve a marcar la casilla."
 
+ENMENDADO (enmienda aprobada por el fundador, revisión visual lote 2): el **teléfono fijo** DEBE validarse en el servidor, no solo confiar en el teclado del celular. Solo se aceptan dígitos y los separadores con los que la gente escribe un teléfono —espacio, guion, paréntesis y `+`— y DEBE haber al menos un dígito. Cualquier otro contenido (letras, "no tengo", una dirección de correo, marcado) DEBE rechazarse con el mensaje literal "Revisa el teléfono fijo: escribe solo números (puedes usar espacios, guiones o paréntesis)" junto a ese campo, sin guardar nada. El campo DEBE pedir el teclado telefónico en el celular (no el numérico puro, que no ofrece los separadores). Lo capturado se guarda tal cual lo escribió el dueño: esta regla decide qué entra, no cómo se ve después — la ficha pública sigue mostrando "Teléfono: &lt;texto&gt;" para lo que no se puede marcar, sin cambio alguno.
+
 Cuando un envío se rechaza, el formulario DEBE volver con todos los valores capturados salvo dos excepciones, que el dueño tiene que reponer: el checkbox de consentimiento y **la foto**, porque ningún navegador repuebla un campo de archivo por razones de seguridad. Si el envío rechazado traía foto, el formulario DEBE decirlo junto al campo con el texto literal "Tu foto no se quedó guardada: vuelve a elegirla antes de enviar." y NO DEBE quedarse con el archivo en el servidor mientras tanto.
 
 #### Scenario: obligatorios vacíos
@@ -119,6 +133,21 @@ Cuando un envío se rechaza, el formulario DEBE volver con todos los valores cap
 
 - **WHEN** el dueño envía como link de Facebook algo que no empieza con http:// o https:// (por ejemplo "javascript:alert(1)" o "facebook.com/minegocio")
 - **THEN** no se guarda nada y ve "El link de Facebook debe empezar con http:// o https://" junto a ese campo
+
+#### Scenario: teléfono fijo con letras
+
+- **WHEN** el envío llega directo al servidor (sin pasar por el navegador) con "no tengo" o "llámame al celu" en el teléfono fijo
+- **THEN** no se guarda nada y ve "Revisa el teléfono fijo: escribe solo números (puedes usar espacios, guiones o paréntesis)" junto a ese campo
+
+#### Scenario: teléfono fijo con separadores
+
+- **WHEN** el dueño escribe su teléfono como "(775) 123-45-67" o "+52 775 123 4567"
+- **THEN** el registro se guarda con ese texto tal cual, sin error
+
+#### Scenario: teléfono fijo sin un solo dígito
+
+- **WHEN** el envío trae en el teléfono fijo solo separadores (por ejemplo "()" o "--")
+- **THEN** no se guarda nada y ve el mismo mensaje junto a ese campo
 
 #### Scenario: categoría o colonia fuera del catálogo
 

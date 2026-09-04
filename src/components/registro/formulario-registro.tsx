@@ -9,7 +9,9 @@ import { ejemploParaCategoriaElegida } from "@/lib/registro/ejemplos";
 import {
   ACCEPT_FOTO,
   COLONIA_OTRA_VALOR,
+  EJEMPLO_HORARIO,
   LIMITES_LONGITUD,
+  TEXTO_AYUDA_HORARIO,
   TEXTO_CASILLA_SIN_FOTO,
   TEXTO_POLITICA_FOTO,
 } from "@/lib/registro/textos";
@@ -73,7 +75,7 @@ function claseCampo(tieneError: boolean): string {
   // Los errores NO se marcan solo con color (paleta de una sola vía,
   // globals.css): borde neutro más grueso + texto en negritas + "⚠" en el
   // mensaje asociado por aria-describedby son la señal, no un rojo nuevo.
-  return tieneError ? `${base} border-2 border-tinta` : `${base} border border-borde`;
+  return tieneError ? `${base} border-2 border-tinta` : `${base} border border-borde-control`;
 }
 
 function MensajeError({ id, texto }: { id: string; texto?: string }) {
@@ -288,7 +290,7 @@ export function FormularioRegistro({
           id="entregaADomicilio"
           name="entregaADomicilio"
           defaultChecked={valores.entregaADomicilio}
-          className="h-5 w-5 shrink-0 rounded border-borde"
+          className="h-5 w-5 shrink-0 rounded border-borde-control"
         />
         ¿Haces entregas o vas a domicilio? (opcional)
       </label>
@@ -297,11 +299,16 @@ export function FormularioRegistro({
         <label htmlFor="telefonoFijo" className="text-sm font-semibold text-tinta">
           Teléfono fijo (opcional)
         </label>
+        {/* `inputMode="tel"`, no `numeric` (enmienda aprobada por el fundador,
+            revisión visual lote 2): el fijo se escribe con separadores —"(775)
+            123-45-67", "+52 775…"— y el teclado numérico puro no ofrece
+            paréntesis, guion ni "+". El WhatsApp, que son 10 dígitos pelones,
+            sí conserva el numérico. */}
         <input
           type="tel"
           id="telefonoFijo"
           name="telefonoFijo"
-          inputMode="numeric"
+          inputMode="tel"
           maxLength={LIMITES_LONGITUD.telefonoFijo}
           defaultValue={valores.telefonoFijo}
           aria-invalid={Boolean(errores.telefonoFijo)}
@@ -338,12 +345,17 @@ export function FormularioRegistro({
           id="horario"
           name="horario"
           maxLength={LIMITES_LONGITUD.horario}
-          placeholder="ej. L-S 9am-7pm"
+          placeholder={EJEMPLO_HORARIO}
           defaultValue={valores.horario}
           aria-invalid={Boolean(errores.horario)}
           aria-describedby={errores.horario ? "horario-error" : undefined}
           className={claseCampo(Boolean(errores.horario))}
         />
+        {/* Ayuda siempre visible, con el mismo trato que la del WhatsApp: el
+            campo es texto libre y esta línea lo dice con ejemplos, para que
+            nadie sienta que tiene que rellenar un formato (enmienda aprobada
+            por el fundador, revisión visual lote 2). */}
+        <p className="text-sm text-tinta-suave">{TEXTO_AYUDA_HORARIO}</p>
         <MensajeError id="horario-error" texto={errores.horario} />
       </div>
 
@@ -383,7 +395,7 @@ export function FormularioRegistro({
           id="foto"
           name="foto"
           accept={ACCEPT_FOTO}
-          className="block min-h-11 w-full cursor-pointer rounded-lg border border-borde bg-fondo px-3 py-2.5 text-sm text-tinta file:mr-3 file:min-h-11 file:cursor-pointer file:rounded-lg file:border-0 file:bg-superficie file:px-4 file:py-2.5 file:text-sm file:font-semibold file:text-tinta"
+          className="block min-h-11 w-full cursor-pointer rounded-lg border border-borde-control bg-fondo px-3 py-2.5 text-sm text-tinta file:mr-3 file:min-h-11 file:cursor-pointer file:rounded-lg file:border-0 file:bg-superficie file:px-4 file:py-2.5 file:text-sm file:font-semibold file:text-tinta"
           aria-invalid={Boolean(errores.foto)}
           aria-describedby={errores.foto ? "foto-error" : undefined}
         />
@@ -404,7 +416,7 @@ export function FormularioRegistro({
             type="checkbox"
             id="quitarFoto"
             name="quitarFoto"
-            className="h-5 w-5 shrink-0 rounded border-borde"
+            className="h-5 w-5 shrink-0 rounded border-borde-control"
           />
           {TEXTO_CASILLA_SIN_FOTO}
         </label>

@@ -322,6 +322,39 @@ describe("procesarRegistro (Server Action de registro)", () => {
     expect(await prisma.negocio.count({ where: { whatsapp: { startsWith: "771999" } } })).toBe(0);
   });
 
+  // Scenario: teléfono fijo con letras (POST crudo: sin navegador de por
+  // medio, que es justo donde el `type="tel"` del formulario no vale nada).
+  // Enmienda aprobada por el fundador, revisión visual lote 2.
+  it.each(["no tengo", "llámame al celu", "775 123 4567 ext. 12"])(
+    "un POST crudo con %s en el teléfono fijo no guarda nada",
+    async (telefonoFijo) => {
+      const resultado = await procesar(
+        envio({ whatsapp: "7719990131", telefonoFijo }),
+      );
+
+      expect(resultado.exito).toBe(false);
+      if (resultado.exito) return;
+      expect(resultado.estado.errores.telefonoFijo).toBe(
+        MENSAJES_ERROR_REGISTRO.telefonoFijo,
+      );
+      expect(await buscar("7719990131")).toBeNull();
+      // Y lo capturado vuelve al formulario para que lo corrija.
+      expect(resultado.estado.valores.telefonoFijo).toBe(telefonoFijo);
+    },
+  );
+
+  it("un POST crudo con teléfono fijo con separadores sí se guarda", async () => {
+    const resultado = await procesar(
+      envio({ whatsapp: "7719990132", telefonoFijo: "(775) 123-45-67" }),
+    );
+
+    expect(resultado.exito).toBe(true);
+    const creado = await prisma.negocio.findUniqueOrThrow({
+      where: { whatsapp: "7719990132" },
+    });
+    expect(creado.telefonoFijo).toBe("(775) 123-45-67");
+  });
+
   // Scenario: no se pierde lo capturado
   it("devuelve todo lo capturado (menos el checkbox) al rechazar", async () => {
     const resultado = await procesar(

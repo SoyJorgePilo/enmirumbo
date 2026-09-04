@@ -69,7 +69,7 @@ export function ConfirmacionBorrado({
           autoCapitalize="characters"
           aria-invalid={Boolean(error)}
           aria-describedby={error ? "confirmarBorrado-error" : undefined}
-          className="w-full rounded-lg border border-borde bg-fondo px-4 py-3 text-base text-tinta focus:outline-none focus:ring-2 focus:ring-accion-fuerte"
+          className="w-full rounded-lg border border-borde-control bg-fondo px-4 py-3 text-base text-tinta focus:outline-none focus:ring-2 focus:ring-accion-fuerte"
         />
         <button type="submit" className={`${CLASE_BOTON_SECUNDARIO} w-full`}>
           {BOTON_CONFIRMAR_BORRADO}

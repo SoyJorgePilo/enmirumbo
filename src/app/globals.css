@@ -19,8 +19,16 @@
   --color-fondo: #ffffff;
   /* Superficies destacadas (footer, tarjetas futuras). */
   --color-superficie: #f4f4f5;
-  /* Bordes y separadores (decorativo, no lleva texto). */
+  /* Bordes y separadores (decorativo, no lleva texto: tarjetas, encabezado,
+     pie, separadores, pastillas de navegación). Contra fondo/superficie da
+     ~1.1:1 — a propósito, es de adorno, nunca delimita un control. */
   --color-borde: #e4e4e7;
+  /* Contorno de CONTROLES de formulario (input/select/textarea/checkbox):
+     WCAG 2.1 1.4.11 (contraste no-textual) exige ≥3:1 contra el fondo sobre
+     el que se recorta el control. 4.83:1 sobre fondo, 4.40:1 sobre
+     superficie — el mismo tono que `tinta-suave` un paso más claro (zinc-500),
+     para que se note el límite del campo sin competir con el texto. */
+  --color-borde-control: #71717a;
   /* Texto principal. 17.9:1 sobre fondo, 16.3:1 sobre superficie,
      9.0:1 sobre accion. */
   --color-tinta: #171717;

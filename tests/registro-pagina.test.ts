@@ -17,8 +17,10 @@ import {
 import { VERSION_AVISO } from "../src/lib/legales/version";
 import { obtenerPrisma } from "../src/lib/prisma";
 import {
+  EJEMPLO_HORARIO,
   MENSAJES_ERROR_REGISTRO,
   MENSAJE_GRACIAS,
+  TEXTO_AYUDA_HORARIO,
   TEXTO_AVISO_PRIVACIDAD,
   TEXTO_CONSENTIMIENTO,
   TEXTO_ENLACE_AVISO_INTEGRAL,
@@ -230,6 +232,59 @@ describe("registro-negocio · campo trampa (honeypot)", () => {
     expect(contenedor).toContain('tabindex="-1"');
     expect(contenedor.toLowerCase()).toContain('autocomplete="off"');
     expect(htmlRegistro).toMatch(/left-\[-9999px\]/);
+  });
+});
+
+// Enmienda aprobada por el fundador (revisión visual lote 2), spec
+// `registro-negocio`, requirement "El servidor valida todos los campos…":
+// el teléfono fijo admite separadores, así que pide el teclado TELEFÓNICO
+// (el numérico puro no ofrece paréntesis, guion ni "+").
+describe("registro-negocio · el teclado del teléfono fijo", () => {
+  it("pide el teclado telefónico, no el numérico puro", () => {
+    const campo = htmlRegistro.split('id="telefonoFijo"')[1].split(">")[0];
+    expect(campo.toLowerCase()).toContain('inputmode="tel"');
+    expect(htmlRegistro).toMatch(/<input type="tel" id="telefonoFijo"/);
+  });
+
+  it("el WhatsApp, que es solo 10 dígitos, conserva el teclado numérico", () => {
+    const campo = htmlRegistro.split('id="whatsapp"')[1].split(">")[0];
+    expect(campo.toLowerCase()).toContain('inputmode="numeric"');
+  });
+});
+
+// Enmienda aprobada por el fundador (revisión visual lote 2), spec
+// `registro-negocio`, requirement "Campos obligatorios y opcionales del
+// formulario": el horario se explica como habla un negocio, no en abreviatura.
+describe("registro-negocio · el ejemplo y la ayuda del horario", () => {
+  // Texto tal como lo lee el dueño: React escapa las comillas simples del
+  // literal (`&#x27;`), que es lo correcto, pero estorba al comparar.
+  const comoSeLee = (html: string) =>
+    normalizado(html).replace(/&#x27;/g, "'").replace(/&quot;/g, '"');
+
+  // Scenario: el ejemplo del horario se lee como lo diría un negocio
+  it("el ejemplo dentro del campo es el literal aprobado", () => {
+    expect(EJEMPLO_HORARIO).toBe("Lunes a sábado de 9 de la mañana a 7 de la tarde");
+    const campo = htmlRegistro.split('id="horario"')[1].split(">")[0];
+    expect(campo).toContain(`placeholder="${EJEMPLO_HORARIO}"`);
+    // La abreviatura vieja ya no es lo primero que ve el dueño.
+    expect(campo).not.toContain('placeholder="ej. L-S 9am-7pm"');
+  });
+
+  it("la línea de ayuda literal va debajo del campo y siempre visible", () => {
+    expect(TEXTO_AYUDA_HORARIO).toBe(
+      "Escríbelo como se lo dirías a un cliente: 'L-S 9am-7pm', 'Todos los días de 8 a 8', 'Solo fines de semana'.",
+    );
+    expect(comoSeLee(htmlRegistro)).toContain(TEXTO_AYUDA_HORARIO);
+    // Debajo del campo: el texto aparece DESPUÉS del input en el documento.
+    const despues = comoSeLee(htmlRegistro.split('id="horario"')[1]);
+    expect(despues).toContain(TEXTO_AYUDA_HORARIO);
+  });
+
+  it("la ayuda no impone formato: el campo sigue siendo texto libre", () => {
+    expect(htmlRegistro).toMatch(/<input type="text" id="horario"/);
+    const campo = htmlRegistro.split('id="horario"')[1].split(">")[0];
+    expect(campo).not.toContain("pattern=");
+    expect(campo).not.toContain("required");
   });
 });
 

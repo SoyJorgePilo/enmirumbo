@@ -1,6 +1,6 @@
 # ADR-009 · Revisión del pipeline tras las primeras corridas registradas
 
-**Fecha:** 2026-09-04 · **Estado:** propuesta — ejecuta las dos revisiones pendientes que el propio proceso exige (`docs/proceso.md` §Medición "cada ~5 corridas" y §5 criterio de salida del experimento UI-first)
+**Fecha:** 2026-09-04 · **Estado:** aceptada (aplicada en proceso v0.5) — ejecuta las dos revisiones pendientes que el propio proceso exige (`docs/proceso.md` §Medición "cada ~5 corridas" y §5 criterio de salida del experimento UI-first)
 
 ## Contexto y problema
 
@@ -99,7 +99,7 @@ Pros: es lo que la evidencia sostiene; formaliza la causa identificable del éxi
 
 ## Cambios propuestos a proceso.md (v0.5)
 
-> Borrador del diff que ejecutaría las decisiones 1, 3 y 4. **No aplicado**: la decisión es del humano.
+> Borrador del diff que ejecuta las decisiones 1, 3 y 4. **Aplicado en `docs/proceso.md` v0.5** tras la aprobación del humano.
 
 ```diff
  # Proceso de desarrollo — NecesitoUno

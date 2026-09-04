@@ -193,6 +193,28 @@ function urlHttpNormalizada(valor: string): string | null {
 }
 
 /**
+ * ¿Lo capturado en "teléfono fijo" parece un teléfono? (enmienda aprobada por
+ * el fundador, revisión visual lote 2, spec `registro-negocio`, requirement
+ * "El servidor valida todos los campos…").
+ *
+ * Solo dígitos y los separadores con los que la gente escribe un teléfono
+ * —espacio, guion, paréntesis y `+`—, y al menos un dígito: "()" no es un
+ * teléfono. Se acepta cualquier cantidad de dígitos a propósito: el fijo de
+ * Tizayuca se escribe con y sin lada, con "01" delante y con extensión escrita
+ * de mil maneras; lo que aquí se cierra es que el campo se use como recado
+ * ("no tengo", "llámame al celu") o como vía para meter marcado.
+ *
+ * No normaliza: lo capturado se guarda tal cual lo escribió el dueño. Quién
+ * puede marcarse y quién se muestra como texto lo sigue decidiendo
+ * `construirEnlaceTelefono` en la ficha, sin cambios.
+ */
+function pareceTelefono(valor: string): boolean {
+  // Espacio literal a propósito: \s aceptaría saltos de línea, tabs y NBSP,
+  // y la regla es solo espacio, guion, paréntesis y el signo +.
+  return /^[0-9+() -]+$/.test(valor) && /[0-9]/.test(valor);
+}
+
+/**
  * Recorta espacios de todo texto libre. Se hace también aquí (no solo al
  * leer el FormData) para que la validación no dependa de quién la llame:
  * " " no es un nombre de negocio.
@@ -296,6 +318,15 @@ export function validarRegistro({
   }
 
   // ── Opcionales con regla propia ──
+  // El teléfono fijo solo admite dígitos y separadores. Se mira solo si el
+  // campo trae algo (es opcional) y si no falló ya por longitud, para no
+  // pisar ese mensaje con otro.
+  if (campos.telefonoFijo && !errores.telefonoFijo) {
+    if (!pareceTelefono(campos.telefonoFijo)) {
+      errores.telefonoFijo = MENSAJES_ERROR_REGISTRO.telefonoFijo;
+    }
+  }
+
   let facebookUrl: string | null = null;
   if (campos.facebookUrl && !errores.facebookUrl) {
     facebookUrl = urlHttpNormalizada(campos.facebookUrl);

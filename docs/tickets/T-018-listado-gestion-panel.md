@@ -1,11 +1,11 @@
 # T-018 · Listar todos los negocios en el panel para gestionarlos
 
-**Estado:** pendiente <!-- pendiente | en-spec | en-desarrollo | en-review | hecho -->
+**Estado:** en-spec <!-- pendiente | en-spec | en-desarrollo | en-review | hecho -->
 **Prioridad:** P1
 **Épica:** E3 (docs/backlog.md)
 **Referencias PRD:** §6.3
 **Depende de:** T-014
-**OpenSpec change:** —
+**OpenSpec change:** `agregar-listado-gestion-panel`
 **PR:** —
 
 ## Contexto

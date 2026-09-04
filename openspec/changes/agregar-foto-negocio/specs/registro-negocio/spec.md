@@ -130,6 +130,38 @@ El procesamiento de la imagen DEBE ocurrir **después** del campo trampa, del cu
 - **WHEN** un envío trae tres archivos en el campo de foto
 - **THEN** la ficha queda con una sola foto y de los otros dos no queda ningún archivo guardado
 
+### Requirement: El trabajo de imagen tiene un techo y el que no cabe se va con un mensaje, no a una cola
+
+> **Enmienda aprobada por el orquestador (iteración 2, hallazgo A-1 de `reports/c-seguridad.md`).** La auditoría midió que una imagen *válida* de 39.4 megapíxeles pesa 123 KB y cuesta decenas de MB de memoria al abrirse: un envío que pasa todas las defensas previas —porque está bien formado— puede tumbar el servidor por acumulación. El tope de 5 MB acota los bytes que llegan, no el trabajo que provocan.
+
+El sistema DEBE limitar cuántas fotos **abre** a la vez, con un tope fijo y pequeño, independiente de cuántas peticiones lleguen. Un envío que llega cuando el tope está ocupado NO DEBE quedarse esperando turno ni encolarse: DEBE rechazarse de inmediato, junto al campo de foto, con el texto literal "Estamos recibiendo muchas fotos, intenta de nuevo en un momento", conservando todo lo que el dueño había capturado y sin dejar ni ficha ni archivos. Preferimos pedirle a una persona que reintente en un minuto antes que dejar el directorio caído para todo el pueblo.
+
+Ese tope DEBE cubrir **solo la parte que abre la imagen original**, que es la que gasta memoria en proporción a lo que mandó el cliente. La compresión posterior —que trabaja sobre un tamaño ya acotado por el sistema— NO DEBE ocupar uno de esos lugares: si lo hiciera, un puñado de fotos deliberadamente difíciles de comprimir, enviadas a ritmo de una por segundo, dejaría el campo de foto inservible para todo el mundo de forma sostenida, y eso ya no es "un pico de tráfico, intenta en un momento" sino una negación de servicio barata. El rechazo por cupo DEBE ser un aviso ocasional en un pico real, no el estado normal del formulario.
+
+Una misma foto NO DEBE abrirse más de una vez para producir sus dos variantes: la segunda se deriva del trabajo ya hecho. Así el costo de un envío no crece con el número de tamaños ni con los reintentos de compresión.
+
+El tope de megapíxeles se mantiene en 40: es lo que deja pasar una foto de celular tomada en su modo de más resolución y que aun así quepa en 5 MB, y bajarlo rechazaría fotos legítimas sin cerrar el problema —el que lo cierra es el tope de trabajo simultáneo, porque la concurrencia es la dimensión que no estaba acotada—.
+
+#### Scenario: llegan más fotos de las que caben a la vez
+
+- **WHEN** llegan al mismo tiempo más envíos con foto de los que el servidor procesa a la vez
+- **THEN** los que caben se procesan normalmente y el resto recibe "Estamos recibiendo muchas fotos, intenta de nuevo en un momento" junto al campo de foto, sin esperar turno
+
+#### Scenario: al que no cupo no se le pierde lo escrito
+
+- **WHEN** un envío se rechaza porque el servidor estaba ocupado procesando otras fotos
+- **THEN** el formulario vuelve con todo lo que había capturado (salvo la foto, que ningún navegador repuebla), no se creó ninguna ficha y no quedó ningún archivo guardado
+
+#### Scenario: el trabajo por foto no se multiplica
+
+- **WHEN** el servidor procesa una foto y produce sus variantes de tarjeta y de ficha
+- **THEN** la imagen se abre una sola vez, y las dos variantes salen de ese único trabajo
+
+#### Scenario: fotos difíciles de comprimir no bloquean el formulario
+
+- **WHEN** alguien sostiene un envío por segundo con fotos hechas a propósito para que comprimirlas cueste
+- **THEN** un vecino que sube su foto en ese mismo rato la sube igual, sin recibir el aviso de "estamos recibiendo muchas fotos"
+
 ### Requirement: La foto se guarda comprimida, sin metadatos y con una referencia que genera el servidor
 
 Toda foto aceptada DEBE guardarse **procesada por el servidor** (PRD §6.1: "comprimida en el servidor"; ADR-006: variantes generadas al subir): el sistema DEBE producir una variante para la tarjeta del listado y otra para la ficha, redimensionadas y comprimidas, y DEBE descartar el archivo original. El resultado NO DEBE conservar ningún metadato de la imagen: en particular, ninguna variante guardada ni servida DEBE incluir EXIF con coordenadas GPS, marca del dispositivo o fecha de la toma, porque la ubicación del celular es un dato personal que el PRD §8 no publica ni siquiera cuando el negocio da su dirección.

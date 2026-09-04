@@ -59,6 +59,20 @@ Para el reemplazo en un reenvío: primero se escribe la clave nueva, luego se ac
 
 El default de Next para el cuerpo de una Server Action es 1 MB: con él, una foto de 3 MB fallaría con un error genérico antes de llegar a nuestra validación y el dueño vería un error feo en vez de "Esa foto pesa más de 5 MB…". Se sube `serverActions.bodySizeLimit` en `next.config.ts` a un valor ligeramente por encima de 5 MB (p. ej. `6mb`) para que **nuestro** mensaje sea el que se vea, y se deja el rechazo por tamaño en el servidor. Es configuración, no una puerta abierta: el tope real lo sigue poniendo la validación de 5 MB.
 
+### 6.1 El límite es global, y eso también toca al panel (iteración 2, hallazgo M-4)
+
+`serverActions.bodySizeLimit` es **de toda la aplicación**: no hay forma de fijarlo por segmento. Comprobado en la documentación de esta versión de Next (`node_modules/next/dist/docs/`): la configuración por segmento de ruta solo admite `dynamicParams`, `runtime`, `preferredRegion` y `maxDuration`, y `proxyClientMaxBodySize` —lo único parecido— es también global y solo aplica cuando hay `proxy`. Así que las acciones del panel (`entrarAlPanel`, aprobar, rechazar) pasan de admitir 1 MB a admitir 6 MB, y su comprobación de sesión corre **dentro** de la acción, es decir después de que Next haya materializado el cuerpo.
+
+Alternativa evaluada y descartada: **mover la subida de la foto a un route handler propio** y devolver el límite global a 1 MB. Se descarta porque (a) los route handlers no tienen límite de cuerpo, así que habría que reimplementar a mano el corte de 5 MB con streaming —más código y más riesgo del que se quita—; (b) obligaría a que el formulario deje de ser un `<form>` con Server Action, que es justo lo que hoy lo hace funcionar **sin JavaScript** (requirement explícito de la spec) y lo que sostiene el eco de errores por campo; y (c) el ataque que habilita no es de autorización sino de volumen, y ya está acotado por el lado que de verdad dolía (el trabajo de imagen, §6.2).
+
+**Riesgo aceptado, con su razonamiento:** un anónimo sin cookie puede hacer que el servidor bufferice hasta 6 MB por petición contra tres endpoints del panel. Es un buffer transitorio que se descarta en cuanto la guarda de sesión rechaza, no reserva memoria de imagen ni toca la base, y el acceso al panel ya tiene su propio límite de intentos. Es el mismo orden de magnitud que el formulario público, que por spec **tiene** que aceptar 5 MB. Si E0-3 aterriza en un hosting donde ese buffer importe, la salida es un límite en el proxy del proveedor (una línea de configuración), no rediseñar el formulario.
+
+### 6.2 Techo de trabajo de imagen (iteración 2, hallazgo A-1)
+
+El tope de bytes no acota el **trabajo**: una imagen válida de 39 MP pesa 123 KB y cuesta ~50 MB de memoria al abrirse. La spec suma por eso un techo de imágenes abiertas a la vez (2), sin cola: quien no cabe se va con un mensaje amable. Se acompaña de una corrección de implementación —el original se decodifica **una sola vez** y las dos variantes salen de ese mapa de píxeles, en vez de re-decodificarlo en cada escalón de la escalera de calidad—. Medido en el mismo equipo que la auditoría, con el mismo payload: 12 envíos simultáneos pasaron de **429 MB / 429 ms** a **56 MB / 90 ms**, con 2 procesados y 10 rechazados con su mensaje.
+
+El tope de megapíxeles se queda en 40 a propósito: bajarlo a 12–25 MP rechazaría fotos legítimas de celulares que disparan a máxima resolución (los sensores de 48 MP existen y su salida cabe en 5 MB si el JPEG viene comprimido), y no cierra el problema —lo cierra la concurrencia, que era la dimensión sin cota—. Con el techo puesto, el peor caso de memoria del proceso es determinista: 2 × el mapa de píxeles de 40 MP.
+
 ## 7. Alternativas descartadas
 
 - **Comprimir en el cliente** antes de subir (canvas/WebAssembly): reduce la subida en 4G, pero exige JavaScript de cliente en un formulario que hoy funciona sin él y, sobre todo, no se le puede creer al cliente — el servidor tendría que validar y recomprimir igual. Doble trabajo por una mejora que el PRD no pide.

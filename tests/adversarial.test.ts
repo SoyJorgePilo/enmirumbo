@@ -111,7 +111,7 @@ describe("adversarial: modelo de datos", () => {
   it("persiste intactas entradas hostiles (HTML, unicode raro, 10k chars) — escapar/limitar es del formulario y el render", async () => {
     const hostil = {
       nombre: '<script>alert("xss")</script> Tienda Ficticia 🌮 اليمين',
-      queOfreces: "x".repeat(10_000), // sin límite en SQLite: el máx. 200 vive en E1
+      queOfreces: "x".repeat(10_000), // la columna es TEXT sin cota: el máx. 200 vive en E1
       direccion: "Calle Ficticia '; DROP TABLE Negocio;--",
       // La columna guarda la clave que genera el servidor; el modelo no
       // valida su forma (de eso se encarga el validador de render, M1 de

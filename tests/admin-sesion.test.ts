@@ -3,13 +3,17 @@ import { createHmac } from "node:crypto";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import {
+  CUPO_ACCESO_PANEL,
   INTENTOS_ACCESO_POR_VENTANA,
   VENTANA_INTENTOS_ACCESO_MS,
   accesoBloqueado,
+  apartarIntentoDeAcceso,
   contrasenaCorrecta,
-  registrarIntentoFallido,
   reiniciarIntentosDeAcceso,
+  respaldoDeIntentosParaPruebas,
 } from "../src/lib/admin/acceso";
+import { claveDeCupo } from "../src/lib/cupos/compartido";
+import { crearClientePrueba } from "./db";
 import {
   LONGITUD_MINIMA_SECRETO,
   VARIABLE_CONTRASENA,
@@ -181,25 +185,41 @@ describe("revision-admin · límite de intentos de acceso por IP (design.md §4)
   const IP = "203.0.113.10"; // TEST-NET-3, reservado para documentación
   const OTRA_IP = "198.51.100.7"; // TEST-NET-2
 
-  beforeEach(() => reiniciarIntentosDeAcceso());
+  // ITERACIÓN 2 del change `preparar-deploy-produccion` (hallazgo A4 de la
+  // etapa C): el conteo dejó de vivir en la memoria del proceso y pasó a la
+  // base, porque en serverless cada instancia tiene su propio contador y "5
+  // intentos por instancia" no es un límite. Por eso estas pruebas ahora son
+  // asíncronas y pasan el secreto con el que se deriva la clave (nunca se
+  // guarda la IP: se guarda un HMAC).
+  const SECRETO = "secreto-de-pruebas-para-derivar-la-clave-del-cupo";
 
-  // Scenario: intentos repetidos
-  it("tras agotar los intentos, hasta la contraseña correcta queda bloqueada", () => {
-    for (let i = 0; i < INTENTOS_ACCESO_POR_VENTANA; i += 1) {
-      expect(accesoBloqueado(IP, AHORA)).toBe(false);
-      registrarIntentoFallido(IP, AHORA);
-    }
-    expect(accesoBloqueado(IP, AHORA)).toBe(true);
-    // El bloqueo es por procedencia: otra IP sigue pudiendo intentar.
-    expect(accesoBloqueado(OTRA_IP, AHORA)).toBe(false);
+  beforeEach(async () => {
+    await reiniciarIntentosDeAcceso();
   });
 
-  it("el bloqueo se suelta al pasar la ventana", () => {
+  // Scenario: intentos repetidos
+  it("tras agotar los intentos, hasta la contraseña correcta queda bloqueada", async () => {
     for (let i = 0; i < INTENTOS_ACCESO_POR_VENTANA; i += 1) {
-      registrarIntentoFallido(IP, AHORA);
+      expect(await accesoBloqueado(IP, SECRETO, AHORA)).toBe(false);
+      expect(await apartarIntentoDeAcceso(IP, SECRETO, AHORA)).toBe(true);
     }
-    expect(accesoBloqueado(IP, masTarde(VENTANA_INTENTOS_ACCESO_MS - 1))).toBe(true);
-    expect(accesoBloqueado(IP, masTarde(VENTANA_INTENTOS_ACCESO_MS + 1))).toBe(false);
+    expect(await accesoBloqueado(IP, SECRETO, AHORA)).toBe(true);
+    // Y el siguiente intento ya no encuentra margen.
+    expect(await apartarIntentoDeAcceso(IP, SECRETO, AHORA)).toBe(false);
+    // El bloqueo es por procedencia: otra IP sigue pudiendo intentar.
+    expect(await accesoBloqueado(OTRA_IP, SECRETO, AHORA)).toBe(false);
+  });
+
+  it("el bloqueo se suelta al pasar la ventana", async () => {
+    for (let i = 0; i < INTENTOS_ACCESO_POR_VENTANA; i += 1) {
+      await apartarIntentoDeAcceso(IP, SECRETO, AHORA);
+    }
+    expect(await accesoBloqueado(IP, SECRETO, masTarde(VENTANA_INTENTOS_ACCESO_MS - 1))).toBe(
+      true,
+    );
+    expect(await accesoBloqueado(IP, SECRETO, masTarde(VENTANA_INTENTOS_ACCESO_MS + 1))).toBe(
+      false,
+    );
   });
 
   it("tiene su propia ventana, distinta de la del formulario público", () => {
@@ -207,10 +227,42 @@ describe("revision-admin · límite de intentos de acceso por IP (design.md §4)
     expect(INTENTOS_ACCESO_POR_VENTANA).toBeGreaterThanOrEqual(3);
   });
 
-  it("sin IP atribuible no se bloquea a nadie (mismo criterio que T-003)", () => {
+  it("sin IP atribuible no se bloquea a nadie (mismo criterio que T-003)", async () => {
     for (let i = 0; i < INTENTOS_ACCESO_POR_VENTANA * 3; i += 1) {
-      registrarIntentoFallido(null, AHORA);
+      expect(await apartarIntentoDeAcceso(null, SECRETO, AHORA)).toBe(true);
     }
-    expect(accesoBloqueado(null, AHORA)).toBe(false);
+    expect(await accesoBloqueado(null, SECRETO, AHORA)).toBe(false);
+  });
+
+  // Lo que este change vino a arreglar: el conteo se comparte entre procesos.
+  it("lo apuntado sobrevive a que el proceso olvide su memoria", async () => {
+    for (let i = 0; i < INTENTOS_ACCESO_POR_VENTANA; i += 1) {
+      await apartarIntentoDeAcceso(IP, SECRETO, AHORA);
+    }
+    // Una instancia nueva de Vercel arranca con la memoria vacía: eso es lo
+    // que simula vaciar SOLO el respaldo en memoria.
+    respaldoDeIntentosParaPruebas().reiniciar();
+    expect(await accesoBloqueado(IP, SECRETO, AHORA)).toBe(true);
+    expect(await apartarIntentoDeAcceso(IP, SECRETO, AHORA)).toBe(false);
+  });
+
+  // Y lo que NO se guarda: la IP.
+  it("en la base no queda ninguna IP, solo una clave derivada", async () => {
+    await apartarIntentoDeAcceso(IP, SECRETO, AHORA);
+    const prisma = crearClientePrueba();
+    try {
+      const filas = await prisma.intentoDeCupo.findMany();
+      expect(filas.length).toBeGreaterThan(0);
+      for (const fila of filas) {
+        expect(fila.clave).not.toContain(IP);
+        expect(fila.clave).toMatch(/^[0-9a-f]{32}$/);
+      }
+      // La clave depende del secreto: rotarlo invalida el histórico entero.
+      expect(claveDeCupo(CUPO_ACCESO_PANEL, IP, SECRETO)).not.toBe(
+        claveDeCupo(CUPO_ACCESO_PANEL, IP, "otro-secreto-distinto"),
+      );
+    } finally {
+      await prisma.$disconnect();
+    }
   });
 });

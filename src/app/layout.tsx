@@ -2,8 +2,11 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
+import { avisarSinAlmacenDeFotosUnaVez } from "@/lib/fotos/almacen";
+import { avisarSinBaseDeDatosUnaVez } from "@/lib/prisma";
 import { metadataDelSitio } from "@/lib/seo/metadata";
 import { avisarSinUrlSitioUnaVez } from "@/lib/sitio";
+import { avisarSinSecretoDeTareasUnaVez } from "@/lib/tareas/secreto";
 
 /**
  * Metadata base del sitio (spec `layout-base`): título y descripción, la
@@ -12,10 +15,19 @@ import { avisarSinUrlSitioUnaVez } from "@/lib/sitio";
  * todas las URLs absolutas. Los valores viven en `src/lib/seo/metadata.ts`,
  * que es el mismo módulo que usan las páginas y los artefactos del sitio.
  *
- * Si el sitio corre en producción sin `SITIO_URL`, el aviso queda en el log
- * del servidor una sola vez por proceso, nunca por petición.
+ * LOS AVISOS DE ARRANQUE viven aquí, en el tronco del módulo: se ejecutan una
+ * vez al cargar la aplicación, nunca por petición. Son las cuatro cosas que en
+ * un despliegue no pueden faltar en silencio (spec `despliegue`): la URL
+ * pública, la dirección de la base —que además tiene que ir cifrada si sale de
+ * la máquina—, el secreto de las tareas programadas, sin el cual la purga de
+ * los 90 días que promete el aviso de privacidad no se ejecuta nunca, y el
+ * almacenamiento de las fotos, sin el cual el disco de la instancia se traga
+ * los archivos y el borrado ARCO deja de borrar de verdad.
  */
 avisarSinUrlSitioUnaVez();
+avisarSinBaseDeDatosUnaVez();
+avisarSinSecretoDeTareasUnaVez();
+avisarSinAlmacenDeFotosUnaVez();
 
 export const metadata: Metadata = metadataDelSitio();
 

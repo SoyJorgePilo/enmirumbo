@@ -9,6 +9,7 @@
  * enlaces que la gente ya compartió siguen abriendo su ficha.
  */
 import { slugify } from "@/lib/slug";
+import { tieneByteNulo } from "@/lib/texto";
 
 /**
  * Segmento canónico de la ficha, con el nombre actual del negocio.
@@ -34,8 +35,16 @@ export function construirSegmentoFicha(nombre: string, id: string): string {
  * trae ninguno (cadena vacía, o nada después del último guion).
  * Un segmento sin guiones se toma completo como identificador: es la forma
  * que produce `construirSegmentoFicha` cuando el nombre no deja parte legible.
+ *
+ * Un segmento con un BYTE NULO tampoco trae identificador. Ningún cuid lo
+ * lleva, así que solo puede venir de una URL fabricada a mano (`%00`); y desde
+ * que la base es PostgreSQL (change `preparar-deploy-produccion`) buscarlo
+ * abortaría la consulta con un error del motor. Filtrarlo aquí es lo que hace
+ * que esa URL siga respondiendo el mismo 404 que cualquier otra inventada, en
+ * vez de un error del servidor.
  */
 export function extraerIdDeSegmentoFicha(segmento: string): string | null {
   const id = segmento.slice(segmento.lastIndexOf("-") + 1);
-  return id === "" ? null : id;
+  if (id === "" || tieneByteNulo(id)) return null;
+  return id;
 }

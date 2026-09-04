@@ -20,7 +20,7 @@ Fixes/chores de una frase sin superficie sensible: /rapido (sin spec, con valida
 
 ## Stack y convenciones
 
-- Next.js App Router + TypeScript + Tailwind; Prisma + SQLite en dev (ADR-001).
+- Next.js App Router + TypeScript + Tailwind; Prisma + PostgreSQL en todos los entornos —dev, pruebas, CI y producción— (ADR-004, ejecutado en T-013; enmienda ADR-001). Base local con `npm run db:local`.
 - Server Components por defecto; JS de cliente solo con interacción real (meta: <2s en 4G).
 - **Todo texto de UI en español mexicano coloquial** ("Registra tu negocio", no "Crear listado").
 - Mobile-first: se diseña para celular, escritorio es adaptación.

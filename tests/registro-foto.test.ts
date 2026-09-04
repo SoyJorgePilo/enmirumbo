@@ -20,6 +20,7 @@ import {
 } from "../src/lib/registro/textos";
 import { CAMPO_TRAMPA } from "../src/lib/registro/validacion";
 import { crearClientePrueba } from "./db";
+import { almacenDeMentiras } from "./fotos-fixtures";
 import {
   archivoDeFormulario,
   bytesDeRelleno,
@@ -58,7 +59,7 @@ function almacenEspia() {
   return {
     guardadas,
     borradas,
-    almacen: {
+    almacen: almacenDeMentiras({
       async guardar(clave: string, variante: "tarjeta" | "ficha", bytes: Buffer) {
         guardadas.push(clave);
         await real.guardar(clave, variante, bytes);
@@ -68,7 +69,8 @@ function almacenEspia() {
         borradas.push(clave);
         await real.borrar(clave);
       },
-    },
+      listar: real.listar,
+    }),
   };
 }
 

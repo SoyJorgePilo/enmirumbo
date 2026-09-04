@@ -147,16 +147,256 @@ El proyecto DEBE tener un documento único, `docs/despliegue.md`, que baste para
 - **WHEN** se busca en el documento la configuración de las fotos o de la analítica
 - **THEN** encuentra la sección con la decisión tomada y la nota de que las variables las define el ticket pendiente correspondiente, no un hueco silencioso
 
-### Requirement: El documento fija dónde viven las fotos en producción
+### Requirement: Las fotos de los negocios viven en el almacenamiento del proveedor, no en el disco del hosting
 
-El documento de despliegue DEBE dejar decidido, citando ADR-006 y ADR-004, que las fotos de los negocios viven en el almacenamiento de archivos del mismo proveedor de la base de datos (Supabase Storage) y NO en el sistema de archivos del hosting, que es efímero. DEBE decir qué configuración reserva para eso y que la implementación llega con el ticket de la foto del negocio (T-008). Mientras ese ticket no se implemente, el sistema NO DEBE aceptar ni servir archivos subidos.
+> **ENMIENDA de la iteración 2** (aprobada por el orquestador tras el hallazgo A5 de la etapa C). La redacción aprobada decía: *"el documento DEBE dejar decidido […] que la implementación llega con el ticket de la foto del negocio (T-008). Mientras ese ticket no se implemente, el sistema NO DEBE aceptar ni servir archivos subidos"*. Esa premisa dejó de ser cierta **antes** de implementar el change: T-008 mergeó a `main` y el sistema sí acepta y sirve fotos, contra el sistema de archivos. Dejarlo así no era "una decisión escrita para después": era desplegar un sistema en el que **el borrado ARCO no borra** —el archivo lo escribió otra instancia, `rm` no encuentra nada, no falla, y el panel informa "borrado"— con el aviso de privacidad ya publicado. Por eso el adaptador se implementa en este change.
 
-#### Scenario: la decisión está escrita antes de que exista el código
+El sistema DEBE guardar y servir las fotos de los negocios a través de un puerto único, con un adaptador de producción que use el almacenamiento de archivos del mismo proveedor de la base de datos (Supabase Storage, ADR-006 + ADR-004) y NO el sistema de archivos del hosting, que es efímero. El adaptador de desarrollo (sistema de archivos local) DEBE seguir existiendo y DEBE ser el que se use cuando no haya configuración del proveedor.
 
-- **WHEN** se lee la sección de fotos del documento de despliegue
-- **THEN** dice dónde vivirán los archivos, por qué no en el disco del hosting, y qué ticket lo implementa
+El borrado definitivo de un negocio (ARCO, PRD §8) y la purga de los 90 días DEBEN llevarse los archivos del almacén configurado, sea cual sea. El barrido de fotos huérfanas DEBE preguntarle al mismo puerto qué hay guardado, y NO al sistema de archivos: un barrido que mira a otro sitio informa éxito sin haber revisado nada.
 
-#### Scenario: hoy no hay fotos que servir
+Una configuración del proveedor a medias NO DEBE caer al almacén local en silencio: DEBE decirlo en el log. `docs/despliegue.md` DEBE traer las variables, el paso humano de crear el bucket **privado** y por qué tiene que serlo.
 
-- **WHEN** se revisa el sistema tal como queda con este change
-- **THEN** ninguna pantalla acepta subir un archivo ni sirve archivos subidos, y el directorio sigue mostrando su marcador de foto
+#### Scenario: la foto se guarda y se sirve desde el almacenamiento del proveedor
+
+- **WHEN** el sistema corre con el almacenamiento del proveedor configurado y un negocio sube una foto
+- **THEN** los archivos quedan en ese almacenamiento y la ficha publicada los muestra, sin depender del disco de la instancia que atendió la subida
+
+#### Scenario: el borrado ARCO se lleva los archivos
+
+- **WHEN** se borra definitivamente un negocio que tenía foto
+- **THEN** sus archivos desaparecen del almacenamiento del proveedor, no solo del disco de una instancia
+
+#### Scenario: el barrido mira donde están las fotos
+
+- **WHEN** el barrido de huérfanas corre con el almacenamiento del proveedor configurado
+- **THEN** revisa lo que hay ahí; y si el almacén responde vacío mientras la base tiene fichas que dicen tener foto, NO informa éxito: avisa de que está mirando al almacén equivocado
+
+#### Scenario: configuración a medias
+
+- **WHEN** el sistema arranca con solo una de las variables del proveedor
+- **THEN** usa el almacén local y deja constancia en el log de que las fotos no sobrevivirán un despliegue y de que el borrado no borra de verdad
+
+#### Scenario: en desarrollo no hace falta cuenta
+
+- **WHEN** alguien clona el proyecto y no configura nada del proveedor
+- **THEN** las fotos van al directorio local de siempre y todo funciona igual
+
+<!--
+Los dos requirements de abajo NO venían en la spec aprobada: los agregó el
+orquestador después de la aprobación, en la sección "Encargo adicional del
+orquestador" de `proposal.md`. Se escriben aquí para que sigan siendo el
+contrato de la implementación y no una nota suelta.
+-->
+
+### Requirement: El sitio declara de dónde puede salir el JavaScript y a dónde pueden ir los datos
+
+El sitio DEBE mandar en todas sus respuestas una cabecera `Content-Security-Policy`. La política DEBE permitir el script del proveedor de analítica (`cloud.umami.is`) **y** los envíos a su recolector (`gateway.umami.is`), que son dominios distintos, y NO DEBE permitir ningún otro origen externo de scripts. DEBE cerrar el enmarcado del sitio en páginas ajenas, los plugins y el envío de formularios a otro dominio. `docs/despliegue.md` DEBE traer la política escrita y cómo verificarla contra el sitio ya desplegado.
+
+#### Scenario: la medición funciona con la política puesta
+
+- **WHEN** se abre una página pública con la analítica configurada y la CSP activa
+- **THEN** el script carga desde el dominio del proveedor y sus eventos llegan a su recolector, sin que el navegador bloquee nada
+
+#### Scenario: un script de otro origen
+
+- **WHEN** algo intenta cargar JavaScript desde un dominio que no es el del sitio ni el del proveedor declarado
+- **THEN** el navegador lo bloquea
+
+#### Scenario: la política se verifica contra el sitio, no contra el código
+
+- **WHEN** se sigue el documento de despliegue después de publicar
+- **THEN** encuentra el comando exacto para leer la cabecera del sitio en línea y qué debe decir
+
+### Requirement: El barrido de fotos huérfanas también corre solo, y se nota cuando no barre
+
+El barrido de las fotos que ya no son de ninguna ficha —datos personales que, sin ficha, quedan fuera del alcance del borrado ARCO (PRD §8)— DEBE ejecutarse sin intervención humana, con una tarea programada diaria, disparada igual que la purga: una petición HTTP al propio sistema con el secreto configurado, que sin él responde 404 y no hace nada.
+
+Cuando el barrido NO se complete —porque una de sus salvaguardas lo detuvo—, la respuesta NO DEBE ser de éxito: DEBE llevar un código de error que el programador de tareas registre como fallo, y quedar en el log como error. El comando de consola equivalente ya lo dice con su código de salida; si la versión programada contestara "todo bien", nadie se enteraría nunca y las fotos huérfanas se acumularían en silencio. El informe DEBE ser solo de conteos: ninguna clave de foto sale en la respuesta ni en el log.
+
+#### Scenario: barrido normal
+
+- **WHEN** la tarea programada llama a la ruta con el secreto correcto y el barrido se completa
+- **THEN** responde con éxito y con los conteos de lo revisado y lo borrado, sin ninguna clave de foto
+
+#### Scenario: una salvaguarda detiene el barrido
+
+- **WHEN** el barrido se detiene porque sospecha que apunta a la base equivocada
+- **THEN** la respuesta NO es de éxito, el motivo queda en el log como error y no se borra ningún archivo
+
+#### Scenario: alguien encuentra la ruta
+
+- **WHEN** cualquier persona pide esa ruta sin el secreto, o con uno equivocado
+- **THEN** recibe la misma respuesta 404 que una ruta inexistente y no se barre nada
+
+<!-- Requirements añadidos en la ITERACIÓN 2, tras los hallazgos de la etapa C. -->
+
+### Requirement: Ninguna conexión a la base sale de la máquina sin cifrar
+
+Cuando la dirección de la base de datos apunte a un host que no es la máquina donde corre el proceso, la conexión DEBE ir cifrada. El sistema NO DEBE abrir una conexión en claro hacia un servidor remoto: DEBE fallar a la vista y decir en el log qué falta, con el mismo criterio que ya usa para `SITIO_URL` y `DATABASE_URL`. El documento de despliegue NO DEBE traer ningún valor de ejemplo remoto sin cifrado, y la verificación automática DEBE reprobar si aparece uno.
+
+Para decidir si la dirección es local o remota, el sistema DEBE resolver el host **como lo resuelve el driver**, no leyendo la URL a ojo: una cadena de conexión puede llevar parámetros que cambian el destino real. Ante una dirección que no se pueda interpretar con seguridad, DEBE tratarse como remota.
+
+#### Scenario: dirección remota sin cifrado
+
+- **WHEN** el sistema arranca apuntando a una base que no está en esta máquina y la dirección no pide TLS
+- **THEN** no abre ninguna conexión, lo dice en el log nombrando lo que falta, y el mensaje no incluye la contraseña de la base
+
+#### Scenario: la dirección disfrazada de local
+
+- **WHEN** una dirección dice `localhost` en la parte visible pero el driver se conectaría a otro host
+- **THEN** el sistema la trata como remota: exige cifrado y los comandos que escriben masivamente en la base piden el permiso explícito
+
+#### Scenario: la base local no necesita cifrado
+
+- **WHEN** la dirección apunta a la máquina donde corre el proceso
+- **THEN** no se exige TLS, porque los bytes no salen del equipo
+
+### Requirement: Los límites anti-abuso que protegen credenciales se cuentan en un almacén compartido
+
+El límite de intentos de acceso al panel DEBE contarse en un almacén compartido por todas las instancias del sistema, no en la memoria de cada proceso: en un hosting serverless (ADR-007) un contador en memoria le da a quien ataca tantos intentos como instancias consiga levantar. La comprobación y el apunte DEBEN ser una sola operación atómica.
+
+Lo que se guarde NO DEBE ser la dirección IP: DEBE ser un valor derivado del que no se pueda volver atrás sin un secreto del despliegue, y DEBE borrarse en cuanto salga de la ventana del límite. Si el almacén compartido no responde, el límite DEBE seguir operando con el contador en memoria y el sistema DEBE decirlo en el log.
+
+El documento de despliegue DEBE decir, para cada límite anti-abuso, si se comparte entre instancias o no; NO DEBE afirmar que operan todos por igual.
+
+#### Scenario: los intentos sobreviven al reciclado de una instancia
+
+- **WHEN** se agotan los intentos de acceso desde una procedencia y el proceso pierde su memoria
+- **THEN** la procedencia sigue bloqueada dentro de la ventana
+
+#### Scenario: en el almacén no queda ninguna IP
+
+- **WHEN** se revisa lo que el sistema guardó al contar intentos
+- **THEN** no aparece ninguna dirección IP, sino un valor derivado con el secreto del despliegue
+
+#### Scenario: el almacén compartido no responde
+
+- **WHEN** la base no está disponible al contar un intento
+- **THEN** el límite sigue operando con el conteo en memoria de esa instancia y queda constancia en el log de que es más flojo
+
+#### Scenario: el documento no promete de más
+
+- **WHEN** alguien lee en el documento qué protege cada límite
+- **THEN** encuentra escrito cuál se comparte entre instancias y cuáles no, y qué hacer mientras tanto
+
+### Requirement: El tope de reportes por negocio aguanta peticiones simultáneas en el dialecto de producción
+
+El tope de reportes sin atender por negocio DEBE hacerse cumplir aunque lleguen envíos simultáneos desde conexiones distintas. La comprobación del tope y la escritura DEBEN ocurrir dentro de la misma transacción y serializadas por ficha; NO DEBE bastar con una sentencia condicionada, porque el nivel de aislamiento por defecto de PostgreSQL no bloquea las filas que un `COUNT` lee.
+
+#### Scenario: dos envíos simultáneos con el tope a uno
+
+- **WHEN** dos conexiones distintas intentan a la vez el reporte que completaría el tope
+- **THEN** solo una escribe, la otra recibe la misma confirmación de siempre, y el negocio queda exactamente en el tope
+
+### Requirement: El 404 de las tareas programadas no las delata
+
+Cuando una ruta de tarea programada responde como si no existiera, su respuesta NO DEBE llevar ninguna marca propia —ni cuerpo propio, ni tipo de contenido propio, ni cabeceras propias— que permita separarla del resto de las rutas del sitio en un barrido automático. DEBE ser la respuesta que el marco de trabajo da por defecto, la misma que devuelve cualquier otra ruta del sistema cuando lo que se pide no existe.
+
+> **Alcance medido, para no prometer de más.** El marco devuelve DOS 404 distintos: la página HTML completa cuando la dirección no corresponde a ninguna ruta, y una respuesta vacía cuando la ruta existe pero decide que lo pedido no está —que es lo que hacen todas las rutas de este sistema, incluida la que sirve las fotos—. Una ruta programada no puede emitir el primero: el marco no expone forma de renderizar esa página desde ahí. Lo que sí se exige, y es lo que cierra el hallazgo, es que emita EXACTAMENTE el segundo, sin nada suyo encima.
+
+#### Scenario: un escáner busca las rutas de tareas
+
+- **WHEN** alguien pide la ruta de una tarea sin el secreto
+- **THEN** recibe la misma respuesta, byte por byte, que al pedir un archivo que no existe por la ruta pública de fotos: sin cuerpo, sin tipo de contenido y sin ninguna cabecera que no ponga el marco de trabajo
+
+### Requirement: Toda respuesta del sitio lleva las cabeceras de seguridad básicas
+
+Además de la Content-Security-Policy, TODA respuesta del sitio —dinámica, estática y de error— DEBE llevar: la instrucción de no adivinar el tipo de contenido (el sitio sirve bytes subidos por usuarios), la de no dejarse enmarcar en otra página, y una política de referente que no filtre la ruta hacia otros dominios. El sitio NO DEBE anunciar en cada respuesta qué marco de trabajo usa.
+
+Una pantalla que necesite una política de referente MÁS estricta que la global DEBE poder imponerla, y la global NO DEBE anularla.
+
+#### Scenario: cualquier página del sitio
+
+- **WHEN** se pide cualquier dirección del sitio, exista o no, sea dinámica o estática
+- **THEN** la respuesta lleva las cabeceras de seguridad y no lleva ninguna que anuncie el marco de trabajo
+
+#### Scenario: el panel conserva su política estricta
+
+- **WHEN** se abre una pantalla del panel de revisión
+- **THEN** su política de referente sigue siendo la estricta que esa pantalla declara, no la global, para que la dirección de la ficha de una persona no salga como referente
+
+<!-- Requirements añadidos en la ITERACIÓN 3, tras la re-auditoría (§7). -->
+
+### Requirement: Lo que se guarda para contar cupos no se queda para siempre
+
+Las marcas que el sistema guarda para hacer cumplir un límite anti-abuso DEBEN borrarse cuando ya no sirven para contar: son datos derivados de la IP de terceros y conservarlos sin finalidad es lo que LFPDPPP art. 11 prohíbe. Borrar solo las de la clave que se vuelve a consultar NO basta: la procedencia que prueba una vez y no vuelve DEBE quedar recogida por una tarea programada.
+
+El almacén de esas marcas DEBE tener además un TECHO DE FILAS, porque la pantalla que las escribe es pública y anónima: pasado el techo, DEBEN podarse las más antiguas. El plazo de retención DEBE ser mayor que la ventana del límite más largo del sistema, para que la limpieza no debilite un cupo en silencio; la verificación automática DEBE comprobarlo.
+
+Lo que la tarea informe DEBEN ser conteos, sin ninguna clave ni ningún dato de nadie.
+
+#### Scenario: la marca que nadie vuelve a consultar
+
+- **WHEN** una procedencia gasta una marca del cupo y no vuelve nunca, y después corre la tarea programada diaria
+- **THEN** esa marca ya no está en la base
+
+#### Scenario: el techo de filas
+
+- **WHEN** el almacén de marcas supera su techo
+- **THEN** se podan las más antiguas hasta volver al techo, y las recientes se conservan
+
+#### Scenario: la limpieza no debilita ningún cupo
+
+- **WHEN** se revisa el plazo de retención frente a las ventanas de los límites en uso
+- **THEN** el plazo es mayor que la ventana más larga, así que la limpieza nunca borra una marca que todavía cuenta
+
+### Requirement: Sin almacenamiento de fotos configurado, un despliegue no cae al disco en silencio
+
+Cuando el sistema corra desplegado —el hosting dice que es producción, o la base de datos no está en la máquina que ejecuta— y no haya configuración del almacenamiento de fotos, el sistema NO DEBE usar el sistema de archivos local. DEBE decirlo en el log al arrancar y DEBE fallar a la vista al intentar guardar una foto. El alta de un negocio DEBE seguir funcionando, con el aviso que ya existe de que la foto no se guardó.
+
+El barrido de huérfanas DEBE distinguir "no hay nada guardado" de "no pude mirar": sin almacenamiento configurado NO DEBE informar éxito. El borrado definitivo (ARCO) DEBE completarse sin error, porque en ese estado no hay ningún archivo guardado que borrar.
+
+Fuera de un despliegue —la máquina de quien desarrolla— se conserva el almacén local sin configurar nada.
+
+#### Scenario: desplegado y sin configurar
+
+- **WHEN** el sistema arranca desplegado sin las variables del almacenamiento
+- **THEN** deja constancia en el log nombrando las variables que faltan, y ninguna foto se guarda en el disco de la instancia
+
+#### Scenario: el alta no se cae con la foto
+
+- **WHEN** alguien registra su negocio con foto en ese estado
+- **THEN** el registro se guarda y la persona ve el aviso de que su foto no se guardó, en vez de una ficha que promete una imagen que no existe
+
+#### Scenario: el barrido no informa éxito
+
+- **WHEN** la tarea programada del barrido corre en ese estado
+- **THEN** no responde "nada que barrer": responde con error, para que el programador de tareas lo registre
+
+#### Scenario: desarrollo sin configurar nada
+
+- **WHEN** alguien clona el proyecto y arranca en su máquina
+- **THEN** las fotos van al directorio local de siempre, sin avisos ni configuración
+
+<!-- Requirement añadido en la ITERACIÓN 4 (decisión del fundador sobre R4). -->
+
+### Requirement: El borrado definitivo se niega a decir que borró lo que no borró
+
+Cuando un negocio tenga foto y el almacenamiento no se deje alcanzar, el borrado definitivo (ARCO, PRD §8) NO DEBE ejecutarse: la fila NO DEBE tocarse y quien lo pidió DEBE recibir un mensaje que diga que **no** se borró, por qué y que se puede reintentar. Los archivos DEBEN intentarse ANTES que la fila, o en la misma unidad de trabajo; NUNCA la fila primero, porque entonces ya no hay a qué volver.
+
+Un negocio SIN foto DEBE borrarse con normalidad aunque el almacenamiento esté caído: no hay nada que alcanzar, y negarse ahí sería incumplir el borrado por una configuración que a esa ficha no le afecta.
+
+En la purga programada, un registro en ese estado DEBE contarse como no purgado —lo que hace que la tarea responda con error— y DEBE volver a intentarse en la siguiente corrida.
+
+> **Por qué, y qué se acepta a cambio.** Con la fila borrada primero, el sistema respondía "borrado" mientras la foto —un dato personal— seguía en el almacenamiento y **sin ninguna fila que la nombrara**, así que ni el barrido de huérfanas podía volver a identificarla: un derecho ejercido, con acuse de recibo, y el dato vivo. Al invertir el orden aparece el riesgo contrario —que los archivos se vayan y la fila sobreviva—, y se acepta: esa ficha se queda sin foto, que es reparable y visible, mientras que lo otro no era ninguna de las dos cosas.
+
+#### Scenario: la ficha tiene foto y el almacenamiento no responde
+
+- **WHEN** el admin confirma el borrado definitivo de una ficha con foto y el almacenamiento no se deja alcanzar
+- **THEN** la ficha sigue existiendo completa, y la pantalla dice que no se borró, que no se pudo alcanzar el almacén de fotos y que revise la configuración y vuelva a intentar
+
+#### Scenario: la ficha no tiene foto
+
+- **WHEN** se borra definitivamente una ficha sin foto y el almacenamiento está caído
+- **THEN** se borra con normalidad: no había nada que alcanzar
+
+#### Scenario: el orden de las dos operaciones
+
+- **WHEN** se borra definitivamente una ficha con foto y todo funciona
+- **THEN** los archivos se borran antes que la fila
+
+#### Scenario: la purga programada ante el mismo estado
+
+- **WHEN** la purga diaria encuentra un registro que ya cumplió los 90 días, tiene foto, y el almacenamiento no responde
+- **THEN** ese registro no se elimina, se cuenta como no purgado —la tarea responde con error— y sigue purgando los demás

@@ -28,11 +28,19 @@
  *    tampoco se borra nada sin `--forzar`. Es la que cubre el error de
  *    operación que de verdad destruye datos: apuntar a otra base POBLADA
  *    (staging, `test.db`), donde ninguna clave coincide y todo parece basura.
+ * 5. **Almacén implausible** (iteración 2, hallazgo A5 de la etapa C): si el
+ *    almacén está vacío pero la base sí tiene fichas con foto, el barrido NO
+ *    dice "nada que barrer": dice que está mirando al almacén equivocado. Es
+ *    justo lo que pasaba con el adaptador de disco en serverless —cada
+ *    instancia nueva arrancaba con el directorio vacío y el cron informaba
+ *    éxito todos los días sin haber revisado nada—.
+ *
+ * DÓNDE MIRA: se lo pregunta al PUERTO (`almacen.listar()`), no al sistema de
+ * archivos. Antes leía el directorio con `readdir`, y eso lo ataba al
+ * adaptador local: al cambiar de almacén el barrido se quedaba mirando a un
+ * sitio vacío e informando éxito.
  */
-import { readdir, stat } from "node:fs/promises";
-import path from "node:path";
-
-import { almacenDeFotos, directorioDeFotos, type AlmacenFotos } from "./almacen";
+import { almacenDeFotos, type AlmacenFotos } from "./almacen";
 import { esClaveFotoValida, VARIANTES_FOTO } from "./clave";
 
 /** Un archivo tiene que llevar escrito al menos esto para considerarse huérfano. */
@@ -57,7 +65,7 @@ export const MAXIMO_BORRADO_SIN_FORZAR = 50;
 /** Lo poco que el barrido necesita de Prisma (facilita probarlo). */
 export type ClienteBarrido = {
   negocio: {
-    count(): Promise<number>;
+    count(args?: unknown): Promise<number>;
     findMany(args: {
       where: { fotoClave: { in: string[] } };
       select: { fotoClave: true };
@@ -68,7 +76,6 @@ export type ClienteBarrido = {
 export type EntradaBarrido = {
   prisma: ClienteBarrido;
   almacen?: AlmacenFotos;
-  directorio?: string;
   /** No borra nada: solo cuenta e informa (`--dry-run`). */
   soloInformar?: boolean;
   /**
@@ -126,7 +133,6 @@ async function clavesConFicha(
 export async function barrerFotosHuerfanas({
   prisma,
   almacen = almacenDeFotos(),
-  directorio = directorioDeFotos(),
   soloInformar = false,
   forzar = false,
   ahora = new Date(),
@@ -142,14 +148,29 @@ export async function barrerFotosHuerfanas({
     mensaje: "El almacén de fotos está vacío: nada que barrer.",
   };
 
-  let nombres: string[];
-  try {
-    nombres = await readdir(directorio);
-  } catch {
-    // Todavía no existe el directorio: no hay nada guardado, no es un error.
-    return vacio;
+  const objetos = await almacen.listar();
+
+  if (objetos.length === 0) {
+    // Salvaguarda de almacén plausible (hallazgo A5): un almacén vacío es
+    // normal en un proyecto recién estrenado, y una MENTIRA en cuanto hay
+    // fichas con foto en la base. Distinguirlas es lo que impide que el cron
+    // informe éxito todos los días sin haber revisado nada.
+    const conFoto = await prisma.negocio.count({ where: { fotoClave: { not: null } } });
+    if (conFoto === 0) return vacio;
+    return {
+      barrido: false,
+      revisadas: 0,
+      huerfanas: 0,
+      borradas: 0,
+      enPeriodoDeGracia: 0,
+      ignoradas: 0,
+      noBorrables: 0,
+      mensaje:
+        `El almacén (${almacen.descripcion()}) está vacío pero ${conFoto} fichas de la base dicen ` +
+        "tener foto: no es que no haya nada que barrer, es que se está mirando al almacén equivocado " +
+        "(revisa la configuración de fotos en docs/despliegue.md §7). No se borró nada.",
+    };
   }
-  if (nombres.length === 0) return vacio;
 
   // Se agrupan las variantes por clave, y la clave solo entra a juicio cuando
   // TODOS sus archivos superan el periodo de gracia.
@@ -158,32 +179,24 @@ export async function barrerFotosHuerfanas({
   const recientes = new Set<string>();
   let ignoradas = 0;
 
-  for (const nombre of nombres) {
+  for (const { nombre, modificadoEn } of objetos) {
     const coincidencia = FORMA_ARCHIVO.exec(nombre);
     if (!coincidencia || !esClaveFotoValida(coincidencia[1])) {
+      // Lo que no tiene la forma que escribe el servidor —incluido un
+      // DIRECTORIO, que el adaptador local lista con una barra al final
+      // (artefacto de `rsync`, restauración a medias; hallazgo B-6)— se
+      // cuenta como ajeno y no se toca.
+      if (nombre.endsWith("/")) {
+        console.warn(
+          `[fotos] en el almacén hay algo que no es un archivo con nombre de foto: se ignora (${nombre})`,
+        );
+      }
       ignoradas += 1;
       continue;
     }
     const clave = coincidencia[1];
-    try {
-      const info = await stat(path.join(directorio, nombre));
-      // Solo archivos de verdad: un DIRECTORIO con nombre de variante —un
-      // artefacto de `rsync`, una restauración a medias— no es una foto, y
-      // antes reventaba la pasada entera con `EISDIR` (hallazgo B-6). Se
-      // cuenta como ajeno y se sigue.
-      if (!info.isFile()) {
-        console.warn(
-          `[fotos] en el almacén hay algo que no es un archivo con nombre de foto: se ignora (${nombre})`,
-        );
-        ignoradas += 1;
-        continue;
-      }
-      if (info.mtimeMs > limite) recientes.add(clave);
-      else maduras.add(clave);
-    } catch {
-      // Desapareció mientras mirábamos: no es nuestro problema.
-      ignoradas += 1;
-    }
+    if (modificadoEn.getTime() > limite) recientes.add(clave);
+    else maduras.add(clave);
   }
 
   for (const clave of recientes) maduras.delete(clave);
@@ -202,8 +215,8 @@ export async function barrerFotosHuerfanas({
       ignoradas,
       noBorrables: 0,
       mensaje:
-        "La base no tiene ningún negocio pero el almacén sí tiene fotos: parece la base equivocada " +
-        "(revisa DATABASE_URL y FOTOS_DIR). No se borró nada.",
+        `La base no tiene ningún negocio pero el almacén (${almacen.descripcion()}) sí tiene fotos: ` +
+        "parece la base equivocada (revisa DATABASE_URL y la configuración de fotos). No se borró nada.",
     };
   }
 
@@ -238,7 +251,7 @@ export async function barrerFotosHuerfanas({
       mensaje:
         `De ${claves.length} fotos del almacén, ${huerfanas.length} (${porcentaje}%) no tienen ficha. ` +
         "Eso no se parece a una limpieza: se parece a estar preguntándole a la base equivocada " +
-        "(revisa DATABASE_URL y FOTOS_DIR, y mira antes con --dry-run). No se borró nada. " +
+        "(revisa DATABASE_URL y la configuración de fotos, y mira antes con --dry-run). No se borró nada. " +
         "Si de verdad hay que borrarlas, vuelve a correrlo con --forzar.",
     };
   }

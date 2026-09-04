@@ -1,7 +1,6 @@
-import { readFileSync, readdirSync, rmSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { seedCatalogos } from "../prisma/seed";
@@ -9,125 +8,23 @@ import { PrismaClient } from "../src/generated/prisma/client";
 import { borrarNegocio } from "../src/lib/admin/transiciones";
 import { almacenDeFotos } from "../src/lib/fotos/almacen";
 import { generarClaveFoto, VARIANTES_FOTO } from "../src/lib/fotos/clave";
+import { clavesForaneasHacia, consultarConPrisma } from "./catalogo-db";
 import { crearClientePrueba } from "./db";
+import { almacenDeMentiras } from "./fotos-fixtures";
 
 // Spec: modelo-datos (delta `agregar-despublicar-y-borrado-arco`) ·
 // Requirements "El negocio guarda el rastro de su despublicación" y "Borrado
 // definitivo de un negocio (operación ARCO)" (tasks.md #1 y #2).
 //
+// Lo que ANTES probaba este archivo replicando migraciones a mano —que los
+// dos campos nacen nulos y que los CHECK sobreviven— vive ahora en
+// `tests/modelo-migraciones.test.ts`, contra el árbol consolidado en
+// PostgreSQL (change `preparar-deploy-produccion`, design.md §4).
+//
 // Datos 100% ficticios (repo público + LFPDPPP): serie de pruebas 771999 7xxx.
 
 const raiz = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
-const carpetaMigraciones = path.join(raiz, "prisma/migrations");
 const PREFIJO = "7719997";
-
-/** Carpetas de migración en el orden en que Prisma las aplica (por nombre). */
-function migracionesEnOrden(): string[] {
-  return readdirSync(carpetaMigraciones, { withFileTypes: true })
-    .filter((entrada) => entrada.isDirectory())
-    .map((entrada) => entrada.name)
-    .sort();
-}
-
-function sql(migracion: string): string {
-  return readFileSync(path.join(carpetaMigraciones, migracion, "migration.sql"), "utf8");
-}
-
-/** Cada sentencia de un archivo de migración, sin comentarios ni vacíos. */
-function sentencias(migracion: string): string[] {
-  return sql(migracion)
-    .split("\n")
-    .filter((linea) => !linea.trimStart().startsWith("--"))
-    .join("\n")
-    .split(";")
-    .map((sentencia) => sentencia.trim())
-    .filter((sentencia) => sentencia !== "");
-}
-
-describe("modelo-datos · migración de despublicadoEn y motivoDespublicacion", () => {
-  // Scenario: migración sobre una base con datos
-  it("se aplica sobre una base con negocios en los tres estados sin perder filas ni CHECKs", async () => {
-    const archivo = path.join(raiz, "prisma/test-migracion-despublicacion.db");
-    rmSync(archivo, { force: true });
-    const db = new PrismaClient({
-      adapter: new PrismaBetterSqlite3({
-        url: "file:./prisma/test-migracion-despublicacion.db",
-      }),
-    });
-    const ejecutar = (instruccion: string) => db.$executeRawUnsafe(instruccion);
-
-    try {
-      const [inicial, ...posteriores] = migracionesEnOrden();
-
-      // Base "vieja": solo la migración inicial, con datos ya dentro.
-      for (const instruccion of sentencias(inicial)) await ejecutar(instruccion);
-      await ejecutar(
-        `INSERT INTO "Categoria" ("nombre", "slug") VALUES ('Talleres', 'talleres')`,
-      );
-      for (const [id, nombre, whatsapp, estado] of [
-        ["viejo-publicado-2", "Taller Ficticio Uno", `${PREFIJO}001`, "publicado"],
-        ["viejo-revision-2", "Taller Ficticio Dos", `${PREFIJO}002`, "en_revision"],
-        ["viejo-rechazado-2", "Taller Ficticio Tres", `${PREFIJO}003`, "rechazado"],
-      ]) {
-        await ejecutar(
-          `INSERT INTO "Negocio" ("id","nombre","categoriaId","whatsapp","consintioAvisoEn","estado","registradoEn")
-           VALUES ('${id}','${nombre}',1,'${whatsapp}','2026-08-01 10:00:00','${estado}','2026-08-01 10:00:00')`,
-        );
-      }
-
-      // Y ahora todas las migraciones posteriores, incluida la de este change.
-      for (const migracion of posteriores) {
-        for (const instruccion of sentencias(migracion)) await ejecutar(instruccion);
-      }
-
-      const filas = await db.$queryRawUnsafe<Array<Record<string, unknown>>>(
-        'SELECT "id","nombre","estado","despublicadoEn","motivoDespublicacion" FROM "Negocio" ORDER BY "id"',
-      );
-
-      expect(filas).toHaveLength(3);
-      expect(filas.map((fila) => fila.estado).sort()).toEqual([
-        "en_revision",
-        "publicado",
-        "rechazado",
-      ]);
-      // Los dos campos nuevos quedan nulos en todas las filas que ya existían.
-      for (const fila of filas) {
-        expect(fila.despublicadoEn).toBeNull();
-        expect(fila.motivoDespublicacion).toBeNull();
-      }
-
-      // Los CHECK de estado y origen siguen vigentes después de migrar.
-      await expect(
-        ejecutar(
-          `UPDATE "Negocio" SET "estado" = 'inventado' WHERE "id" = 'viejo-publicado-2'`,
-        ),
-      ).rejects.toThrow();
-      await expect(
-        ejecutar(
-          `UPDATE "Negocio" SET "origen" = 'inventado' WHERE "id" = 'viejo-publicado-2'`,
-        ),
-      ).rejects.toThrow();
-    } finally {
-      await db.$disconnect();
-      rmSync(archivo, { force: true });
-      rmSync(`${archivo}-journal`, { force: true });
-    }
-  });
-
-  it("la migración de este change solo agrega columnas, no redefine ninguna tabla", () => {
-    const nueva = migracionesEnOrden().find((carpeta) =>
-      sql(carpeta).includes("despublicadoEn"),
-    );
-    expect(nueva, "falta la migración de despublicadoEn").toBeDefined();
-
-    const instrucciones = sentencias(nueva!);
-    for (const instruccion of instrucciones) {
-      expect(instruccion.toUpperCase()).toMatch(/^ALTER TABLE "NEGOCIO" ADD COLUMN/);
-    }
-    expect(instrucciones.join(" ")).toContain("despublicadoEn");
-    expect(instrucciones.join(" ")).toContain("motivoDespublicacion");
-  });
-});
 
 describe("modelo-datos · rastro de la despublicación en el cliente Prisma", () => {
   let prisma: PrismaClient;
@@ -229,24 +126,16 @@ describe("modelo-datos · toda relación hacia Negocio borra en cascada", () => 
    */
   // Scenario: ninguna relación bloquea el borrado
   it("ninguna clave foránea hacia Negocio se declara sin ON DELETE CASCADE", async () => {
-    const tablas = await prisma.$queryRawUnsafe<Array<{ name: string }>>(
-      `SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name <> '_prisma_migrations'`,
-    );
-    expect(tablas.length).toBeGreaterThan(0);
+    const claves = await clavesForaneasHacia(consultarConPrisma(prisma), "Negocio");
+    expect(claves.length).toBeGreaterThan(0);
 
     const hacia: string[] = [];
-    for (const { name } of tablas) {
-      const claves = await prisma.$queryRawUnsafe<
-        Array<{ table: string; on_delete: string; from: string }>
-      >(`PRAGMA foreign_key_list("${name}")`);
-      for (const clave of claves) {
-        if (clave.table !== "Negocio") continue;
-        hacia.push(`${name}.${clave.from}`);
-        expect(
-          clave.on_delete.toUpperCase(),
-          `${name}.${clave.from} apunta a Negocio sin cascada`,
-        ).toBe("CASCADE");
-      }
+    for (const clave of claves) {
+      hacia.push(`${clave.tabla}.${clave.columna}`);
+      expect(
+        clave.alBorrar.toUpperCase(),
+        `${clave.tabla}.${clave.columna} apunta a Negocio sin cascada`,
+      ).toBe("CASCADE");
     }
 
     // La relación implícita con los giros y —desde que T-011 fusionó— la de
@@ -278,7 +167,7 @@ describe("modelo-datos · toda relación hacia Negocio borra en cascada", () => 
 
     expect(await prisma.negocio.findUnique({ where: { id: creado.id } })).toBeNull();
     const vinculos = await prisma.$queryRawUnsafe<Array<{ B: string }>>(
-      `SELECT "B" FROM "_GiroToNegocio" WHERE "B" = ?`,
+      `SELECT "B" FROM "_GiroToNegocio" WHERE "B" = $1`,
       creado.id,
     );
     expect(vinculos).toEqual([]);
@@ -399,13 +288,11 @@ describe("modelo-datos · toda relación hacia Negocio borra en cascada", () => 
     });
 
     let borradas = 0;
-    const almacenEspia = {
-      guardar: async () => {},
-      leer: async () => null,
+    const almacenEspia = almacenDeMentiras({
       borrar: async () => {
         borradas += 1;
       },
-    };
+    });
 
     expect(await borrarNegocio(prisma, creado.id, almacenEspia)).toEqual({
       resultado: "borrado",

@@ -20,3 +20,25 @@ const MARCAS_COMBINANTES = /[\u0300-\u036f]/g;
 export function quitarAcentos(texto: string): string {
   return texto.normalize("NFD").replace(MARCAS_COMBINANTES, "");
 }
+
+/**
+ * El byte nulo, que PostgreSQL NO puede guardar en una columna de texto:
+ * intentarlo aborta la consulta con `invalid byte sequence for encoding UTF8`.
+ *
+ * En SQLite sí cabía, así que hasta el change `preparar-deploy-produccion`
+ * este carácter no era más que un dato raro. Ahora, si llega a una consulta,
+ * la reventaría: una URL con `%00` devolvería un error del servidor en vez de
+ * un 404, y un comentario pegado con basura tumbaría el envío. Por eso se
+ * trata en el BORDE —donde entra el dato— y no cerca de la base.
+ */
+const BYTE_NULO = String.fromCharCode(0);
+
+/** ¿Este texto trae un byte nulo? Ninguno legítimo lo lleva. */
+export function tieneByteNulo(texto: string): boolean {
+  return texto.includes(BYTE_NULO);
+}
+
+/** El mismo texto sin bytes nulos. Nada legítimo se pierde por el camino. */
+export function sinBytesNulos(texto: string): string {
+  return texto.split(BYTE_NULO).join("");
+}

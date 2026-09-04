@@ -706,7 +706,9 @@ describe("adversarial · registro de negocios", () => {
     const conFalla: ClienteRegistro = {
       categoria: {
         findMany: async () => {
-          throw new Error("SQLITE_CANTOPEN: unable to open /ruta/interna/prisma/dev.db");
+          throw new Error(
+            'connect ECONNREFUSED 10.0.0.7:5432 (database "necesitouno_interna")',
+          );
         },
       },
       colonia: prisma.colonia,
@@ -722,7 +724,7 @@ describe("adversarial · registro de negocios", () => {
     if (resultado.exito) return;
     expect(resultado.estado.errores.general).toBe(MENSAJES_ERROR_REGISTRO.servidor);
     const logueado = error.mock.calls.flat().join(" ");
-    expect(logueado).not.toMatch(/SQLITE_CANTOPEN|ruta\/interna|7719992100|Adversaria/);
+    expect(logueado).not.toMatch(/ECONNREFUSED|10\.0\.0\.7|necesitouno_interna|7719992100|Adversaria/);
     expect(await buscar("7719992100")).toBeNull();
   });
 

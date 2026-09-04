@@ -649,7 +649,7 @@ describe("revision-admin · borrado definitivo (ARCO)", () => {
 
     expect(await prisma.negocio.findUnique({ where: { id: creado.id } })).toBeNull();
     const vinculos = await prisma.$queryRawUnsafe<Array<{ B: string }>>(
-      `SELECT "B" FROM "_GiroToNegocio" WHERE "B" = ?`,
+      `SELECT "B" FROM "_GiroToNegocio" WHERE "B" = $1`,
       creado.id,
     );
     expect(vinculos).toEqual([]);
@@ -731,7 +731,7 @@ describe("revision-admin · un borrado a mitad de la aprobación no revienta la 
     expect(resultado).toEqual({ resultado: "no-encontrado" });
     expect(await prisma.negocio.findUnique({ where: { id: creado.id } })).toBeNull();
     const vinculos = await prisma.$queryRawUnsafe<Array<{ B: string }>>(
-      `SELECT "B" FROM "_GiroToNegocio" WHERE "B" = ?`,
+      `SELECT "B" FROM "_GiroToNegocio" WHERE "B" = $1`,
       creado.id,
     );
     expect(vinculos).toEqual([]);
@@ -759,5 +759,85 @@ describe("revision-admin · un borrado a mitad de la aprobación no revienta la 
         AHORA,
       ),
     ).rejects.toThrow("la base se cayó");
+  });
+});
+
+// ── El borrado ARCO se niega a mentir (iteración 4, hallazgo R4) ───────────
+
+describe("revision-admin · borrar con el almacén de fotos inalcanzable", () => {
+  const almacenCaido = () => ({
+    guardar: () => Promise.reject(new Error("EACCES")),
+    leer: () => Promise.resolve(null),
+    borrar: () => Promise.reject(new Error("EACCES: el almacén no responde")),
+    listar: () => Promise.reject(new Error("EACCES")),
+    descripcion: () => "almacén caído de mentiras",
+  });
+
+  /**
+   * Decisión del fundador sobre R4: *el borrado se niega a mentir*. Si la ficha
+   * tiene foto y el almacén no se deja alcanzar, la fila NO se toca y el panel
+   * lo dice, en vez de responder "borrado" con la foto —un dato personal—
+   * todavía en el almacén y sin ninguna fila que la nombre.
+   */
+  it("no borra la fila y devuelve 'almacen-inalcanzable'", async () => {
+    const creado = await altaPublicada();
+    await prisma.negocio.update({
+      where: { id: creado.id },
+      data: { fotoClave: "c".repeat(32) },
+    });
+
+    expect(await borrarNegocio(prisma, creado.id, almacenCaido())).toEqual({
+      resultado: "almacen-inalcanzable",
+    });
+    // Lo importante: la ficha sigue completa, para reintentar.
+    const sigue = await prisma.negocio.findUnique({ where: { id: creado.id } });
+    expect(sigue).not.toBeNull();
+    expect(sigue!.fotoClave).toBe("c".repeat(32));
+  });
+
+  it("una ficha sin foto sí se borra aunque el almacén esté caído", async () => {
+    const creado = await altaPublicada();
+
+    expect(await borrarNegocio(prisma, creado.id, almacenCaido())).toEqual({
+      resultado: "borrado",
+    });
+    expect(await prisma.negocio.findUnique({ where: { id: creado.id } })).toBeNull();
+  });
+
+  it("los archivos se borran ANTES que la fila, no después", async () => {
+    // El orden es lo que hace posible negarse: con la fila borrada primero, ya
+    // no habría a qué volver. Se comprueba en el camino real, apuntando cuándo
+    // ocurre cada cosa.
+    const creado = await altaPublicada();
+    await prisma.negocio.update({
+      where: { id: creado.id },
+      data: { fotoClave: "d".repeat(32) },
+    });
+
+    const orden: string[] = [];
+    const espia = {
+      guardar: async () => {},
+      leer: async () => null,
+      borrar: async () => {
+        orden.push("archivos");
+      },
+      listar: async () => [],
+      descripcion: () => "espía",
+    };
+    const clienteEspia = {
+      ...prisma,
+      negocio: {
+        findUnique: (args: unknown) => prisma.negocio.findUnique(args as never),
+        deleteMany: (args: unknown) => {
+          orden.push("fila");
+          return prisma.negocio.deleteMany(args as never);
+        },
+      },
+    } as unknown as typeof prisma;
+
+    expect(await borrarNegocio(clienteEspia, creado.id, espia)).toEqual({
+      resultado: "borrado",
+    });
+    expect(orden).toEqual(["archivos", "fila"]);
   });
 });

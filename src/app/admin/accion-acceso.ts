@@ -17,10 +17,9 @@ import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import {
-  accesoBloqueado,
+  apartarIntentoDeAcceso,
   avisarSiElLimiteDeAccesoNoAplica,
   contrasenaCorrecta,
-  registrarIntentoFallido,
 } from "@/lib/admin/acceso";
 import { leerConfiguracionPanel, motivoSinConfigurar } from "@/lib/admin/config";
 import { RUTA_ACCESO_ADMIN, RUTA_COLA_ADMIN, sirviendoPorHttps } from "@/lib/admin/guarda";
@@ -48,9 +47,18 @@ export async function entrarAlPanel(formData: FormData): Promise<void> {
   const ip = ipDeEncabezados(encabezados);
   avisarSiElLimiteDeAccesoNoAplica(ip);
 
-  // El bloqueo va ANTES de comparar: agotados los intentos, ni la contraseña
-  // correcta abre el panel dentro de la ventana.
-  if (accesoBloqueado(ip)) {
+  // El intento se aparta ANTES de comparar, y en un solo paso atómico: si la
+  // procedencia agotó su margen, ni la contraseña correcta abre el panel
+  // dentro de la ventana. Preguntar primero y apuntar después deja una ventana
+  // por la que se cuelan las peticiones simultáneas, que es exactamente lo que
+  // hace una herramienta de fuerza bruta.
+  //
+  // Se apunta SIEMPRE, no solo cuando la contraseña falla: el atacante controla
+  // cuántas veces prueba, no si acierta, y contar solo los fallos le regala un
+  // intento gratis por cada acierto. Al admin que teclea bien a la primera no
+  // le cuesta nada: entra y la ventana se olvida sola.
+  const hayMargen = await apartarIntentoDeAcceso(ip, configuracion.secreto);
+  if (!hayMargen) {
     console.warn("[panel] acceso rechazado: demasiados intentos desde esta procedencia");
     redirect(`${RUTA_ACCESO_ADMIN}?error=intentos`);
   }
@@ -59,7 +67,6 @@ export async function entrarAlPanel(formData: FormData): Promise<void> {
   const intento = typeof enviado === "string" ? enviado : "";
 
   if (!contrasenaCorrecta(intento, configuracion.contrasena)) {
-    registrarIntentoFallido(ip);
     console.warn("[panel] acceso rechazado: contraseña incorrecta");
     redirect(`${RUTA_ACCESO_ADMIN}?error=incorrecta`);
   }

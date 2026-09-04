@@ -14,10 +14,8 @@
  * y no toca ningún otro campo del negocio. También sirve de reparación si
  * algún día un camino de escritura se olvida de mantenerlas.
  */
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
-
-import { PrismaClient } from "../src/generated/prisma/client";
 import { datosDeBusqueda } from "../src/lib/busqueda";
+import { crearClienteDeScript } from "./cliente-script";
 import {
   type EntornoScriptDb,
   apuntaABaseLocal,
@@ -65,7 +63,7 @@ export function motivoParaNoRellenar(env: EntornoBackfill): string | null {
 
   const donde = enProduccion
     ? "Estás en un entorno de producción"
-    : "DATABASE_URL no apunta a un archivo SQLite local (ADR-001)";
+    : "DATABASE_URL no apunta a una base PostgreSQL de esta máquina (ADR-004)";
   return (
     `${donde} y este comando reescribe el texto de búsqueda de TODOS los negocios ` +
     "de esa base. No se cambió nada. Si de verdad quieres rellenar esa base " +
@@ -153,10 +151,7 @@ if (ejecutadoDirecto) {
   } catch {
     // Sin .env: se usa la base de dev por default, igual que prisma7.config.ts.
   }
-  const adapter = new PrismaBetterSqlite3({
-    url: process.env.DATABASE_URL ?? "file:./prisma/dev.db",
-  });
-  const prisma = new PrismaClient({ adapter });
+  const prisma = crearClienteDeScript();
   rellenarTextoDeBusqueda(prisma)
     .then((resultado) => {
       console.log(resultado.mensaje);

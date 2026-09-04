@@ -155,3 +155,25 @@ export function archivoDeFormulario(
 ): File {
   return new File([new Uint8Array(bytes)], nombre, { type: tipo });
 }
+
+/**
+ * Un almacén de fotos DE MENTIRAS, con las cinco operaciones del puerto.
+ *
+ * Existe desde la iteración 2 del change `preparar-deploy-produccion`: al
+ * ganar el puerto `listar()` y `descripcion()` —para que el barrido de
+ * huérfanas no leyera el disco por su cuenta y funcionara con cualquier
+ * almacén—, cada objeto de mentiras repartido por la suite tenía que crecer
+ * igual. Se declara una vez y cada prueba sustituye lo que le importa.
+ */
+export function almacenDeMentiras(
+  parcial: Partial<import("../src/lib/fotos/almacen").AlmacenFotos> = {},
+): import("../src/lib/fotos/almacen").AlmacenFotos {
+  return {
+    guardar: async () => {},
+    leer: async () => null,
+    borrar: async () => {},
+    listar: async () => [],
+    descripcion: () => "almacén de mentiras",
+    ...parcial,
+  };
+}

@@ -26,6 +26,7 @@ import {
   ESTADO_NEGOCIO_RECHAZADO,
   type OrigenNegocio,
 } from "@/lib/negocio";
+import { sinBytesNulos } from "@/lib/texto";
 
 /** Máximo de giros que el admin puede asignar al aprobar (PRD §6.3). */
 export const LIMITE_GIROS = 3;
@@ -79,7 +80,13 @@ export type ResultadoDespublicacion =
 export type ResultadoBorrado =
   | { resultado: "borrado" }
   /** Ese identificador ya no existe: el borrado es idempotente, no lanza. */
-  | { resultado: "ya-no-existe" };
+  | { resultado: "ya-no-existe" }
+  /**
+   * La ficha tiene foto y el almacén no se dejó alcanzar, así que NO se borró
+   * nada (iteración 4, hallazgo R4: el borrado se niega a mentir). No es un
+   * error del admin ni de la ficha: es configuración, y se puede reintentar.
+   */
+  | { resultado: "almacen-inalcanzable" };
 
 /** Lo poco que estas transiciones necesitan de Prisma (facilita probarlas). */
 export type ClienteTransiciones = {
@@ -244,7 +251,11 @@ export async function rechazarRegistro(
   if (!actual) return { resultado: "no-encontrado" };
   if (actual.estado !== ESTADO_NEGOCIO_DEFAULT) return { resultado: "ya-resuelto" };
 
-  const motivoLimpio = motivo.trim().slice(0, LIMITE_MOTIVO_RECHAZO);
+  // El byte nulo se cae aquí, en el borde (hallazgo M4 de la etapa C):
+  // PostgreSQL no lo admite en una columna de texto, la Server Action que
+  // llama a esto no envuelve la llamada en `try`, y el resultado sería un HTTP
+  // 500 en el panel con la transición sin hacer y el admin sin saber por qué.
+  const motivoLimpio = sinBytesNulos(motivo).trim().slice(0, LIMITE_MOTIVO_RECHAZO);
   if (motivoLimpio === "") return { resultado: "error", error: "motivo" };
 
   const { count } = await prisma.negocio.updateMany({
@@ -293,7 +304,8 @@ export async function despublicarFicha(
   if (!actual) return { resultado: "no-encontrado" };
   if (actual.estado !== ESTADO_NEGOCIO_PUBLICADO) return { resultado: "ya-no-publicada" };
 
-  const motivoLimpio = motivo.trim();
+  // Mismo borde que el motivo de rechazo (hallazgo M4 de la etapa C).
+  const motivoLimpio = sinBytesNulos(motivo).trim();
   if (motivoLimpio === "") return { resultado: "error", error: "motivo" };
   // Se cuenta por puntos de código, no por unidades UTF-16: un motivo con
   // emojis no puede valer el doble de lo que se ve escrito en la pantalla.
@@ -334,11 +346,16 @@ export async function despublicarFicha(
  * y las variantes de su imagen viven en el almacén. Ese punto de integración
  * —que este change dejó documentado y exigido por un test mientras T-008 no
  * mergeaba— **ya está activo**: esta función delega en
- * `borrarNegocioDefinitivamente`, que lee la clave, borra la fila y en seguida
- * se lleva los archivos. Se delega en vez de repetir el borrado aquí porque
- * dos hard deletes distintos es exactamente la forma de que uno de los dos se
- * olvide de la foto; el que sobrevive es el que ya declara la spec de
+ * `borrarNegocioDefinitivamente`, que lee la clave, **se lleva los archivos y
+ * sólo entonces borra la fila**. Se delega en vez de repetir el borrado aquí
+ * porque dos hard deletes distintos es exactamente la forma de que uno de los
+ * dos se olvide de la foto; el que sobrevive es el que ya declara la spec de
  * `modelo-datos` y al que apunta `src/lib/fotos/huerfanas.ts`.
+ *
+ * Y de ahí sale el tercer desenlace (iteración 4, hallazgo R4): si la ficha
+ * tiene foto y el almacén no se deja alcanzar, **no se borra nada** y el panel
+ * lo dice. Antes la fila se iba igual y la respuesta era "borrado", con la
+ * foto todavía en el almacén y sin ninguna fila que la nombre.
  *
  * Lo único que esta capa agrega es el resultado discriminado que el panel
  * necesita para elegir su literal.
@@ -350,7 +367,8 @@ export async function borrarNegocio(
 ): Promise<ResultadoBorrado> {
   if (!id) return { resultado: "ya-no-existe" };
 
-  const borrado = await borrarNegocioDefinitivamente(prisma, id, almacen);
+  const desenlace = await borrarNegocioDefinitivamente(prisma, id, almacen);
 
-  return borrado ? { resultado: "borrado" } : { resultado: "ya-no-existe" };
+  if (desenlace === "almacen-inalcanzable") return { resultado: "almacen-inalcanzable" };
+  return desenlace === "borrado" ? { resultado: "borrado" } : { resultado: "ya-no-existe" };
 }

@@ -29,6 +29,7 @@ import {
   MENSAJES_ERROR_REGISTRO,
 } from "../src/lib/registro/textos";
 import { CAMPO_TRAMPA } from "../src/lib/registro/validacion";
+import { consultarConPrisma, declaracionDeColumnas } from "./catalogo-db";
 import { crearClientePrueba } from "./db";
 
 // Etapa C (seguridad) del change `versionar-aviso-privacidad`: tests
@@ -637,19 +638,46 @@ describe("adversarial · el guardián de la huella no se evade", () => {
     expect(versionAvisoEsPosterior(VERSION_AVISO, "0")).toBe(true);
   });
 
-  it("la migración no le inventa una versión a ninguna ficha vieja", () => {
-    // Nulo significa "no consta". Un `UPDATE` de relleno convertiría la
-    // migración en la primera fuente de constancias falsas.
-    const carpeta = path.join(raiz, "prisma/migrations");
-    const migracion = readdirSync(carpeta)
-      .filter((nombre) => nombre.includes("version_del_aviso"))
-      .at(0);
-    expect(migracion, "falta la migración de la versión del aviso").toBeDefined();
-    const sql = readFileSync(path.join(carpeta, migracion!, "migration.sql"), "utf8");
+  it("la migración no le inventa una versión a ninguna ficha vieja", async () => {
+    // Nulo significa "no consta". Un relleno de la migración convertiría al
+    // árbol en la primera fuente de constancias falsas.
+    //
+    // Se le pregunta a LA BASE ya migrada y no al archivo: desde que el árbol
+    // se rehizo consolidado en PostgreSQL (change `preparar-deploy-produccion`,
+    // design.md §4) no hay "la migración de la versión" que leer, y lo que
+    // importa nunca fue el texto del SQL sino cómo quedaron las columnas.
+    const db = crearClientePrueba();
+    let columnas;
+    try {
+      columnas = await declaracionDeColumnas(consultarConPrisma(db), "Negocio");
+    } finally {
+      await db.$disconnect();
+    }
+    const porNombre = new Map(columnas.map((columna) => [columna.nombre, columna]));
 
-    expect(sql).not.toMatch(/\bUPDATE\b/i);
-    expect(sql).not.toMatch(/\bDEFAULT\b/i);
-    expect(sql).not.toMatch(/\bNOT NULL\b/i);
+    for (const nombre of [
+      "consintioAvisoVersion",
+      "reconsintioAvisoEn",
+      "reconsintioAvisoVersion",
+    ]) {
+      const columna = porNombre.get(nombre);
+      expect(columna, nombre).toBeDefined();
+      expect(columna!.esNulable, nombre).toBe(true);
+      expect(columna!.valorPorDefecto, nombre).toBeNull();
+    }
+
+    // Y ninguna migración del árbol escribe en ninguna fila: solo hay DDL.
+    // (Se quitan los comentarios y se busca `UPDATE` a principio de sentencia,
+    // porque `ON UPDATE CASCADE` de las claves foráneas no es una escritura.)
+    const carpeta = path.join(raiz, "prisma/migrations");
+    for (const entrada of readdirSync(carpeta, { withFileTypes: true })) {
+      if (!entrada.isDirectory()) continue;
+      const sql = readFileSync(path.join(carpeta, entrada.name, "migration.sql"), "utf8")
+        .split("\n")
+        .filter((linea) => !linea.trimStart().startsWith("--"))
+        .join("\n");
+      expect(sql, entrada.name).not.toMatch(/^\s*UPDATE\b/im);
+    }
   });
 });
 

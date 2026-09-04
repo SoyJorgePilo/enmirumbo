@@ -127,6 +127,18 @@ export const TEXTO_MEJOR_NO_REGRESAR = "Mejor no, regresar";
 export const ERROR_PALABRA_BORRAR = "Para borrar, escribe BORRAR en el campo.";
 export const MENSAJE_BORRADO_HECHO = "Ya se borró para siempre.";
 export const MENSAJE_YA_NO_EXISTE = "Esta ficha ya no existe.";
+/**
+ * La ficha tiene foto y el almacén no se dejó alcanzar, así que NO se borró
+ * nada (iteración 4 del change `preparar-deploy-produccion`, hallazgo R4;
+ * decisión del fundador: el borrado se niega a mentir).
+ *
+ * Dice las tres cosas que el admin necesita, en ese orden: qué NO pasó, por
+ * qué, y qué hacer. No dice "error" ni nombra variables de entorno: quien lee
+ * esta pantalla está atendiendo una solicitud ARCO por WhatsApp, no depurando
+ * un despliegue.
+ */
+export const MENSAJE_BORRADO_SIN_ALMACEN =
+  "La ficha no se borró: no pude alcanzar el almacén de fotos. Revisa la configuración y vuelve a intentar.";
 /** Palabra exacta que el admin debe teclear (se compara sin mayúsculas ni
  * espacios de sobra — design.md §4). Vive aquí para que el formulario y la
  * futura Server Action del dev usen la misma constante. */

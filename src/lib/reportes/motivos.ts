@@ -5,7 +5,7 @@
  * 'Reportar este negocio', los motivos coloquiales, y SIN opción 'Otro'").
  *
  * Los valores (`cerrado`, `no_real`, ...) son los que se guardan en la base
- * (columna de texto con CHECK, ADR-001: SQLite no tiene enums) y son
+ * (columna de texto con CHECK escrita a mano en la migración) y son
  * ESTABLES: cambiar la etiqueta que ve el vecino no obliga a migrar datos.
  * Mismo patrón que `src/lib/negocio.ts` con `estado`/`origen`.
  *

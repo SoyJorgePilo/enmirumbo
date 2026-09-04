@@ -158,8 +158,13 @@ export async function obtenerColoniaPorSlug(
 /**
  * Negocios publicados de una categoría, opcionalmente filtrados por una
  * colonia del catálogo. Orden: los publicados más recientemente primero y, a
- * igualdad, por nombre (requirement del listado; SQLite deja los `publicadoEn`
- * nulos al final en orden descendente).
+ * igualdad, por nombre (requirement del listado).
+ *
+ * Solo entran fichas `publicado`, que siempre traen `publicadoEn` (se lo pone
+ * la aprobación del panel), así que el orden de los nulos no aplica. Se anota
+ * porque el dialecto cambió y con él la respuesta: PostgreSQL pone los nulos
+ * PRIMERO en un `DESC` (SQLite los ponía al final). Si algún día una ficha
+ * publicada pudiera quedarse sin fecha, esa ficha encabezaría el listado.
  */
 export async function obtenerNegociosPublicados(
   categoriaSlug: string,

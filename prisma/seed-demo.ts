@@ -15,7 +15,6 @@
  * Idempotente por número de WhatsApp (`upsert`), así que correrlo dos veces
  * deja la base igual.
  */
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 import sharp from "sharp";
 
 import { PrismaClient } from "../src/generated/prisma/client";
@@ -24,6 +23,7 @@ import { almacenDeFotos, type AlmacenFotos } from "../src/lib/fotos/almacen";
 import { esClaveFotoValida, generarClaveFoto } from "../src/lib/fotos/clave";
 import { procesarFoto } from "../src/lib/fotos/procesar";
 import { VERSION_AVISO } from "../src/lib/legales/version";
+import { crearClienteDeScript } from "./cliente-script";
 import type { EstadoNegocio } from "../src/lib/negocio";
 import {
   type EntornoScriptDb,
@@ -326,7 +326,7 @@ export function motivoParaNoSembrar(env: EntornoSeedDemo): string | null {
   }
   if (!apuntaABaseLocal(env) && normalizar(env.SEED_DEMO_PERMITIR) !== "1") {
     return (
-      "DATABASE_URL no apunta a un archivo SQLite local (ADR-001) y este comando siembra " +
+      "DATABASE_URL no apunta a una base PostgreSQL de esta máquina (ADR-004) y este comando siembra " +
       "negocios de mentira: podría contaminar la base de verdad. No se creó nada. " +
       `Si de verdad quieres sembrar esa base, vuelve a correrlo con ${VARIABLE_PERMISO_SEED_DEMO}=1.`
     );
@@ -517,10 +517,7 @@ if (ejecutadoDirecto) {
   } catch {
     // Sin .env: se usa la base de dev por default, igual que prisma7.config.ts.
   }
-  const adapter = new PrismaBetterSqlite3({
-    url: process.env.DATABASE_URL ?? "file:./prisma/dev.db",
-  });
-  const prisma = new PrismaClient({ adapter });
+  const prisma = crearClienteDeScript();
   sembrarNegociosDemo(prisma)
     .then((resultado) => {
       console.log(resultado.mensaje);

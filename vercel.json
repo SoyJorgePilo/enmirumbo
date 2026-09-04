@@ -1,0 +1,13 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "crons": [
+    {
+      "path": "/api/tareas/purgar-rechazados",
+      "schedule": "17 9 * * *"
+    },
+    {
+      "path": "/api/tareas/barrer-fotos-huerfanas",
+      "schedule": "47 9 * * *"
+    }
+  ]
+}

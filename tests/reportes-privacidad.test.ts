@@ -14,6 +14,7 @@ import { construirSegmentoFicha } from "../src/lib/ficha-url";
 import { crearReporte } from "../src/lib/reportes/crear";
 import { reiniciarCupoDeReportes } from "../src/lib/reportes/limite";
 import { ETIQUETA_MOTIVO_REPORTE, MOTIVOS_REPORTE } from "../src/lib/reportes/motivos";
+import { columnasDeTabla, consultarConPrisma } from "./catalogo-db";
 import { crearClientePrueba } from "./db";
 
 // Spec: directorio-publico · Requirements "Del reportante no se pide ni se
@@ -109,9 +110,7 @@ afterEach(() => vi.restoreAllMocks());
 describe("privacidad · la tabla no puede guardar nada del reportante", () => {
   // Scenario: nada del reportante en el esquema
   it("ninguna columna del modelo huele a identidad de quien reportó", async () => {
-    const columnas = (
-      await prisma.$queryRawUnsafe<Array<{ name: string }>>('PRAGMA table_info("Reporte")')
-    ).map((columna) => columna.name);
+    const columnas = await columnasDeTabla(consultarConPrisma(prisma), "Reporte");
 
     expect(columnas).toHaveLength(7);
     for (const prohibida of [
@@ -132,7 +131,13 @@ describe("privacidad · la tabla no puede guardar nada del reportante", () => {
 
   it("el modelo del schema tampoco declara ninguna", () => {
     const schema = readFileSync(join(raiz, "prisma/schema.prisma"), "utf8");
-    const modelo = schema.slice(schema.indexOf("model Reporte"));
+    // Solo el bloque de ESTE modelo: cortar hasta el final del archivo hacía
+    // que cualquier modelo declarado después (desde la iteración 2 del change
+    // `preparar-deploy-produccion`, el de los cupos anti-abuso) contara como
+    // si fuera del reporte.
+    const desde = schema.indexOf("model Reporte");
+    const modelo = schema.slice(desde, schema.indexOf("\n}", desde) + 2);
+    expect(modelo).toContain("negocioId");
     expect(modelo).toContain("motivo");
     expect(modelo).not.toMatch(/\bip\b|userAgent|huella|reportante|correo|telefono/i);
   });

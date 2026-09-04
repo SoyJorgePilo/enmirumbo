@@ -329,7 +329,7 @@ describe("modelo Negocio", () => {
       },
     });
 
-    expect(await borrarNegocioDefinitivamente(prisma, id, almacen)).toBe(true);
+    expect(await borrarNegocioDefinitivamente(prisma, id, almacen)).toBe("borrado");
 
     expect(await prisma.negocio.findUnique({ where: { id } })).toBeNull();
     for (const variante of VARIANTES_FOTO) {
@@ -355,13 +355,13 @@ describe("modelo Negocio", () => {
       },
     });
 
-    await expect(borrarNegocioDefinitivamente(prisma, id)).resolves.toBe(true);
+    await expect(borrarNegocioDefinitivamente(prisma, id)).resolves.toBe("borrado");
     expect(await prisma.negocio.findUnique({ where: { id } })).toBeNull();
   });
 
-  it("borrar un identificador que no existe devuelve false, sin error", async () => {
+  it("borrar un identificador que no existe se responde 'no-encontrado', sin error", async () => {
     await expect(
       borrarNegocioDefinitivamente(prisma, "no-existe-este-id"),
-    ).resolves.toBe(false);
+    ).resolves.toBe("no-encontrado");
   });
 });

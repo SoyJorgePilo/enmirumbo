@@ -21,6 +21,8 @@ import {
   ESTADO_REPORTE_PENDIENTE,
 } from "@/lib/reportes/estados";
 
+import { tieneByteNulo } from "@/lib/texto";
+
 import { textoEspera } from "./consultas";
 
 /** Renglón de la sección "Negocios reportados" de la cola. */
@@ -149,7 +151,11 @@ export async function marcarReporteAtendido(
   ahora: Date = new Date(),
   negocioId?: string,
 ): Promise<"atendido" | "ya-atendido"> {
-  if (!reporteId) return "ya-atendido";
+  // Un identificador vacío, o con un byte nulo, no puede ser el de ningún
+  // reporte: se responde como cualquier otro que no existe, sin tocar la base
+  // (que además, en PostgreSQL, rechazaría el byte nulo con un error del
+  // motor en vez de con "no encontré nada").
+  if (!reporteId || tieneByteNulo(reporteId)) return "ya-atendido";
 
   const { count } = await prisma.reporte.updateMany({
     where: {

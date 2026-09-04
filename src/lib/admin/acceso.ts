@@ -8,7 +8,18 @@
  */
 import { createHash, timingSafeEqual } from "node:crypto";
 
-import { VARIABLE_ENCABEZADO_IP, crearCupoPorIp } from "@/lib/registro/limite-ip";
+import {
+  apartarCupoCompartido,
+  cupoCompartidoAgotado,
+  olvidarCupoCompartido,
+  type ClienteCupos,
+} from "@/lib/cupos/compartido";
+import { obtenerPrisma } from "@/lib/prisma";
+import {
+  VARIABLE_ENCABEZADO_IP,
+  crearCupoPorIp,
+  type CupoPorIp,
+} from "@/lib/registro/limite-ip";
 
 /**
  * Intentos fallidos que se toleran por procedencia dentro de la ventana. Una
@@ -23,30 +34,89 @@ export const INTENTOS_ACCESO_POR_VENTANA = 5;
  */
 export const VENTANA_INTENTOS_ACCESO_MS = 10 * 60 * 1000;
 
+/** Nombre del cupo en el almacén compartido. */
+export const CUPO_ACCESO_PANEL = "acceso-panel";
+
 /**
- * Mismo módulo de cupo por IP que el formulario público (T-003), con ventana
- * y máximo propios y su propio conteo. Vale la misma advertencia que allá:
- * sin `REGISTRO_ENCABEZADO_IP` no hay a quién atribuir los intentos, así que
- * en producción esa variable es parte del despliegue, no un extra.
+ * Contador en MEMORIA del proceso. Desde la iteración 2 del change
+ * `preparar-deploy-produccion` (hallazgo A4 de la etapa C) ya no es el
+ * contador: es el RESPALDO. El conteo que manda vive en la base
+ * (`src/lib/cupos/compartido.ts`), porque en un hosting serverless cada
+ * instancia tiene su propia memoria y "5 intentos por instancia" no es un
+ * límite: el atacante consigue tantos como instancias levante la plataforma.
+ *
+ * Este mapa sigue aquí por dos razones concretas: si la base no responde, el
+ * límite sigue operando (más flojo, y dicho en el log), y mientras la base sí
+ * responde se mantiene caliente, así que una caída a media fuerza bruta no
+ * arranca el conteo de cero.
  */
-const cupoDeIntentos = crearCupoPorIp({
+const respaldoEnMemoria = crearCupoPorIp({
   maximo: INTENTOS_ACCESO_POR_VENTANA,
   ventanaMs: VENTANA_INTENTOS_ACCESO_MS,
 });
 
-/** ¿Esta procedencia ya agotó sus intentos dentro de la ventana? */
-export function accesoBloqueado(ip: string | null, ahora: Date = new Date()): boolean {
-  return cupoDeIntentos.bloqueada(ip, ahora);
+/** Solo para pruebas: el contador en memoria, para simular una instancia nueva. */
+export function respaldoDeIntentosParaPruebas(): CupoPorIp {
+  return respaldoEnMemoria;
 }
 
-/** Apunta un intento fallido contra la procedencia. */
-export function registrarIntentoFallido(ip: string | null, ahora: Date = new Date()): void {
-  cupoDeIntentos.registrar(ip, ahora);
+/**
+ * Lo que hace falta para contar un intento: la base y el secreto con el que se
+ * deriva la clave. El secreto es el mismo con el que se firma la sesión: si no
+ * hay panel configurado tampoco hay intentos que contar, y sin él no se guarda
+ * nada (se cae al respaldo en memoria) antes que escribir una IP en claro.
+ */
+function contextoDelCupo(secreto: string, ahora: Date) {
+  return {
+    cupo: CUPO_ACCESO_PANEL,
+    maximo: INTENTOS_ACCESO_POR_VENTANA,
+    ventanaMs: VENTANA_INTENTOS_ACCESO_MS,
+    ahora,
+    secreto,
+    respaldo: respaldoEnMemoria,
+  };
 }
 
-/** Solo para pruebas: vacía el conteo de intentos del proceso. */
-export function reiniciarIntentosDeAcceso(): void {
-  cupoDeIntentos.reiniciar();
+/** La base contra la que se cuenta; separable para las pruebas. */
+function baseDeCupos(): ClienteCupos {
+  return obtenerPrisma() as unknown as ClienteCupos;
+}
+
+/**
+ * Comprueba el intento Y lo aparta, en una sola operación atómica y
+ * compartida entre instancias.
+ *
+ * Devuelve `true` si quedaba margen (y ya lo apartó) y `false` si la
+ * procedencia agotó sus intentos. Es la única forma que debe usar el servidor:
+ * preguntar y apartar por separado deja una ventana entre las dos.
+ */
+export async function apartarIntentoDeAcceso(
+  ip: string | null,
+  secreto: string,
+  ahora: Date = new Date(),
+  prisma: ClienteCupos = baseDeCupos(),
+): Promise<boolean> {
+  return apartarCupoCompartido(prisma, { ...contextoDelCupo(secreto, ahora), ip });
+}
+
+/**
+ * ¿Esta procedencia ya agotó sus intentos dentro de la ventana? Solo lectura:
+ * para decidir está `apartarIntentoDeAcceso`.
+ */
+export async function accesoBloqueado(
+  ip: string | null,
+  secreto: string,
+  ahora: Date = new Date(),
+  prisma: ClienteCupos = baseDeCupos(),
+): Promise<boolean> {
+  return cupoCompartidoAgotado(prisma, { ...contextoDelCupo(secreto, ahora), ip });
+}
+
+/** Solo para pruebas: vacía el conteo de intentos, en la base y en memoria. */
+export async function reiniciarIntentosDeAcceso(
+  prisma: ClienteCupos = baseDeCupos(),
+): Promise<void> {
+  await olvidarCupoCompartido(prisma, CUPO_ACCESO_PANEL, respaldoEnMemoria);
   yaSeAvisoSinCupo = false;
 }
 

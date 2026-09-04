@@ -1,9 +1,8 @@
 import { execSync } from "node:child_process";
-import { readFileSync, rmSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { readdir } from "node:fs/promises";
 import path from "node:path";
 
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { NEGOCIOS_DEMO, sembrarNegociosDemo } from "../prisma/seed-demo";
@@ -15,6 +14,12 @@ import {
   VERSION_AVISO,
   versionAvisoEsPosterior,
 } from "../src/lib/legales/version";
+import {
+  crearClienteEnEsquema,
+  ESQUEMA_SEED_DEMO,
+  restaurarEsquemaCompartido,
+  urlDeEsquema,
+} from "./db";
 
 /** Lo que hay ahora mismo en el almacén de fotos de las pruebas. */
 async function archivosDelAlmacen(): Promise<string[]> {
@@ -33,29 +38,25 @@ async function archivosDelAlmacen(): Promise<string[]> {
 // necesita una base donde nadie más haya escrito.
 
 const raiz = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
-const archivoDb = path.join(raiz, "prisma/test-seed-demo.db");
-const urlDb = "file:./prisma/test-seed-demo.db";
 
 let prisma: PrismaClient;
 
-function borrarBase() {
-  rmSync(archivoDb, { force: true });
-  rmSync(`${archivoDb}-journal`, { force: true });
-}
-
 beforeAll(async () => {
-  borrarBase();
+  // El esquema lo dejó vacío `tests/global-setup.ts`; aquí se le aplica el
+  // árbol de migraciones, igual que en un despliegue.
   execSync("npx prisma migrate deploy", {
     cwd: raiz,
-    env: { ...process.env, DATABASE_URL: urlDb },
+    env: { ...process.env, DATABASE_URL: urlDeEsquema(ESQUEMA_SEED_DEMO) },
     stdio: "pipe",
   });
-  prisma = new PrismaClient({ adapter: new PrismaBetterSqlite3({ url: urlDb }) });
-}, 60_000);
+  // La CLI de Prisma dejó el `search_path` de la sesión —que en el servidor
+  // local es COMPARTIDA— apuntando a este esquema de juguete.
+  await restaurarEsquemaCompartido();
+  prisma = crearClienteEnEsquema(ESQUEMA_SEED_DEMO);
+}, 120_000);
 
 afterAll(async () => {
   await prisma.$disconnect();
-  borrarBase();
 });
 
 describe("modelo-datos · seed de demostración", () => {
@@ -317,10 +318,10 @@ describe("modelo-datos · seed de demostración", () => {
       expect(await prisma.negocio.count()).toBe(0);
     });
 
-    it("sí siembra contra un archivo SQLite local (ADR-001)", async () => {
+    it("sí siembra contra un PostgreSQL de esta máquina (ADR-004)", async () => {
       const resultado = await sembrarNegociosDemo(prisma, {
         NODE_ENV: "development",
-        DATABASE_URL: urlDb,
+        DATABASE_URL: "postgresql://postgres:postgres@localhost:51214/template1",
       });
       expect(resultado.sembrado).toBe(true);
       expect(await prisma.negocio.count()).toBe(NEGOCIOS_DEMO.length);
@@ -334,7 +335,7 @@ describe("modelo-datos · seed de demostración", () => {
     it("acepta el esquema en mayúsculas y con espacios alrededor", async () => {
       const resultado = await sembrarNegociosDemo(prisma, {
         NODE_ENV: "development",
-        DATABASE_URL: "  FILE:./prisma/test-seed-demo.db  ",
+        DATABASE_URL: "  POSTGRESQL://postgres:postgres@LOCALHOST:51214/template1  ",
       });
       expect(resultado.sembrado).toBe(true);
     });
@@ -352,7 +353,7 @@ describe("modelo-datos · seed de demostración", () => {
       await prisma.negocio.deleteMany();
       const resultado = await sembrarNegociosDemo(prisma, {
         NODE_ENV: "production",
-        DATABASE_URL: "file:./prisma/test-seed-demo.db",
+        DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/necesitouno",
         SEED_DEMO_PERMITIR: "1",
       });
       expect(resultado.sembrado).toBe(false);

@@ -377,9 +377,12 @@ describe("reportes · el campo trampa se compara sin espacios (hallazgo M1)", ()
 
 describe("reportes · fallas del servidor", () => {
   it("si la escritura falla, el vecino ve el error de guardado y no hay fila", async () => {
+    // ITERACIÓN 2: el alta va dentro de una transacción con cerrojo por ficha
+    // (hallazgo A3 de la etapa C), así que el cliente de mentiras simula la
+    // transacción y no sólo la sentencia.
     const roto = {
       negocio: prisma.negocio,
-      $executeRaw: () => Promise.reject(new Error("base caída")),
+      $transaction: () => Promise.reject(new Error("base caída")),
     } as unknown as PrismaClient;
 
     expect(await crearReporte(roto, entrada())).toEqual({
@@ -395,7 +398,11 @@ describe("reportes · fallas del servidor", () => {
   it("cero filas escritas se responde como descarte silencioso, no como error", async () => {
     const alTope = {
       negocio: prisma.negocio,
-      $executeRaw: () => Promise.resolve(0),
+      $transaction: (operacion: (tx: unknown) => Promise<number>) =>
+        operacion({
+          $queryRaw: () => Promise.resolve([]),
+          $executeRaw: () => Promise.resolve(0),
+        }),
     } as unknown as PrismaClient;
 
     expect(await crearReporte(alTope, entrada())).toEqual({

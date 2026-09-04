@@ -122,7 +122,9 @@ describe("paginas-legales · los pendientes operativos están declarados y no pu
       expect(pendiente.ticket, pendiente.compromiso).toMatch(/^E\d-\d/);
     }
     const tickets = PENDIENTES_OPERATIVOS_LEGALES.map((p) => p.ticket).join(" ");
-    expect(tickets).toContain("E0-3"); // purga de los rechazados a los 90 días
+    // El encargado del tratamiento que ADR-004 exige nombrar antes del
+    // lanzamiento (change `preparar-deploy-produccion`).
+    expect(tickets).toContain("E6-3");
   });
 
   // Scenario: el pendiente del flujo ARCO ya no aparece (change
@@ -160,13 +162,25 @@ describe("paginas-legales · los pendientes operativos están declarados y no pu
     expect(arco!.ticket).toMatch(/^E\d-\d/);
   });
 
-  // Scenario: la purga sigue pendiente
-  it("la purga de los rechazados a los 90 días sigue declarada, con su ticket", () => {
-    const purga = PENDIENTES_OPERATIVOS_LEGALES.find((pendiente) =>
-      pendiente.ticket.startsWith("E0-3"),
+  // Scenario: la purga ya no es un pendiente (change
+  // `preparar-deploy-produccion`, T-013): el sistema la ejecuta sin
+  // intervención humana, así que declararla como pendiente sería mentirle a la
+  // revisión legal en el otro sentido.
+  it("la purga de los rechazados a los 90 días ya no aparece como pendiente", () => {
+    for (const pendiente of PENDIENTES_OPERATIVOS_LEGALES) {
+      expect(pendiente.compromiso, pendiente.ticket).not.toMatch(/90 d[ií]as/i);
+      expect(pendiente.hoy, pendiente.ticket).not.toMatch(/no hay purga/i);
+    }
+  });
+
+  // Scenario: los pendientes operativos también están declarados (el nuevo).
+  it("el encargado del tratamiento sin nombrar sí está declarado, con su ticket", () => {
+    const encargado = PENDIENTES_OPERATIVOS_LEGALES.find((pendiente) =>
+      /proveedores que hacen funcionar el sitio/i.test(pendiente.compromiso),
     );
-    expect(purga?.compromiso).toContain("90 días");
-    expect(purga?.hoy).toContain("No hay purga");
+    expect(encargado, "falta el pendiente del encargado del tratamiento").toBeDefined();
+    expect(encargado!.hoy).toContain("ADR-004");
+    expect(encargado!.ticket).toMatch(/^E6-3/);
   });
 
   it("no se publican en las páginas: el texto legal no cuenta el backlog", () => {

@@ -206,6 +206,7 @@ describe("modelo-datos · relleno de las fichas que ya existían (tasks #5)", ()
       ["base remota de Postgres", { DATABASE_URL: "postgresql://u:c@host:5432/necesitouno" }],
       ["base remota de Prisma", { DATABASE_URL: "prisma://accelerate.prisma-data.net/?api_key=x" }],
       ["base remota de libsql", { DATABASE_URL: "libsql://necesitouno.turso.io?authToken=x" }],
+      ["dirección ilegible", { DATABASE_URL: "no-es-una-url" }],
     ])("no rellena en %s y lo dice", async (_caso, env) => {
       const antes = await prisma.negocio.findMany({ orderBy: { whatsapp: "asc" } });
 
@@ -219,10 +220,16 @@ describe("modelo-datos · relleno de las fichas que ya existían (tasks #5)", ()
       );
     });
 
-    it("sí rellena contra un archivo SQLite local (ADR-001)", async () => {
+    it.each([
+      ["localhost", "postgresql://postgres:postgres@localhost:51214/template1"],
+      ["127.0.0.1", "postgresql://postgres:postgres@127.0.0.1:5432/necesitouno"],
+      ["IPv6 local", "postgresql://postgres:postgres@[::1]:5432/necesitouno"],
+      ["esquema postgres://", "postgres://postgres:postgres@localhost:5432/necesitouno"],
+      ["mayúsculas y espacios", "  POSTGRESQL://postgres@LOCALHOST:5432/necesitouno  "],
+    ])("sí rellena contra un PostgreSQL de esta máquina (%s)", async (_caso, url) => {
       const resultado = await rellenarTextoDeBusqueda(prisma, {
         NODE_ENV: "development",
-        DATABASE_URL: "file:./prisma/test.db",
+        DATABASE_URL: url,
       });
       expect(resultado.rellenado).toBe(true);
     });

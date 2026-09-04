@@ -1,6 +1,6 @@
 # ADR-007 · Hosting y deploy
 
-**Fecha:** 2026-08-31 · **Estado:** propuesta — se decide al ejecutar E0-3
+**Fecha:** 2026-08-31 · **Estado:** **aceptada (ejecutada en E0-3 / T-013, 2026-09-06)**
 
 ## Contexto y problema
 
@@ -28,11 +28,15 @@ Next.js en un contenedor: sin sorpresas de adaptador y precios previsibles. Cont
 ### VPS propio
 Descartado por el driver 5 — administrar servidores no es el aprendizaje que este proyecto persigue, y el costo de un error de seguridad con datos personales lo paga la confianza del directorio.
 
-## Recomendación (pendiente de confirmar en E0-3)
+## Decisión (confirmada en E0-3 / T-013)
 
 **Vercel Hobby durante la validación**, con dos disciplinas para mantener la salida barata: (a) nada de features exclusivas de Vercel fuera de lo que Next.js estándar ofrece — si mañana hay que irse a un contenedor, que sea un `Dockerfile` y no una reescritura; (b) la decisión se re-evalúa ANTES de monetizar (los términos del plan Hobby lo exigen), con Cloudflare+OpenNext y Railway como candidatos según el estado de sus adaptadores en ese momento.
 
-## Consecuencias (si se confirma)
+### Qué se ejecutó en T-013
+
+El change `preparar-deploy-produccion` dejó el código listo para Vercel **respetando la disciplina (a)**: lo único propio del hosting es `vercel.json`, un archivo de configuración con la programación de dos tareas. La lógica de esas tareas vive en rutas HTTP normales del propio sitio (`/api/tareas/…`) protegidas por un `Authorization: Bearer`, así que cualquier programador de tareas —`cron` con `curl`, un workflow— las dispara igual. Si mañana el sitio se muda a un contenedor, `vercel.json` se borra y no se pierde nada. El único guiño a Vercel es el NOMBRE de la variable `CRON_SECRET`, que es el que su programador manda solo; ningún código depende de él más allá de leerlo.
+
+## Consecuencias
 
 - Positivas: deploy y previews por PR el mismo día; ISR resuelve "regenerar la ficha al aprobar" sin código de infraestructura.
 - Negativas: fecha de caducidad conocida (monetización → plan de pago o migración); métricas de rendimiento dependen del edge de un tercero.

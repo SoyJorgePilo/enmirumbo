@@ -15,13 +15,13 @@ Este proyecto documenta cada decisión técnica relevante como un **Architecture
 
 | ADR | Decisión | Estado |
 |---|---|---|
-| [ADR-001](ADR-001-stack.md) | Stack base: Next.js + Prisma + SQLite | aceptada |
+| [ADR-001](ADR-001-stack.md) | Stack base: Next.js + Prisma (SQLite en dev) | aceptada, enmendada en T-013 (dev pasó a PostgreSQL) |
 | [ADR-002](ADR-002-proceso-v03.md) | Ajustes al pipeline multiagente (proceso v0.3) | aceptada |
 | [ADR-003](ADR-003-orm-prisma.md) | Acceso a datos: Prisma como ORM | aceptada |
-| [ADR-004](ADR-004-db-produccion.md) | Base de datos en producción | propuesta — se decide en E0-3 |
+| [ADR-004](ADR-004-db-produccion.md) | Base de datos en producción | **aceptada** (ejecutada en E0-3 / T-013) |
 | [ADR-005](ADR-005-analitica.md) | Analítica cookieless | propuesta — se decide en E7 |
 | [ADR-006](ADR-006-almacenamiento-imagenes.md) | Almacenamiento de las fotos de negocios | propuesta — se decide en E1-3 |
-| [ADR-007](ADR-007-hosting.md) | Hosting y deploy | propuesta — se decide en E0-3 |
+| [ADR-007](ADR-007-hosting.md) | Hosting y deploy | **aceptada** (ejecutada en E0-3 / T-013) |
 | [ADR-008](ADR-008-modelo-por-agente.md) | Modelo de IA por agente del pipeline | aceptada |
 | [ADR-009](ADR-009-revision-pipeline-13-corridas.md) | Revisión del pipeline tras las primeras corridas (cierre del experimento UI-first, mandatos de integración) | aceptada (aplicada en proceso v0.5) |
 

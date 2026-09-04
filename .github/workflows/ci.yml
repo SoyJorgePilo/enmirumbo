@@ -8,6 +8,30 @@ on:
 jobs:
   ci:
     runs-on: ubuntu-latest
+
+    # PostgreSQL efímero para la corrida (spec `despliegue`, requirement "El CI
+    # prueba las migraciones y la suite contra un Postgres efímero"): el MISMO
+    # motor y la misma versión mayor que Supabase (ADR-004). Se crea desde cero
+    # con el job y se tira al terminar, así que dos corridas seguidas dan lo
+    # mismo y ninguna hereda datos de la anterior.
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: necesitouno
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/necesitouno
+
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -15,6 +39,29 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+
       - run: npm run lint
-      - run: npm run build
-      - run: npm test --if-present
+
+      # El build corre SIN base alcanzable, a propósito (requirement "El build
+      # de producción no necesita la base de datos"). Si alguien agrega una
+      # página que consulta la base al construir, este paso falla aquí y no en
+      # el primer deploy. La dirección apunta a un puerto donde no hay nadie.
+      - name: Build sin base de datos
+        run: npm run build
+        env:
+          DATABASE_URL: postgresql://nadie:nadie@127.0.0.1:1/ninguna
+
+      # Todas las migraciones, en orden, sobre la base vacía de esta corrida.
+      # Una migración que PostgreSQL no acepte reprueba el PR aquí.
+      - name: Aplicar migraciones
+        run: npx prisma migrate deploy
+
+      # El seed de catálogos, contra esa base recién migrada. La suite vuelve a
+      # dejar el esquema desde cero por su cuenta, así que este paso no le
+      # prepara nada: está para que un seed que se rompa contra PostgreSQL
+      # —tipos, secuencias, `upsert`— reprueba el PR con su propio mensaje, en
+      # vez de aparecer disfrazado de test roto.
+      - name: Sembrar catálogos
+        run: npm run db:seed
+
+      - run: npm test

@@ -110,7 +110,6 @@ describe("barrido de fotos sin dueño", () => {
     const resultado = await barrerFotosHuerfanas({
       prisma,
       almacen: almacen(),
-      directorio,
     });
 
     expect(resultado.huerfanas).toBe(1);
@@ -124,9 +123,9 @@ describe("barrido de fotos sin dueño", () => {
     await fichaConFoto("7719988002");
     await fotoEnDisco(generarClaveFoto());
 
-    await barrerFotosHuerfanas({ prisma, almacen: almacen(), directorio });
+    await barrerFotosHuerfanas({ prisma, almacen: almacen() });
     const antes = await archivos();
-    const segunda = await barrerFotosHuerfanas({ prisma, almacen: almacen(), directorio });
+    const segunda = await barrerFotosHuerfanas({ prisma, almacen: almacen() });
 
     expect(segunda.huerfanas).toBe(0);
     expect(segunda.borradas).toBe(0);
@@ -143,7 +142,6 @@ describe("barrido de fotos sin dueño", () => {
     const resultado = await barrerFotosHuerfanas({
       prisma,
       almacen: almacen(),
-      directorio,
     });
 
     expect(resultado.huerfanas).toBe(0);
@@ -158,7 +156,6 @@ describe("barrido de fotos sin dueño", () => {
     const resultado = await barrerFotosHuerfanas({
       prisma,
       almacen: almacen(),
-      directorio,
       soloInformar: true,
     });
 
@@ -182,7 +179,6 @@ describe("barrido de fotos sin dueño", () => {
     const resultado = await barrerFotosHuerfanas({
       prisma: prismaVacio,
       almacen: almacen(),
-      directorio,
     });
 
     expect(resultado.barrido).toBe(false);
@@ -202,7 +198,6 @@ describe("barrido de fotos sin dueño", () => {
     const resultado = await barrerFotosHuerfanas({
       prisma,
       almacen: almacenLocal,
-      directorio,
     });
 
     expect(resultado.ignoradas).toBe(1);
@@ -240,7 +235,6 @@ describe("barrido de fotos sin dueño", () => {
       const resultado = await barrerFotosHuerfanas({
         prisma: baseEquivocada,
         almacen: almacen(),
-        directorio,
       });
 
       expect(resultado.barrido).toBe(false);
@@ -261,7 +255,6 @@ describe("barrido de fotos sin dueño", () => {
       const resultado = await barrerFotosHuerfanas({
         prisma: baseEquivocada,
         almacen: almacen(),
-        directorio,
         forzar: true,
       });
 
@@ -276,7 +269,6 @@ describe("barrido de fotos sin dueño", () => {
       const resultado = await barrerFotosHuerfanas({
         prisma: baseEquivocada,
         almacen: almacen(),
-        directorio,
         soloInformar: true,
       });
 
@@ -298,7 +290,6 @@ describe("barrido de fotos sin dueño", () => {
       const resultado = await barrerFotosHuerfanas({
         prisma,
         almacen: almacen(),
-        directorio,
       });
 
       expect(resultado.barrido).toBe(true);
@@ -321,7 +312,6 @@ describe("barrido de fotos sin dueño", () => {
       const resultado = await barrerFotosHuerfanas({
         prisma,
         almacen: almacen(),
-        directorio,
       });
 
       expect(resultado.barrido).toBe(true);
@@ -343,7 +333,6 @@ describe("barrido de fotos sin dueño", () => {
       const resultado = await barrerFotosHuerfanas({
         prisma,
         almacen: almacen(),
-        directorio,
       });
 
       expect(resultado.barrido).toBe(true);
@@ -357,7 +346,6 @@ describe("barrido de fotos sin dueño", () => {
     const resultado = await barrerFotosHuerfanas({
       prisma,
       almacen: almacen(),
-      directorio,
     });
     expect(resultado.barrido).toBe(true);
     expect(resultado.revisadas).toBe(0);

@@ -8,11 +8,12 @@
  * con estas respuestas y escribe su propio mensaje —lo que se comparte es
  * cómo se reconoce un entorno peligroso, no la política.
  */
+import { esBaseLocal } from "../src/lib/base-datos/conexion";
 
 export type EntornoScriptDb = {
   NODE_ENV?: string;
   VERCEL_ENV?: string;
-  /** A qué base apunta el comando (ADR-001: en dev, siempre SQLite local). */
+  /** A qué base apunta el comando (ADR-004: PostgreSQL en todos lados). */
   DATABASE_URL?: string;
 };
 
@@ -31,14 +32,27 @@ export function esEntornoDeProduccion(env: EntornoScriptDb): boolean {
 }
 
 /**
- * ¿La base a la que apunta el comando es un archivo SQLite local?
+ * ¿La base a la que apunta el comando vive en la máquina de quien lo corre?
  *
- * ADR-001: en desarrollo la base siempre es `file:…`. Cualquier otra cosa
- * (`postgresql://`, `prisma://`, `libsql://`…) es una base remota, y una base
- * remota de este proyecto es, hoy por hoy, la de verdad. Sin `DATABASE_URL`
- * se usa el default local de `prisma7.config.ts`, así que se considera local.
+ * Antes esto se preguntaba por el prefijo `file:`, porque en desarrollo la
+ * base era un archivo SQLite (ADR-001). Desde el change
+ * `preparar-deploy-produccion` (ADR-004) TODOS los entornos son PostgreSQL, y
+ * "local" pasa a significar lo único que sigue siendo cierto: que el host de
+ * la conexión es esta misma máquina.
+ *
+ * ITERACIÓN 2 (hallazgo A1 de la etapa C): el host se pregunta al MISMO parser
+ * que usa el driver (`src/lib/base-datos/conexion.ts`), no al `hostname` de la
+ * URL. Una cadena puede llevar `?host=db.supabase.co` con `localhost` en la
+ * parte visible: el driver se conecta a Supabase y la lectura ingenua decía
+ * "es local", con lo que `npm run db:seed:demo` sembraba doce negocios de
+ * mentira en la base de verdad sin pedir permiso.
+ *
+ * Sin `DATABASE_URL` se usa el default local de `src/lib/base-local.ts`, así
+ * que se considera local. Una dirección que no se pueda interpretar se
+ * considera REMOTA: ante la duda, la respuesta cara es la segura.
  */
 export function apuntaABaseLocal(env: EntornoScriptDb): boolean {
   const url = normalizarValorDeEntorno(env.DATABASE_URL);
-  return url === "" || url.startsWith("file:");
+  if (url === "") return true;
+  return esBaseLocal(url);
 }

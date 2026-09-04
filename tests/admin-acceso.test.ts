@@ -76,10 +76,10 @@ afterAll(() => {
   delete process.env[VARIABLE_ENCABEZADO_IP];
 });
 
-beforeEach(() => {
+beforeEach(async () => {
   configurarPanel();
   reiniciarPeticion();
-  reiniciarIntentosDeAcceso();
+  await reiniciarIntentosDeAcceso();
   peticion.encabezados["x-forwarded-for"] = IP;
 });
 

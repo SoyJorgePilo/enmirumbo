@@ -283,10 +283,16 @@ describe("directorio-publico · la página de resultados no es indexable (tasks 
     // (`NOINDEX_CON_ENLACES`, en `src/lib/seo/metadata.ts`) que la metadata
     // del segmento dinámico aplica solo cuando no hay nada que mostrar. Esta
     // verificación sigue cubriendo TODAS las páginas, incluida esa.
+    // Y el change `preparar-deploy-produccion` suma las dos rutas de las
+    // TAREAS PROGRAMADAS (`/api/tareas/…`), que no son páginas: son puntos de
+    // disparo de la purga y del barrido de fotos, mandan `X-Robots-Tag:
+    // noindex` en su respuesta y responden 404 a quien no traiga el secreto.
     const noIndexables = [
       join(raiz, "src/app/(publico)/buscar/page.tsx"),
       join(raiz, "src/app/(publico)/negocio/[ficha]/reportar/page.tsx"),
       join(raiz, "src/app/(publico)/negocio/[ficha]/reportar/gracias/page.tsx"),
+      join(raiz, "src/app/api/tareas/purgar-rechazados/route.ts"),
+      join(raiz, "src/app/api/tareas/barrer-fotos-huerfanas/route.ts"),
     ];
     const paginas = archivosDe(join(raiz, "src/app")).filter(
       (ruta) =>

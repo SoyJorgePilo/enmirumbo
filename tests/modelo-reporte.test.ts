@@ -1,147 +1,21 @@
-import { readFileSync, readdirSync, rmSync } from "node:fs";
-import path from "node:path";
-
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { seedCatalogos } from "../prisma/seed";
 import { PrismaClient } from "../src/generated/prisma/client";
 import { borrarNegocioDefinitivamente } from "../src/lib/negocio";
+import { columnasDeTabla, consultarConPrisma } from "./catalogo-db";
 import { crearClientePrueba } from "./db";
 
 // Spec: modelo-datos (delta del change `agregar-boton-reportar`) · Requirement
 // "El modelo `Reporte` guarda el aviso de un vecino sobre una ficha, sin
 // ningún dato de quien lo envía" y el MODIFIED del borrado ARCO (tasks.md #1).
 //
+// Lo que ANTES probaba este archivo replicando migraciones a mano —que crear
+// la tabla no se llevaba los CHECK del negocio, y que los CHECK del reporte
+// existen— vive ahora en `tests/modelo-migraciones.test.ts`, contra el árbol
+// consolidado en PostgreSQL (change `preparar-deploy-produccion`, §4).
+//
 // Datos 100% ficticios (repo público + LFPDPPP): números 771000 8xxx.
-
-const raiz = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
-const carpetaMigraciones = path.join(raiz, "prisma/migrations");
-
-/** Carpetas de migración en el orden en que Prisma las aplica (por nombre). */
-function migracionesEnOrden(): string[] {
-  return readdirSync(carpetaMigraciones, { withFileTypes: true })
-    .filter((entrada) => entrada.isDirectory())
-    .map((entrada) => entrada.name)
-    .sort();
-}
-
-function sql(migracion: string): string {
-  return readFileSync(path.join(carpetaMigraciones, migracion, "migration.sql"), "utf8");
-}
-
-/** Cada sentencia de un archivo de migración, sin comentarios ni vacíos. */
-function sentencias(migracion: string): string[] {
-  return sql(migracion)
-    .split("\n")
-    .filter((linea) => !linea.trimStart().startsWith("--"))
-    .join("\n")
-    .split(";")
-    .map((sentencia) => sentencia.trim())
-    .filter((sentencia) => sentencia !== "");
-}
-
-/** La migración que estrena la tabla de reportes (la última por nombre). */
-function migracionDeReportes(): string {
-  const conReporte = migracionesEnOrden().filter((migracion) =>
-    /CREATE TABLE\s+"Reporte"/.test(sql(migracion)),
-  );
-  expect(conReporte).toHaveLength(1);
-  return conReporte[0];
-}
-
-describe("modelo-datos · migración de la tabla Reporte", () => {
-  // Scenario: migración sobre una base con datos
-  it("crea la tabla sobre una base con negocios, sin tocar ni una fila", async () => {
-    const archivo = path.join(raiz, "prisma/test-migracion-reporte.db");
-    rmSync(archivo, { force: true });
-    const db = new PrismaClient({
-      adapter: new PrismaBetterSqlite3({ url: "file:./prisma/test-migracion-reporte.db" }),
-    });
-    const ejecutar = (instruccion: string) => db.$executeRawUnsafe(instruccion);
-
-    try {
-      const migraciones = migracionesEnOrden();
-      const nueva = migracionDeReportes();
-      const anteriores = migraciones.slice(0, migraciones.indexOf(nueva));
-      expect(anteriores.length).toBeGreaterThanOrEqual(3);
-
-      // Base "vieja": todo lo anterior al change, con datos ya dentro.
-      for (const migracion of anteriores) {
-        for (const instruccion of sentencias(migracion)) await ejecutar(instruccion);
-      }
-      await ejecutar(
-        `INSERT INTO "Categoria" ("nombre", "slug") VALUES ('Talleres', 'talleres')`,
-      );
-      for (const [id, nombre, whatsapp, estado] of [
-        ["viejo-publicado", "Taller Ficticio Uno", "7710008001", "publicado"],
-        ["viejo-revision", "Taller Ficticio Dos", "7710008002", "en_revision"],
-        ["viejo-rechazado", "Taller Ficticio Tres", "7710008003", "rechazado"],
-      ]) {
-        await ejecutar(
-          `INSERT INTO "Negocio" ("id","nombre","categoriaId","whatsapp","consintioAvisoEn","estado","registradoEn")
-           VALUES ('${id}','${nombre}',1,'${whatsapp}','2026-08-01 10:00:00','${estado}','2026-08-01 10:00:00')`,
-        );
-      }
-
-      // Y ahora la migración de reportes, sobre esa base que ya tiene datos.
-      for (const instruccion of sentencias(nueva)) await ejecutar(instruccion);
-
-      const negocios = await db.$queryRawUnsafe<Array<Record<string, unknown>>>(
-        'SELECT "id","nombre","estado" FROM "Negocio" ORDER BY "id"',
-      );
-      expect(negocios).toHaveLength(3);
-      expect(negocios.map((fila) => fila.estado)).toEqual([
-        "publicado",
-        "rechazado",
-        "en_revision",
-      ]);
-
-      const reportes = await db.$queryRawUnsafe<Array<Record<string, unknown>>>(
-        'SELECT COUNT(*) AS total FROM "Reporte"',
-      );
-      expect(Number(reportes[0].total)).toBe(0);
-
-      // Los CHECK del negocio siguen vigentes después de la migración nueva
-      // (design.md §4: la redefinición de tabla de SQLite ya los borró una vez).
-      await expect(
-        ejecutar(
-          `INSERT INTO "Negocio" ("id","nombre","categoriaId","whatsapp","consintioAvisoEn","estado","registradoEn")
-           VALUES ('estado-malo','Taller Ficticio Cuatro',1,'7710008004','2026-08-01 10:00:00','borrado','2026-08-01 10:00:00')`,
-        ),
-      ).rejects.toThrow();
-      await expect(
-        ejecutar(
-          `INSERT INTO "Negocio" ("id","nombre","categoriaId","whatsapp","consintioAvisoEn","estado","origen","registradoEn")
-           VALUES ('origen-malo','Taller Ficticio Cinco',1,'7710008005','2026-08-01 10:00:00','publicado','regalado','2026-08-01 10:00:00')`,
-        ),
-      ).rejects.toThrow();
-    } finally {
-      await db.$disconnect();
-      rmSync(archivo, { force: true });
-      rmSync(`${archivo}-journal`, { force: true });
-    }
-  });
-
-  it("no redefine la tabla Negocio: solo crea tabla e índice nuevos", () => {
-    const cuerpo = sql(migracionDeReportes());
-    // La redefinición que Prisma genera para SQLite se reconoce por estas
-    // huellas; ninguna debe aparecer (perdería los CHECK del negocio).
-    expect(cuerpo).not.toMatch(/DROP TABLE\s+"Negocio"/);
-    expect(cuerpo).not.toMatch(/ALTER TABLE\s+"Negocio"/);
-    expect(cuerpo).not.toMatch(/new_Negocio/);
-    expect(cuerpo).toMatch(/CREATE TABLE\s+"Reporte"/);
-  });
-
-  it("hace cumplir en la base los cuatro motivos y los dos estados", () => {
-    const cuerpo = sql(migracionDeReportes());
-    for (const motivo of ["cerrado", "no_real", "datos_incorrectos", "inapropiado"]) {
-      expect(cuerpo).toContain(`'${motivo}'`);
-    }
-    expect(cuerpo).toMatch(/CHECK\s*\(\s*"motivo"\s+IN/);
-    expect(cuerpo).toMatch(/CHECK\s*\(\s*"estado"\s+IN/);
-  });
-});
 
 describe("modelo-datos · la tabla Reporte en el cliente Prisma", () => {
   let prisma: PrismaClient;
@@ -179,10 +53,8 @@ describe("modelo-datos · la tabla Reporte en el cliente Prisma", () => {
 
   // Scenario: nada del reportante en el esquema
   it("sus columnas son exactamente las siete de la spec, ninguna del reportante", async () => {
-    const columnas = await prisma.$queryRawUnsafe<Array<{ name: string }>>(
-      'PRAGMA table_info("Reporte")',
-    );
-    expect(columnas.map((columna) => columna.name).sort()).toEqual(
+    const columnas = await columnasDeTabla(consultarConPrisma(prisma), "Reporte");
+    expect([...columnas].sort()).toEqual(
       [
         "atendidoEn",
         "comentario",
@@ -195,7 +67,7 @@ describe("modelo-datos · la tabla Reporte en el cliente Prisma", () => {
     );
     // Y ninguna que huela a identidad de quien reportó.
     for (const columna of columnas) {
-      expect(columna.name).not.toMatch(/ip|hash|huella|nombre|contacto|correo|telefono/i);
+      expect(columna).not.toMatch(/ip|hash|huella|nombre|contacto|correo|telefono/i);
     }
   });
 
@@ -324,13 +196,13 @@ describe("modelo-datos · la tabla Reporte en el cliente Prisma", () => {
     });
     expect(await prisma.reporte.count({ where: { negocioId: condenadoId } })).toBe(2);
 
-    expect(await borrarNegocioDefinitivamente(prisma, condenadoId)).toBe(true);
+    expect(await borrarNegocioDefinitivamente(prisma, condenadoId)).toBe("borrado");
 
     expect(await prisma.negocio.findUnique({ where: { id: condenadoId } })).toBeNull();
     // Con SQL crudo, no con Prisma: lo que se vigila es que no queden filas en
     // la tabla, no que el cliente sepa filtrarlas.
     const huerfanos = await prisma.$queryRawUnsafe<Array<{ n: bigint | number }>>(
-      `SELECT COUNT(*) AS n FROM "Reporte" WHERE "negocioId" = ?`,
+      `SELECT COUNT(*) AS n FROM "Reporte" WHERE "negocioId" = $1`,
       condenadoId,
     );
     expect(Number(huerfanos[0].n)).toBe(0);

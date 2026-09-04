@@ -28,6 +28,8 @@ El fundador compró el dominio definitivo `enmirumbo.com` y decidió (2026-09-04
 
 ## Notas
 
+- **Datos legales del fundador (2026-09-04):** llenar `CORREO_ARCO_PLACEHOLDER` y `CORREO_CONTACTO_PLACEHOLDER` con `contacto@enmirumbo.com` (el fundador debe activar el reenvío en su registrador). Nombre del responsable, domicilio, WhatsApp del directorio y jurisdicción SIGUEN como placeholders (los resuelve la revisión legal E6-3); la marca de borrador de las páginas legales permanece hasta entonces, y eso es correcto.
+
 - Decisión del fundador vía revisión 2026-09-04; el dominio ya está comprado.
 - ¡Ojo con el versionado del aviso! `VERSION_AVISO` y la huella: cambiar el nombre del sitio dentro del texto legal probablemente cambia la huella del aviso → la spec debe decidir si eso amerita subir la versión (mecánica de T-012).
 - Tocará el layout y los legales: coordinar con T-014 (en desarrollo) — este ticket depende de su merge para no pisarse.

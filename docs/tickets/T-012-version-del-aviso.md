@@ -1,6 +1,6 @@
 # T-012 · Registrar qué versión del aviso de privacidad aceptó cada negocio
 
-**Estado:** en-desarrollo
+**Estado:** en-review
 **Prioridad:** P1 (recomendado antes del lanzamiento)
 **Épica:** E6 (derivada — hallazgo del validador de T-007)
 **Referencias PRD:** §8 (LFPDPPP: constancia de consentimiento)
@@ -14,11 +14,11 @@
 
 ## Criterios de aceptación
 
-- [ ] El aviso (simplificado e integral) tiene un identificador de versión estable y visible ("Última actualización" ya existe — formalizarlo como versión)
-- [ ] Al registrar o reenviar, se guarda la versión vigente junto al timestamp (`consintioAvisoVersion` o equivalente — migración)
-- [ ] Cambiar el texto del aviso sin subir la versión hace fallar un test (la versión no puede quedarse atrás del texto)
-- [ ] El panel muestra la versión aceptada en el detalle del registro
-- [ ] El reenvío tras rechazo actualiza la versión aceptada SOLO si el checkbox se marcó con el texto nuevo enfrente (coherente con la protección de `consintioAvisoEn` — la spec define la interacción exacta)
+- [x] El aviso (simplificado e integral) tiene un identificador de versión estable y visible ("Última actualización" ya existe — formalizarlo como versión)
+- [x] Al registrar o reenviar, se guarda la versión vigente junto al timestamp (`consintioAvisoVersion` o equivalente — migración)
+- [x] Cambiar el texto del aviso sin subir la versión hace fallar un test (la versión no puede quedarse atrás del texto)
+- [x] El panel muestra la versión aceptada en el detalle del registro
+- [x] El reenvío tras rechazo actualiza la versión aceptada SOLO si el checkbox se marcó con el texto nuevo enfrente (coherente con la protección de `consintioAvisoEn` — la spec define la interacción exacta)
 
 ## Fuera de alcance de este ticket
 

@@ -156,6 +156,22 @@ que este proyecto ya conoce del motor local.)
 
 PR abierto: [#23](https://github.com/SoyJorgePilo/enmirumbo/pull/23).
 
+**Segunda fusión, ya con el PR abierto:** main volvió a avanzar con el PR #22
+(TLS `verify-full` hacia Supabase: `certs/supabase-root-2021-ca.crt`,
+`next.config.ts`, `tests/tls-certificado-supabase.test.ts`, `docs/despliegue.md`
+y `docs/backlog.md`) más los docs de la visión de fase 2, y el PR quedó en
+CONFLICTING. Fusioné otra vez: **un solo conflicto, `docs/metricas-pipeline.md`**
+—las dos ramas agregaron su fila al final de la tabla—, resuelto conservando las
+dos en orden cronológico (primero la del TLS, que se mergeó antes; después la de
+este change). `docs/backlog.md` y el resto se auto-fusionaron sin conflicto.
+Compuertas repetidas sobre ese árbol: lint y `tsc` verdes, `build` verde con
+`/admin/negocios` dinámica, y `npm test` en **2 913 verdes, 2 skipped y las
+mismas 2 rojas heredadas** (el archivo nuevo del TLS entra en verde).
+
+Con eso el PR quedó MERGEABLE y **el CI de GitHub Actions salió en verde**
+(`ci: SUCCESS`), que es donde `[A1]`/`[A2]` corren contra `postgres:17` y pasan:
+la confirmación final de que esas dos rojas son del motor local y no del código.
+
 ## Lo que sigue siendo del humano
 
 - Mergear el PR (punto de control humano; el CI de GitHub Actions debe estar en

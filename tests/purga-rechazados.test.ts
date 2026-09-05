@@ -271,7 +271,15 @@ describe("purga · la ruta que la dispara", () => {
     const respuesta = await pedir({ authorization: `Bearer ${SECRETO}` });
 
     expect(respuesta.status).toBe(200);
-    expect(await respuesta.json()).toMatchObject({ eliminados: 1, fallidos: 0 });
+    const cuerpo = (await respuesta.json()) as Record<string, unknown>;
+    expect(cuerpo).toMatchObject({ eliminados: 1, fallidos: 0 });
+    // Los conteos de la purga y EL ESTADO DEL AVISO del día (change
+    // `agregar-aviso-diario-pendientes`): un estado, no un dato de nadie. Sin
+    // configuración de correo en el entorno de pruebas, "sin-configurar".
+    expect(Object.keys(cuerpo).sort()).toEqual(
+      ["aviso", "cuposLimpiados", "eliminados", "fallidos"].sort(),
+    );
+    expect(cuerpo.aviso).toBe("sin-configurar");
     expect(await prisma.negocio.findUnique({ where: { id: viejo } })).toBeNull();
     expect(await prisma.negocio.findUnique({ where: { id: reciente } })).not.toBeNull();
   });

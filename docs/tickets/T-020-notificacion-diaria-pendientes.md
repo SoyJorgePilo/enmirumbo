@@ -1,12 +1,12 @@
 # T-020 · Avisar por correo al admin cuando haya registros pendientes
 
-**Estado:** en-spec <!-- pendiente | en-spec | en-desarrollo | en-review | hecho -->
+**Estado:** en-review <!-- pendiente | en-spec | en-desarrollo | en-review | hecho -->
 **Prioridad:** P1
 **Épica:** E3 (docs/backlog.md)
 **Referencias PRD:** §6.3 (meta operativa de revisión <48h)
 **Depende de:** T-019
 **OpenSpec change:** `agregar-aviso-diario-pendientes`
-**PR:** —
+**PR:** [#26](https://github.com/SoyJorgePilo/enmirumbo/pull/26)
 
 ## Contexto
 
@@ -14,11 +14,11 @@ Hoy el único lugar donde se entera el admin de un registro nuevo es la cola del
 
 ## Criterios de aceptación
 
-- [ ] Una vez al día, si hay al menos un registro en revisión (alta nueva o edición pendiente), llega UN correo al buzón del directorio con el conteo y el enlace al panel. Si no hay pendientes, no llega nada.
-- [ ] El correo NO contiene datos personales de los negocios (ni nombres, ni teléfonos): solo el conteo por tipo y el enlace — el correo viaja por servidores de terceros.
-- [ ] Se dispara desde la infraestructura de tareas programadas existente (`CRON_SECRET`, mismas reglas de 404 a extraños).
-- [ ] Proveedor de correo configurable por variables de entorno con el patrón fail-safe del proyecto: sin configurar, el sistema no manda nada, lo dice en el log y todo lo demás sigue funcionando.
-- [ ] Si el envío falla, el cron responde error a la vista (sin tumbar las otras tareas programadas).
+- [x] Una vez al día, si hay al menos un registro en revisión (alta nueva o edición pendiente), llega UN correo al buzón del directorio con el conteo y el enlace al panel. Si no hay pendientes, no llega nada.
+- [x] El correo NO contiene datos personales de los negocios (ni nombres, ni teléfonos): solo el conteo por tipo y el enlace — el correo viaja por servidores de terceros.
+- [x] Se dispara desde la infraestructura de tareas programadas existente (`CRON_SECRET`, mismas reglas de 404 a extraños).
+- [x] Proveedor de correo configurable por variables de entorno con el patrón fail-safe del proyecto: sin configurar, el sistema no manda nada, lo dice en el log y todo lo demás sigue funcionando.
+- [x] Si el envío falla, el cron responde error a la vista (sin tumbar las otras tareas programadas).
 
 ## Fuera de alcance de este ticket
 

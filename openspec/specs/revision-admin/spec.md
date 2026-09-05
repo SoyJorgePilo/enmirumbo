@@ -483,12 +483,12 @@ Estos datos personales completos —incluida la foto— DEBEN verse únicamente 
 
 ### Requirement: Botón de verificación que abre WhatsApp con mensaje prellenado
 
-El detalle DEBE ofrecer un botón que abra la conversación de WhatsApp con el número que registró el negocio, con un mensaje ya escrito para hacer la verificación manual del PRD §6.3. El botón DEBE decir literalmente "Escribirle por WhatsApp" y el mensaje prellenado DEBE ser, literalmente: "Hola, te escribo de NecesitoUno Tizayuca, el directorio de negocios del municipio. Recibimos el registro de «<nombre del negocio>». ¿Nos confirmas que el negocio es tuyo y que este es tu WhatsApp?". El envío siempre lo hace la persona: el sistema NO DEBE mandar mensajes por su cuenta (PRD §6.6). Si el número guardado no se puede interpretar como un número mexicano de 10 dígitos, NO DEBE pintarse un enlace roto: el panel muestra el número tal como está guardado, sin botón.
+El detalle DEBE ofrecer un botón que abra la conversación de WhatsApp con el número que registró el negocio, con un mensaje ya escrito para hacer la verificación manual del PRD §6.3. El botón DEBE decir literalmente "Escribirle por WhatsApp" y el mensaje prellenado DEBE ser, literalmente: "Hola, te escribo de EnMiRumbo, el directorio de negocios de Tizayuca. Recibimos el registro de «<nombre del negocio>». ¿Nos confirmas que el negocio es tuyo y que este es tu WhatsApp?". El envío siempre lo hace la persona: el sistema NO DEBE mandar mensajes por su cuenta (PRD §6.6). Si el número guardado no se puede interpretar como un número mexicano de 10 dígitos, NO DEBE pintarse un enlace roto: el panel muestra el número tal como está guardado, sin botón.
 
 #### Scenario: abrir la conversación de verificación
 
 - **WHEN** el admin toca "Escribirle por WhatsApp" en el detalle del negocio "Tacos del Güero"
-- **THEN** se abre WhatsApp con la conversación de ese número y el mensaje "Hola, te escribo de NecesitoUno Tizayuca, el directorio de negocios del municipio. Recibimos el registro de «Tacos del Güero». ¿Nos confirmas que el negocio es tuyo y que este es tu WhatsApp?" ya escrito, sin enviarse
+- **THEN** se abre WhatsApp con la conversación de ese número y el mensaje "Hola, te escribo de EnMiRumbo, el directorio de negocios de Tizayuca. Recibimos el registro de «Tacos del Güero». ¿Nos confirmas que el negocio es tuyo y que este es tu WhatsApp?" ya escrito, sin enviarse
 
 #### Scenario: número que no se puede interpretar
 
@@ -567,12 +567,12 @@ Al aprobar un registro, la misma transición que publica la ficha DEBE generar s
 
 ### Requirement: Al aprobar se ofrece avisarle al negocio por WhatsApp con el link de su ficha y su enlace de gestión
 
-Después de aprobar, el panel DEBE confirmar con el texto literal "Ya quedó publicado." y ofrecer un botón "Avisarle por WhatsApp" que abra la conversación con ese negocio y un mensaje prellenado con el aviso, el link de su ficha pública y **su enlace de gestión con la instrucción del PRD §6.4**, literalmente: "¡Listo! Ya quedó publicado «<nombre del negocio>» en NecesitoUno Tizayuca. Esta es tu ficha: <link de la ficha> — compártela con tus clientes. Y este es tu enlace para editarla: <enlace de gestión> — guarda este mensaje (puedes destacarlo con la estrella), con ese enlace actualizas tus datos cuando quieras." Los dos links DEBEN ser URLs completas: la de la ficha, la misma que abriría cualquier vecino; la de gestión, la que abre el modo edición de esa ficha. Esta pantalla es **el único momento** en que el enlace de gestión se muestra en el panel: si el admin la abandona sin mandar el mensaje, para volver a tenerlo tiene que generar uno nuevo, con lo que el anterior deja de servir.
+Después de aprobar, el panel DEBE confirmar con el texto literal "Ya quedó publicado." y ofrecer un botón "Avisarle por WhatsApp" que abra la conversación con ese negocio y un mensaje prellenado con el aviso, el link de su ficha pública y **su enlace de gestión con la instrucción del PRD §6.4**, literalmente: "¡Listo! Ya quedó publicado «<nombre del negocio>» en EnMiRumbo. Esta es tu ficha: <link de la ficha> — compártela con tus clientes. Y este es tu enlace para editarla: <enlace de gestión> — guarda este mensaje (puedes destacarlo con la estrella), con ese enlace actualizas tus datos cuando quieras." Los dos links DEBEN ser URLs completas: la de la ficha, la misma que abriría cualquier vecino; la de gestión, la que abre el modo edición de esa ficha. Esta pantalla es **el único momento** en que el enlace de gestión se muestra en el panel: si el admin la abandona sin mandar el mensaje, para volver a tenerlo tiene que generar uno nuevo, con lo que el anterior deja de servir.
 
 #### Scenario: aviso de publicación con los dos links
 
 - **WHEN** el admin acaba de aprobar el registro de "Estética Lupita"
-- **THEN** ve "Ya quedó publicado." y un botón "Avisarle por WhatsApp" que abre la conversación con ese negocio, con el mensaje "¡Listo! Ya quedó publicado «Estética Lupita» en NecesitoUno Tizayuca. Esta es tu ficha: <link de la ficha> — compártela con tus clientes. Y este es tu enlace para editarla: <enlace de gestión> — guarda este mensaje (puedes destacarlo con la estrella), con ese enlace actualizas tus datos cuando quieras." ya escrito, sin enviarse
+- **THEN** ve "Ya quedó publicado." y un botón "Avisarle por WhatsApp" que abre la conversación con ese negocio, con el mensaje "¡Listo! Ya quedó publicado «Estética Lupita» en EnMiRumbo. Esta es tu ficha: <link de la ficha> — compártela con tus clientes. Y este es tu enlace para editarla: <enlace de gestión> — guarda este mensaje (puedes destacarlo con la estrella), con ese enlace actualizas tus datos cuando quieras." ya escrito, sin enviarse
 
 #### Scenario: los dos links abren lo que prometen
 
@@ -586,7 +586,7 @@ Después de aprobar, el panel DEBE confirmar con el texto literal "Ya quedó pub
 
 ### Requirement: Rechazar exige motivo, lo guarda con su fecha y ofrece avisar por WhatsApp
 
-Desde el detalle, el admin DEBE poder rechazar el registro escribiendo obligatoriamente el motivo, bajo el rótulo literal "¿Por qué lo rechazas?" y con el botón "Rechazar". El sistema DEBE guardar el estado `rechazado`, la fecha del rechazo y el motivo (los datos de los registros rechazados se eliminan a los 90 días, PRD §8: la fecha es lo que la purga programada usa para saber cuándo toca). Sin motivo, el rechazo NO DEBE ejecutarse y DEBE mostrarse el texto literal "Escribe por qué lo rechazas". Después de rechazar, el panel DEBE confirmar con "Registro rechazado." y ofrecer un botón "Avisarle por WhatsApp" con el mensaje prellenado, literalmente: "Hola, revisamos el registro de «<nombre del negocio>» en NecesitoUno Tizayuca y por ahora no lo pudimos publicar: <motivo>. Si lo corriges, lo puedes volver a enviar desde el mismo formulario con este mismo número." Un negocio rechazado NO DEBE aparecer en ninguna página pública.
+Desde el detalle, el admin DEBE poder rechazar el registro escribiendo obligatoriamente el motivo, bajo el rótulo literal "¿Por qué lo rechazas?" y con el botón "Rechazar". El sistema DEBE guardar el estado `rechazado`, la fecha del rechazo y el motivo (los datos de los registros rechazados se eliminan a los 90 días, PRD §8: la fecha es lo que la purga programada usa para saber cuándo toca). Sin motivo, el rechazo NO DEBE ejecutarse y DEBE mostrarse el texto literal "Escribe por qué lo rechazas". Después de rechazar, el panel DEBE confirmar con "Registro rechazado." y ofrecer un botón "Avisarle por WhatsApp" con el mensaje prellenado, literalmente: "Hola, revisamos el registro de «<nombre del negocio>» en EnMiRumbo y por ahora no lo pudimos publicar: <motivo>. Si lo corriges, lo puedes volver a enviar desde el mismo formulario con este mismo número." Un negocio rechazado NO DEBE aparecer en ninguna página pública.
 
 #### Scenario: rechazo con motivo
 
@@ -601,7 +601,7 @@ Desde el detalle, el admin DEBE poder rechazar el registro escribiendo obligator
 #### Scenario: aviso de rechazo por WhatsApp
 
 - **WHEN** el admin acaba de rechazar el registro de "Préstamos Rápidos" con el motivo "No publicamos préstamos informales"
-- **THEN** ve "Registro rechazado." y un botón "Avisarle por WhatsApp" con el mensaje "Hola, revisamos el registro de «Préstamos Rápidos» en NecesitoUno Tizayuca y por ahora no lo pudimos publicar: No publicamos préstamos informales. Si lo corriges, lo puedes volver a enviar desde el mismo formulario con este mismo número." ya escrito
+- **THEN** ve "Registro rechazado." y un botón "Avisarle por WhatsApp" con el mensaje "Hola, revisamos el registro de «Préstamos Rápidos» en EnMiRumbo y por ahora no lo pudimos publicar: No publicamos préstamos informales. Si lo corriges, lo puedes volver a enviar desde el mismo formulario con este mismo número." ya escrito
 
 #### Scenario: el rechazado no se publica
 
@@ -660,14 +660,14 @@ Despublicar NO DEBE destruir nada: los giros asignados, la colonia normalizada, 
 
 ### Requirement: Al despublicar se ofrece avisarle al negocio por WhatsApp
 
-Después de despublicar, el panel DEBE confirmar con el texto literal "Ya la despublicaste." y ofrecer un botón "Avisarle por WhatsApp" que abra la conversación con ese negocio y un mensaje ya escrito, literalmente: "Hola, te escribo de NecesitoUno Tizayuca. Bajamos del directorio la ficha de «<nombre del negocio>»: <motivo>. Si quieres que la volvamos a publicar o tienes alguna duda, contéstame por aquí." El motivo que viaja en el mensaje es el que el admin acaba de escribir. El envío siempre lo hace la persona: el sistema NO DEBE mandar mensajes por su cuenta (PRD §6.6). Si el número guardado no se puede interpretar como un número mexicano de 10 dígitos, NO DEBE pintarse un enlace roto: el panel muestra el número tal como está guardado, sin botón.
+Después de despublicar, el panel DEBE confirmar con el texto literal "Ya la despublicaste." y ofrecer un botón "Avisarle por WhatsApp" que abra la conversación con ese negocio y un mensaje ya escrito, literalmente: "Hola, te escribo de EnMiRumbo. Bajamos del directorio la ficha de «<nombre del negocio>»: <motivo>. Si quieres que la volvamos a publicar o tienes alguna duda, contéstame por aquí." El motivo que viaja en el mensaje es el que el admin acaba de escribir. El envío siempre lo hace la persona: el sistema NO DEBE mandar mensajes por su cuenta (PRD §6.6). Si el número guardado no se puede interpretar como un número mexicano de 10 dígitos, NO DEBE pintarse un enlace roto: el panel muestra el número tal como está guardado, sin botón.
 
 Esa pantalla DEBE existir únicamente para una despublicación que de verdad ocurrió: si el registro no está en `en_revision`, o no tiene fecha de despublicación, o su motivo está vacío, la pantalla NO DEBE mostrarse y el admin DEBE volver al detalle, sin que la respuesta filtre nada. Un mensaje con el motivo en blanco es un WhatsApp incorrecto hacia un tercero, que es justo lo que el panel existe para evitar.
 
 #### Scenario: aviso de despublicación
 
 - **WHEN** el admin acaba de despublicar "Tacos del Güero" con el motivo "El negocio cerró"
-- **THEN** ve "Ya la despublicaste." y un botón "Avisarle por WhatsApp" que abre la conversación con ese negocio, con el mensaje "Hola, te escribo de NecesitoUno Tizayuca. Bajamos del directorio la ficha de «Tacos del Güero»: El negocio cerró. Si quieres que la volvamos a publicar o tienes alguna duda, contéstame por aquí." ya escrito, sin enviarse
+- **THEN** ve "Ya la despublicaste." y un botón "Avisarle por WhatsApp" que abre la conversación con ese negocio, con el mensaje "Hola, te escribo de EnMiRumbo. Bajamos del directorio la ficha de «Tacos del Güero»: El negocio cerró. Si quieres que la volvamos a publicar o tienes alguna duda, contéstame por aquí." ya escrito, sin enviarse
 
 #### Scenario: número que no se puede interpretar al avisar de la despublicación
 
@@ -915,7 +915,7 @@ Si la edición propone un WhatsApp distinto, el detalle DEBE mostrar los dos nú
 
 Desde el detalle de la edición, el admin DEBE poder aplicarla en una sola acción con el botón literal "Aplicar los cambios", que copia a la ficha publicada **exactamente los campos editables** de la edición —nombre, categoría, WhatsApp, colonia (de catálogo o texto libre), qué ofrece, entregas a domicilio, teléfono fijo, dirección o referencias con su pin, horario y página— y nada más. El estado, el origen, los giros asignados, la fecha de publicación, la fecha de registro, la constancia del consentimiento y el enlace de gestión DEBEN quedar intactos: aplicar una edición NO DEBE despublicar, ni volver a poner en revisión, ni regenerar el enlace, ni obligar al negocio a re-consentir. Las versiones normalizadas de búsqueda DEBEN recalcularse, para que la ficha se siga encontrando por lo que ahora dice.
 
-Si el WhatsApp propuesto ya lo tiene otra ficha en el momento de aplicar, la edición NO DEBE aplicarse y el panel DEBE decirlo con el texto literal "Ese número ya está en otra ficha: no se pudieron aplicar los cambios.", dejando la edición pendiente para que el admin la resuelva. Si la ficha ya no está publicada cuando el admin aplica, tampoco DEBE aplicarse nada ni darse por aplicada: la edición DEBE seguir pendiente —para que se pueda aplicar cuando la ficha vuelva a publicarse— y el panel DEBE decir qué no pasó, por qué y que nada se perdió. Aplicada la edición, el panel DEBE confirmar con "Listo, la ficha ya se actualizó." y ofrecer un botón "Avisarle por WhatsApp" con el mensaje prellenado, literalmente: "¡Listo! Ya actualizamos la ficha de «<nombre del negocio>» en NecesitoUno Tizayuca. Así quedó: <link de la ficha>". El cambio DEBE verse en el directorio público de inmediato.
+Si el WhatsApp propuesto ya lo tiene otra ficha en el momento de aplicar, la edición NO DEBE aplicarse y el panel DEBE decirlo con el texto literal "Ese número ya está en otra ficha: no se pudieron aplicar los cambios.", dejando la edición pendiente para que el admin la resuelva. Si la ficha ya no está publicada cuando el admin aplica, tampoco DEBE aplicarse nada ni darse por aplicada: la edición DEBE seguir pendiente —para que se pueda aplicar cuando la ficha vuelva a publicarse— y el panel DEBE decir qué no pasó, por qué y que nada se perdió. Aplicada la edición, el panel DEBE confirmar con "Listo, la ficha ya se actualizó." y ofrecer un botón "Avisarle por WhatsApp" con el mensaje prellenado, literalmente: "¡Listo! Ya actualizamos la ficha de «<nombre del negocio>» en EnMiRumbo. Así quedó: <link de la ficha>". El cambio DEBE verse en el directorio público de inmediato.
 
 #### Scenario: aplicar los cambios
 
@@ -930,7 +930,7 @@ Si el WhatsApp propuesto ya lo tiene otra ficha en el momento de aplicar, la edi
 #### Scenario: aviso de que la ficha ya se actualizó
 
 - **WHEN** el admin acaba de aplicar la edición de "Estética Lupita"
-- **THEN** ve un botón "Avisarle por WhatsApp" con el mensaje "¡Listo! Ya actualizamos la ficha de «Estética Lupita» en NecesitoUno Tizayuca. Así quedó: <link de la ficha>" ya escrito, sin enviarse
+- **THEN** ve un botón "Avisarle por WhatsApp" con el mensaje "¡Listo! Ya actualizamos la ficha de «Estética Lupita» en EnMiRumbo. Así quedó: <link de la ficha>" ya escrito, sin enviarse
 
 #### Scenario: el número propuesto se lo ganó otra ficha
 
@@ -949,7 +949,7 @@ Si el WhatsApp propuesto ya lo tiene otra ficha en el momento de aplicar, la edi
 
 ### Requirement: Descartar la edición exige motivo, no toca la ficha y ofrece avisar por WhatsApp
 
-Desde el detalle de la edición, el admin DEBE poder descartarla escribiendo obligatoriamente el motivo, bajo el rótulo literal "¿Por qué no aplicas los cambios?" y con el botón "Descartar los cambios". Sin motivo, el descarte NO DEBE ejecutarse y DEBE mostrarse el texto literal "Escribe por qué descartas los cambios". Como ese motivo es lo que viaja dentro del WhatsApp que se le manda al negocio, tampoco DEBE recortarse en silencio: se le aplica la misma cota de 500 caracteres y el mismo mensaje literal que al motivo de la despublicación. Descartar NO DEBE modificar ni un dato de la ficha publicada, que sigue exactamente como estaba, ni cambiar su estado, ni invalidar el enlace de gestión: el negocio puede corregir y volver a mandar cambios con el mismo enlace. El sistema DEBE guardar el motivo y la fecha del descarte, y el panel DEBE confirmar con "Cambios descartados." y ofrecer un botón "Avisarle por WhatsApp" con el mensaje prellenado, literalmente: "Hola, revisamos los cambios que mandaste para «<nombre del negocio>» en NecesitoUno Tizayuca y por ahora no los pudimos aplicar: <motivo>. Tu ficha sigue publicada como estaba y puedes mandarlos otra vez con tu mismo enlace."
+Desde el detalle de la edición, el admin DEBE poder descartarla escribiendo obligatoriamente el motivo, bajo el rótulo literal "¿Por qué no aplicas los cambios?" y con el botón "Descartar los cambios". Sin motivo, el descarte NO DEBE ejecutarse y DEBE mostrarse el texto literal "Escribe por qué descartas los cambios". Como ese motivo es lo que viaja dentro del WhatsApp que se le manda al negocio, tampoco DEBE recortarse en silencio: se le aplica la misma cota de 500 caracteres y el mismo mensaje literal que al motivo de la despublicación. Descartar NO DEBE modificar ni un dato de la ficha publicada, que sigue exactamente como estaba, ni cambiar su estado, ni invalidar el enlace de gestión: el negocio puede corregir y volver a mandar cambios con el mismo enlace. El sistema DEBE guardar el motivo y la fecha del descarte, y el panel DEBE confirmar con "Cambios descartados." y ofrecer un botón "Avisarle por WhatsApp" con el mensaje prellenado, literalmente: "Hola, revisamos los cambios que mandaste para «<nombre del negocio>» en EnMiRumbo y por ahora no los pudimos aplicar: <motivo>. Tu ficha sigue publicada como estaba y puedes mandarlos otra vez con tu mismo enlace."
 
 #### Scenario: descarte con motivo
 
@@ -964,7 +964,7 @@ Desde el detalle de la edición, el admin DEBE poder descartarla escribiendo obl
 #### Scenario: aviso del descarte por WhatsApp
 
 - **WHEN** el admin acaba de descartar los cambios de "Préstamos Rápidos" con el motivo "No publicamos préstamos informales"
-- **THEN** ve "Cambios descartados." y un botón "Avisarle por WhatsApp" con el mensaje "Hola, revisamos los cambios que mandaste para «Préstamos Rápidos» en NecesitoUno Tizayuca y por ahora no los pudimos aplicar: No publicamos préstamos informales. Tu ficha sigue publicada como estaba y puedes mandarlos otra vez con tu mismo enlace." ya escrito
+- **THEN** ve "Cambios descartados." y un botón "Avisarle por WhatsApp" con el mensaje "Hola, revisamos los cambios que mandaste para «Préstamos Rápidos» en EnMiRumbo y por ahora no los pudimos aplicar: No publicamos préstamos informales. Tu ficha sigue publicada como estaba y puedes mandarlos otra vez con tu mismo enlace." ya escrito
 
 #### Scenario: el enlace sigue sirviendo tras un descarte
 
@@ -992,7 +992,7 @@ Aplicar y descartar solo DEBEN surtir efecto sobre la edición **que el admin te
 
 ### Requirement: El admin puede generar un enlace nuevo, y el anterior deja de servir
 
-El detalle de un negocio publicado DEBE ofrecer un botón con el texto literal "Generar un enlace nuevo" (PRD §6.4: cuando hay sospecha de que alguien más tiene el enlace, o cuando el dueño lo perdió y no aparece en el chat). Al usarlo, el sistema DEBE generar un token nuevo y **el anterior DEBE dejar de funcionar de inmediato**, respondiendo el mismo 404 que un enlace inventado. El panel DEBE confirmar con el texto literal "Listo, el enlace anterior ya no sirve." y ofrecer un botón "Mandarle el enlace por WhatsApp" con el mensaje prellenado, literalmente: "Hola, te mandamos un enlace nuevo para editar tu ficha de «<nombre del negocio>» en NecesitoUno Tizayuca: <enlace de gestión>. El anterior ya no sirve. Guarda este mensaje (puedes destacarlo con la estrella), con ese enlace actualizas tus datos cuando quieras." Ese es el **único momento** en que el enlace se muestra: si el admin sale de esa pantalla sin mandarlo, tiene que generar otro. Regenerar NO DEBE tocar los datos de la ficha ni las ediciones pendientes que ya estuvieran esperando.
+El detalle de un negocio publicado DEBE ofrecer un botón con el texto literal "Generar un enlace nuevo" (PRD §6.4: cuando hay sospecha de que alguien más tiene el enlace, o cuando el dueño lo perdió y no aparece en el chat). Al usarlo, el sistema DEBE generar un token nuevo y **el anterior DEBE dejar de funcionar de inmediato**, respondiendo el mismo 404 que un enlace inventado. El panel DEBE confirmar con el texto literal "Listo, el enlace anterior ya no sirve." y ofrecer un botón "Mandarle el enlace por WhatsApp" con el mensaje prellenado, literalmente: "Hola, te mandamos un enlace nuevo para editar tu ficha de «<nombre del negocio>» en EnMiRumbo: <enlace de gestión>. El anterior ya no sirve. Guarda este mensaje (puedes destacarlo con la estrella), con ese enlace actualizas tus datos cuando quieras." Ese es el **único momento** en que el enlace se muestra: si el admin sale de esa pantalla sin mandarlo, tiene que generar otro. Regenerar NO DEBE tocar los datos de la ficha ni las ediciones pendientes que ya estuvieran esperando.
 
 #### Scenario: regenerar invalida el anterior
 
@@ -1002,7 +1002,7 @@ El detalle de un negocio publicado DEBE ofrecer un botón con el texto literal "
 #### Scenario: mandar el enlace nuevo
 
 - **WHEN** el admin acaba de generar el enlace de "Tacos del Güero"
-- **THEN** ve un botón "Mandarle el enlace por WhatsApp" con el mensaje "Hola, te mandamos un enlace nuevo para editar tu ficha de «Tacos del Güero» en NecesitoUno Tizayuca: <enlace de gestión>. El anterior ya no sirve. Guarda este mensaje (puedes destacarlo con la estrella), con ese enlace actualizas tus datos cuando quieras." ya escrito
+- **THEN** ve un botón "Mandarle el enlace por WhatsApp" con el mensaje "Hola, te mandamos un enlace nuevo para editar tu ficha de «Tacos del Güero» en EnMiRumbo: <enlace de gestión>. El anterior ya no sirve. Guarda este mensaje (puedes destacarlo con la estrella), con ese enlace actualizas tus datos cuando quieras." ya escrito
 
 #### Scenario: el enlace se muestra una sola vez
 
@@ -1013,6 +1013,20 @@ El detalle de un negocio publicado DEBE ofrecer un botón con el texto literal "
 
 - **WHEN** el admin genera un enlace nuevo para un negocio que tiene una edición pendiente
 - **THEN** los datos de la ficha no cambian y la edición sigue esperando en la cola
+
+### Requirement: Ningún mensaje del panel se presenta con la marca anterior
+
+Todo mensaje de WhatsApp que el panel arme para que el admin se lo mande a un negocio DEBE nombrar al directorio como "EnMiRumbo", con el descriptor "el directorio de negocios de Tizayuca" **solo en el mensaje de primer contacto** (el de verificación). Los demás llegan a alguien que ya recibió esa presentación y dicen "EnMiRumbo" a secas. Ninguno DEBE quedarse con la marca anterior ni escribir la localidad pegada al nombre, incluidos los mensajes que otros changes agreguen después de este.
+
+#### Scenario: se recorren todos los mensajes del panel
+
+- **WHEN** se revisan los mensajes prellenados que el panel puede armar hoy —verificación, aviso de publicación con los dos links, aviso de rechazo, aviso de despublicación, aviso de cambios aplicados, aviso de cambios descartados y el del enlace nuevo—
+- **THEN** el de verificación presenta al sitio como "EnMiRumbo, el directorio de negocios de Tizayuca", los otros seis dicen "EnMiRumbo" a secas, y ninguno menciona la marca anterior ni pega la localidad al nombre
+
+#### Scenario: un mensaje nuevo del panel nace con la marca vigente
+
+- **WHEN** otro change agrega al panel un mensaje prellenado más
+- **THEN** el guardián de marca del sitio (capacidad `layout-base`) lo revisa igual que a los demás y falla si trae la marca anterior o la localidad pegada al nombre
 
 ### Requirement: El panel se opera desde el celular y sin JavaScript de cliente innecesario
 

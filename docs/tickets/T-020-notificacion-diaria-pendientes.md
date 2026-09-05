@@ -6,7 +6,7 @@
 **Referencias PRD:** §6.3 (meta operativa de revisión <48h)
 **Depende de:** T-019
 **OpenSpec change:** `agregar-aviso-diario-pendientes`
-**PR:** —
+**PR:** [#26](https://github.com/SoyJorgePilo/enmirumbo/pull/26)
 
 ## Contexto
 

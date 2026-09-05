@@ -126,11 +126,11 @@ describe("revision-admin · ninguna contraseña por defecto ni atajo de desarrol
 // design.md §7: el aviso de publicación manda la URL ABSOLUTA de la ficha.
 describe("revision-admin · URL pública del sitio para el link de la ficha", () => {
   it("usa la configurada, sin diagonal final", () => {
-    expect(urlSitio({ [VARIABLE_URL_SITIO]: "https://necesitouno.mx/" })).toBe(
-      "https://necesitouno.mx",
+    expect(urlSitio({ [VARIABLE_URL_SITIO]: "https://enmirumbo.com/" })).toBe(
+      "https://enmirumbo.com",
     );
-    expect(urlSitio({ [VARIABLE_URL_SITIO]: "https://necesitouno.mx" })).toBe(
-      "https://necesitouno.mx",
+    expect(urlSitio({ [VARIABLE_URL_SITIO]: "https://enmirumbo.com" })).toBe(
+      "https://enmirumbo.com",
     );
   });
 

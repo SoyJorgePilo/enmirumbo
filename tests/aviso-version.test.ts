@@ -58,6 +58,13 @@ import {
  */
 const HUELLAS_POR_VERSION: ReadonlyArray<readonly [string, string]> = [
   ["1", "08ce983c2ce4f4733e42aca21cf7c01f75b3a6cc78c72fdb8055c8bc61062d5f"],
+  // La `2` la estrena el rebrand a "EnMiRumbo" (T-019): el nombre del sitio
+  // dentro del texto publicado y el correo del directorio, que dejó de ser
+  // placeholder. Los dos cambios se despliegan juntos, así que una sola
+  // versión. El renglón de la `1` NO se tocó, y este es el PRIMER caso en que
+  // esa regla se aplica de verdad: su texto ya no se publica, pero sigue
+  // amparando las constancias que la citan.
+  ["2", "1f3349078d0a1e938d2e46794c67f1fc1a976a85e9e2b5d0eb55ad6e79657ee0"],
 ];
 
 /**
@@ -98,10 +105,12 @@ function revisarVersionYTexto(
 
 describe("paginas-legales · la versión del aviso vive en un solo lugar", () => {
   // Scenario: la versión de arranque
-  it("la versión vigente es una cadena no vacía y hoy vale 1", () => {
+  it("la versión vigente es una cadena no vacía y hoy vale 2", () => {
     expect(typeof VERSION_AVISO).toBe("string");
     expect(VERSION_AVISO.trim()).not.toBe("");
-    expect(VERSION_AVISO).toBe("1");
+    // Estrenada por el rebrand a "EnMiRumbo" (T-019), que cambió el nombre del
+    // sitio dentro del texto publicado y publicó el correo del directorio.
+    expect(VERSION_AVISO).toBe("2");
   });
 
   // Scenario: una sola fuente de la versión
@@ -221,7 +230,7 @@ describe("paginas-legales · el contenido versionado son las tres piezas del avi
 
   it("no incluye el texto de los términos ni el literal de la versión", () => {
     expect(texto).not.toContain(TERMINOS.introduccion);
-    expect(texto).not.toContain("Estas son las reglas de NecesitoUno Tizayuca");
+    expect(texto).not.toContain("Estas son las reglas de EnMiRumbo");
     expect(texto).not.toMatch(/Versión\s+\d/i);
   });
 
@@ -251,6 +260,82 @@ describe("paginas-legales · el guardián ata la versión al texto", () => {
     expect(
       revisarVersionYTexto(VERSION_AVISO, contenidoVersionadoDelAviso()),
     ).toBeNull();
+  });
+
+  // Requirement (ADDED por T-019) "El rebrand estrena la versión 2 del aviso,
+  // sin tocar la evidencia de la 1" · Scenario: la huella de la versión 1
+  // sobrevive al rebrand.
+  it("la tabla tiene dos renglones y el de la versión 1 es el de siempre", () => {
+    expect(HUELLAS_POR_VERSION).toHaveLength(2);
+    expect(HUELLAS_POR_VERSION[0]).toEqual([
+      "1",
+      "08ce983c2ce4f4733e42aca21cf7c01f75b3a6cc78c72fdb8055c8bc61062d5f",
+    ]);
+    expect(HUELLAS_POR_VERSION[1][0]).toBe("2");
+    // Y la `2` corresponde al texto que hoy se publica, no a otro cualquiera.
+    expect(HUELLAS_POR_VERSION[1][1]).toBe(
+      huellaDeContenido(contenidoVersionadoDelAviso()),
+    );
+    // El texto de hoy YA NO es el de la `1`: por eso hubo que estrenar versión.
+    expect(HUELLAS_POR_VERSION[1][1]).not.toBe(HUELLAS_POR_VERSION[0][1]);
+  });
+
+  // Scenario: el rebrand no le pide nada al negocio ya publicado.
+  //
+  // El tramo automatizable de aquí es "no hay migración": estrenar la `2` NO
+  // toca la base. Si alguien colara un backfill que reescribiera las
+  // constancias, las fichas que consintieron la `1` pasarían a decir `2` y la
+  // evidencia legal mentiría — con la firma del titular encima. El otro tramo
+  // (que un reenvío no le actualiza la constancia a una ficha publicada) lo
+  // cubre `tests/rebrand-seguridad-adversarial.test.ts`, contra la base.
+  it("ninguna migración reescribe las constancias ya guardadas", async () => {
+    const { readFileSync, readdirSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const directorio = join(process.cwd(), "prisma", "migrations");
+
+    const sqls = readdirSync(directorio, { withFileTypes: true })
+      .filter((entrada) => entrada.isDirectory())
+      .map((entrada) => ({
+        nombre: entrada.name,
+        sql: readFileSync(join(directorio, entrada.name, "migration.sql"), "utf8"),
+      }));
+    expect(sqls.length).toBeGreaterThan(0);
+
+    // Anclados a principio de sentencia: `ON UPDATE CASCADE` y `ON DELETE
+    // CASCADE` son cláusulas de llave foránea (definición del esquema), no
+    // escrituras de datos, y las migraciones están llenas de ellas.
+    const ESCRITURAS_DE_DATOS = [
+      /^\s*UPDATE\s/im,
+      /^\s*INSERT\s+INTO\s/im,
+      /^\s*DELETE\s+FROM\s/im,
+      /^\s*COPY\s/im,
+    ];
+    for (const { nombre, sql } of sqls) {
+      // Las columnas de la constancia se pueden CREAR, nunca REESCRIBIR.
+      for (const escritura of ESCRITURAS_DE_DATOS) {
+        expect(
+          sql,
+          `${nombre}: una migración no escribe datos (${escritura})`,
+        ).not.toMatch(escritura);
+      }
+    }
+
+    // Y este change no agregó ninguna migración: estrenar versión es cambiar
+    // un literal, no tocar el esquema (proposal, "modelo-datos no cambia").
+    expect(sqls.map(({ nombre }) => nombre)).toEqual([
+      "20260906000000_inicial",
+      "20260907000000_agrega_cupos_compartidos",
+    ]);
+  });
+
+  // Scenario: se estrena versión junto con el texto (por el lado de la marca).
+  it("el contenido versionado ya nombra al sitio con la marca vigente", () => {
+    const texto = contenidoVersionadoDelAviso().join("\n");
+    expect(texto).toContain("EnMiRumbo, el directorio de negocios de Tizayuca");
+    expect(texto).not.toMatch(/necesitouno/i);
+    expect(texto).not.toMatch(/EnMiRumbo\s+Tizayuca/i);
+    // Y el correo del directorio, que viajó en la MISMA versión.
+    expect(texto).toContain("contacto@enmirumbo.com");
   });
 });
 
@@ -336,17 +421,19 @@ describe("paginas-legales · el guardián de verdad salta (prueba por mutación)
   it("subiendo la versión y anclando la huella nueva vuelve a pasar", () => {
     const contenidoNuevo = contenidoVersionadoDelAviso(conParrafoCambiado);
     const huellaNueva = huellaDeContenido(contenidoNuevo);
-    const tablaConDos = [...HUELLAS_POR_VERSION, ["2", huellaNueva] as const];
+    const tablaConUnaMas = [...HUELLAS_POR_VERSION, ["3", huellaNueva] as const];
 
-    expect(revisarVersionYTexto("2", contenidoNuevo, tablaConDos)).toBeNull();
-    // Y la huella de la versión 1 sigue registrada tal cual.
-    expect(tablaConDos[0]).toEqual(HUELLAS_POR_VERSION[0]);
-    expect(tablaConDos).toHaveLength(2);
+    expect(revisarVersionYTexto("3", contenidoNuevo, tablaConUnaMas)).toBeNull();
+    // Y las huellas ya publicadas siguen registradas tal cual.
+    expect(tablaConUnaMas.slice(0, HUELLAS_POR_VERSION.length)).toEqual([
+      ...HUELLAS_POR_VERSION,
+    ]);
+    expect(tablaConUnaMas).toHaveLength(HUELLAS_POR_VERSION.length + 1);
   });
 
   // Scenario: versión sin huella
   it("subir la versión sin anclar su huella también falla", () => {
-    const fallo = revisarVersionYTexto("2", contenidoVersionadoDelAviso());
+    const fallo = revisarVersionYTexto("3", contenidoVersionadoDelAviso());
     expect(fallo).not.toBeNull();
     expect(fallo).toContain("la vigente siempre tiene que ser la última de la tabla");
   });

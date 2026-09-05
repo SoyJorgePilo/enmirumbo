@@ -1,4 +1,4 @@
-# Proyecto: NecesitoUno — Directorio de Negocios de Tizayuca
+# Proyecto: EnMiRumbo — Directorio de Negocios de Tizayuca
 
 ## Qué es
 

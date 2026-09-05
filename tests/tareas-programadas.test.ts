@@ -32,7 +32,7 @@ let categoriaId: number;
 
 const pedir = (encabezados: Record<string, string> = {}) =>
   barrerFotosHuerfanasRuta(
-    new Request("https://necesitouno.example/api/tareas/barrer-fotos-huerfanas", {
+    new Request("https://enmirumbo.example/api/tareas/barrer-fotos-huerfanas", {
       headers: encabezados,
     }),
   );
@@ -188,7 +188,7 @@ describe("tareas · el 404 de una tarea no se distingue del de las demás rutas"
       "../src/app/api/foto/[clave]/[variante]/route"
     );
     const respuestaFoto = await servirFotoPublica(
-      new Request("https://necesitouno.example/api/foto/x/ficha"),
+      new Request("https://enmirumbo.example/api/foto/x/ficha"),
       { params: Promise.resolve({ clave: "0".repeat(32), variante: "ficha" }) } as never,
     );
     expect(respuestaFoto.status).toBe(404);

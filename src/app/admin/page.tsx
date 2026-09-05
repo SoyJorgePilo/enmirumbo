@@ -18,8 +18,15 @@ import { CLASE_BOTON_PRIMARIO } from "@/lib/estilos-boton";
 // Requirement "El panel no se indexa ni se enlaza desde el sitio público",
 // scenario "metadata de no indexación": TODAS las pantallas del panel,
 // incluida esta, declaran `noindex, nofollow`.
+/**
+ * Título propio, escrito a mano porque el panel no cuelga de la plantilla del
+ * layout público. Se exporta para que el guardián de la marca (T-019,
+ * `tests/marca-guardian.test.ts`) lo lea sin adivinarlo.
+ */
+export const TITULO_PANEL = "Panel de revisión — EnMiRumbo";
+
 export const metadata: Metadata = {
-  title: "Panel de revisión — NecesitoUno Tizayuca",
+  title: TITULO_PANEL,
   robots: { index: false, follow: false },
 };
 

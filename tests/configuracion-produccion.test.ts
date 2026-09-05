@@ -58,9 +58,9 @@ afterEach(() => {
 describe("guardas · 'base local' ya no es un archivo, es un host", () => {
   it.each([
     ["localhost", LOCAL],
-    ["127.0.0.1", "postgresql://postgres@127.0.0.1:5432/necesitouno"],
-    ["IPv6 local", "postgresql://postgres@[::1]:5432/necesitouno"],
-    ["esquema postgres://", "postgres://postgres@localhost:5432/necesitouno"],
+    ["127.0.0.1", "postgresql://postgres@127.0.0.1:5432/enmirumbo"],
+    ["IPv6 local", "postgresql://postgres@[::1]:5432/enmirumbo"],
+    ["esquema postgres://", "postgres://postgres@localhost:5432/enmirumbo"],
     ["con mayúsculas y espacios", "  POSTGRESQL://postgres@LOCALHOST:5432/x  "],
     ["sin declarar (se usa el default local)", undefined],
   ])("reconoce como local: %s", (_caso, DATABASE_URL) => {
@@ -74,9 +74,9 @@ describe("guardas · 'base local' ya no es un archivo, es un host", () => {
     ["el archivo SQLite de la era anterior", "file:./prisma/dev.db"],
     ["el mismo archivo en mayúsculas", "  FILE:./prisma/dev.db  "],
     ["prisma accelerate", "prisma://accelerate.prisma-data.net/?api_key=x"],
-    ["libsql", "libsql://necesitouno.turso.io?authToken=x"],
+    ["libsql", "libsql://enmirumbo.turso.io?authToken=x"],
     ["https", "https://base.example/db"],
-    ["mysql local (otro motor)", "mysql://root@localhost:3306/necesitouno"],
+    ["mysql local (otro motor)", "mysql://root@localhost:3306/enmirumbo"],
     ["una dirección ilegible", "no-es-una-url"],
     ["basura con pinta de host", "postgresql//localhost/x"],
   ])("NO reconoce como local: %s", (_caso, DATABASE_URL) => {
@@ -250,8 +250,8 @@ describe("despliegue · una conexión que sale de esta máquina va cifrada o no 
   it.each([
     ["la base local por defecto", URL_BASE_LOCAL_POR_DEFECTO],
     ["localhost sin TLS (los bytes no salen del equipo)", LOCAL],
-    ["127.0.0.1 sin TLS", "postgresql://postgres@127.0.0.1:5432/necesitouno"],
-    ["IPv6 local sin TLS", "postgresql://postgres@[::1]:5432/necesitouno"],
+    ["127.0.0.1 sin TLS", "postgresql://postgres@127.0.0.1:5432/enmirumbo"],
+    ["IPv6 local sin TLS", "postgresql://postgres@[::1]:5432/enmirumbo"],
     ["Supabase con sslmode=require", REMOTA],
     ["Supabase con verify-full", "postgresql://u:c@db.abc.supabase.co:5432/x?sslmode=verify-full"],
     ["Supabase con no-verify", "postgresql://u:c@db.abc.supabase.co:5432/x?sslmode=no-verify"],
@@ -393,7 +393,7 @@ describe("despliegue · sslmode: solo los modos que garantizan cifrado", () => {
 // ── 7. B8 · el socket Unix tiene salida, y es la correcta ──────────────────
 
 describe("despliegue · una base por socket Unix no queda sin salida", () => {
-  const SOCKET = "postgresql://postgres@localhost:5432/necesitouno?host=%2Fvar%2Frun%2Fpostgresql";
+  const SOCKET = "postgresql://postgres@localhost:5432/enmirumbo?host=%2Fvar%2Frun%2Fpostgresql";
 
   it("se reconoce como socket y NO se le exige cifrado", () => {
     // Un socket es un archivo de esta máquina: no hay red que interceptar, y

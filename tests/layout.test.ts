@@ -153,7 +153,7 @@ let htmlAprobadoAdmin = "";
 let idsEnRevision: string[] = [];
 
 const SECRETO_PANEL = "s".repeat(LONGITUD_MINIMA_SECRETO);
-const URL_SITIO_PANEL = "https://necesitouno.example";
+const URL_SITIO_PANEL = "https://enmirumbo.example";
 
 beforeAll(async () => {
   process.env[VARIABLE_CONTRASENA] = "contrasena-de-prueba-nada-real";
@@ -461,17 +461,28 @@ describe("layout-base · los grupos de rutas no cambian ninguna URL", () => {
 // metadata), que se comprueban en sus propias suites (home más abajo en este
 // archivo; metadata en el describe "documento es-MX con metadata").
 describe("layout-base · header con el wordmark (scenario 1)", () => {
-  it('el header lleva el wordmark "NecesitoUno" y ya NO el posicionamiento "Tizayuca"', () => {
+  // ENMENDADO (rebrand T-019): el wordmark es "EnMiRumbo", sin localidad
+  // pegada. Scenario "header con el wordmark".
+  it('el header lleva el wordmark "EnMiRumbo" y ya NO el posicionamiento "Tizayuca"', () => {
     // Sobre el HTML renderizado, no el código fuente: el código sí menciona
     // "Tizayuca" en su comentario (documenta a dónde se movió el
     // posicionamiento), lo que importa es qué ve el vecino.
-    expect(htmlHeader).toContain("NecesitoUno");
+    expect(htmlHeader).toContain("EnMiRumbo");
     expect(htmlHeader).not.toContain("Tizayuca");
+    expect(htmlHeader).not.toMatch(/necesitouno/i);
     expect(layoutTsx).toMatch(/<Header \/>/);
   });
 
-  it('el posicionamiento hiperlocal sigue visible en el footer ("NecesitoUno Tizayuca")', () => {
-    expect(htmlFooter).toContain("NecesitoUno Tizayuca");
+  // Scenario: footer con los enlaces legales / el posicionamiento hiperlocal
+  // sigue visible fuera del header (T-019: la identificación es la marca sola).
+  it('el footer identifica al sitio como "EnMiRumbo", sin la localidad pegada', () => {
+    expect(htmlFooter).toContain("EnMiRumbo");
+    expect(htmlFooter).not.toMatch(/necesitouno/i);
+    expect(htmlFooter).not.toMatch(/EnMiRumbo\s+Tizayuca/i);
+  });
+
+  // Scenario: la línea de cierre del footer no cambió con el rebrand
+  it("la línea de cierre del footer sigue palabra por palabra como estaba", () => {
     expect(htmlFooter).toContain("Hecho para los vecinos de Tizayuca, Hidalgo.");
   });
 });
@@ -868,8 +879,8 @@ describe("layout-base · documento es-MX con metadata (scenario 10)", () => {
   // `tests/seo-metadata.test.ts`.
   it("título y descripción son los literales aprobados en la spec", () => {
     expect(metadata.title).toEqual({
-      default: "NecesitoUno Tizayuca — Encuentra negocios y servicios en Tizayuca",
-      template: "%s — NecesitoUno",
+      default: "EnMiRumbo — Encuentra negocios y servicios en Tizayuca",
+      template: "%s — EnMiRumbo",
     });
     expect(metadata.description).toBe(
       "Encuentra negocios, servicios y deporte en Tizayuca y contáctalos directo por WhatsApp. Registro gratis para negocios locales.",

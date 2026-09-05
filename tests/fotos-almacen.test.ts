@@ -30,7 +30,7 @@ let directorio: string;
 let almacen: AlmacenFotos;
 
 beforeAll(async () => {
-  directorio = await mkdtemp(join(tmpdir(), "necesitouno-fotos-"));
+  directorio = await mkdtemp(join(tmpdir(), "enmirumbo-fotos-"));
   almacen = crearAlmacenLocal(directorio);
 });
 

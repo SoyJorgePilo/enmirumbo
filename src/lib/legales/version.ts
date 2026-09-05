@@ -26,8 +26,16 @@ import { TEXTO_AVISO_PRIVACIDAD, TEXTO_CONSENTIMIENTO } from "@/lib/registro/tex
  * en el panel. Una versión ya publicada NUNCA se reutiliza para otro texto.
  *
  * Subirla obliga a anclar la huella nueva en `tests/aviso-version.test.ts`.
+ *
+ * La `2` la estrena el rebrand a "EnMiRumbo" (T-019): cambió el nombre del
+ * sitio dentro del texto publicado —la introducción del aviso, la sección
+ * "Quién es responsable de tus datos" y el aviso simplificado— y se publicó el
+ * correo del directorio en lugar de sus dos placeholders. Los dos cambios se
+ * despliegan juntos, así que estrenan UNA sola versión. La huella de la `1`
+ * NO se volvió a anclar: es la prueba de contra qué texto se firmaron las
+ * constancias que la citan.
  */
-export const VERSION_AVISO = "1";
+export const VERSION_AVISO = "2";
 
 /**
  * Entero de una versión, o `null` si esa cadena no es comparable.

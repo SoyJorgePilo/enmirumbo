@@ -203,9 +203,9 @@ describe("modelo-datos · relleno de las fichas que ya existían (tasks #5)", ()
       ["producción por NODE_ENV", { NODE_ENV: "production" }],
       ["producción con mayúscula y espacios", { NODE_ENV: " Production " }],
       ["producción en Vercel", { VERCEL_ENV: "production" }],
-      ["base remota de Postgres", { DATABASE_URL: "postgresql://u:c@host:5432/necesitouno" }],
+      ["base remota de Postgres", { DATABASE_URL: "postgresql://u:c@host:5432/enmirumbo" }],
       ["base remota de Prisma", { DATABASE_URL: "prisma://accelerate.prisma-data.net/?api_key=x" }],
-      ["base remota de libsql", { DATABASE_URL: "libsql://necesitouno.turso.io?authToken=x" }],
+      ["base remota de libsql", { DATABASE_URL: "libsql://enmirumbo.turso.io?authToken=x" }],
       ["dirección ilegible", { DATABASE_URL: "no-es-una-url" }],
     ])("no rellena en %s y lo dice", async (_caso, env) => {
       const antes = await prisma.negocio.findMany({ orderBy: { whatsapp: "asc" } });
@@ -222,10 +222,10 @@ describe("modelo-datos · relleno de las fichas que ya existían (tasks #5)", ()
 
     it.each([
       ["localhost", "postgresql://postgres:postgres@localhost:51214/template1"],
-      ["127.0.0.1", "postgresql://postgres:postgres@127.0.0.1:5432/necesitouno"],
-      ["IPv6 local", "postgresql://postgres:postgres@[::1]:5432/necesitouno"],
-      ["esquema postgres://", "postgres://postgres:postgres@localhost:5432/necesitouno"],
-      ["mayúsculas y espacios", "  POSTGRESQL://postgres@LOCALHOST:5432/necesitouno  "],
+      ["127.0.0.1", "postgresql://postgres:postgres@127.0.0.1:5432/enmirumbo"],
+      ["IPv6 local", "postgresql://postgres:postgres@[::1]:5432/enmirumbo"],
+      ["esquema postgres://", "postgres://postgres:postgres@localhost:5432/enmirumbo"],
+      ["mayúsculas y espacios", "  POSTGRESQL://postgres@LOCALHOST:5432/enmirumbo  "],
     ])("sí rellena contra un PostgreSQL de esta máquina (%s)", async (_caso, url) => {
       const resultado = await rellenarTextoDeBusqueda(prisma, {
         NODE_ENV: "development",
@@ -241,7 +241,7 @@ describe("modelo-datos · relleno de las fichas que ya existían (tasks #5)", ()
     it("con el permiso explícito sí corre, incluso en producción", async () => {
       const enProduccion = await rellenarTextoDeBusqueda(prisma, {
         NODE_ENV: "production",
-        DATABASE_URL: "postgresql://u:c@host:5432/necesitouno",
+        DATABASE_URL: "postgresql://u:c@host:5432/enmirumbo",
         [VARIABLE_PERMISO_BACKFILL]: "1",
       });
       expect(enProduccion.rellenado).toBe(true);

@@ -10,11 +10,11 @@
 
 ## Contexto
 
-Idea del fundador (2026-09-04): la marca NecesitoUno ya es neutral (decisión v0.7) precisamente para poder replicar a otros municipios. El posicionamiento "Tizayuca" NO se quita del producto actual — el hiperlocal es la apuesta de confianza y SEO del lanzamiento — pero la referencia a la localidad debe dejar de estar regada por el código para que una segunda instancia ("NecesitoUno Pachuca") sea un problema de datos y configuración, no una reescritura.
+Idea del fundador (2026-09-04): la marca EnMiRumbo ya es neutral (decisión v0.7, renombrada en T-019) precisamente para poder replicar a otros municipios — el relato "el directorio de los negocios de tu rumbo" no nombra ningún municipio, y eso es justo lo que sostiene este ticket. El posicionamiento "Tizayuca" NO se quita del producto actual — el hiperlocal es la apuesta de confianza y SEO del lanzamiento — pero la referencia a la localidad debe dejar de estar regada por el código para que una segunda instancia ("EnMiRumbo, el directorio de negocios de Pachuca" — el descriptor, nunca la localidad pegada al nombre) sea un problema de datos y configuración, no una reescritura.
 
 ## Inventario de dónde vive "Tizayuca" hoy (censo inicial, verificar al especificar)
 
-- Metadata base y plantilla de títulos (`layout-base`): "NecesitoUno Tizayuca — …", "«Giro» en Tizayuca"
+- Metadata base y plantilla de títulos (`layout-base`): "EnMiRumbo — Encuentra negocios y servicios en Tizayuca", "«Giro» en Tizayuca"
 - Header (posicionamiento junto al wordmark)
 - Textos del formulario, home, deporte ("¿Qué necesitas en Tizayuca?", "Deporte en Tizayuca")
 - Enlaces a Google Maps: sufijo "Tizayuca, Hidalgo"

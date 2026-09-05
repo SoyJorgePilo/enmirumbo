@@ -27,7 +27,7 @@ import { construirSegmentoFicha } from "@/lib/ficha-url";
  * Título ESTÁTICO a propósito (hallazgo M-2 de la etapa C del change
  * `agregar-analitica-cookieless`): el tracker de analítica manda
  * `document.title` en cada envío, además de la URL. Si esta página estrenara
- * el patrón habitual «Resultados para "…" — NecesitoUno», el texto que
+ * el patrón habitual «Resultados para "…" — EnMiRumbo», el texto que
  * escribió el vecino saldría al proveedor por el título, esquivando por
  * completo la exclusión de la cadena de consulta (`data-exclude-search`), que
  * la aprobación de la spec declaró innegociable.
@@ -38,7 +38,7 @@ import { construirSegmentoFicha } from "@/lib/ficha-url";
  * respetar esta excepción: `/buscar` no es indexable, así que un título
  * dinámico no aporta nada de SEO y sí filtraría texto libre.
  */
-export const TITULO_BUSCAR = "Buscar — NecesitoUno Tizayuca";
+export const TITULO_BUSCAR = "Buscar — EnMiRumbo";
 
 export const metadata: Metadata = {
   title: TITULO_BUSCAR,

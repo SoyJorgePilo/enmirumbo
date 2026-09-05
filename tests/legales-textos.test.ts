@@ -80,17 +80,20 @@ describe("paginas-legales · la lista de pendientes es la fuente única", () => 
     }
   });
 
-  // Los "seis datos" de tasks.md #3 son siete literales: el correo aparece
-  // con dos textos distintos (ARCO en el aviso, contacto en los términos).
-  it("los siete datos que solo puede dar el humano están en la lista", () => {
+  // T-019: eran siete y quedan CINCO. Los dos del correo salieron porque el
+  // dominio ya está comprado y `contacto@enmirumbo.com` se publica de verdad
+  // (requirement "Placeholders visibles y marca de borrador…"). Los demás
+  // datos del responsable siguen pendientes de la revisión legal.
+  it("los cinco datos que solo puede dar el humano están en la lista", () => {
     const pendientes = PLACEHOLDERS_LEGALES.join("\n");
+    expect(PLACEHOLDERS_LEGALES).toHaveLength(5);
     expect(pendientes).toContain("NOMBRE O RAZÓN SOCIAL DEL RESPONSABLE");
     expect(pendientes).toContain("DOMICILIO DEL RESPONSABLE");
-    expect(pendientes).toContain("CORREO ARCO"); // canal ARCO por escrito
-    expect(pendientes).toContain("CORREO DE CONTACTO"); // el de los términos
     expect(pendientes).toContain("WHATSAPP DEL DIRECTORIO");
     expect(pendientes).toContain("FECHA DE PUBLICACIÓN");
     expect(pendientes).toContain("JURISDICCIÓN PARA CONTROVERSIAS");
+    // Scenario: el correo ya no es un placeholder.
+    expect(pendientes).not.toContain("CORREO");
   });
 
   it("el interruptor de borrador es exactamente 'queda algo pendiente'", () => {
@@ -102,8 +105,14 @@ describe("paginas-legales · la lista de pendientes es la fuente única", () => 
 
   // Scenario: los pendientes son verificables (repo público + LFPDPPP: nada
   // de datos reales ni inventados en el texto legal)
+  //
+  // ENMENDADO (T-019): el correo del directorio ya no es inventado —existe y
+  // se publica a propósito—, así que se quita antes de buscar direcciones. Con
+  // cualquier otra, este caso sigue en rojo.
   it("el módulo no trae ningún correo, teléfono, URL ni domicilio inventado", () => {
-    const sinPlaceholders = todoElTexto.replace(/\[[^\]]+\]/g, "");
+    const sinPlaceholders = todoElTexto
+      .replace(/\[[^\]]+\]/g, "")
+      .replaceAll("contacto@enmirumbo.com", "");
     expect(sinPlaceholders).not.toMatch(/[\w.+-]+@[\w-]+\.[\w.-]+/);
     expect(sinPlaceholders).not.toMatch(/\b\d{7,}\b/);
     expect(sinPlaceholders).not.toMatch(/wa\.me|whatsapp\.com|https?:\/\//);

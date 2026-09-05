@@ -876,7 +876,7 @@ describe("adversarial · el tel: ya no lo escribe el negocio (M2 corregido)", ()
 });
 
 describe("adversarial · la guarda del seed de demo falla cerrada (M4 corregido)", () => {
-  const REMOTA = "postgresql://usuario:clave@servidor.example:5432/necesitouno";
+  const REMOTA = "postgresql://usuario:clave@servidor.example:5432/enmirumbo";
 
   it("una base remota se bloquea salvo con el permiso exacto '1'", () => {
     for (const permiso of [undefined, "", "0", "true", "yes", "si", "sí", "01", "11", "on"]) {
@@ -928,9 +928,9 @@ describe("adversarial · la guarda del seed de demo falla cerrada (M4 corregido)
     // Un PostgreSQL de esta máquina sí puede, venga como venga escrito
     for (const url of [
       "postgresql://postgres:postgres@localhost:51214/template1",
-      "postgres://postgres@127.0.0.1:5432/necesitouno",
-      "postgresql://postgres@[::1]:5432/necesitouno",
-      "  POSTGRESQL://postgres@LOCALHOST:5432/necesitouno  ",
+      "postgres://postgres@127.0.0.1:5432/enmirumbo",
+      "postgresql://postgres@[::1]:5432/enmirumbo",
+      "  POSTGRESQL://postgres@LOCALHOST:5432/enmirumbo  ",
     ]) {
       expect(motivoParaNoSembrar({ DATABASE_URL: url }), url).toBeNull();
     }

@@ -95,8 +95,8 @@ const HOSTS_DE_ESTA_MAQUINA = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]
 describe("adversarial · la guarda de base local y el host real del driver", () => {
   it.each([
     ["postgresql://postgres:postgres@localhost:51214/template1?sslmode=disable"],
-    ["postgresql://postgres:postgres@127.0.0.1:5432/necesitouno"],
-    ["postgres://postgres:postgres@[::1]:5432/necesitouno"],
+    ["postgresql://postgres:postgres@127.0.0.1:5432/enmirumbo"],
+    ["postgres://postgres:postgres@[::1]:5432/enmirumbo"],
   ])("una dirección local de verdad se reconoce como local (%s)", (url) => {
     expect(apuntaABaseLocal({ DATABASE_URL: url })).toBe(true);
     expect(HOSTS_DE_ESTA_MAQUINA.has(hostRealDePg(url))).toBe(true);
@@ -104,9 +104,9 @@ describe("adversarial · la guarda de base local y el host real del driver", () 
 
   it.each([
     // Un dominio que sólo EMPIEZA por localhost no es esta máquina.
-    ["postgresql://u:p@localhost.necesitouno.example:5432/db"],
+    ["postgresql://u:p@localhost.enmirumbo.example:5432/db"],
     // Credenciales con `@` adentro: el host real es el último tramo.
-    ["postgresql://localhost:p@db.necesitouno.example:5432/db"],
+    ["postgresql://localhost:p@db.enmirumbo.example:5432/db"],
     ["postgresql://u:p@db.abcdefgh.supabase.co:5432/postgres"],
   ])("una dirección remota se reconoce como remota (%s)", (url) => {
     expect(apuntaABaseLocal({ DATABASE_URL: url })).toBe(false);

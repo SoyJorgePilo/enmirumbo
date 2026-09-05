@@ -123,7 +123,7 @@ describe("revision-admin · las tres plantillas de WhatsApp", () => {
   // Scenario: abrir la conversación de verificación
   it("verificación, con el nombre del negocio interpolado", () => {
     expect(textos.mensajeVerificacion("Tacos del Güero")).toBe(
-      "Hola, te escribo de NecesitoUno Tizayuca, el directorio de negocios del municipio. Recibimos el registro de «Tacos del Güero». ¿Nos confirmas que el negocio es tuyo y que este es tu WhatsApp?",
+      "Hola, te escribo de EnMiRumbo, el directorio de negocios de Tizayuca. Recibimos el registro de «Tacos del Güero». ¿Nos confirmas que el negocio es tuyo y que este es tu WhatsApp?",
     );
   });
 
@@ -132,10 +132,10 @@ describe("revision-admin · las tres plantillas de WhatsApp", () => {
     expect(
       textos.mensajeAvisoPublicacion(
         "Estética Lupita",
-        "https://necesitouno.example/negocio/estetica-lupita-abc123",
+        "https://enmirumbo.example/negocio/estetica-lupita-abc123",
       ),
     ).toBe(
-      "¡Listo! Ya quedó publicado «Estética Lupita» en NecesitoUno Tizayuca. Esta es tu ficha: https://necesitouno.example/negocio/estetica-lupita-abc123 — compártela con tus clientes.",
+      "¡Listo! Ya quedó publicado «Estética Lupita» en EnMiRumbo. Esta es tu ficha: https://enmirumbo.example/negocio/estetica-lupita-abc123 — compártela con tus clientes.",
     );
   });
 
@@ -155,8 +155,44 @@ describe("revision-admin · las tres plantillas de WhatsApp", () => {
         "No publicamos préstamos informales",
       ),
     ).toBe(
-      "Hola, revisamos el registro de «Préstamos Rápidos» en NecesitoUno Tizayuca y por ahora no lo pudimos publicar: No publicamos préstamos informales. Si lo corriges, lo puedes volver a enviar desde el mismo formulario con este mismo número.",
+      "Hola, revisamos el registro de «Préstamos Rápidos» en EnMiRumbo y por ahora no lo pudimos publicar: No publicamos préstamos informales. Si lo corriges, lo puedes volver a enviar desde el mismo formulario con este mismo número.",
     );
+  });
+});
+
+// Requirement ADDED por el rebrand (T-019): "Ningún mensaje del panel se
+// presenta con la marca anterior". Recorre los cuatro mensajes de una vez, así
+// que un mensaje nuevo que otro change agregue entra aquí solo con sumarlo a
+// la lista — y el guardián de `tests/marca-guardian.test.ts` avisa si a alguien
+// se le olvida.
+describe("revision-admin · ningún mensaje del panel usa la marca anterior", () => {
+  const MENSAJES: ReadonlyArray<readonly [string, string]> = [
+    ["verificación", textos.mensajeVerificacion("Negocio Ficticio")],
+    [
+      "aviso de publicación",
+      textos.mensajeAvisoPublicacion("Negocio Ficticio", "https://enmirumbo.example/f"),
+    ],
+    ["aviso de rechazo", textos.mensajeAvisoRechazo("Negocio Ficticio", "Un motivo")],
+    [
+      "aviso de despublicación",
+      textos.mensajeAvisoDespublicacion("Negocio Ficticio", "Un motivo"),
+    ],
+  ];
+
+  // Scenario: se recorren todos los mensajes del panel
+  it.each(MENSAJES)("el mensaje de %s dice EnMiRumbo, sin la marca vieja ni la compuesta", (
+    _que,
+    mensaje,
+  ) => {
+    expect(mensaje).toContain("EnMiRumbo");
+    expect(mensaje).not.toMatch(/necesitouno/i);
+    expect(mensaje).not.toMatch(/EnMiRumbo\s+Tizayuca/i);
+  });
+
+  it("solo el de primer contacto lleva el descriptor geográfico", () => {
+    const descriptor = "EnMiRumbo, el directorio de negocios de Tizayuca";
+    const conDescriptor = MENSAJES.filter(([, mensaje]) => mensaje.includes(descriptor));
+    expect(conDescriptor.map(([que]) => que)).toEqual(["verificación"]);
   });
 });
 
@@ -275,7 +311,7 @@ describe("revision-admin · literales de despublicar y del borrado definitivo", 
   // Scenario: aviso de despublicación
   it("el aviso de despublicación por WhatsApp interpola nombre y motivo", () => {
     expect(textos.mensajeAvisoDespublicacion("Tacos del Güero", "El negocio cerró")).toBe(
-      "Hola, te escribo de NecesitoUno Tizayuca. Bajamos del directorio la ficha de «Tacos del Güero»: El negocio cerró. Si quieres que la volvamos a publicar o tienes alguna duda, contéstame por aquí.",
+      "Hola, te escribo de EnMiRumbo. Bajamos del directorio la ficha de «Tacos del Güero»: El negocio cerró. Si quieres que la volvamos a publicar o tienes alguna duda, contéstame por aquí.",
     );
   });
 

@@ -6,12 +6,17 @@ import Link from "next/link";
  * todas las páginas"). Cada enlace mide al menos 44px en su dimensión menor
  * y lleva a una página que existe de verdad. Server Component sin JS de
  * cliente.
+ *
+ * ENMENDADO (rebrand T-019): la identificación es la marca sola, "EnMiRumbo",
+ * sin localidad pegada. El posicionamiento hiperlocal del footer lo sostiene
+ * la línea de abajo, "Hecho para los vecinos de Tizayuca, Hidalgo.", que el
+ * fundador pidió conservar intacta carácter por carácter.
  */
 export function Footer() {
   return (
     <footer className="border-t border-borde bg-superficie">
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-1 px-4 py-6 text-sm text-tinta-suave sm:px-6">
-        <p className="font-semibold text-tinta">NecesitoUno Tizayuca</p>
+        <p className="font-semibold text-tinta">EnMiRumbo</p>
         <p>Hecho para los vecinos de Tizayuca, Hidalgo.</p>
         <nav aria-label="Enlaces legales" className="mt-2 flex flex-wrap gap-x-4">
           <Link

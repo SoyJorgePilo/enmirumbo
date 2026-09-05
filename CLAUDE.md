@@ -1,6 +1,6 @@
 @AGENTS.md
 
-# NecesitoUno — Directorio de Negocios de Tizayuca
+# EnMiRumbo — Directorio de Negocios de Tizayuca
 
 Directorio web hiperlocal: negocios se registran solos desde el celular (sin cuentas), un admin los verifica por WhatsApp antes de publicar, los vecinos los encuentran y contactan por WhatsApp. **Fuente de verdad de producto: `docs/PRD.md`.** Proyecto building in public: el repo es público.
 

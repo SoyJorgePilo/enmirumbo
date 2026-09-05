@@ -147,7 +147,7 @@ function conSesion(secreto = SECRETO) {
 beforeAll(async () => {
   process.env[VARIABLE_CONTRASENA] = "contrasena-de-prueba-nada-real";
   process.env[VARIABLE_SECRETO_SESION] = SECRETO;
-  process.env[VARIABLE_URL_SITIO] = "https://necesitouno.example";
+  process.env[VARIABLE_URL_SITIO] = "https://enmirumbo.example";
 
   prisma = crearClientePrueba();
   await seedCatalogos(prisma);

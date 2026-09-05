@@ -1,4 +1,4 @@
-# Backlog — NecesitoUno (MVP)
+# Backlog — EnMiRumbo (MVP)
 
 > Derivado del PRD v0.7. Prioridades: P0 = imprescindible para lanzar, P1 = antes de escalar. Orden de las épicas ≈ orden de construcción sugerido.
 

@@ -18,7 +18,7 @@ import { COLORES_MARCA } from "@/lib/colores-marca";
  * Tipografía del sistema (la que trae `next/og`), sin fuentes descargadas.
  */
 export const alt =
-  "NecesitoUno Tizayuca: encuentra negocios y servicios de Tizayuca y contáctalos por WhatsApp";
+  "EnMiRumbo: encuentra negocios y servicios de Tizayuca y contáctalos por WhatsApp";
 
 export const size = { width: 1200, height: 630 };
 
@@ -40,8 +40,14 @@ export default function ImagenDeMarca() {
           color: COLORES_MARCA.tinta,
         }}
       >
-        <div style={{ display: "flex", alignItems: "baseline", gap: 16 }}>
-          <span style={{ fontSize: 84, fontWeight: 700 }}>NecesitoUno</span>
+        {/*
+         * Rebrand T-019: el wordmark va solo y "Tizayuca" queda DEBAJO, más
+         * chica y separada, como línea de contexto. En la forma anterior iban
+         * en la misma línea y se leían como un nombre compuesto, que es justo
+         * lo que el fundador descartó.
+         */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <span style={{ fontSize: 84, fontWeight: 700 }}>EnMiRumbo</span>
           <span style={{ fontSize: 44, color: COLORES_MARCA["tinta-suave"] }}>
             Tizayuca
           </span>

@@ -33,13 +33,13 @@ Ojo: este texto todavía es un borrador. Nos faltan los datos que ves entre corc
 
 Versión ${VERSION_AVISO} · Última actualización: [FECHA DE PUBLICACIÓN]
 
-Este aviso explica, sin rodeos, qué datos nos das cuando registras tu negocio en NecesitoUno Tizayuca, para qué los usamos, qué queda público y cómo puedes pedirnos que los corrijamos o los borremos.
+Este aviso explica, sin rodeos, qué datos nos das cuando registras tu negocio en EnMiRumbo, el directorio de negocios de Tizayuca, para qué los usamos, qué queda público y cómo puedes pedirnos que los corrijamos o los borremos.
 
 ## Quién es responsable de tus datos
 
-El responsable del directorio NecesitoUno Tizayuca y de los datos personales que nos das es [NOMBRE O RAZÓN SOCIAL DEL RESPONSABLE — completar antes del lanzamiento], con domicilio en [DOMICILIO DEL RESPONSABLE — completar antes del lanzamiento], Tizayuca, Hidalgo, México.
+El responsable del directorio EnMiRumbo y de los datos personales que nos das es [NOMBRE O RAZÓN SOCIAL DEL RESPONSABLE — completar antes del lanzamiento], con domicilio en [DOMICILIO DEL RESPONSABLE — completar antes del lanzamiento], Tizayuca, Hidalgo, México.
 
-Para cualquier cosa relacionada con tus datos escríbenos al correo [CORREO ARCO — completar antes del lanzamiento] o por WhatsApp al [WHATSAPP DEL DIRECTORIO — completar antes del lanzamiento].
+Para cualquier cosa relacionada con tus datos escríbenos al correo contacto@enmirumbo.com o por WhatsApp al [WHATSAPP DEL DIRECTORIO — completar antes del lanzamiento].
 
 ## Qué datos recogemos
 
@@ -98,7 +98,7 @@ Todo esto lo atendemos a mano, cuando tú lo pides: no hay un botón que lo haga
 
 Tienes derecho a acceder a tus datos, a rectificarlos si están mal, a cancelarlos (que los borremos) y a oponerte a que los usemos. Eso son los derechos ARCO.
 
-Para ejercerlos escríbenos al correo [CORREO ARCO — completar antes del lanzamiento] o por WhatsApp al [WHATSAPP DEL DIRECTORIO — completar antes del lanzamiento] y dinos:
+Para ejercerlos escríbenos al correo contacto@enmirumbo.com o por WhatsApp al [WHATSAPP DEL DIRECTORIO — completar antes del lanzamiento] y dinos:
 
 - qué quieres: ver tus datos, corregirlos, borrarlos u oponerte a que los usemos;
 - el nombre de tu negocio y el número de WhatsApp con el que lo registraste;
@@ -130,9 +130,9 @@ Ojo: este texto todavía es un borrador. Nos faltan los datos que ves entre corc
 
 Última actualización: [FECHA DE PUBLICACIÓN]
 
-Estas son las reglas de NecesitoUno Tizayuca, para los negocios que se registran y para los vecinos que los buscan. Al usar el sitio o registrar tu negocio, aceptas lo que dice aquí.
+Estas son las reglas de EnMiRumbo, el directorio de negocios de Tizayuca, para los negocios que se registran y para los vecinos que los buscan. Al usar el sitio o registrar tu negocio, aceptas lo que dice aquí.
 
-## Qué es NecesitoUno Tizayuca
+## Qué es EnMiRumbo
 
 Es un directorio de negocios y servicios de Tizayuca, Hidalgo. Sirve para dos cosas: que un negocio publique su ficha gratis y que un vecino lo encuentre y le escriba por WhatsApp. Nada más.
 
@@ -140,9 +140,9 @@ No cobramos por registrarse, no vendemos nada, no cobramos comisiones y no hay c
 
 ## Somos un intermediario informativo, no el negocio
 
-NecesitoUno Tizayuca solo muestra información. No prestamos los servicios ni vendemos los productos que aparecen en las fichas.
+EnMiRumbo solo muestra información. No prestamos los servicios ni vendemos los productos que aparecen en las fichas.
 
-Cuando le escribes a un negocio por WhatsApp, sales de este sitio. Lo que pase después —el precio, el trabajo, la entrega, el pago, la garantía, los tiempos y cualquier problema— es un trato directo entre tú y ese negocio. NecesitoUno Tizayuca no es parte de ese trato, no lo garantiza, no lo supervisa y no responde por él.
+Cuando le escribes a un negocio por WhatsApp, sales de este sitio. Lo que pase después —el precio, el trabajo, la entrega, el pago, la garantía, los tiempos y cualquier problema— es un trato directo entre tú y ese negocio. EnMiRumbo no es parte de ese trato, no lo garantiza, no lo supervisa y no responde por él.
 
 Tampoco respondemos por daños, pérdidas o desacuerdos que salgan de un servicio o una compra contratados con alguien que encontraste aquí. Si algo sale mal, resuélvelo con el negocio; y avísanos, porque nos sirve para moderar el directorio.
 
@@ -172,7 +172,7 @@ Nos reservamos el derecho de no publicar o de retirar cualquier ficha que rompa 
 
 ## Si ves algo raro
 
-Si encuentras una ficha falsa, un negocio que ya cerró o algo que rompe estas reglas, escríbenos al correo [CORREO DE CONTACTO — completar antes del lanzamiento] o por WhatsApp al [WHATSAPP DEL DIRECTORIO — completar antes del lanzamiento]. Lo revisamos y actuamos.
+Si encuentras una ficha falsa, un negocio que ya cerró o algo que rompe estas reglas, escríbenos al correo contacto@enmirumbo.com o por WhatsApp al [WHATSAPP DEL DIRECTORIO — completar antes del lanzamiento]. Lo revisamos y actuamos.
 
 ## Uso de la información del directorio
 
@@ -294,6 +294,51 @@ describe("paginas-legales · el texto publicado es el aprobado", () => {
   });
 });
 
+// Rebrand T-019: la regla de marca de los dos documentos. La PRIMERA mención
+// de cada uno lleva el descriptor; todas las demás dicen la marca sola. La
+// forma compuesta no existe en ninguna de las dos páginas.
+describe("paginas-legales · los dos documentos nombran al sitio con la marca vigente", () => {
+  const DESCRIPTOR = "EnMiRumbo, el directorio de negocios de Tizayuca";
+
+  // Scenario: el aviso nombra al sitio con la marca vigente
+  it("el aviso presenta al sitio con el descriptor y después lo llama por su nombre", () => {
+    expect(lineasAviso[lineasAviso.findIndex((l) => l.startsWith("Este aviso explica"))]).toContain(
+      DESCRIPTOR,
+    );
+    expect(seccion(lineasAviso, "Quién es responsable de tus datos")).toContain(
+      "El responsable del directorio EnMiRumbo y de los datos personales",
+    );
+  });
+
+  // Scenario: los términos nombran al sitio con la marca vigente
+  it("los términos abren con el descriptor y siguen con la marca sola", () => {
+    expect(lineasTerminos.join("\n")).toContain(`Estas son las reglas de ${DESCRIPTOR}, para los negocios`);
+    expect(lineasTerminos).toContain("## Qué es EnMiRumbo");
+    expect(seccion(lineasTerminos, "Somos un intermediario informativo, no el negocio")).toContain(
+      "EnMiRumbo solo muestra información.",
+    );
+  });
+
+  it.each([
+    ["aviso", () => lineasAviso],
+    ["términos", () => lineasTerminos],
+  ])("en %s no queda ni la marca anterior ni la forma compuesta", (_que, dame) => {
+    const texto = dame().join("\n");
+    expect(texto).not.toMatch(/necesitouno/i);
+    expect(texto).not.toMatch(/EnMiRumbo\s+Tizayuca/i);
+  });
+
+  it("el descriptor aparece una sola vez en cada documento: es la primera mención", () => {
+    for (const [nombre, lineas] of [
+      ["aviso", lineasAviso],
+      ["términos", lineasTerminos],
+    ] as const) {
+      const veces = lineas.join("\n").split(DESCRIPTOR).length - 1;
+      expect(veces, nombre).toBe(1);
+    }
+  });
+});
+
 describe("paginas-legales · el dueño abre el aviso de privacidad", () => {
   // Scenario: el dueño abre el aviso de privacidad (MODIFIED por el change
   // `versionar-aviso-privacidad`: la línea antepone "Versión N · ")
@@ -380,10 +425,10 @@ describe("paginas-legales · los seis elementos mínimos de la LFPDPPP (PRD §8)
   // Scenario: identidad y domicilio del responsable
   it("(1) responsable, con domicilio y canales de contacto", () => {
     const texto = seccion(lineasAviso, "Quién es responsable de tus datos");
-    expect(texto).toContain("El responsable del directorio NecesitoUno Tizayuca");
+    expect(texto).toContain("El responsable del directorio EnMiRumbo");
     expect(texto).toContain("[NOMBRE O RAZÓN SOCIAL DEL RESPONSABLE — completar antes del lanzamiento]");
     expect(texto).toContain("con domicilio en [DOMICILIO DEL RESPONSABLE — completar antes del lanzamiento], Tizayuca, Hidalgo, México.");
-    expect(texto).toContain("escríbenos al correo [CORREO ARCO — completar antes del lanzamiento]");
+    expect(texto).toContain("escríbenos al correo contacto@enmirumbo.com");
     expect(texto).toContain("por WhatsApp al [WHATSAPP DEL DIRECTORIO — completar antes del lanzamiento]");
   });
 
@@ -457,7 +502,7 @@ describe("paginas-legales · los seis elementos mínimos de la LFPDPPP (PRD §8)
     expect(texto).toContain("qué quieres: ver tus datos, corregirlos, borrarlos u oponerte a que los usemos;");
     expect(texto).toContain("el nombre de tu negocio y el número de WhatsApp con el que lo registraste;");
     expect(texto).toContain("si es una corrección, qué debe decir.");
-    expect(texto).toContain("[CORREO ARCO — completar antes del lanzamiento]");
+    expect(texto).toContain("contacto@enmirumbo.com");
     expect(texto).toContain("[WHATSAPP DEL DIRECTORIO — completar antes del lanzamiento]");
     expect(texto).toContain("en un máximo de 20 días hábiles");
     expect(texto).toContain("No cobramos nada por esto.");
@@ -550,7 +595,7 @@ describe("paginas-legales · el vecino abre los términos", () => {
     expect(htmlTerminos.match(/<h1[\s>]/g)).toHaveLength(1);
     expect(htmlTerminos).not.toMatch(/<h[3-6][\s>]/);
     expect(lineasTerminos.filter((linea) => linea.startsWith("## "))).toEqual([
-      "## Qué es NecesitoUno Tizayuca",
+      "## Qué es EnMiRumbo",
       "## Somos un intermediario informativo, no el negocio",
       "## Qué verificamos y qué no",
       "## Reglas para registrar un negocio",
@@ -577,7 +622,7 @@ describe("paginas-legales · intermediario informativo y deslinde", () => {
   // Scenario: deslinde de la operación entre vecino y negocio
   it("el trato es directo entre vecino y negocio; el directorio no es parte", () => {
     const texto = seccion(lineasTerminos, "Somos un intermediario informativo, no el negocio");
-    expect(texto).toContain("NecesitoUno Tizayuca solo muestra información.");
+    expect(texto).toContain("EnMiRumbo solo muestra información.");
     expect(texto).toContain("No prestamos los servicios ni vendemos los productos que aparecen en las fichas.");
     expect(texto).toContain("es un trato directo entre tú y ese negocio");
     expect(texto).toContain("no es parte de ese trato, no lo garantiza, no lo supervisa y no responde por él");
@@ -585,7 +630,7 @@ describe("paginas-legales · intermediario informativo y deslinde", () => {
   });
 
   it("no cobra por publicar ni cobra comisiones", () => {
-    expect(seccion(lineasTerminos, "Qué es NecesitoUno Tizayuca")).toContain(
+    expect(seccion(lineasTerminos, "Qué es EnMiRumbo")).toContain(
       "No cobramos por registrarse, no vendemos nada, no cobramos comisiones y no hay cuentas ni contraseñas.",
     );
   });
@@ -640,17 +685,44 @@ describe("paginas-legales · placeholders visibles y marca de borrador", () => {
     for (const placeholder of [
       "[NOMBRE O RAZÓN SOCIAL DEL RESPONSABLE — completar antes del lanzamiento]",
       "[DOMICILIO DEL RESPONSABLE — completar antes del lanzamiento]",
-      "[CORREO ARCO — completar antes del lanzamiento]",
       "[WHATSAPP DEL DIRECTORIO — completar antes del lanzamiento]",
     ]) {
       expect(lineasAviso.join(" ")).toContain(placeholder);
     }
     expect(lineasTerminos.join(" ")).toContain(
-      "[CORREO DE CONTACTO — completar antes del lanzamiento]",
-    );
-    expect(lineasTerminos.join(" ")).toContain(
       "[JURISDICCIÓN PARA CONTROVERSIAS — confirmar en la revisión legal]",
     );
+  });
+
+  // Scenario: el correo ya no es un placeholder (T-019). Con el dominio
+  // comprado, el canal de contacto y de ARCO existe y se publica completo en
+  // sus tres apariciones: dos en el aviso, una en los términos.
+  it("el correo del directorio se publica completo, sin corchetes ni nota de pendiente", () => {
+    const enElAviso = lineasAviso.join("\n");
+    const enLosTerminos = lineasTerminos.join("\n");
+    expect(seccion(lineasAviso, "Quién es responsable de tus datos")).toContain(
+      "escríbenos al correo contacto@enmirumbo.com",
+    );
+    expect(seccion(lineasAviso, "Tus derechos ARCO")).toContain(
+      "escríbenos al correo contacto@enmirumbo.com",
+    );
+    expect(seccion(lineasTerminos, "Si ves algo raro")).toContain(
+      "escríbenos al correo contacto@enmirumbo.com",
+    );
+    for (const texto of [enElAviso, enLosTerminos]) {
+      expect(texto).not.toContain("CORREO ARCO");
+      expect(texto).not.toContain("CORREO DE CONTACTO");
+    }
+    expect(PLACEHOLDERS_LEGALES).toHaveLength(5);
+    expect(PLACEHOLDERS_LEGALES.join(" ")).not.toMatch(/correo/i);
+  });
+
+  // Scenario: publicar el correo no retira la marca de borrador
+  it("con el correo ya publicado, las dos páginas siguen en borrador", () => {
+    expect(HAY_PLACEHOLDERS_PENDIENTES).toBe(true);
+    for (const lineas of [lineasAviso, lineasTerminos]) {
+      expect(lineas).toContain(TEXTO_MARCA_BORRADOR);
+    }
   });
 
   // Scenario: marca de borrador visible. Es la regla, no el estado de hoy:
@@ -691,10 +763,15 @@ describe("paginas-legales · placeholders visibles y marca de borrador", () => {
   });
 
   // Scenario: los pendientes son verificables (nada inventado)
+  //
+  // ENMENDADO (T-019): el único correo que puede aparecer es el del
+  // directorio, que ya existe de verdad. Se quita antes de buscar direcciones
+  // inventadas; cualquier otra sigue en rojo.
   it("ninguna página legal trae correo, teléfono o domicilio inventado", () => {
     const sinPlaceholders = [...lineasAviso, ...lineasTerminos]
       .join("\n")
-      .replace(/\[[^\]]+\]/g, "");
+      .replace(/\[[^\]]+\]/g, "")
+      .replaceAll("contacto@enmirumbo.com", "");
     expect(sinPlaceholders).not.toMatch(/[\w.+-]+@[\w-]+\.[\w.-]+/); // correos
     expect(sinPlaceholders).not.toMatch(/\b\d{7,}\b/); // teléfonos
     expect(sinPlaceholders).not.toMatch(/wa\.me|whatsapp\.com|https?:\/\//);
@@ -714,13 +791,13 @@ describe("paginas-legales · indexables y con metadata propia", () => {
 
   // Scenario: título y descripción propios
   it("cada una tiene título y descripción del documento, distintos de los del sitio", () => {
-    expect(metadataAviso.title).toBe("Aviso de privacidad — NecesitoUno Tizayuca");
-    expect(metadataTerminos.title).toBe("Términos y condiciones — NecesitoUno Tizayuca");
+    expect(metadataAviso.title).toBe("Aviso de privacidad — EnMiRumbo");
+    expect(metadataTerminos.title).toBe("Términos y condiciones — EnMiRumbo");
     expect(metadataAviso.description).toBe(
-      "Qué datos pide NecesitoUno Tizayuca al registrar un negocio, para qué los usa, qué queda público en el directorio y cómo ejercer tus derechos ARCO.",
+      "Qué datos pide EnMiRumbo al registrar un negocio, para qué los usa, qué queda público en el directorio y cómo ejercer tus derechos ARCO.",
     );
     expect(metadataTerminos.description).toBe(
-      'Las reglas de NecesitoUno Tizayuca: qué es el directorio, el deslinde entre vecinos y negocios, qué significa "Negocio verificado" y las reglas de moderación.',
+      'Las reglas de EnMiRumbo: qué es el directorio, el deslinde entre vecinos y negocios, qué significa "Negocio verificado" y las reglas de moderación.',
     );
     for (const propia of [metadataAviso, metadataTerminos]) {
       expect(propia.title).not.toBe(metadataSitio.title);

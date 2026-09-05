@@ -707,7 +707,7 @@ describe("adversarial · registro de negocios", () => {
       categoria: {
         findMany: async () => {
           throw new Error(
-            'connect ECONNREFUSED 10.0.0.7:5432 (database "necesitouno_interna")',
+            'connect ECONNREFUSED 10.0.0.7:5432 (database "enmirumbo_interna")',
           );
         },
       },
@@ -724,7 +724,7 @@ describe("adversarial · registro de negocios", () => {
     if (resultado.exito) return;
     expect(resultado.estado.errores.general).toBe(MENSAJES_ERROR_REGISTRO.servidor);
     const logueado = error.mock.calls.flat().join(" ");
-    expect(logueado).not.toMatch(/ECONNREFUSED|10\.0\.0\.7|necesitouno_interna|7719992100|Adversaria/);
+    expect(logueado).not.toMatch(/ECONNREFUSED|10\.0\.0\.7|enmirumbo_interna|7719992100|Adversaria/);
     expect(await buscar("7719992100")).toBeNull();
   });
 

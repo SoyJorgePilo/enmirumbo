@@ -67,7 +67,7 @@ beforeAll(async () => {
   process.env[VARIABLE_WEBSITE_ID] = ID_SITIO;
   process.env[VARIABLE_CONTRASENA] = "contrasena-de-prueba-nada-real";
   process.env[VARIABLE_SECRETO_SESION] = SECRETO_PANEL;
-  process.env[VARIABLE_URL_SITIO] = "https://necesitouno.example";
+  process.env[VARIABLE_URL_SITIO] = "https://enmirumbo.example";
 
   const prisma = crearClientePrueba();
   await prisma.negocio.deleteMany();

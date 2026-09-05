@@ -1,6 +1,6 @@
 # T-019 · Renombrar el sitio a "EnMiRumbo" (rebrand completo)
 
-**Estado:** en-spec <!-- pendiente | en-spec | en-desarrollo | en-review | hecho -->
+**Estado:** en-desarrollo <!-- pendiente | en-spec | en-desarrollo | en-review | hecho -->
 **Prioridad:** P0
 **Épica:** E6 (docs/backlog.md)
 **Referencias PRD:** §2, §6.2, §9

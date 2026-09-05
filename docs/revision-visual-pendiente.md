@@ -35,7 +35,7 @@ archivados, PRs #3 a #16.
 
 ## 1. Home y navegación
 
-- [ ] **Header y footer en los tres anchos.** La marca "NecesitoUno · Tizayuca" arriba,
+- [ ] **Header y footer en los tres anchos.** La marca "EnMiRumbo" arriba,
       el footer con los dos enlaces legales abajo, sin nada encimado ni cortado. El
       validador de PR #3 lo dejó dicho: lo responsive se verificó "por construcción;
       el render en navegador real queda como confirmación visual del humano".

@@ -1,4 +1,4 @@
-# NecesitoUno · Directorio de Negocios de Tizayuca
+# EnMiRumbo · Directorio de Negocios de Tizayuca
 
 > "Necesito un plomero", "necesito una fonda", "necesito una escuela de futbol."
 

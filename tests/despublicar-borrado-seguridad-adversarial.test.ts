@@ -57,7 +57,7 @@ import { peticion, reiniciarPeticion, urlDeRedireccion } from "./admin-mocks";
 
 const CONTRASENA = "contrasena-de-prueba-nada-real";
 const SECRETO = "s".repeat(LONGITUD_MINIMA_SECRETO);
-const URL_SITIO = "https://necesitouno.example";
+const URL_SITIO = "https://enmirumbo.example";
 const PREFIJO = "7719994";
 
 let prisma: PrismaClient;

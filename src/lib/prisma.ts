@@ -97,12 +97,12 @@ export function reiniciarAvisoDeBaseDeDatos(): void {
 const CONEXIONES_POR_PROCESO = 5;
 
 const almacenGlobal = globalThis as typeof globalThis & {
-  prismaNecesitoUno?: PrismaClient;
+  prismaEnMiRumbo?: PrismaClient;
 };
 
 /** Cliente compartido; PostgreSQL por el adaptador `pg` (ADR-004). */
 export function obtenerPrisma(): PrismaClient {
-  if (!almacenGlobal.prismaNecesitoUno) {
+  if (!almacenGlobal.prismaEnMiRumbo) {
     // FAIL-CLOSED: antes que abrir una conexión en claro hacia un servidor
     // remoto —con todos los datos personales del directorio dentro—, no se
     // abre ninguna y se dice por qué.
@@ -113,7 +113,7 @@ export function obtenerPrisma(): PrismaClient {
     }
     const connectionString = urlBaseDeDatos()!;
     const adapter = new PrismaPg({ connectionString, max: CONEXIONES_POR_PROCESO });
-    almacenGlobal.prismaNecesitoUno = new PrismaClient({ adapter });
+    almacenGlobal.prismaEnMiRumbo = new PrismaClient({ adapter });
   }
-  return almacenGlobal.prismaNecesitoUno;
+  return almacenGlobal.prismaEnMiRumbo;
 }

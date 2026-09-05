@@ -120,7 +120,11 @@ describe("validarRegistro · obligatorios", () => {
 
   // Change `versionar-aviso-privacidad` · Scenario: el aviso cambió a media
   // captura / versión inventada en el envío
-  it.each(["", "0", "2", "  ", "no-es-una-version"])(
+  // T-019: la `2` es la versión VIGENTE desde el rebrand, así que ya no sirve
+  // de ejemplo de "versión que no es la de hoy". La `1` ocupa su lugar y es,
+  // además, el caso real: el aviso que un dueño tuvo enfrente antes del
+  // despliegue.
+  it.each(["", "0", "1", "3", "  ", "no-es-una-version"])(
     "con la versión del aviso %j no valida, y el mensaje va junto a la casilla",
     (version) => {
       const resultado = validar(OBLIGATORIOS, true, version);

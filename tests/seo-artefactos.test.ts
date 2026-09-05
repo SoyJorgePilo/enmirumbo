@@ -24,7 +24,7 @@ import { sembrarNegociosSeo } from "./seo-fixtures";
 // `sitemap.xml` que se actualiza solo" (tasks.md #17, #19 y #20).
 
 const raiz = join(__dirname, "..");
-const URL_SITIO = "https://necesitouno.example";
+const URL_SITIO = "https://enmirumbo.example";
 
 let prisma: PrismaClient;
 let idPorWhatsapp: Record<string, string> = {};
@@ -222,11 +222,16 @@ describe("layout-base · sitemap.xml (tasks #20)", () => {
 });
 
 describe("layout-base · imagen de marca para compartir (tasks #17)", () => {
+  // Scenario "la ficha compartida por WhatsApp llega con la marca nueva"
+  // (rebrand T-019): la vista previa es la superficie que más lejos viaja.
   it("declara tamaño, tipo y texto alternativo en español", () => {
     expect(tamanoImagenDeMarca).toEqual({ width: 1200, height: 630 });
     expect(tipoImagenDeMarca).toBe("image/png");
-    expect(altImagenDeMarca).toContain("NecesitoUno");
-    expect(altImagenDeMarca).toContain("Tizayuca");
+    expect(altImagenDeMarca).toBe(
+      "EnMiRumbo: encuentra negocios y servicios de Tizayuca y contáctalos por WhatsApp",
+    );
+    expect(altImagenDeMarca).not.toMatch(/necesitouno/i);
+    expect(altImagenDeMarca).not.toMatch(/EnMiRumbo\s+Tizayuca/i);
   });
 
   it("no mete hexadecimales sueltos en un componente: usa los tokens de la marca", () => {

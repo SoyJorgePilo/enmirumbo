@@ -59,6 +59,68 @@ const PREFIJO = "7710009";
 
 const raiz = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
 
+// ── Versiones RELATIVAS a la vigente (hallazgos MEDIO-1 y MEDIO-2 de la etapa
+// C de T-019) ───────────────────────────────────────────────────────────────
+//
+// Los dos casos adversariales que hablan de "la versión vigente" y de "una
+// versión posterior a la vigente" llevaban el número escrito a mano (`"1"` y
+// `"2"`, de cuando la vigente era la `1`). Al estrenar la `2` con el rebrand
+// dejaron de probar lo suyo SIN ponerse en rojo: el de homóglifos pasó a
+// disfrazar una versión que ya no es la vigente, y el del rollback sembró la
+// vigente misma, así que salía por la rama de "iguales" y nunca por la de
+// "posterior".
+//
+// Se derivan de `VERSION_AVISO` para que no vuelvan a caducar en la `3`. Si
+// algún día la versión deja de ser un entero desnudo (design.md §1 contempla
+// un `"2-legal"`), estas constantes se hacen `null` y los casos que dependen
+// del orden se saltan explicando por qué, en vez de mentir en verde.
+const ENTERO_VIGENTE = /^\d+$/.test(VERSION_AVISO) ? Number(VERSION_AVISO) : null;
+
+/** La siguiente versión que se estrenará; nunca la vigente. */
+const VERSION_POSTERIOR = ENTERO_VIGENTE === null ? null : String(ENTERO_VIGENTE + 1);
+
+// Alfabetos de dígitos que un atacante usaría para disfrazar un número. Van
+// como secuencias de escape a propósito: un homóglifo pegado tal cual es
+// invisible en el diff, y lo que no se ve en la revisión no se revisa.
+/** U+FF10 a U+FF19, dígitos de ancho completo (０１２３４５６７８９). */
+const DIGITOS_ANCHO_COMPLETO =
+  "\uff10\uff11\uff12\uff13\uff14\uff15\uff16\uff17\uff18\uff19";
+/** Exponentes tipográficos (⁰¹²³⁴⁵⁶⁷⁸⁹); el 1, el 2 y el 3 viven en Latin-1. */
+const DIGITOS_EXPONENTE =
+  "\u2070\u00b9\u00b2\u00b3\u2074\u2075\u2076\u2077\u2078\u2079";
+
+/** Reescribe cada dígito de `version` con el alfabeto que se le pase. */
+function conAlfabeto(version: string, alfabeto: string): string {
+  return [...version].map((digito) => alfabeto[Number(digito)]).join("");
+}
+
+/** La versión percent-encoded dígito a dígito ("2" -> "%32"). */
+function percentEncoded(version: string): string {
+  return [...version]
+    .map((digito) => `%${digito.charCodeAt(0).toString(16).toUpperCase()}`)
+    .join("");
+}
+
+/**
+ * Disfraces de la versión VIGENTE, derivados de ella: es el ataque que le da
+ * nombre al caso —colar algo que se PARECE a lo que el dueño tuvo enfrente—.
+ * Los invisibles van como secuencias de escape: un homóglifo pegado tal cual
+ * no se ve en el diff, y lo que no se ve no se revisa.
+ */
+function disfracesDeLaVigente(version: string): ReadonlyArray<readonly [string, string]> {
+  return [
+    ["dígito de ancho completo", conAlfabeto(version, DIGITOS_ANCHO_COMPLETO)],
+    ["espacio de ancho cero pegado", `${version}\u200b`],
+    ["exponente tipográfico", conAlfabeto(version, DIGITOS_EXPONENTE)],
+    ["byte nulo al final", `${version}\u0000`],
+    ["salto de línea en medio", `${version}\r\n${version}`],
+    ["porcentaje sin decodificar", percentEncoded(version)],
+    ["hexadecimal", `0x${version}`],
+    ["json", `{"version":"${version}"}`],
+    ["objeto de JavaScript", "[object Object]"],
+  ] as const;
+}
+
 describe("adversarial · la versión del aviso consentido", () => {
   let prisma: PrismaClient;
   let categoriaId: number;
@@ -151,19 +213,18 @@ describe("adversarial · la versión del aviso consentido", () => {
   // Lo peor que puede conseguir quien lo manipule es que se le vuelva a pedir
   // la casilla. Nunca puede sellar una constancia con la versión que él diga.
 
-  it.each([
-    ["dígito de ancho completo", "１"],
-    ["espacio de ancho cero pegado", "1\u200b"],
-    ["exponente tipográfico", "¹"],
-    ["byte nulo al final", "1\u0000"],
-    ["salto de línea en medio", "1\r\n1"],
-    ["porcentaje sin decodificar", "%31"],
-    ["hexadecimal", "0x1"],
-    ["json", '{"version":"1"}'],
-    ["objeto de JavaScript", "[object Object]"],
-  ])(
+  // ENMENDADO (hallazgo MEDIO-2 de la etapa C de T-019): la tabla estaba
+  // anclada a `"1"`, así que al estrenar la `2` dejó de disfrazar a la vigente
+  // y el caso pasaba por la vía trivial ("cualquier cadena distinta se
+  // rechaza"), sin cubrir ya el ataque que le da nombre. Ahora se DERIVA de
+  // `VERSION_AVISO` y no vuelve a caducar en la `3`.
+  it.each(disfracesDeLaVigente(VERSION_AVISO))(
     "una versión que solo se PARECE a la vigente (%s) no cuela",
     async (_caso, version) => {
+      // La premisa del caso: es un DISFRAZ, no la vigente. Si alguno
+      // coincidiera con ella, este `it` estaría probando el camino feliz.
+      expect(version, JSON.stringify(version)).not.toBe(VERSION_AVISO);
+
       const whatsapp = `${PREFIJO}010`;
       const resultado = await procesar(
         envio({ whatsapp, [CAMPO_VERSION_AVISO]: version }),
@@ -178,6 +239,29 @@ describe("adversarial · la versión del aviso consentido", () => {
       expect(await buscar(whatsapp), JSON.stringify(version)).toBeNull();
     },
   );
+
+  // Contraprueba de que la tabla de arriba de verdad se construye sobre la
+  // vigente: es lo que impide que vuelva a quedarse muda sin ponerse en rojo.
+  it("los disfraces se derivan de la versión vigente, no de un número escrito a mano", () => {
+    const disfraces = disfracesDeLaVigente(VERSION_AVISO);
+    expect(disfraces.length).toBeGreaterThan(5);
+    for (const [caso, disfraz] of disfraces) {
+      expect(disfraz, caso).not.toBe(VERSION_AVISO);
+    }
+    // Los que dependen del dígito cambian con la versión; si no cambiaran,
+    // "derivarlos" sería decorativo.
+    const siguiente = String(Number(VERSION_AVISO) + 1);
+    for (const transformar of [
+      (v: string) => conAlfabeto(v, DIGITOS_ANCHO_COMPLETO),
+      (v: string) => conAlfabeto(v, DIGITOS_EXPONENTE),
+      percentEncoded,
+    ]) {
+      expect(transformar(VERSION_AVISO)).not.toBe(transformar(siguiente));
+    }
+    // Y el porcentaje es el de verdad: "2" es 0x32 en ASCII.
+    expect(percentEncoded("2")).toBe("%32");
+    expect(percentEncoded("1")).toBe("%31");
+  });
 
   it("los espacios raros que el recorte sí quita no guardan otra cosa que la del servidor", async () => {
     // `leerEnvioRegistro` recorta, y `String.trim` se lleva el espacio duro y
@@ -401,13 +485,36 @@ describe("adversarial · la versión del aviso consentido", () => {
 
   // REGRESIÓN (hallazgo MEDIO-3, CORREGIDO en la iteración 2). Nació como
   // CARACTERIZACIÓN: el reenvío comparaba con `!==` en vez de "es posterior",
-  // así que tras un rollback del despliegue (la ficha consintió la 2, se
-  // revierte a la 1) anotaba como reaceptación una versión más VIEJA, y el
-  // panel la rotulaba como "más nueva". Ahora no se anota nada: la evidencia
-  // no puede afirmar el sentido de un cambio que no ocurrió.
+  // así que tras un rollback del despliegue (la ficha consintió una versión y
+  // el despliegue se revierte a una anterior) anotaba como reaceptación una
+  // versión más VIEJA, y el panel la rotulaba como "más nueva". Ahora no se
+  // anota nada: la evidencia no puede afirmar el sentido de un cambio que no
+  // ocurrió.
+  //
+  // ENMENDADO (hallazgo MEDIO-1 de la etapa C de T-019): la siembra decía
+  // `"2"` a mano, de cuando la vigente era la `1`. Al estrenar la `2` este
+  // caso se quedó MUDO sin ponerse en rojo —sembraba la vigente, así que
+  // `versionAvisoEsPosterior` salía por la rama de "iguales" y jamás por la de
+  // "posterior", que es la que el hallazgo MEDIO-3 arregló—. Ahora la
+  // constancia se deriva de `VERSION_AVISO` (vigente + 1) para que siga
+  // describiendo un rollback de verdad en la `3`, en la `4` y en la que venga.
   it("tras un rollback, la vigente más VIEJA que la constancia no deja reaceptación", async () => {
+    // La versión tiene que ser ordenable para que "posterior" signifique algo.
+    // Si algún día deja de serlo (design.md §1 contempla un "2-legal"), este
+    // caso lo dice en vez de pasar por una rama que no es la suya.
+    expect(
+      VERSION_POSTERIOR,
+      "la vigente dejó de ser un entero: revisa este caso a mano",
+    ).not.toBeNull();
+    const constanciaMasNueva = VERSION_POSTERIOR!;
+    // Y la premisa del rollback: lo sembrado es POSTERIOR a lo vigente.
+    expect(versionAvisoEsPosterior(constanciaMasNueva, VERSION_AVISO)).toBe(true);
+    expect(versionAvisoEsPosterior(VERSION_AVISO, constanciaMasNueva)).toBe(false);
+
     const whatsapp = `${PREFIJO}035`;
-    const previa = await fichaPrevia(whatsapp, "rechazado", { version: "2" });
+    const previa = await fichaPrevia(whatsapp, "rechazado", {
+      version: constanciaMasNueva,
+    });
 
     const resultado = await procesar(envio({ whatsapp }));
     expect(resultado).toEqual({ exito: true });
@@ -415,7 +522,7 @@ describe("adversarial · la versión del aviso consentido", () => {
     const despues = await prisma.negocio.findUniqueOrThrow({ where: { whatsapp } });
     // El reenvío entra (vuelve a la cola) pero la evidencia no se inventa.
     expect(despues.estado).toBe("en_revision");
-    expect(despues.consintioAvisoVersion).toBe("2");
+    expect(despues.consintioAvisoVersion).toBe(constanciaMasNueva);
     expect(despues.consintioAvisoEn.toISOString()).toBe(
       previa.consintioAvisoEn.toISOString(),
     );

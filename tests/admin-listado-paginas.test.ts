@@ -55,7 +55,7 @@ import { crearClientePrueba } from "./db";
 
 const CONTRASENA = "contrasena-de-prueba-nada-real";
 const SECRETO = "s".repeat(LONGITUD_MINIMA_SECRETO);
-const URL_SITIO = "https://necesitouno.example";
+const URL_SITIO = "https://enmirumbo.example";
 const PREFIJO = "7719997";
 
 const normalizado = (html: string) => html.replace(/\s+/g, " ");

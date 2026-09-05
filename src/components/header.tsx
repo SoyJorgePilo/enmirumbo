@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 /**
- * Header global: wordmark tipográfico "NecesitoUno" solo, enlazado a la home.
+ * Header global: wordmark tipográfico "EnMiRumbo" solo, enlazado a la home.
  * Server Component sin JS de cliente. El logo gráfico definitivo se decide
  * fuera del código.
  *
@@ -18,7 +18,7 @@ export function Header() {
       <div className="mx-auto w-full max-w-3xl px-4 sm:px-6">
         <Link href="/" className="inline-flex min-h-11 items-center py-2">
           <span className="text-xl font-bold tracking-tight text-tinta">
-            NecesitoUno
+            EnMiRumbo
           </span>
         </Link>
       </div>

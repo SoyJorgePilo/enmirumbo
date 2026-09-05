@@ -167,10 +167,10 @@ describe("gestion · el token del enlace", () => {
     });
 
     it("sale de SITIO_URL y apunta a /editar/<token>", () => {
-      process.env[VARIABLE_URL_SITIO] = "https://necesitouno.example";
+      process.env[VARIABLE_URL_SITIO] = "https://enmirumbo.example";
       const token = generarTokenGestion();
       expect(construirEnlaceDeGestion(token)).toBe(
-        `https://necesitouno.example/editar/${token}`,
+        `https://enmirumbo.example/editar/${token}`,
       );
     });
   });

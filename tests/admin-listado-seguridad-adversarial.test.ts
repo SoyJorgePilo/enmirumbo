@@ -109,7 +109,7 @@ import { peticion, reiniciarPeticion, urlDeRedireccion } from "./admin-mocks";
 const CONTRASENA = "contrasena-de-prueba-nada-real";
 const SECRETO = "s".repeat(LONGITUD_MINIMA_SECRETO);
 const OTRO_SECRETO = "o".repeat(LONGITUD_MINIMA_SECRETO);
-const URL_SITIO = "https://necesitouno.example";
+const URL_SITIO = "https://enmirumbo.example";
 const RAIZ = join(__dirname, "..");
 
 /** Cliente sin instrumentar: es el que siembra y limpia, nunca la pantalla. */

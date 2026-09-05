@@ -1,8 +1,16 @@
-# Estrategia de lanzamiento — NecesitoUno Tizayuca
+# Estrategia de lanzamiento — EnMiRumbo
 
 **Versión:** 0.1 · **Fecha:** 4 de septiembre de 2026 · **Estado:** Borrador de trabajo
 
 > Este documento aterriza el plan de lanzamiento del PRD (§9) en números semana por semana y en un calendario operable por **una sola persona**. Todo lo que aparece aquí como proyección son **hipótesis a calibrar con datos reales de Umami**, no promesas. Los umbrales de decisión son los del PRD §10 — esos sí son compromisos.
+
+> **El relato de marca, para todo lo que se diga en la calle (T-019, 2026-09-04):**
+> **"EnMiRumbo — el directorio de los negocios de tu rumbo"**. "Rumbo" es como
+> los vecinos llaman a su zona ("por mi rumbo hay una fonda buenísima"), así que
+> la marca habla de cercanía sin amarrarse a un municipio — y por eso aguanta la
+> expansión a otras poblaciones (T-017). Regla de escritura: **nunca "EnMiRumbo
+> Tizayuca"**; donde haga falta el contexto va como descriptor, "EnMiRumbo, el
+> directorio de negocios de Tizayuca".
 
 ---
 
@@ -110,7 +118,7 @@ Dos audiencias, dos embudos, canales distintos (PRD §5). No mezclar los mensaje
 
 Guion sugerido de 30 segundos (calibrarlo en las primeras visitas):
 
-> "Buenas — ¿usted es el dueño/la encargada? Le quito 30 segundos. Estoy armando **NecesitoUno**, un directorio de negocios de Tizayuca: los vecinos buscan 'necesito un plomero', 'necesito una fonda', y les sale su negocio con un botón para mandarle WhatsApp directo. **Es gratis y no hay que hacer cuenta ni contraseña**: se registra aquí desde su celular en 3 minutos, yo lo verifico y queda publicado. ¿Le paso el link o lo llenamos de una vez?"
+> "Buenas — ¿usted es el dueño/la encargada? Le quito 30 segundos. Estoy armando **EnMiRumbo**, *el directorio de los negocios de tu rumbo*: un directorio de los negocios de Tizayuca, para que cuando un vecino ande buscando un plomero o una fonda **por su rumbo**, le salga el suyo con un botón para mandarle WhatsApp directo. **Es gratis y no hay que hacer cuenta ni contraseña**: se registra aquí desde su celular en 3 minutos, yo lo verifico y queda publicado. ¿Le paso el link o lo llenamos de una vez?"
 
 Reglas del cambaceo: siempre con permiso y consentimiento registrado (LFPDPPP, §8-§9 del PRD); si no está el dueño, dejar el link por WhatsApp y anotar el pendiente; nunca llenar el formulario *por* el negocio sin que él lo vea — el % de registros completados sin ayuda (>70%, §10) es una métrica del MVP y sembrar con demasiada asistencia la contamina.
 
@@ -129,8 +137,8 @@ Reglas del cambaceo: siempre con permiso y consentimiento registrado (LFPDPPP, �
 
 **Capa de marca: TikTok.** No es canal de conversión directa en un municipio — es cómo la marca se vuelve reconocible ("ah, los del directorio"). Formato corto, hiperlocal, cero producción. 5 ideas concretas:
 
-1. **"¿Sabías que en Tizayuca hay…?"** — serie descubriendo clubes y escuelas deportivas (box, taekwondo, ligas): el vacío de información del §6.5 convertido en contenido. Cierra con "está en NecesitoUno".
-2. **"Pedir un plomero en el grupo de Facebook vs. en NecesitoUno"** — pantalla dividida: 40 comentarios desordenados y sin número, contra buscar → ficha → botón de WhatsApp. El problema del §3 en 20 segundos.
+1. **"¿Sabías que en tu rumbo hay…?"** — serie descubriendo clubes y escuelas deportivas (box, taekwondo, ligas): el vacío de información del §6.5 convertido en contenido. Cierra con "está en EnMiRumbo".
+2. **"Pedir un plomero en el grupo de Facebook vs. en EnMiRumbo"** — pantalla dividida: 40 comentarios desordenados y sin número, contra buscar → ficha → botón de WhatsApp. El problema del §3 en 20 segundos.
 3. **Recorrido de 30 segundos por un negocio verificado** (con permiso del dueño): la fonda, el taller, la estética — "de vecino a vecino". Al negocio le encanta y lo recomparte (multiplica el efecto ficha).
 4. **Building in public del cambaceo:** "Día 9 sembrando el directorio de Tizayuca: vamos 23 negocios, hoy me tocó la Zona Industrial". El repo ya es público; la calle también puede serlo. Genera simpatía local y atrae negocios que piden ser visitados.
 5. **"Cosas que solo entiendes si vives en Tizayuca"** (los 43.9 minutos al trabajo del §2 dan material solo) — humor local que termina resolviendo una necesidad real con el buscador en pantalla.
@@ -225,7 +233,7 @@ Cada fila se compara contra la tabla del escenario base del §1. Dos semanas seg
 ## 5. Lo que NO hacer al inicio
 
 - **No pagar publicidad antes de validar.** Ni ads de Facebook ni promocionar TikToks mientras la conversión de la ficha no esté validada (clic a WhatsApp/vistas <8-10% = rediseñar antes de escalar adquisición, §10). Pagar tráfico hacia un embudo no validado es comprar datos caros de algo que Umami dice gratis. Los canales del §2 cuestan cero y todavía no están saturados.
-- **No abrir una segunda ciudad.** La marca NecesitoUno permite expandir a Pachuca (§11), y esa será la tentación exacta cuando algo funcione. El PRD es explícito: otras ciudades están fuera del MVP (§4, §6.6). Un directorio a medias en dos ciudades vale menos que uno útil en una — Cornershop sembró una sola ciudad (§9).
+- **No abrir una segunda ciudad.** La marca EnMiRumbo permite expandir a Pachuca (§11), y esa será la tentación exacta cuando algo funcione. El PRD es explícito: otras ciudades están fuera del MVP (§4, §6.6). Un directorio a medias en dos ciudades vale menos que uno útil en una — Cornershop sembró una sola ciudad (§9).
 - **No prometer features a los negocios.** En el cambaceo van a pedir reseñas, pagos, pedidos, destacados. Todo eso está fuera de alcance (§6.6) y prometerlo crea deuda de confianza con la audiencia que más cuesta conseguir. Respuesta honesta: "hoy el directorio hace esto; si funciona, viene más" — y anotar cada petición, que es investigación de producto gratis (§12 ya tiene la lista de candidatas).
 - **No automatizar la verificación antes del umbral.** La curaduría manual es el diferenciador (§6.3), y el §11 fija el disparador: sostenidamente >10-15 registros/semana. Antes de eso, prender el SMS (ADR-011) es resolver un problema que no existe.
 - **No spamear los grupos de Facebook.** Son el canal principal de demanda y la vía de un baneo es la autopromoción repetida. La regla del §2.2: responder preguntas reales con fichas, máximo 1 post propio por grupo por semana.

@@ -79,7 +79,7 @@ import {
 
 const CONTRASENA = "contrasena-de-prueba-nada-real";
 const SECRETO = "s".repeat(LONGITUD_MINIMA_SECRETO);
-const URL_SITIO = "https://necesitouno.example";
+const URL_SITIO = "https://enmirumbo.example";
 const PREFIJO = "7719993";
 
 const normalizado = (html: string) => html.replace(/\s+/g, " ");
@@ -403,6 +403,24 @@ describe("revision-admin · detalle del registro con sesión", () => {
     );
     expect(html).not.toContain("versión no registrada");
     // Sin reaceptación, esa línea no aparece.
+    expect(html).not.toContain("El reenvío aceptó la versión");
+  });
+
+  // Requirement (ADDED por T-019) "El rebrand estrena la versión 2 del aviso,
+  // sin tocar la evidencia de la 1" · Scenario: una constancia vieja no se
+  // reescribe. Con la `2` ya vigente, una ficha que consintió la `1` sigue
+  // diciendo `1`: nadie migra constancias.
+  it("una constancia de antes del rebrand sigue mostrando la versión 1", async () => {
+    await prisma.negocio.update({
+      where: { id: idCompleto },
+      data: { consintioAvisoVersion: "1" },
+    });
+
+    const html = normalizado(await abrirDetalle(idCompleto));
+    expect(VERSION_AVISO).toBe("2");
+    expect(html).toMatch(/2026[^<]*\(versión 1\)/);
+    expect(html).not.toMatch(/\(versión 2\)/);
+    // Y sin reenvío, tampoco se le fabrica una reaceptación.
     expect(html).not.toContain("El reenvío aceptó la versión");
   });
 

@@ -1,4 +1,4 @@
-# Proceso de desarrollo — NecesitoUno
+# Proceso de desarrollo — EnMiRumbo
 
 > Versión 0.5 — borrador para afinar. Este documento ES parte del building in public: describe cómo se construye el producto con un flujo asistido por agentes de IA.
 >

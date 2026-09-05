@@ -48,7 +48,7 @@ import { crearClientePrueba } from "./db";
 
 const CONTRASENA = "contrasena-de-prueba-nada-real";
 const SECRETO = "s".repeat(LONGITUD_MINIMA_SECRETO);
-const URL_SITIO = "https://necesitouno.example";
+const URL_SITIO = "https://enmirumbo.example";
 const PREFIJO = "7710004";
 const HORA_MS = 60 * 60 * 1000;
 

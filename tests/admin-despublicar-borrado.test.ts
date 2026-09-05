@@ -68,7 +68,7 @@ import { NoEncontradoSimulado, peticion, reiniciarPeticion, urlDeRedireccion } f
 
 const CONTRASENA = "contrasena-de-prueba-nada-real";
 const SECRETO = "s".repeat(LONGITUD_MINIMA_SECRETO);
-const URL_SITIO = "https://necesitouno.example";
+const URL_SITIO = "https://enmirumbo.example";
 const PREFIJO = "7719998";
 const NOMBRE_PUBLICADO = "Tacos Ficticios del Güero";
 
@@ -364,7 +364,7 @@ describe("revision-admin · la confirmación de la despublicación", () => {
 
     const mensaje = mensajeAvisoDespublicacion(NOMBRE_PUBLICADO, "El negocio cerró");
     expect(mensaje).toBe(
-      "Hola, te escribo de NecesitoUno Tizayuca. Bajamos del directorio la ficha de «Tacos Ficticios del Güero»: El negocio cerró. Si quieres que la volvamos a publicar o tienes alguna duda, contéstame por aquí.",
+      "Hola, te escribo de EnMiRumbo. Bajamos del directorio la ficha de «Tacos Ficticios del Güero»: El negocio cerró. Si quieres que la volvamos a publicar o tienes alguna duda, contéstame por aquí.",
     );
     expect(html).toContain(
       `https://wa.me/52${PREFIJO}001?text=${encodeURIComponent(mensaje)}`

@@ -95,7 +95,7 @@ describe("directorio-publico · literales de 'Perdí mi enlace'", () => {
   // Scenario: pedir el enlace desde la ficha
   it("el mensaje al admin interpola el nombre y no promete que llegue solo", () => {
     expect(mensajePerdiMiEnlace("Tacos del Güero")).toBe(
-      "Hola, soy de «Tacos del Güero» en NecesitoUno Tizayuca y perdí el enlace para editar mi ficha. Les escribo desde el número que registré, ¿me lo pueden pasar?",
+      "Hola, soy de «Tacos del Güero» en EnMiRumbo y perdí el enlace para editar mi ficha. Les escribo desde el número que registré, ¿me lo pueden pasar?",
     );
   });
 });
@@ -138,7 +138,7 @@ describe("revision-admin · literales del panel de ediciones", () => {
     expect(
       mensajeAvisoCambiosAplicados("Estética Lupita", "https://ejemplo.example/negocio/x"),
     ).toBe(
-      "¡Listo! Ya actualizamos la ficha de «Estética Lupita» en NecesitoUno Tizayuca. Así quedó: https://ejemplo.example/negocio/x",
+      "¡Listo! Ya actualizamos la ficha de «Estética Lupita» en EnMiRumbo. Así quedó: https://ejemplo.example/negocio/x",
     );
   });
 
@@ -149,13 +149,13 @@ describe("revision-admin · literales del panel de ediciones", () => {
         "No publicamos préstamos informales",
       ),
     ).toBe(
-      "Hola, revisamos los cambios que mandaste para «Préstamos Rápidos» en NecesitoUno Tizayuca y por ahora no los pudimos aplicar: No publicamos préstamos informales. Tu ficha sigue publicada como estaba y puedes mandarlos otra vez con tu mismo enlace.",
+      "Hola, revisamos los cambios que mandaste para «Préstamos Rápidos» en EnMiRumbo y por ahora no los pudimos aplicar: No publicamos préstamos informales. Tu ficha sigue publicada como estaba y puedes mandarlos otra vez con tu mismo enlace.",
     );
   });
 
   it("el mensaje del enlace nuevo lleva la instrucción del PRD §6.4", () => {
     expect(mensajeEnlaceNuevo("Tacos del Güero", "https://ejemplo.example/editar/abc")).toBe(
-      "Hola, te mandamos un enlace nuevo para editar tu ficha de «Tacos del Güero» en NecesitoUno Tizayuca: https://ejemplo.example/editar/abc. El anterior ya no sirve. Guarda este mensaje (puedes destacarlo con la estrella), con ese enlace actualizas tus datos cuando quieras.",
+      "Hola, te mandamos un enlace nuevo para editar tu ficha de «Tacos del Güero» en EnMiRumbo: https://ejemplo.example/editar/abc. El anterior ya no sirve. Guarda este mensaje (puedes destacarlo con la estrella), con ese enlace actualizas tus datos cuando quieras.",
     );
   });
 
@@ -167,7 +167,7 @@ describe("revision-admin · literales del panel de ediciones", () => {
         "https://ejemplo.example/editar/abc",
       ),
     ).toBe(
-      "¡Listo! Ya quedó publicado «Estética Lupita» en NecesitoUno Tizayuca. Esta es tu ficha: https://ejemplo.example/negocio/x — compártela con tus clientes. Y este es tu enlace para editarla: https://ejemplo.example/editar/abc — guarda este mensaje (puedes destacarlo con la estrella), con ese enlace actualizas tus datos cuando quieras.",
+      "¡Listo! Ya quedó publicado «Estética Lupita» en EnMiRumbo. Esta es tu ficha: https://ejemplo.example/negocio/x — compártela con tus clientes. Y este es tu enlace para editarla: https://ejemplo.example/editar/abc — guarda este mensaje (puedes destacarlo con la estrella), con ese enlace actualizas tus datos cuando quieras.",
     );
   });
 });

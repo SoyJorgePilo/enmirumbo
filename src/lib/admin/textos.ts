@@ -44,10 +44,17 @@ export function textoConteoAtrasados(cantidad: number): string {
 }
 
 // ── Verificación por WhatsApp ────────────────────────────────────────────────
+//
+// REGLA DE MARCA (rebrand T-019, requirement "Ningún mensaje del panel se
+// presenta con la marca anterior"): este es el PRIMER contacto con ese
+// negocio, así que el directorio se presenta con su descriptor —"EnMiRumbo, el
+// directorio de negocios de Tizayuca"—. Los tres mensajes de abajo llegan a
+// alguien que ya recibió esa presentación y dicen "EnMiRumbo" a secas. La
+// localidad NUNCA va pegada al nombre.
 export const BOTON_WHATSAPP_VERIFICACION = "Escribirle por WhatsApp";
 
 export function mensajeVerificacion(nombreNegocio: string): string {
-  return `Hola, te escribo de NecesitoUno Tizayuca, el directorio de negocios del municipio. Recibimos el registro de «${nombreNegocio}». ¿Nos confirmas que el negocio es tuyo y que este es tu WhatsApp?`;
+  return `Hola, te escribo de EnMiRumbo, el directorio de negocios de Tizayuca. Recibimos el registro de «${nombreNegocio}». ¿Nos confirmas que el negocio es tuyo y que este es tu WhatsApp?`;
 }
 
 // ── Aprobar ──────────────────────────────────────────────────────────────────
@@ -67,7 +74,7 @@ export function mensajeAvisoPublicacion(
   nombreNegocio: string,
   linkFicha: string,
 ): string {
-  return `¡Listo! Ya quedó publicado «${nombreNegocio}» en NecesitoUno Tizayuca. Esta es tu ficha: ${linkFicha} — compártela con tus clientes.`;
+  return `¡Listo! Ya quedó publicado «${nombreNegocio}» en EnMiRumbo. Esta es tu ficha: ${linkFicha} — compártela con tus clientes.`;
 }
 
 // ── Rechazar ─────────────────────────────────────────────────────────────────
@@ -77,7 +84,7 @@ export const ERROR_MOTIVO_VACIO = "Escribe por qué lo rechazas";
 export const MENSAJE_RECHAZADO = "Registro rechazado.";
 
 export function mensajeAvisoRechazo(nombreNegocio: string, motivo: string): string {
-  return `Hola, revisamos el registro de «${nombreNegocio}» en NecesitoUno Tizayuca y por ahora no lo pudimos publicar: ${motivo}. Si lo corriges, lo puedes volver a enviar desde el mismo formulario con este mismo número.`;
+  return `Hola, revisamos el registro de «${nombreNegocio}» en EnMiRumbo y por ahora no lo pudimos publicar: ${motivo}. Si lo corriges, lo puedes volver a enviar desde el mismo formulario con este mismo número.`;
 }
 
 // ── Transición sobre un registro ya resuelto ────────────────────────────────
@@ -110,7 +117,7 @@ export function mensajeAvisoDespublicacion(
   nombreNegocio: string,
   motivo: string,
 ): string {
-  return `Hola, te escribo de NecesitoUno Tizayuca. Bajamos del directorio la ficha de «${nombreNegocio}»: ${motivo}. Si quieres que la volvamos a publicar o tienes alguna duda, contéstame por aquí.`;
+  return `Hola, te escribo de EnMiRumbo. Bajamos del directorio la ficha de «${nombreNegocio}»: ${motivo}. Si quieres que la volvamos a publicar o tienes alguna duda, contéstame por aquí.`;
 }
 
 // ── Cola: ficha que llegó por una despublicación ────────────────────────────
@@ -218,7 +225,7 @@ export function mensajeAvisoCambiosAplicados(
   nombreNegocio: string,
   linkFicha: string,
 ): string {
-  return `¡Listo! Ya actualizamos la ficha de «${nombreNegocio}» en NecesitoUno Tizayuca. Así quedó: ${linkFicha}`;
+  return `¡Listo! Ya actualizamos la ficha de «${nombreNegocio}» en EnMiRumbo. Así quedó: ${linkFicha}`;
 }
 
 // Requirement "Descartar la edición exige motivo, no toca la ficha y ofrece
@@ -262,7 +269,7 @@ export function mensajeAvisoCambiosDescartados(
   nombreNegocio: string,
   motivo: string,
 ): string {
-  return `Hola, revisamos los cambios que mandaste para «${nombreNegocio}» en NecesitoUno Tizayuca y por ahora no los pudimos aplicar: ${motivo}. Tu ficha sigue publicada como estaba y puedes mandarlos otra vez con tu mismo enlace.`;
+  return `Hola, revisamos los cambios que mandaste para «${nombreNegocio}» en EnMiRumbo y por ahora no los pudimos aplicar: ${motivo}. Tu ficha sigue publicada como estaba y puedes mandarlos otra vez con tu mismo enlace.`;
 }
 
 // Requirement "Una edición se resuelve una sola vez y solo si sigue siendo la
@@ -281,7 +288,7 @@ export function mensajeEnlaceNuevo(
   nombreNegocio: string,
   enlaceGestion: string,
 ): string {
-  return `Hola, te mandamos un enlace nuevo para editar tu ficha de «${nombreNegocio}» en NecesitoUno Tizayuca: ${enlaceGestion}. El anterior ya no sirve. Guarda este mensaje (puedes destacarlo con la estrella), con ese enlace actualizas tus datos cuando quieras.`;
+  return `Hola, te mandamos un enlace nuevo para editar tu ficha de «${nombreNegocio}» en EnMiRumbo: ${enlaceGestion}. El anterior ya no sirve. Guarda este mensaje (puedes destacarlo con la estrella), con ese enlace actualizas tus datos cuando quieras.`;
 }
 
 /**
@@ -309,7 +316,7 @@ export function mensajeAvisoPublicacionConEnlace(
   linkFicha: string,
   enlaceGestion: string,
 ): string {
-  return `¡Listo! Ya quedó publicado «${nombreNegocio}» en NecesitoUno Tizayuca. Esta es tu ficha: ${linkFicha} — compártela con tus clientes. Y este es tu enlace para editarla: ${enlaceGestion} — guarda este mensaje (puedes destacarlo con la estrella), con ese enlace actualizas tus datos cuando quieras.`;
+  return `¡Listo! Ya quedó publicado «${nombreNegocio}» en EnMiRumbo. Esta es tu ficha: ${linkFicha} — compártela con tus clientes. Y este es tu enlace para editarla: ${enlaceGestion} — guarda este mensaje (puedes destacarlo con la estrella), con ese enlace actualizas tus datos cuando quieras.`;
 }
 
 // ── Listado "Todos los negocios" (change agregar-listado-gestion-panel) ────

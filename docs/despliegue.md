@@ -1,4 +1,4 @@
-# Despliegue de NecesitoUno
+# Despliegue de EnMiRumbo
 
 Este documento basta para poner el sitio en producción. Si algo te obliga a
 abrir el código para saber qué configurar, es un defecto **de este documento**:
@@ -39,7 +39,7 @@ Nada de esto lo puede hacer el código. Hazlo en este orden.
      resguardo de datos personales (PRD §8) y ADR-004 eligió Supabase
      precisamente por esto.
 3. **Dominio.** Regístralo con quien prefieras. En Vercel, *Settings → Domains*
-   y agrega tanto el dominio raíz (`necesitouno.mx`) como `www`.
+   y agrega tanto el dominio raíz (`enmirumbo.com`) como `www`.
 4. **DNS.** Apunta lo que te diga Vercel en esa misma pantalla: un registro `A`
    del dominio raíz a la IP que indique, y un `CNAME` de `www` a
    `cname.vercel-dns.com`. La propagación puede tardar hasta una hora; Vercel
@@ -80,6 +80,12 @@ DATABASE_URL="postgresql://postgres:postgres@localhost:51214/template1?sslmode=d
 ```
 
 Para pararlo: `npm run db:local:detener`.
+
+> **Si venías de antes del rebrand (T-019):** la base local cambió de nombre
+> (`necesitouno` → `enmirumbo`), así que `npm run db:local` va a levantar una
+> **base nueva y vacía**. No se pierde nada que importe —solo catálogos y
+> negocios ficticios—: repóblala con `npm run db:seed` y `npm run db:seed:demo`.
+> La vieja se para con `npx prisma dev stop necesitouno`.
 
 **Cuatro cosas que conviene saber de esa base local:**
 
@@ -138,7 +144,7 @@ volver a desplegar, no basta con reiniciar.
 | Variable | Para qué sirve | Valor |
 |---|---|---|
 | `DATABASE_URL` | La base de datos. En producción, la conexión **agrupada** (pooler) de Supabase: el runtime serverless abre y cierra conexiones todo el rato. | Supabase → *Connect* → *Transaction pooler*, **y le agregas `?sslmode=verify-full&sslrootcert=certs/supabase-root-2021-ca.crt`**: queda `postgresql://USUARIO:CLAVE@aws-0-REGION.pooler.supabase.com:6543/postgres?sslmode=verify-full&sslrootcert=certs/supabase-root-2021-ca.crt`. **Con Supabase, `sslmode=require` a secas NO funciona; el porqué y la ruta del certificado, en §3.4.** **Sin ella, en producción el sistema NO cae a ninguna base local: lo dice en el log y las pantallas que leen datos fallan. Y sin `sslmode` el sistema tampoco arranca: ver §3.4.** |
-| `SITIO_URL` | La URL pública, sin diagonal final. De aquí salen el `sitemap.xml`, la línea `Sitemap:` de `robots.txt`, las canónicas, la vista previa de WhatsApp/Facebook y el link de la ficha que el admin manda al aprobar. | `https://necesitouno.mx` (tu dominio real). Sin ella **en producción el sitio no inventa `localhost`**: el sitemap va vacío, no hay canónicas y el panel avisa a la vista. |
+| `SITIO_URL` | La URL pública, sin diagonal final. De aquí salen el `sitemap.xml`, la línea `Sitemap:` de `robots.txt`, las canónicas, la vista previa de WhatsApp/Facebook y el link de la ficha que el admin manda al aprobar. | `https://enmirumbo.com` (tu dominio real). Sin ella **en producción el sitio no inventa `localhost`**: el sitemap va vacío, no hay canónicas y el panel avisa a la vista. |
 | `PANEL_CONTRASENA` | La única credencial del panel `/admin`. Sin cuentas, sin correo, sin recuperación (PRD §6.6). | Una contraseña larga y que no uses en ningún otro lado. Si se pierde, se cambia la variable y se redespliega. |
 | `PANEL_SESION_SECRETO` | Con lo que el servidor firma la cookie de sesión del panel (HMAC-SHA256). | Mínimo 32 caracteres al azar: `openssl rand -base64 32`. Rotarlo cierra todas las sesiones abiertas. |
 | `REGISTRO_ENCABEZADO_IP` | El encabezado donde el proxy del hosting publica la IP real del visitante. Lo usan **el límite de 3 altas por hora**, el de 3 reportes por hora y el de **5 intentos de acceso al panel cada 10 minutos**. | **En Vercel, exactamente: `x-forwarded-for`.** Sin esta variable esos tres límites **no operan** (léelo literal: no es que sean más flojos, es que no cuentan nada). Con ella puesta, el del panel es el único que se comparte entre instancias; los otros dos son por instancia — **lee §3.5 antes de elegir la contraseña del panel**. (Otros hostings: `cf-connecting-ip` en Cloudflare, `x-real-ip` en nginx.) |
@@ -236,7 +242,7 @@ postgresql://USUARIO:CLAVE@aws-0-REGION.pooler.supabase.com:6543/postgres?sslmod
   `sslmode=verify-full`.
 - **Si tu base es un socket Unix** (PostgreSQL en la misma máquina, sin TCP):
   pon la ruta en `?host=`, por ejemplo
-  `postgresql://usuario@localhost/necesitouno?host=/var/run/postgresql`. **No se
+  `postgresql://usuario@localhost/enmirumbo?host=/var/run/postgresql`. **No se
   le pide cifrado**: los bytes no llegan a ninguna tarjeta de red, así que no
   hay nada que interceptar. Ojo con la otra mitad de la decisión: un socket
   **no** cuenta como "base local" para los comandos que escriben en masa
@@ -292,13 +298,13 @@ lo que hace que las guardas anti-producción reconozcan dónde están.
    personales del directorio. Ponla en un archivo fuera del repositorio:
 
    ```bash
-   # ~/necesitouno-produccion.env  (chmod 600, FUERA del repo)
+   # ~/enmirumbo-produccion.env  (chmod 600, FUERA del repo)
    DATABASE_URL="postgresql://postgres:CLAVE@db.XXXX.supabase.co:5432/postgres?sslmode=verify-full&sslrootcert=certs/supabase-root-2021-ca.crt"
    ```
 
    ```bash
-   umask 077 && touch ~/necesitouno-produccion.env   # la primera vez
-   set -a && . ~/necesitouno-produccion.env && set +a
+   umask 077 && touch ~/enmirumbo-produccion.env   # la primera vez
+   set -a && . ~/enmirumbo-produccion.env && set +a
    npx prisma migrate deploy      # DESDE LA RAÍZ DEL REPOSITORIO
    ```
 
@@ -369,7 +375,7 @@ otro programador de tareas (o desde `cron` en cualquier máquina):
 
 ```bash
 curl -fsS -H "Authorization: Bearer $CRON_SECRET" \
-  https://necesitouno.mx/api/tareas/purgar-rechazados
+  https://enmirumbo.com/api/tareas/purgar-rechazados
 ```
 
 **Vigila el resultado, no solo que se haya llamado.** El `-f` de arriba es
@@ -520,7 +526,7 @@ inaccesible durante meses. Anotada en §10.
 - **Verifícala contra el sitio ya desplegado**, no contra el código:
 
   ```bash
-  curl -sI https://necesitouno.mx | grep -iE "content-security-policy|x-content-type|x-frame|referrer-policy|x-powered-by"
+  curl -sI https://enmirumbo.com | grep -iE "content-security-policy|x-content-type|x-frame|referrer-policy|x-powered-by"
   ```
 
   Tienen que salir las cuatro primeras y **no** salir `x-powered-by`.
@@ -601,6 +607,13 @@ Con el sitio ya en línea, abre estas pantallas en el celular, con datos móvile
 7. **`/sitemap.xml`** — lista URLs absolutas de tu dominio, no de `localhost`.
 8. **`/aviso-de-privacidad` y `/terminos`** — se abren. Mientras la revisión
    legal no termine, muestran arriba la marca de borrador; es lo esperado.
+8-bis. **El buzón del directorio** (T-019, **obligatorio antes del
+   lanzamiento**) — las dos páginas legales publican `contacto@enmirumbo.com`
+   como canal de contacto y de derechos ARCO, y eso es un compromiso con el
+   titular, no un adorno. **Mándale un correo desde una cuenta cualquiera y
+   confirma que llega** al buzón que atiende el admin. Un canal publicado que
+   nadie recibe es peor que un placeholder honesto: si todavía no llega, el
+   reenvío del registrador no está activado y el sitio no debe lanzarse.
 9. **La CSP** — el `curl` de §8.
 10. **Las fotos de verdad** (si configuraste Supabase Storage): en el alta de
     prueba del paso 3 sube una foto. Después de aprobar, la ficha tiene que
@@ -613,12 +626,12 @@ Con el sitio ya en línea, abre estas pantallas en el celular, con datos móvile
 11. **Las tareas programadas** — con el secreto en la mano:
 
     ```bash
-    curl -fsS -H "Authorization: Bearer $CRON_SECRET" https://necesitouno.mx/api/tareas/purgar-rechazados
-    curl -fsS -H "Authorization: Bearer $CRON_SECRET" https://necesitouno.mx/api/tareas/barrer-fotos-huerfanas
+    curl -fsS -H "Authorization: Bearer $CRON_SECRET" https://enmirumbo.com/api/tareas/purgar-rechazados
+    curl -fsS -H "Authorization: Bearer $CRON_SECRET" https://enmirumbo.com/api/tareas/barrer-fotos-huerfanas
     ```
 
     Las dos tienen que responder `200` con sus conteos. Y sin el encabezado,
-    la misma página 404 que `https://necesitouno.mx/una-direccion-inventada`.
+    la misma página 404 que `https://enmirumbo.com/una-direccion-inventada`.
 12. **Borra el alta de prueba** desde el panel (borrado definitivo) y comprueba
     que la ficha ya no abre (y que su foto desapareció del bucket, paso 10).
 

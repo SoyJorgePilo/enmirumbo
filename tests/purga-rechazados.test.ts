@@ -229,7 +229,7 @@ describe("purga · la ruta que la dispara", () => {
 
   const pedir = (encabezados: Record<string, string> = {}) =>
     purgarRechazadosRuta(
-      new Request("https://necesitouno.example/api/tareas/purgar-rechazados", {
+      new Request("https://enmirumbo.example/api/tareas/purgar-rechazados", {
         headers: encabezados,
       }),
     );

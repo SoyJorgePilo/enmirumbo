@@ -25,7 +25,7 @@ import { CLAVE_FOTO_SEO, sembrarNegociosSeo } from "./seo-fixtures";
 // ficha se ve bien al compartirla por WhatsApp o Facebook" y "Las páginas de
 // giro sin negocios publicados… declarar `noindex`" (tasks.md #13 a #16).
 
-const URL_SITIO = "https://necesitouno.example";
+const URL_SITIO = "https://enmirumbo.example";
 
 let prisma: PrismaClient;
 let idPorWhatsapp: Record<string, string> = {};
@@ -69,10 +69,12 @@ describe("layout-base · metadata base del sitio (tasks #13)", () => {
       default: TITULO_DEL_SITIO,
       template: PLANTILLA_DE_TITULO,
     });
+    // ENMENDADO (rebrand T-019): la geografía sigue en el título, una vez, en
+    // el descriptor; lo que desaparece es la localidad pegada al nombre.
     expect(TITULO_DEL_SITIO).toBe(
-      "NecesitoUno Tizayuca — Encuentra negocios y servicios en Tizayuca",
+      "EnMiRumbo — Encuentra negocios y servicios en Tizayuca",
     );
-    expect(PLANTILLA_DE_TITULO).toBe("%s — NecesitoUno");
+    expect(PLANTILLA_DE_TITULO).toBe("%s — EnMiRumbo");
     expect(metadataLayout.description).toBe(DESCRIPCION_DEL_SITIO);
   });
 

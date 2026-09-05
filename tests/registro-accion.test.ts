@@ -238,6 +238,11 @@ describe("procesarRegistro (Server Action de registro)", () => {
   // Scenario: versión inventada en el envío
   it.each([
     ["una versión vieja", "0"],
+    // T-019, scenario "el formulario abierto antes del despliegue no se guarda
+    // a ciegas": la `1` es la versión que un dueño tuvo enfrente antes del
+    // rebrand. Es el primer caso REAL de este camino, que hasta ahora solo se
+    // probaba con versiones imposibles.
+    ["la versión anterior al rebrand", "1"],
     ["una versión que no existe", "99"],
     ["basura", "<script>1</script>"],
     ["vacía", ""],

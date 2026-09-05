@@ -10,9 +10,16 @@
  */
 import { normalizarWhatsapp } from "@/lib/whatsapp";
 
-/** Mensaje prellenado del WhatsApp, aprobado en la propuesta (duda 2). */
+/**
+ * Mensaje prellenado del WhatsApp (spec `directorio-publico`, requirement "El
+ * mensaje prellenado del WhatsApp nombra al directorio con la marca vigente").
+ *
+ * Va SIN descriptor geográfico a propósito: el negocio que lo recibe está en
+ * Tizayuca y ya sabe dónde está, así que decírselo solo alarga un mensaje que
+ * se lee en el celular (resolución del fundador del 2026-09-04).
+ */
 export const MENSAJE_WHATSAPP_PRELLENADO =
-  "Hola, te vi en NecesitoUno Tizayuca. ¿Me das informes?";
+  "Hola, te vi en EnMiRumbo. ¿Me das informes?";
 
 /** Lo que se muestra de la página registrada: a dónde lleva y qué dominio es. */
 export type PaginaRegistrada = {

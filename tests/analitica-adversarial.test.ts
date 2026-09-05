@@ -451,7 +451,7 @@ describe("analitica adversarial · lo que escribe el vecino en /buscar", () => {
     const fuente = readFileSync(join(raiz, "src/app/(publico)/buscar/page.tsx"), "utf8");
     expect(fuente).not.toContain("generateMetadata");
     expect(fuente).toMatch(/export const metadata: Metadata = \{\s*title: TITULO_BUSCAR,\s*robots:/);
-    expect(TITULO_BUSCAR).toBe("Buscar — NecesitoUno Tizayuca");
+    expect(TITULO_BUSCAR).toBe("Buscar — EnMiRumbo");
     // El título no depende de nada que escriba el vecino.
     expect(metadataBuscar.title).toBe(TITULO_BUSCAR);
     for (const trozo of ["q", "consulta", "resultados para"]) {

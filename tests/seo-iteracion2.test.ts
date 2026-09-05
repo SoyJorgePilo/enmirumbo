@@ -44,7 +44,7 @@ import { crearClientePrueba } from "./db";
  * aplicación, envuelto para contar (igual que `tests/seo-consultas.test.ts`).
  */
 
-const URL_SITIO = "https://necesitouno.example";
+const URL_SITIO = "https://enmirumbo.example";
 const PREFIJO = "7719997";
 
 const consultas: string[] = [];

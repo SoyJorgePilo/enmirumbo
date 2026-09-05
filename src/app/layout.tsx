@@ -10,7 +10,7 @@ import { avisarSinSecretoDeTareasUnaVez } from "@/lib/tareas/secreto";
 
 /**
  * Metadata base del sitio (spec `layout-base`): título y descripción, la
- * plantilla "%s — NecesitoUno" que heredan las páginas con título propio, la
+ * plantilla "%s — EnMiRumbo" que heredan las páginas con título propio, la
  * identidad de la vista previa al compartir y la URL pública como base de
  * todas las URLs absolutas. Los valores viven en `src/lib/seo/metadata.ts`,
  * que es el mismo módulo que usan las páginas y los artefactos del sitio.

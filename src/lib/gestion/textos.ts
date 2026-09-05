@@ -66,5 +66,5 @@ export const ENCABEZADO_ES_TU_NEGOCIO = "¿Es tu negocio?";
 export const CONTROL_PERDI_MI_ENLACE = "Perdí mi enlace";
 
 export function mensajePerdiMiEnlace(nombreNegocio: string): string {
-  return `Hola, soy de «${nombreNegocio}» en NecesitoUno Tizayuca y perdí el enlace para editar mi ficha. Les escribo desde el número que registré, ¿me lo pueden pasar?`;
+  return `Hola, soy de «${nombreNegocio}» en EnMiRumbo y perdí el enlace para editar mi ficha. Les escribo desde el número que registré, ¿me lo pueden pasar?`;
 }

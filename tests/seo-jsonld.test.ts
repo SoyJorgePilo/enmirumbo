@@ -17,7 +17,7 @@ import { CLAVE_FOTO_SEO, sembrarNegociosSeo } from "./seo-fixtures";
 // Spec: directorio-publico · requirement "Cada ficha publicada emite
 // Schema.org LocalBusiness" (tasks.md #18, design.md §6).
 
-const URL_SITIO = "https://necesitouno.example";
+const URL_SITIO = "https://enmirumbo.example";
 /** Nombre adversarial: el marcado tiene que quedar como texto, no ejecutarse. */
 const NOMBRE_HOSTIL = "Tacos </script><script>alert(1)</script>";
 

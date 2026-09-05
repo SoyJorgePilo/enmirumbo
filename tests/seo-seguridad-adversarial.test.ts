@@ -64,7 +64,7 @@ import { crearClientePrueba } from "./db";
  */
 
 const raiz = join(__dirname, "..");
-const URL_SITIO = "https://necesitouno.example";
+const URL_SITIO = "https://enmirumbo.example";
 /** Prefijo propio de esta suite, para no pisar los fixtures de las otras. */
 const PREFIJO = "7719996";
 
@@ -85,7 +85,7 @@ let catalogos: CatalogosDeLaRaiz = { categorias: [], giros: [], colonias: [] };
 let idPorWhatsapp: Record<string, string> = {};
 
 const almacenGlobal = globalThis as typeof globalThis & {
-  prismaNecesitoUno?: PrismaClient;
+  prismaEnMiRumbo?: PrismaClient;
 };
 
 /** Cuenta cada llamada a un modelo de Prisma, para medir el costo por request. */
@@ -208,7 +208,7 @@ beforeAll(async () => {
   await seedCatalogos(prisma);
 
   // La app usa el mismo cliente que la suite, envuelto para contar consultas.
-  almacenGlobal.prismaNecesitoUno = clienteQueCuenta(prisma);
+  almacenGlobal.prismaEnMiRumbo = clienteQueCuenta(prisma);
 
   catalogos = {
     categorias: await prisma.categoria.findMany({
@@ -296,7 +296,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  delete almacenGlobal.prismaNecesitoUno;
+  delete almacenGlobal.prismaEnMiRumbo;
   delete process.env[VARIABLE_URL_SITIO];
   await prisma.negocio.deleteMany({ where: { whatsapp: { startsWith: PREFIJO } } });
   await prisma.$disconnect();
@@ -918,24 +918,24 @@ describe("seo/seguridad · SITIO_URL hostil o mal escrita", () => {
     expect(
       urlSitio({
         [VARIABLE_URL_SITIO]:
-          "https://admin:sup3rsecreto@necesitouno.example/sub/dir?a=b#frag",
+          "https://admin:sup3rsecreto@enmirumbo.example/sub/dir?a=b#frag",
       }),
-    ).toBe("https://necesitouno.example");
+    ).toBe("https://enmirumbo.example");
     expect(
-      urlSitio({ [VARIABLE_URL_SITIO]: "https://necesitouno.example/" }),
-    ).toBe("https://necesitouno.example");
+      urlSitio({ [VARIABLE_URL_SITIO]: "https://enmirumbo.example/" }),
+    ).toBe("https://enmirumbo.example");
     expect(
-      urlSitio({ [VARIABLE_URL_SITIO]: "  https://necesitouno.example  " }),
-    ).toBe("https://necesitouno.example");
+      urlSitio({ [VARIABLE_URL_SITIO]: "  https://enmirumbo.example  " }),
+    ).toBe("https://enmirumbo.example");
   });
 
   it.each([
     "javascript:alert(1)",
     "data:text/html,<script>alert(1)</script>",
     "file:///etc/passwd",
-    "ftp://necesitouno.example",
+    "ftp://enmirumbo.example",
     "//evil.example",
-    "necesitouno.example",
+    "enmirumbo.example",
     "",
     "   ",
     "https://",
@@ -946,7 +946,7 @@ describe("seo/seguridad · SITIO_URL hostil o mal escrita", () => {
   });
 
   it("un valor con salto de línea no puede inyectar una segunda directiva", async () => {
-    const hostil = "https://necesitouno.example\nSitemap: https://evil.example/x.xml";
+    const hostil = "https://enmirumbo.example\nSitemap: https://evil.example/x.xml";
     const origen = urlSitio({ [VARIABLE_URL_SITIO]: hostil });
     if (origen !== null) {
       expect(origen).not.toContain("\n");
@@ -963,7 +963,7 @@ describe("seo/seguridad · SITIO_URL hostil o mal escrita", () => {
 
   it("con credenciales y ruta en la variable, el sitemap no las refleja", async () => {
     await conVariable(
-      "https://admin:sup3rsecreto@necesitouno.example/sub?a=b#frag",
+      "https://admin:sup3rsecreto@enmirumbo.example/sub?a=b#frag",
       false,
       async () => {
         const urls = (await sitemap()).map((entrada) => entrada.url);
@@ -974,7 +974,7 @@ describe("seo/seguridad · SITIO_URL hostil o mal escrita", () => {
           expect(url).not.toContain("/sub");
           expect(url).not.toContain("#");
           expect(url).not.toContain("?");
-          expect(url.startsWith("https://necesitouno.example"), url).toBe(true);
+          expect(url.startsWith("https://enmirumbo.example"), url).toBe(true);
           // Sin diagonales dobles después del esquema.
           expect(url.slice("https://".length)).not.toContain("//");
         }
@@ -1050,14 +1050,14 @@ describe("seo/seguridad · la imagen para compartir", () => {
       "vbscript:msgbox(1)",
       "  javascript:alert(1)",
       "JAVASCRIPT:alert(1)",
-      "httpx://necesitouno.example/x.png",
+      "httpx://enmirumbo.example/x.png",
       "x.png",
       // El caso del hallazgo M3 de este change: una URL externa perfectamente
       // formada guardada a mano en la columna. Ya no hace falta lista blanca
       // de dominio, porque la columna no guarda direcciones: guarda la clave
       // que genera el servidor (T-008) y `imagenesDeLaFicha` la construye.
       "https://evil.example/pixel.png",
-      "https://necesitouno.example.evil/x.png",
+      "https://enmirumbo.example.evil/x.png",
       "/fotos/negocio-ficticio.jpg",
       "../../etc/passwd",
     ]) {
@@ -1065,7 +1065,7 @@ describe("seo/seguridad · la imagen para compartir", () => {
         [VARIABLE_URL_SITIO]: URL_SITIO,
       });
       expect(imagenes, hostil).toHaveLength(1);
-      expect(imagenes[0], hostil).toMatch(/^https:\/\/necesitouno\.example\//);
+      expect(imagenes[0], hostil).toMatch(/^https:\/\/enmirumbo\.example\//);
       expect(imagenes[0], hostil).not.toContain("javascript");
       expect(imagenes[0], hostil).not.toContain("data:");
     }

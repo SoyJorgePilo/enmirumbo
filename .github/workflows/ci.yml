@@ -20,7 +20,7 @@ jobs:
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: necesitouno
+          POSTGRES_DB: enmirumbo
         ports:
           - 5432:5432
         options: >-
@@ -30,7 +30,7 @@ jobs:
           --health-retries 10
 
     env:
-      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/necesitouno
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/enmirumbo
 
     steps:
       - uses: actions/checkout@v5

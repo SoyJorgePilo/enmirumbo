@@ -301,12 +301,12 @@ describe("modelo-datos · seed de demostración", () => {
     });
 
     it.each([
-      ["postgresql://usuario:clave@servidor:5432/necesitouno", "postgresql"],
-      ["postgres://usuario:clave@servidor:5432/necesitouno", "postgres"],
-      ["mysql://usuario:clave@servidor:3306/necesitouno", "mysql"],
+      ["postgresql://usuario:clave@servidor:5432/enmirumbo", "postgresql"],
+      ["postgres://usuario:clave@servidor:5432/enmirumbo", "postgres"],
+      ["mysql://usuario:clave@servidor:3306/enmirumbo", "mysql"],
       ["prisma://accelerate.prisma-data.net/?api_key=xxx", "prisma accelerate"],
-      ["libsql://necesitouno.turso.io?authToken=xxx", "libsql remoto"],
-      ["https://necesitouno.example/db", "https"],
+      ["libsql://enmirumbo.turso.io?authToken=xxx", "libsql remoto"],
+      ["https://enmirumbo.example/db", "https"],
     ])("no siembra si DATABASE_URL apunta a %s (%s)", async (url) => {
       const resultado = await sembrarNegociosDemo(prisma, {
         NODE_ENV: "development",
@@ -343,7 +343,7 @@ describe("modelo-datos · seed de demostración", () => {
     it("una base remota solo se siembra con el permiso explícito", async () => {
       const resultado = await sembrarNegociosDemo(prisma, {
         NODE_ENV: "development",
-        DATABASE_URL: "postgresql://usuario:clave@servidor:5432/necesitouno",
+        DATABASE_URL: "postgresql://usuario:clave@servidor:5432/enmirumbo",
         SEED_DEMO_PERMITIR: "1",
       });
       expect(resultado.sembrado).toBe(true);
@@ -353,7 +353,7 @@ describe("modelo-datos · seed de demostración", () => {
       await prisma.negocio.deleteMany();
       const resultado = await sembrarNegociosDemo(prisma, {
         NODE_ENV: "production",
-        DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/necesitouno",
+        DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/enmirumbo",
         SEED_DEMO_PERMITIR: "1",
       });
       expect(resultado.sembrado).toBe(false);

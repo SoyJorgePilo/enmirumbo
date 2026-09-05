@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /*
- * Tokens de diseño de NecesitoUno Tizayuca (Tailwind v4, config CSS-first).
+ * Tokens de diseño de EnMiRumbo (Tailwind v4, config CSS-first).
  * Las pantallas consumen estos tokens por nombre (bg-fondo, text-tinta,
  * bg-accion, …); nunca valores hexadecimales sueltos en componentes.
  *

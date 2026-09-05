@@ -49,11 +49,40 @@ describe("directorio-publico · URL de la ficha (tasks #3)", () => {
 });
 
 describe("directorio-publico · enlace de WhatsApp (tasks #4)", () => {
-  // Duda 2 de la propuesta, aprobada: mensaje literal.
+  // Requirement (ADDED por T-019) "El mensaje prellenado del WhatsApp nombra
+  // al directorio con la marca vigente".
   it("usa el mensaje prellenado aprobado, tal cual", () => {
     expect(MENSAJE_WHATSAPP_PRELLENADO).toBe(
-      "Hola, te vi en NecesitoUno Tizayuca. ¿Me das informes?",
+      "Hola, te vi en EnMiRumbo. ¿Me das informes?",
     );
+    expect(MENSAJE_WHATSAPP_PRELLENADO).not.toMatch(/necesitouno/i);
+    expect(MENSAJE_WHATSAPP_PRELLENADO).not.toMatch(/EnMiRumbo\s+Tizayuca/i);
+  });
+
+  // Scenarios "el vecino escribe desde una tarjeta del listado" y "el vecino
+  // escribe desde la ficha": es el MISMO mensaje porque se declara una sola
+  // vez. Las cuatro superficies (tarjeta del listado, giro, resultados y
+  // ficha) arman su enlace con `construirEnlaceWhatsapp`, así que no hay dos
+  // literales que se puedan desincronizar.
+  it("las superficies del directorio arman el enlace con la única función que lo sabe", async () => {
+    const { readFileSync } = await import("node:fs");
+    const superficies = [
+      "src/components/directorio/lista-negocios.tsx",
+      "src/app/(publico)/negocio/[ficha]/page.tsx",
+      "src/app/(publico)/buscar/page.tsx",
+    ];
+    for (const ruta of superficies) {
+      const fuente = readFileSync(ruta, "utf8");
+      expect(fuente, ruta).toContain("construirEnlaceWhatsapp");
+      // Ninguna se escribe su propio mensaje.
+      expect(fuente, ruta).not.toContain("¿Me das informes?");
+    }
+  });
+
+  it("el mensaje no lleva ningún dato del vecino", () => {
+    // Es una constante: no interpola nada y no puede recibir nada.
+    expect(typeof MENSAJE_WHATSAPP_PRELLENADO).toBe("string");
+    expect(MENSAJE_WHATSAPP_PRELLENADO).not.toMatch(/[$«{]/);
   });
 
   it("normaliza un número guardado con formato raro antes de armar el enlace", () => {

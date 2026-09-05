@@ -1,14 +1,16 @@
-# PRD — NecesitoUno.com · Directorio de Negocios de Tizayuca (MVP)
+# PRD — EnMiRumbo · Directorio de Negocios de Tizayuca (MVP)
 
 **Versión:** 0.8 (propuesta) · **Fecha:** 31 de agosto de 2026 · **Estado:** Borrador
 
+> Cambios v1.0 (2026-09-04): **el sitio se llama EnMiRumbo** (T-019). El fundador compró `enmirumbo.com` y la marca acompaña al dominio: se retira "NecesitoUno" de todas las superficies del producto —header, títulos, vista previa al compartir, mensajes de WhatsApp del panel y del vecino, aviso de privacidad y términos— y con ello el aviso estrena su **versión 2**, que además publica el correo del directorio `contacto@enmirumbo.com` en lugar de sus placeholders. La localidad NO es apellido de la marca: donde hace falta contexto geográfico se escribe como descriptor ("EnMiRumbo, el directorio de negocios de Tizayuca"), nunca "EnMiRumbo Tizayuca". La historia del repositorio —devlogs, ADR, tickets cerrados y changes archivados— conserva el nombre con el que se escribió.
+>
 > Cambios v0.9 (2026-09-04): la verificación de propiedad del número por SMS (Twilio) pasa de "fuera de alcance" a **capacidad tras bandera, apagada en el lanzamiento** (ADR-011): cuando se active, el SMS confirma el número automáticamente y el admin conserva la aprobación de la publicación — modelo híbrido que preserva el diferenciador de curaduría manual del §6.3. El flujo del MVP no cambia.
 >
 > Cambios v0.8: se cierran los huecos detectados en la validación técnica previa a la implementación — acceso del admin al panel (contraseña única, sin cuentas); catálogo cerrado de giros como base real de las páginas SEO, asignado por el admin al aprobar (nuevo Apéndice B); flujo de rechazo completo con aviso y retención de 90 días; política de duplicados (una ficha por número de WhatsApp); reglas de la foto; separación de métricas orgánicas vs sembradas con campo de origen; analítica cookieless con eventos definidos y exclusión de bots; normalización de la búsqueda (acentos, coincidencia parcial); reglas de moderación escritas; anti-abuso del formulario sin captcha; operación ARCO y retención; requisitos de accesibilidad; y expectativa realista del Schema LocalBusiness. Cambios v0.7: se adopta el nombre NecesitoUno.com — marca neutral que resuelve la pregunta abierta de branding y permite expandir a otras ciudades sin cambiar de nombre. Cambios v0.6: se agrega la categoría y el apartado destacado de clubes y escuelas deportivas — espacio inexistente en la oferta municipal, oportunidad de diferenciación y SEO sin competencia. Cambios v0.5: se integra la investigación de mercado — contexto de Tizayuca con datos INEGI, competencia real (Google Maps y grupos de Facebook), lista de colonias para el formulario, requisitos legales conforme a la LFPDPPP 2025, plan de lanzamiento en fases con umbrales de decisión, ajuste de la métrica de conversión con benchmark, y requisitos de SEO local. Cambios v0.4: autogestión de ediciones con enlace único de gestión; los cambios pasan a revisión antes de publicarse; flujo de recuperación de enlace perdido. Cambios v0.3: formulario ajustado — colonia obligatoria con lista cerrada, palabras clave, checkbox de entregas a domicilio y link opcional de Facebook. Cambios v0.2: verificación manual integrada en la revisión del admin (se elimina el código automático por WhatsApp).
 
 ## 1. Resumen
 
-NecesitoUno.com es un sitio web donde los negocios de Tizayuca (restaurantes, servicios, comercios, clubes deportivos) pueden registrarse en minutos y aparecer en un directorio público que los vecinos consultan para encontrarlos y contactarlos, principalmente por WhatsApp. El nombre refleja el momento exacto del usuario: "necesito un plomero", "necesito una fonda", "necesito una escuela de futbol".
+EnMiRumbo es un sitio web donde los negocios de Tizayuca (restaurantes, servicios, comercios, clubes deportivos) pueden registrarse en minutos y aparecer en un directorio público que los vecinos consultan para encontrarlos y contactarlos, principalmente por WhatsApp. El relato de marca: **"EnMiRumbo — el directorio de los negocios de tu rumbo"**. "Rumbo" es como los vecinos llaman a su zona ("por mi rumbo hay una fonda buenísima"), así que el nombre habla de cercanía sin amarrarse a un municipio — y por eso sostiene la expansión a otras poblaciones sin volver a renombrar (T-017).
 
 **Principio rector: máxima sencillez.** Si un dueño de fonda no puede registrarse solo desde su celular en menos de 5 minutos, el producto falló.
 
@@ -95,7 +97,7 @@ La curaduría manual no es una carga: es el diferenciador de confianza frente a 
 
 Autogestión sin cuentas ni contraseñas, con publicación supervisada:
 
-- Al aprobar un registro, el sistema genera un **enlace único y secreto de gestión** para ese negocio (ej. necesitouno.com/editar/x8k2m9...). El admin lo envía por WhatsApp con la instrucción: "Guarda este mensaje (puedes destacarlo con la estrella) — con este enlace actualizas tus datos cuando quieras".
+- Al aprobar un registro, el sistema genera un **enlace único y secreto de gestión** para ese negocio (ej. enmirumbo.com/editar/x8k2m9...). El admin lo envía por WhatsApp con la instrucción: "Guarda este mensaje (puedes destacarlo con la estrella) — con este enlace actualizas tus datos cuando quieras".
 - El enlace abre la ficha en modo edición, con el formulario prellenado; el dueño cambia lo que necesite y envía.
 - Los cambios NO se publican al instante: entran a la misma cola de revisión y el admin los aprueba antes de que la ficha pública se actualice. Mientras tanto, la ficha sigue mostrando la versión anterior.
 - **Enlace perdido:** botón "Perdí mi enlace" en la ficha pública, que abre un WhatsApp prellenado hacia el admin. Si quien escribe lo hace desde el mismo número registrado, el admin reenvía el enlace (o genera uno nuevo, invalidando el anterior, si hay sospecha de que alguien más lo tiene). El enlace queda guardado en el historial del chat de WhatsApp con el admin, así que "perderlo" normalmente se resuelve buscando en la conversación.
@@ -166,7 +168,7 @@ El riesgo #1 de todo directorio es el huevo-gallina; ~90% de los marketplaces fr
 - Pre-cargar 30-50 negocios mediante cambaceo (visitas puerta a puerta, con su permiso y consentimiento registrado) en 2-3 colonias ancla de alta densidad: Centro, Haciendas de Tizayuca y Fuentes/Geovillas.
 - Incluir en la siembra 5-10 clubes y escuelas deportivas (escuelas de futbol, box, taekwondo, gimnasios, ligas locales) contactándolos en deportivos y canchas — al no existir oferta municipal, este apartado puede ser el gancho de difusión del lanzamiento ("por fin un lugar para encontrar dónde entrenar en Tizayuca").
 - Cerrar la lista de colonias del formulario (Apéndice A) y tener listos aviso de privacidad y términos de uso.
-- Verificar disponibilidad y registrar el dominio necesitouno.com (y de ser posible necesitouno.mx y necesitouno.com.mx para proteger la marca).
+- ~~Verificar disponibilidad y registrar el dominio~~ **Hecho (2026-09-04): `enmirumbo.com` está comprado.** Queda apuntarlo al despliegue y activar el buzón de `contacto@enmirumbo.com`, que el aviso de privacidad y los términos ya publican.
 
 **Fase 1 — Activar la demanda donde ya está (semanas 3-8):**
 
@@ -200,7 +202,7 @@ Nota sobre el 15%: el benchmark disponible más cercano (Google Business Profile
 - **Datos desactualizados:** negocios que cierran o cambian de número. Mitigación MVP: botón de reporte + revisión manual.
 - **Enlace de gestión perdido o compartido:** riesgo bajo — vive en el chat de WhatsApp con el admin, la recuperación verifica el número, y ante sospecha se regenera. Como toda edición pasa por revisión, un enlace robado no puede publicar cambios sin que el admin lo vea.
 - **Marco legal en transición:** la LFPDPPP 2025 aún consolida reglamento y criterios; requiere revisión legal profesional antes del lanzamiento.
-- **Marca resuelta:** se adopta NecesitoUno.com, marca neutral que permite expandir a Pachuca y otros municipios sin renombrar. Implicación: como el nombre no dice "Tizayuca", el posicionamiento hiperlocal debe cargarse en la comunicación ("NecesitoUno Tizayuca" en título, logo y redes) y en el SEO (páginas "[giro] en Tizayuca"). Pendiente: confirmar disponibilidad del dominio antes de producir cualquier material.
+- **Marca resuelta (v1.0, 2026-09-04):** el sitio se llama **EnMiRumbo** y el dominio `enmirumbo.com` ya está comprado. Es una marca neutral que permite expandir a Pachuca y otros municipios sin renombrar. Implicación: como el nombre no dice "Tizayuca", el posicionamiento hiperlocal se carga en el descriptor ("EnMiRumbo, el directorio de negocios de Tizayuca"), en la línea del pie ("Hecho para los vecinos de Tizayuca, Hidalgo."), en el `h1` de la home y en el SEO (páginas "[giro] en Tizayuca"). La forma compuesta "EnMiRumbo Tizayuca" queda **prohibida**: la localidad es lo que el sitio dice de sí mismo, no parte de su nombre.
 
 ## 12. Fases posteriores (no comprometidas)
 

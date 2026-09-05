@@ -13,19 +13,25 @@ import type { Metadata } from "next";
 import { urlDeFoto } from "@/lib/fotos/url";
 import { type EntornoSitio, urlAbsoluta, urlSitio } from "@/lib/sitio";
 
-/** Título del sitio: el de la home y el de cualquier página sin uno propio. */
+/**
+ * Título del sitio: el de la home y el de cualquier página sin uno propio.
+ *
+ * Rebrand T-019: la geografía sigue aquí —una vez, en el descriptor "en
+ * Tizayuca"—, lo que desapareció es la localidad pegada al nombre. El SEO
+ * local no depende de que la palabra salga dos veces.
+ */
 export const TITULO_DEL_SITIO =
-  "NecesitoUno Tizayuca — Encuentra negocios y servicios en Tizayuca";
+  "EnMiRumbo — Encuentra negocios y servicios en Tizayuca";
 
 export const DESCRIPCION_DEL_SITIO =
   "Encuentra negocios, servicios y deporte en Tizayuca y contáctalos directo por WhatsApp. Registro gratis para negocios locales.";
 
 /** Marca corta, la que va al final del título de cada página. */
-export const NOMBRE_DEL_SITIO = "NecesitoUno";
+export const NOMBRE_DEL_SITIO = "EnMiRumbo";
 
 /**
  * Un resultado de búsqueda dice primero de qué es la página y después de
- * quién: "Plomería en Huicalco, Tizayuca — NecesitoUno".
+ * quién: "Plomería en Huicalco, Tizayuca — EnMiRumbo".
  */
 export const PLANTILLA_DE_TITULO = `%s — ${NOMBRE_DEL_SITIO}`;
 

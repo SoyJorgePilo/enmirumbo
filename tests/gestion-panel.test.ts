@@ -88,7 +88,7 @@ import {
 
 const CONTRASENA = "contrasena-de-prueba-nada-real";
 const SECRETO = "g".repeat(LONGITUD_MINIMA_SECRETO);
-const URL_SITIO = "https://necesitouno.example";
+const URL_SITIO = "https://enmirumbo.example";
 const PREFIJO = "7710007";
 const AHORA = new Date("2026-09-10T12:00:00.000Z");
 

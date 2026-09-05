@@ -55,9 +55,6 @@ const NOMBRE_RESPONSABLE_PLACEHOLDER =
   "[NOMBRE O RAZÓN SOCIAL DEL RESPONSABLE — completar antes del lanzamiento]";
 const DOMICILIO_RESPONSABLE_PLACEHOLDER =
   "[DOMICILIO DEL RESPONSABLE — completar antes del lanzamiento]";
-const CORREO_ARCO_PLACEHOLDER = "[CORREO ARCO — completar antes del lanzamiento]";
-const CORREO_CONTACTO_PLACEHOLDER =
-  "[CORREO DE CONTACTO — completar antes del lanzamiento]";
 const WHATSAPP_DIRECTORIO_PLACEHOLDER =
   "[WHATSAPP DEL DIRECTORIO — completar antes del lanzamiento]";
 const FECHA_PUBLICACION_PLACEHOLDER = "[FECHA DE PUBLICACIÓN]";
@@ -67,12 +64,28 @@ const JURISDICCION_PLACEHOLDER =
 export const PLACEHOLDERS_LEGALES = [
   NOMBRE_RESPONSABLE_PLACEHOLDER,
   DOMICILIO_RESPONSABLE_PLACEHOLDER,
-  CORREO_ARCO_PLACEHOLDER,
-  CORREO_CONTACTO_PLACEHOLDER,
   WHATSAPP_DIRECTORIO_PLACEHOLDER,
   FECHA_PUBLICACION_PLACEHOLDER,
   JURISDICCION_PLACEHOLDER,
 ] as const;
+
+/**
+ * El correo del directorio YA NO ES UN PLACEHOLDER (T-019, requirement
+ * "Placeholders visibles y marca de borrador mientras falten datos del
+ * responsable"): con el dominio comprado, el canal de contacto y de ejercicio
+ * de derechos ARCO existe y se publica literalmente en los tres lugares donde
+ * el texto lo pide —las dos apariciones del aviso y "Si ves algo raro" de los
+ * términos—.
+ *
+ * OJO: publicar un correo que nadie atiende sería peor que un placeholder
+ * honesto. El buzón tiene que recibir ANTES de desplegar esto; el paso está en
+ * la prueba de humo de `docs/despliegue.md` §9.
+ *
+ * Publicarlo cambia el contenido versionado del aviso, así que viaja en la
+ * misma versión `2` que el rebrand. Los demás datos del responsable siguen
+ * pendientes, y por eso la marca de borrador se queda.
+ */
+const CORREO_DEL_DIRECTORIO = "contacto@enmirumbo.com";
 
 /**
  * El interruptor de lanzamiento (design.md §3): mientras haya al menos un
@@ -150,31 +163,31 @@ export const PENDIENTES_OPERATIVOS_LEGALES = [
 
 // ── Metadata de cada página (requirement "Las dos páginas legales son
 // indexables y tienen metadata propia"). Copy propuesto, ver reports/a-ui.md. ──
-export const TITULO_AVISO_PRIVACIDAD = "Aviso de privacidad — NecesitoUno Tizayuca";
+export const TITULO_AVISO_PRIVACIDAD = "Aviso de privacidad — EnMiRumbo";
 export const DESCRIPCION_AVISO_PRIVACIDAD =
-  "Qué datos pide NecesitoUno Tizayuca al registrar un negocio, para qué los usa, qué queda público en el directorio y cómo ejercer tus derechos ARCO.";
+  "Qué datos pide EnMiRumbo al registrar un negocio, para qué los usa, qué queda público en el directorio y cómo ejercer tus derechos ARCO.";
 
-export const TITULO_TERMINOS = "Términos y condiciones — NecesitoUno Tizayuca";
+export const TITULO_TERMINOS = "Términos y condiciones — EnMiRumbo";
 export const DESCRIPCION_TERMINOS =
-  "Las reglas de NecesitoUno Tizayuca: qué es el directorio, el deslinde entre vecinos y negocios, qué significa \"Negocio verificado\" y las reglas de moderación.";
+  "Las reglas de EnMiRumbo: qué es el directorio, el deslinde entre vecinos y negocios, qué significa \"Negocio verificado\" y las reglas de moderación.";
 
 // ── Aviso de privacidad integral ─────────────────────────────────────────────
 export const AVISO_PRIVACIDAD: DocumentoLegal = {
   h1: "Aviso de privacidad",
   ultimaActualizacion: FECHA_PUBLICACION_PLACEHOLDER,
   introduccion:
-    "Este aviso explica, sin rodeos, qué datos nos das cuando registras tu negocio en NecesitoUno Tizayuca, para qué los usamos, qué queda público y cómo puedes pedirnos que los corrijamos o los borremos.",
+    "Este aviso explica, sin rodeos, qué datos nos das cuando registras tu negocio en EnMiRumbo, el directorio de negocios de Tizayuca, para qué los usamos, qué queda público y cómo puedes pedirnos que los corrijamos o los borremos.",
   secciones: [
     {
       encabezado: "Quién es responsable de tus datos",
       bloques: [
         {
           tipo: "parrafo",
-          texto: `El responsable del directorio NecesitoUno Tizayuca y de los datos personales que nos das es ${NOMBRE_RESPONSABLE_PLACEHOLDER}, con domicilio en ${DOMICILIO_RESPONSABLE_PLACEHOLDER}, Tizayuca, Hidalgo, México.`,
+          texto: `El responsable del directorio EnMiRumbo y de los datos personales que nos das es ${NOMBRE_RESPONSABLE_PLACEHOLDER}, con domicilio en ${DOMICILIO_RESPONSABLE_PLACEHOLDER}, Tizayuca, Hidalgo, México.`,
         },
         {
           tipo: "parrafo",
-          texto: `Para cualquier cosa relacionada con tus datos escríbenos al correo ${CORREO_ARCO_PLACEHOLDER} o por WhatsApp al ${WHATSAPP_DIRECTORIO_PLACEHOLDER}.`,
+          texto: `Para cualquier cosa relacionada con tus datos escríbenos al correo ${CORREO_DEL_DIRECTORIO} o por WhatsApp al ${WHATSAPP_DIRECTORIO_PLACEHOLDER}.`,
         },
       ],
     },
@@ -335,7 +348,7 @@ export const AVISO_PRIVACIDAD: DocumentoLegal = {
         },
         {
           tipo: "parrafo",
-          texto: `Para ejercerlos escríbenos al correo ${CORREO_ARCO_PLACEHOLDER} o por WhatsApp al ${WHATSAPP_DIRECTORIO_PLACEHOLDER} y dinos:`,
+          texto: `Para ejercerlos escríbenos al correo ${CORREO_DEL_DIRECTORIO} o por WhatsApp al ${WHATSAPP_DIRECTORIO_PLACEHOLDER} y dinos:`,
         },
         {
           tipo: "lista",
@@ -396,10 +409,10 @@ export const TERMINOS: DocumentoLegal = {
   h1: "Términos y condiciones",
   ultimaActualizacion: FECHA_PUBLICACION_PLACEHOLDER,
   introduccion:
-    "Estas son las reglas de NecesitoUno Tizayuca, para los negocios que se registran y para los vecinos que los buscan. Al usar el sitio o registrar tu negocio, aceptas lo que dice aquí.",
+    "Estas son las reglas de EnMiRumbo, el directorio de negocios de Tizayuca, para los negocios que se registran y para los vecinos que los buscan. Al usar el sitio o registrar tu negocio, aceptas lo que dice aquí.",
   secciones: [
     {
-      encabezado: "Qué es NecesitoUno Tizayuca",
+      encabezado: "Qué es EnMiRumbo",
       bloques: [
         {
           tipo: "parrafo",
@@ -419,12 +432,12 @@ export const TERMINOS: DocumentoLegal = {
         {
           tipo: "parrafo",
           texto:
-            "NecesitoUno Tizayuca solo muestra información. No prestamos los servicios ni vendemos los productos que aparecen en las fichas.",
+            "EnMiRumbo solo muestra información. No prestamos los servicios ni vendemos los productos que aparecen en las fichas.",
         },
         {
           tipo: "parrafo",
           texto:
-            "Cuando le escribes a un negocio por WhatsApp, sales de este sitio. Lo que pase después —el precio, el trabajo, la entrega, el pago, la garantía, los tiempos y cualquier problema— es un trato directo entre tú y ese negocio. NecesitoUno Tizayuca no es parte de ese trato, no lo garantiza, no lo supervisa y no responde por él.",
+            "Cuando le escribes a un negocio por WhatsApp, sales de este sitio. Lo que pase después —el precio, el trabajo, la entrega, el pago, la garantía, los tiempos y cualquier problema— es un trato directo entre tú y ese negocio. EnMiRumbo no es parte de ese trato, no lo garantiza, no lo supervisa y no responde por él.",
         },
         {
           tipo: "parrafo",
@@ -493,7 +506,7 @@ export const TERMINOS: DocumentoLegal = {
       bloques: [
         {
           tipo: "parrafo",
-          texto: `Si encuentras una ficha falsa, un negocio que ya cerró o algo que rompe estas reglas, escríbenos al correo ${CORREO_CONTACTO_PLACEHOLDER} o por WhatsApp al ${WHATSAPP_DIRECTORIO_PLACEHOLDER}. Lo revisamos y actuamos.`,
+          texto: `Si encuentras una ficha falsa, un negocio que ya cerró o algo que rompe estas reglas, escríbenos al correo ${CORREO_DEL_DIRECTORIO} o por WhatsApp al ${WHATSAPP_DIRECTORIO_PLACEHOLDER}. Lo revisamos y actuamos.`,
         },
       ],
     },

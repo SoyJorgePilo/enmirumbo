@@ -73,7 +73,7 @@ import { CAMPO_VERSION_AVISO } from "../src/lib/registro/textos";
 
 const CONTRASENA = "contrasena-de-prueba-nada-real";
 const SECRETO = "s".repeat(LONGITUD_MINIMA_SECRETO);
-const URL_SITIO = "https://necesitouno.example";
+const URL_SITIO = "https://enmirumbo.example";
 const IP = "203.0.113.10"; // TEST-NET-3, reservado para documentación
 const raiz = join(__dirname, "..");
 

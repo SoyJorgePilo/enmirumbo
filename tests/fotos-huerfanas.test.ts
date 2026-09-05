@@ -67,7 +67,7 @@ afterAll(async () => {
 beforeEach(async () => {
   await prisma.negocio.deleteMany({ where: { whatsapp: { startsWith: "7719988" } } });
   if (directorio) await rm(directorio, { recursive: true, force: true });
-  directorio = await mkdtemp(join(tmpdir(), "necesitouno-huerfanas-"));
+  directorio = await mkdtemp(join(tmpdir(), "enmirumbo-huerfanas-"));
 
   // Ancla: una ficha SIN foto, para que la base nunca esté vacía y la
   // salvaguarda de "parece la base equivocada" no se dispare por accidente

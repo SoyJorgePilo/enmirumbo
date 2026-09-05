@@ -19,8 +19,12 @@ vi.mock("next/navigation", async () => {
 import { seedCatalogos } from "../prisma/seed";
 import { sembrarNegociosDemo } from "../prisma/seed-demo";
 import LayoutPublico from "../src/app/(publico)/layout";
+import { metadata as metadataGestion } from "../src/app/(gestion)/layout";
 import LayoutPanel, { metadata as metadataPanel } from "../src/app/admin/layout";
 import ColaAdminPage, { metadata as metadataCola } from "../src/app/admin/cola/page";
+import NegociosAdminPage, {
+  metadata as metadataNegocios,
+} from "../src/app/admin/negocios/page";
 import AccesoAdminPage, { metadata as metadataAcceso } from "../src/app/admin/page";
 import DetalleRegistroAdminPage, {
   metadata as metadataDetalle,
@@ -100,6 +104,14 @@ beforeAll(async () => {
 
   peticion.cookies[NOMBRE_COOKIE_SESION] = crearValorDeSesion(SECRETO_PANEL);
   htmlAdmin.cola = await render(ColaAdminPage());
+  // El listado "Todos los negocios" (change `agregar-listado-gestion-panel`)
+  // es una pantalla más del panel: tampoco puede colar medición.
+  htmlAdmin.negocios = await render(
+    NegociosAdminPage({
+      params: Promise.resolve({}),
+      searchParams: Promise.resolve({}),
+    } as never),
+  );
   htmlAdmin.detalle = await render(
     DetalleRegistroAdminPage({
       params: Promise.resolve({ id: enRevision.id }),
@@ -145,7 +157,7 @@ describe("layout-base · el tronco público es el que mide (tasks #8)", () => {
 
 describe("layout-base · el panel del admin queda fuera de la medición (tasks #8)", () => {
   // Scenario: el panel no carga el script
-  it.each(["acceso", "cola", "detalle", "aprobado", "rechazado"])(
+  it.each(["acceso", "cola", "negocios", "detalle", "aprobado", "rechazado"])(
     "la pantalla %s del panel no trae script ni atributos de medición",
     (pantalla) => {
       const html = htmlAdmin[pantalla];
@@ -168,12 +180,22 @@ describe("layout-base · el panel del admin queda fuera de la medición (tasks #
     for (const pagina of paginasDelGrupo) {
       expect(pagina, pagina).not.toContain("/admin");
     }
-    expect(paginasBajo(join(raiz, "src/app/admin")).length).toBeGreaterThanOrEqual(6);
+    // Sube con cada pantalla nueva del panel: 7 desde el listado "Todos los
+    // negocios" (change `agregar-listado-gestion-panel`, tasks.md #11).
+    expect(paginasBajo(join(raiz, "src/app/admin")).length).toBeGreaterThanOrEqual(7);
   });
 
   it("el script se renderiza desde un único archivo, y es el layout del grupo", () => {
+    // Se mira el CÓDIGO, no el texto del archivo: desde el change
+    // `agregar-enlace-de-gestion` hay otro layout —el del modo edición— que
+    // EXPLICA en su comentario por qué no monta el tracker, y confundir la
+    // explicación con el defecto convertiría este guardián en un castigo por
+    // documentar. Lo que se afirma sigue siendo lo mismo: un solo archivo lo
+    // renderiza.
+    const sinComentarios = (codigo: string) =>
+      codigo.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
     const conElScript = archivosDe(join(raiz, "src")).filter((ruta) =>
-      /<ScriptAnalitica\s*\/>/.test(readFileSync(ruta, "utf8")),
+      /<ScriptAnalitica\s*\/>/.test(sinComentarios(readFileSync(ruta, "utf8"))),
     );
     expect(conElScript).toEqual([join(raiz, "src/app/(publico)/layout.tsx")]);
   });
@@ -225,6 +247,7 @@ describe("layout-base · el panel del admin queda fuera de la medición (tasks #
 const PANTALLAS_DEL_PANEL = {
   acceso: metadataAcceso,
   cola: metadataCola,
+  negocios: metadataNegocios,
   detalle: metadataDetalle,
   aprobado: metadataAprobado,
   rechazado: metadataRechazado,
@@ -289,6 +312,47 @@ describe("layout-base · el panel no filtra sus URLs por el referente (A-1/A-2)"
         expect(POLITICAS_ACEPTABLES, `${ruta} usa "${politica}"`).toContain(politica);
       }
     }
+  });
+
+  /**
+   * MISMA INVARIANTE, OTRA SUPERFICIE: el modo edición del enlace de gestión
+   * (T-014). Ahí la ruta no "apunta a" un dato personal, **es la credencial**
+   * con la que se edita una ficha, así que filtrarla por el referente sería
+   * peor que en el panel. Y tiene el mismo formulario con Server Action que
+   * debe funcionar sin JavaScript (requirement aprobado de `registro-negocio`,
+   * "la edición funciona sin JavaScript").
+   *
+   * La implementación traía `no-referrer` en cada página, que es la letra de
+   * design.md §4 pero reabre exactamente el A-2: medido con `curl` contra el
+   * sitio servido, el envío sin JS respondía **500 con `Origin: null`** y
+   * **303 con el `Origin` correcto**. Se movió a `strict-origin` en el layout
+   * del grupo, que es la decisión que este repo ya había ratificado para el
+   * panel, y el envío sin JS volvió a guardar la edición.
+   */
+  it("el layout del modo edición declara la misma política que el panel", () => {
+    expect(POLITICAS_ACEPTABLES).toContain(metadataGestion.referrer);
+    expect(POLITICAS_PROHIBIDAS).not.toContain(metadataGestion.referrer);
+  });
+
+  it("las páginas del modo edición no cambian la política por su cuenta", () => {
+    for (const ruta of archivosDe(join(raiz, "src/app/(gestion)"))) {
+      const codigo = readFileSync(ruta, "utf8");
+      const declaraciones = [...codigo.matchAll(/referrer:\s*"([^"]*)"/g)].map((m) => m[1]);
+      if (declaraciones.length === 0) continue;
+      expect(ruta.endsWith("layout.tsx"), `${ruta} declara una política`).toBe(true);
+      for (const politica of declaraciones) {
+        expect(POLITICAS_ACEPTABLES, `${ruta} usa "${politica}"`).toContain(politica);
+      }
+    }
+  });
+
+  it("el modo edición deja escrito por qué el valor no es intercambiable", () => {
+    // Igual que en el panel: sin el motivo al lado, el siguiente que pase
+    // "endurece" a `no-referrer` y vuelve a romper el envío sin JavaScript.
+    const layout = readFileSync(join(raiz, "src/app/(gestion)/layout.tsx"), "utf8");
+    expect(layout).toContain("Origin: null");
+    expect(layout).toContain("Server Action");
+    expect(layout).toContain("sin JavaScript");
   });
 
   it("el panel deja escrito por qué el valor no es intercambiable", () => {

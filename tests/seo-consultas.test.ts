@@ -136,7 +136,7 @@ describe("directorio · negocios publicados por giro (tasks #5)", () => {
       "huicalco",
     );
     expect(Object.keys(porGiro).sort()).toEqual(Object.keys(porCategoria).sort());
-    for (const campo of ["estado", "origen", "registradoEn", "tokenGestion"]) {
+    for (const campo of ["estado", "origen", "registradoEn", "tokenGestionHash"]) {
       expect(Object.keys(porGiro), campo).not.toContain(campo);
     }
   });

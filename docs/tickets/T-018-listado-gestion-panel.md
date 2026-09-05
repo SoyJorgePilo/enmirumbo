@@ -1,12 +1,12 @@
 # T-018 · Listar todos los negocios en el panel para gestionarlos
 
-**Estado:** en-spec <!-- pendiente | en-spec | en-desarrollo | en-review | hecho -->
+**Estado:** hecho <!-- pendiente | en-spec | en-desarrollo | en-review | hecho -->
 **Prioridad:** P1
 **Épica:** E3 (docs/backlog.md)
 **Referencias PRD:** §6.3
 **Depende de:** T-014
 **OpenSpec change:** `agregar-listado-gestion-panel`
-**PR:** —
+**PR:** [#23](https://github.com/SoyJorgePilo/enmirumbo/pull/23)
 
 ## Contexto
 
@@ -14,11 +14,11 @@ Hoy el panel solo muestra la cola de revisión (pendientes) y los reportados. Un
 
 ## Criterios de aceptación
 
-- [ ] El panel tiene una vista "Todos los negocios" con cada registro (cualquier estado: en revisión, publicado, rechazado, despublicado), su estado visible y enlace a su detalle `/admin/registros/<id>`.
-- [ ] Se puede filtrar o al menos distinguir por estado sin salir de la vista; el orden por defecto deja arriba lo más reciente.
-- [ ] Con muchos registros la vista no se degrada (paginación o corte razonable definido en la spec).
-- [ ] La vista queda detrás de la misma sesión del panel y con las mismas cabeceras/protecciones que el resto de `/admin`.
-- [ ] Cero JS de cliente nuevo; texto en español mexicano coloquial.
+- [x] El panel tiene una vista "Todos los negocios" con cada registro (cualquier estado: en revisión, publicado, rechazado, despublicado), su estado visible y enlace a su detalle `/admin/registros/<id>`.
+- [x] Se puede filtrar o al menos distinguir por estado sin salir de la vista; el orden por defecto deja arriba lo más reciente.
+- [x] Con muchos registros la vista no se degrada (paginación o corte razonable definido en la spec).
+- [x] La vista queda detrás de la misma sesión del panel y con las mismas cabeceras/protecciones que el resto de `/admin`.
+- [x] Cero JS de cliente nuevo; texto en español mexicano coloquial.
 
 ## Fuera de alcance de este ticket
 

@@ -23,6 +23,8 @@ import AvisoDePrivacidadPage from "../src/app/(publico)/aviso-de-privacidad/page
 import BuscarPage from "../src/app/(publico)/buscar/page";
 import FichaNegocioPage from "../src/app/(publico)/negocio/[ficha]/page";
 import ReportarNegocioPage from "../src/app/(publico)/negocio/[ficha]/reportar/page";
+import EditarPage from "../src/app/(gestion)/editar/[token]/page";
+import EditarGraciasPage from "../src/app/(gestion)/editar/[token]/gracias/page";
 import Home from "../src/app/(publico)/page";
 import RegistroPage from "../src/app/(publico)/registro/page";
 import TerminosPage from "../src/app/(publico)/terminos/page";
@@ -31,6 +33,7 @@ import { Footer } from "../src/components/footer";
 import { Header } from "../src/components/header";
 import type { PrismaClient } from "../src/generated/prisma/client";
 import { construirSegmentoFicha } from "../src/lib/ficha-url";
+import { huellaDeToken } from "../src/lib/gestion/token";
 import { crearClientePrueba } from "./db";
 
 /**
@@ -92,6 +95,8 @@ function archivosPublicos(): string[] {
   recorrer(join(raiz, "src/app/(publico)"));
   recorrer(join(raiz, "src/components/directorio"));
   recorrer(join(raiz, "src/components/registro"));
+  // Modo edición del enlace de gestión (change `agregar-enlace-de-gestion`).
+  recorrer(join(raiz, "src/components/gestion"));
   recorrer(join(raiz, "src/components/reportes"));
   recorrer(join(raiz, "src/components/legales"));
   rutas.push(
@@ -130,6 +135,16 @@ beforeAll(async () => {
   const publicado = await prisma.negocio.findFirstOrThrow({
     where: { estado: "publicado" },
     select: { id: true, nombre: true },
+  });
+  // Modo edición (change `agregar-enlace-de-gestion`): se le pone enlace a
+  // esta ficha para poder servir la pantalla y medirla como las demás.
+  const TOKEN_RESPONSIVO = "R".repeat(43);
+  await prisma.negocio.update({
+    where: { id: publicado.id },
+    data: {
+      tokenGestionHash: huellaDeToken(TOKEN_RESPONSIVO),
+      tokenGestionCreadoEn: new Date(),
+    },
   });
   const segmento = construirSegmentoFicha(publicado.nombre, publicado.id);
 
@@ -173,6 +188,15 @@ beforeAll(async () => {
     ),
   );
   pantallas.set("registro", await render(await RegistroPage()));
+  pantallas.set(
+    "editar",
+    await render(
+      await EditarPage({
+        params: Promise.resolve({ token: TOKEN_RESPONSIVO }),
+      } as Parameters<typeof EditarPage>[0]),
+    ),
+  );
+  pantallas.set("editar-gracias", renderToStaticMarkup(createElement(EditarGraciasPage)));
   pantallas.set("aviso", renderToStaticMarkup(createElement(AvisoDePrivacidadPage)));
   pantallas.set("terminos", renderToStaticMarkup(createElement(TerminosPage)));
   pantallas.set("404", renderToStaticMarkup(createElement(NotFoundPage)));

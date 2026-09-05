@@ -73,7 +73,7 @@ async function fichaPrevia(
       telefonoFijo: "7717774001",
       estado,
       origen: "siembra",
-      tokenGestion: "token-ficticio-de-prueba",
+      tokenGestionHash: "token-ficticio-de-prueba",
       consintioAvisoEn: new Date("2026-08-20T09:00:00.000Z"),
       consintioAvisoVersion: version,
       reconsintioAvisoEn: reaceptacion?.[0] ?? null,
@@ -389,7 +389,7 @@ describe("registro-negocio · reenvío tras un rechazo", () => {
         origen: "organico",
         publicadoEn: "2026-09-03T00:00:00.000Z",
         giros: String(giroId),
-        tokenGestion: "token-inventado-por-el-cliente",
+        tokenGestionHash: "token-inventado-por-el-cliente",
       }),
     );
 
@@ -398,7 +398,7 @@ describe("registro-negocio · reenvío tras un rechazo", () => {
     expect(despues.publicadoEn).toBeNull();
     // El origen y el token los fija el servidor: quedan como estaban.
     expect(despues.origen).toBe("siembra");
-    expect(despues.tokenGestion).toBe(previa.tokenGestion);
+    expect(despues.tokenGestionHash).toBe(previa.tokenGestionHash);
     expect(despues.giros.map((giro) => giro.id)).toEqual([giroId]);
   });
 

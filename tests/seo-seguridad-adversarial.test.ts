@@ -754,7 +754,7 @@ describe("seo/seguridad · el bloque de datos no publica de más", () => {
     const bloque = JSON.parse(bloquesCrudos(html)[0]) as Record<string, unknown>;
     const serializado = JSON.stringify(bloque);
     for (const prohibido of [
-      "tokenGestion",
+      "tokenGestionHash",
       "token",
       "identifier",
       "@id",

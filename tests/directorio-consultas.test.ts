@@ -281,7 +281,7 @@ describe("directorio-publico · solo campos públicos (design.md §5)", () => {
     "origen",
     "registradoEn",
     "consintioAvisoEn",
-    "tokenGestion",
+    "tokenGestionHash",
   ];
 
   // Scenario: sin datos internos en la respuesta (la mitad del servidor: lo
@@ -347,7 +347,42 @@ describe("directorio-publico · solo campos públicos (design.md §5)", () => {
     expect(archivosConEstadoPublicado.sort()).toEqual([
       join(raiz, "src/lib/admin/transiciones.ts"),
       join(raiz, "src/lib/directorio.ts"),
+      // Change `agregar-enlace-de-gestion` (T-014): dos archivos más lo
+      // nombran, y ninguno FILTRA qué se muestra —eso sigue viviendo solo en
+      // `src/lib/directorio.ts`—. Los dos lo usan como CONDICIÓN de escritura,
+      // igual que `despublicarFicha`:
+      //   · `ediciones.ts`: aplicar una edición solo escribe si la ficha sigue
+      //     publicada (aplicar no republica ni resucita nada);
+      //   · `enlace.ts`: regenerar el enlace solo escribe si la ficha sigue
+      //     publicada (una ficha sin publicar no tiene enlace que regenerar).
+      // La aserción de abajo mantiene honesta la excepción.
+      join(raiz, "src/lib/gestion/ediciones.ts"),
+      join(raiz, "src/lib/gestion/enlace.ts"),
     ]);
+
+    // Ninguno de los dos lo usa para LEER: un `findMany`/`findUnique` colgado
+    // del estado publicado sería un segundo filtro de visibilidad fuera de
+    // `src/lib/directorio.ts`, que es justo lo que este guardián impide.
+    for (const ruta of ["src/lib/gestion/ediciones.ts", "src/lib/gestion/enlace.ts"]) {
+      const codigo = readFileSync(join(raiz, ruta), "utf8");
+      expect(codigo, ruta).not.toMatch(
+        /find(Many|Unique|First)\([\s\S]{0,200}ESTADO_NEGOCIO_PUBLICADO/,
+      );
+      // Y solo aparece dentro de un `where` de escritura condicionada.
+      for (const uso of codigo.matchAll(/ESTADO_NEGOCIO_PUBLICADO/g)) {
+        const antes = codigo.slice(Math.max(0, uso.index - 120), uso.index);
+        expect(antes, `${ruta}: uso fuera de un where`).toMatch(
+          /(updateMany\([\s\S]*where:|import|estadoPublicado)/,
+        );
+      }
+    }
+    // La resolución del enlace público sí compara el estado, pero NO lo nombra:
+    // `negocioDelToken` recibe el literal como parámetro, así que el
+    // vocabulario sigue viviendo en `src/lib/negocio.ts` y este guardián sigue
+    // pudiendo contar los archivos que lo escriben.
+    expect(readFileSync(join(raiz, "src/lib/gestion/token.ts"), "utf8")).not.toContain(
+      "ESTADO_NEGOCIO_PUBLICADO",
+    );
 
     // El módulo del panel lo ESCRIBE (aprobar) y, desde el change
     // `agregar-despublicar-y-borrado-arco`, lo nombra en un `where` en un solo

@@ -13,11 +13,18 @@
  *
  * Los errores vuelven al detalle por la URL, con lo ya elegido, para que el
  * formulario conserve la selección sin ningún JavaScript de cliente.
+ *
+ * Aprobar genera además el ENLACE DE GESTIÓN de la ficha (change
+ * `agregar-enlace-de-gestion`, design.md §6): lo hace la propia transición,
+ * dentro de la misma escritura condicionada, así que ninguna ficha publicada
+ * se queda sin enlace y una aprobación repetida no genera otro.
  */
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { RUTA_COLA_ADMIN, requerirSesionAdmin } from "@/lib/admin/guarda";
+import { RUTA_COLA_ADMIN, requerirSesionAdmin, sirviendoPorHttps } from "@/lib/admin/guarda";
 import { aprobarRegistro } from "@/lib/admin/transiciones";
+import { guardarSobre } from "@/lib/gestion/sobre";
 import { ORIGEN_NEGOCIO_DEFAULT, type OrigenNegocio } from "@/lib/negocio";
 import { obtenerPrisma } from "@/lib/prisma";
 
@@ -83,6 +90,17 @@ export async function aprobarRegistroAccion(
       });
 
   if (resultado.resultado === "aprobado") {
+    // El enlace de gestión recién generado viaja hasta la pantalla de
+    // confirmación dentro del sobre de un solo uso (change
+    // `agregar-enlace-de-gestion`, `src/lib/gestion/sobre.ts`): NO por la URL,
+    // que lo filtraría por el `Referer` al tocar el botón de WhatsApp, ni por
+    // la base, que solo guarda su huella. Tampoco se escribe en el log.
+    guardarSobre(
+      await cookies(),
+      id,
+      resultado.tokenGestion,
+      await sirviendoPorHttps(),
+    );
     redirect(`/admin/registros/${id}/aprobado`);
   }
   if (resultado.resultado === "ya-resuelto") {

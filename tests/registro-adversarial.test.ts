@@ -646,7 +646,7 @@ describe("adversarial · registro de negocios", () => {
         consintioAvisoEn: new Date(),
         estado: "rechazado",
         origen: "siembra",
-        tokenGestion: "token-ficticio-adversarial",
+        tokenGestionHash: "token-ficticio-adversarial",
         rechazadoEn: new Date("2026-01-02"),
         motivoRechazo: "Motivo ficticio del rechazo",
         giros: { connect: [{ id: giro.id }] },
@@ -660,7 +660,7 @@ describe("adversarial · registro de negocios", () => {
         estado: "publicado",
         origen: "organico",
         publicadoEn: "2026-01-01T00:00:00.000Z",
-        tokenGestion: "token-inventado-por-el-cliente",
+        tokenGestionHash: "token-inventado-por-el-cliente",
         giros: String(giro.id),
       }),
     );
@@ -674,7 +674,7 @@ describe("adversarial · registro de negocios", () => {
     expect(despues.estado).toBe("en_revision");
     expect(despues.publicadoEn).toBeNull();
     expect(despues.origen).toBe("siembra");
-    expect(despues.tokenGestion).toBe("token-ficticio-adversarial");
+    expect(despues.tokenGestionHash).toBe("token-ficticio-adversarial");
     expect(despues.giros.map((g) => g.id)).toEqual([giro.id]);
     expect(despues.rechazadoEn).toBeNull();
     expect(despues.motivoRechazo).toBeNull();

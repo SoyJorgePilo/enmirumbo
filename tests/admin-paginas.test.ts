@@ -21,6 +21,7 @@ import RegistroYaResueltoPage from "../src/app/admin/registros/[id]/ya-resuelto/
 import ColaAdminPage from "../src/app/admin/cola/page";
 import { metadata as metadataAcceso } from "../src/app/admin/page";
 import { metadata as metadataCola } from "../src/app/admin/cola/page";
+import { metadata as metadataNegocios } from "../src/app/admin/negocios/page";
 import { metadata as metadataDetalle } from "../src/app/admin/registros/[id]/page";
 import { metadata as metadataAprobado } from "../src/app/admin/registros/[id]/aprobado/page";
 import { metadata as metadataRechazado } from "../src/app/admin/registros/[id]/rechazado/page";
@@ -757,6 +758,9 @@ describe("revision-admin · el panel no se indexa", () => {
   it.each([
     ["acceso", metadataAcceso],
     ["cola", metadataCola],
+    // Change `agregar-listado-gestion-panel`: la pantalla nueva entra a la
+    // misma lista, no a una suya (tasks.md #11).
+    ["todos los negocios", metadataNegocios],
     ["detalle", metadataDetalle],
     ["aprobado", metadataAprobado],
     ["rechazado", metadataRechazado],

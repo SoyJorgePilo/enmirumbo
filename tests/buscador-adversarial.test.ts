@@ -128,7 +128,7 @@ beforeAll(async () => {
       ...datosDeBusqueda(OCULTO.nombre, OCULTO.queOfreces),
       telefonoFijo: OCULTO.telefonoFijo,
       direccion: OCULTO.direccion,
-      tokenGestion: OCULTO.token,
+      tokenGestionHash: OCULTO.token,
       categoriaId,
       whatsapp: OCULTO.whatsapp,
       estado: "en_revision",

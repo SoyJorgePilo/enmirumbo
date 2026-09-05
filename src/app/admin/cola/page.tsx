@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 import { salirDelPanel } from "@/app/admin/accion-salir";
 import { BotonSalir } from "@/components/admin/boton-salir";
@@ -7,9 +8,11 @@ import { TarjetaCola } from "@/components/admin/tarjeta-cola";
 import { contarAtrasados, obtenerColaDeRevision } from "@/lib/admin/consultas";
 import { requerirSesionAdmin } from "@/lib/admin/guarda";
 import { obtenerNegociosReportados } from "@/lib/admin/reportes";
+import { FILTRO_TODOS, hrefListadoDeNegocios } from "@/lib/admin/listado-parametros";
 import {
   TEXTO_COLA_ENCABEZADO,
   TEXTO_COLA_VACIA,
+  TEXTO_VER_TODOS_LOS_NEGOCIOS,
   textoConteoAtrasados,
 } from "@/lib/admin/textos";
 import { obtenerPrisma } from "@/lib/prisma";
@@ -45,6 +48,13 @@ export default async function ColaAdminPage() {
         </h1>
         <BotonSalir action={salirDelPanel} />
       </div>
+
+      <Link
+        href={hrefListadoDeNegocios(FILTRO_TODOS, 1)}
+        className="inline-flex min-h-11 w-fit items-center text-sm font-semibold text-accion-fuerte underline underline-offset-4"
+      >
+        {TEXTO_VER_TODOS_LOS_NEGOCIOS}
+      </Link>
 
       {atrasados > 0 && (
         <p className="text-sm font-semibold text-tinta">

@@ -6,6 +6,11 @@
  * (CLAUDE.md). Módulo puro: sin acceso a datos, sin lectura de sesión ni de
  * variables de entorno.
  */
+import {
+  ESTADO_NEGOCIO_PUBLICADO,
+  ESTADO_NEGOCIO_RECHAZADO,
+  type EstadoNegocio,
+} from "@/lib/negocio";
 
 // ── Acceso (requirement "Acceso al panel...") ───────────────────────────────
 export const TEXTO_ENCABEZADO_ACCESO = "Panel de revisión";
@@ -187,3 +192,181 @@ export const TEXTO_REPORTES_SIN_ATENDER_ENCABEZADO = "Reportes sin atender";
 export const BOTON_MARCAR_ATENDIDO = "Marcar como atendido";
 export const MENSAJE_REPORTE_ATENDIDO = "Reporte atendido.";
 export const MENSAJE_REPORTE_YA_ATENDIDO = "Este reporte ya lo habías atendido.";
+
+// ── Enlace de gestión (change `agregar-enlace-de-gestion`, ticket T-014) ───
+//
+// Extienden este archivo (no lo duplican, CLAUDE.md): las etiquetas de la
+// cola mezclada, el detalle comparativo de una edición, aplicar/descartar, la
+// concurrencia y "Generar un enlace nuevo". Literales aprobados en la spec
+// `revision-admin` de ese change, comparados carácter por carácter
+// (tasks.md #17). Módulo puro: sigue sin tocar datos ni sesión.
+
+// Requirement "Cola de revisión con los registros pendientes, más antiguos
+// primero" (MODIFIED): la etiqueta de cada renglón.
+export const ETIQUETA_ALTA_NUEVA = "Alta nueva";
+export const ETIQUETA_EDICION = "Edición";
+
+// Requirement "El detalle de una edición compara lo publicado con lo
+// propuesto".
+export const TITULO_CAMBIOS_POR_REVISAR = "Cambios por revisar";
+export const ETIQUETA_LO_PUBLICADO = "Lo que está publicado";
+export const ETIQUETA_LO_PROPUESTO = "Lo que quiere cambiar";
+export const MARCA_CAMBIO = "Cambió";
+export const ADVERTENCIA_CAMBIO_WHATSAPP =
+  "Ojo: está cambiando su WhatsApp. Confirma con el número nuevo antes de aplicar.";
+
+// Requirement "Aplicar la edición actualiza la ficha publicada y solo eso".
+export const BOTON_APLICAR_CAMBIOS = "Aplicar los cambios";
+export const MENSAJE_CAMBIOS_APLICADOS = "Listo, la ficha ya se actualizó.";
+export const ERROR_WHATSAPP_OCUPADO_EDICION =
+  "Ese número ya está en otra ficha: no se pudieron aplicar los cambios.";
+
+export function mensajeAvisoCambiosAplicados(
+  nombreNegocio: string,
+  linkFicha: string,
+): string {
+  return `¡Listo! Ya actualizamos la ficha de «${nombreNegocio}» en EnMiRumbo. Así quedó: ${linkFicha}`;
+}
+
+// Requirement "Descartar la edición exige motivo, no toca la ficha y ofrece
+// avisar por WhatsApp".
+export const ETIQUETA_MOTIVO_DESCARTE = "¿Por qué no aplicas los cambios?";
+export const BOTON_DESCARTAR_CAMBIOS = "Descartar los cambios";
+export const ERROR_MOTIVO_DESCARTE_VACIO = "Escribe por qué descartas los cambios";
+export const MENSAJE_CAMBIOS_DESCARTADOS = "Cambios descartados.";
+
+/**
+ * Sin literal en la spec: copy propuesto, mismo criterio (y mismas palabras)
+ * que `errorMotivoDespublicarLargo`. El motivo del descarte tampoco se recorta
+ * en silencio, porque viaja dentro del WhatsApp que se le manda al negocio y
+ * una frase cortada a media palabra es un mensaje roto a un tercero.
+ */
+export const errorMotivoDescarteLargo = errorMotivoDespublicarLargo;
+
+/**
+ * Sin literal en la spec: copy propuesto. La base no se dejó escribir, así que
+ * NO pasó nada —ni se aplicó, ni se descartó— y la edición sigue esperando.
+ * Dice qué no pasó y qué hacer, sin tecnicismos.
+ */
+export const MENSAJE_ERROR_AL_RESOLVER_EDICION =
+  "No se pudo hacer el cambio. Los cambios siguen esperando; vuelve a intentar en un momento.";
+
+/**
+ * Sin literal en la spec: copy propuesto (hallazgo MEDIO 1 de la etapa C, que
+ * lo pide explícitamente — "no hay literal en la spec para ese caso: hace
+ * falta uno").
+ *
+ * El admin abrió la comparación, despublicó la ficha en otra pestaña y volvió
+ * a aplicar. Antes eso perdía los cambios del dueño en silencio y le decía al
+ * admin que ya estaban publicados. Ahora no se aplica nada, y este texto dice
+ * las tres cosas que hacen falta, en ese orden: qué NO pasó, por qué, y que
+ * los cambios no se perdieron.
+ */
+export const MENSAJE_EDICION_FICHA_NO_PUBLICADA =
+  "No se aplicó nada: esta ficha ya no está publicada. Los cambios siguen esperando; vuelve a publicarla y aplícalos.";
+
+export function mensajeAvisoCambiosDescartados(
+  nombreNegocio: string,
+  motivo: string,
+): string {
+  return `Hola, revisamos los cambios que mandaste para «${nombreNegocio}» en EnMiRumbo y por ahora no los pudimos aplicar: ${motivo}. Tu ficha sigue publicada como estaba y puedes mandarlos otra vez con tu mismo enlace.`;
+}
+
+// Requirement "Una edición se resuelve una sola vez y solo si sigue siendo la
+// última".
+export const MENSAJE_EDICION_YA_RESUELTA = "Estos cambios ya los habías resuelto.";
+export const MENSAJE_EDICION_REEMPLAZADA =
+  "Estos cambios ya no son los últimos: el negocio mandó otros más nuevos.";
+
+// Requirement "El admin puede generar un enlace nuevo, y el anterior deja de
+// servir".
+export const BOTON_GENERAR_ENLACE_NUEVO = "Generar un enlace nuevo";
+export const MENSAJE_ENLACE_REGENERADO = "Listo, el enlace anterior ya no sirve.";
+export const BOTON_MANDAR_ENLACE_WHATSAPP = "Mandarle el enlace por WhatsApp";
+
+export function mensajeEnlaceNuevo(
+  nombreNegocio: string,
+  enlaceGestion: string,
+): string {
+  return `Hola, te mandamos un enlace nuevo para editar tu ficha de «${nombreNegocio}» en EnMiRumbo: ${enlaceGestion}. El anterior ya no sirve. Guarda este mensaje (puedes destacarlo con la estrella), con ese enlace actualizas tus datos cuando quieras.`;
+}
+
+/**
+ * Sin literal exacto en la spec (solo dice "DEBE indicar que tiene enlace y
+ * desde cuándo"): copy propuesto, ver reports/a-ui.md. Recibe la fecha ya
+ * formateada (el mismo `Intl.DateTimeFormat` de `detalle-registro.tsx`).
+ */
+export function textoTieneEnlaceGestion(fechaFormateada: string): string {
+  return `Tiene enlace de gestión, generado el ${fechaFormateada}.`;
+}
+
+/**
+ * Requirement "Al aprobar se ofrece avisarle al negocio por WhatsApp con el
+ * link de su ficha y su enlace de gestión" (MODIFIED). Función NUEVA y
+ * separada de `mensajeAvisoPublicacion` (arriba): esa function y su literal
+ * SIN enlace de gestión siguen ancladas por `tests/admin-textos.test.ts` y
+ * `tests/admin-paginas.test.ts` como el estado "sin enlace de gestión
+ * todavía" — marcador explícito de que esto faltaba (T-014). El dev sustituye
+ * el uso de `mensajeAvisoPublicacion` por esta en
+ * `src/app/admin/registros/[id]/aprobado/page.tsx` cuando conecte el token
+ * real, y actualiza esas dos suites en consecuencia (ver reports/a-ui.md).
+ */
+export function mensajeAvisoPublicacionConEnlace(
+  nombreNegocio: string,
+  linkFicha: string,
+  enlaceGestion: string,
+): string {
+  return `¡Listo! Ya quedó publicado «${nombreNegocio}» en EnMiRumbo. Esta es tu ficha: ${linkFicha} — compártela con tus clientes. Y este es tu enlace para editarla: ${enlaceGestion} — guarda este mensaje (puedes destacarlo con la estrella), con ese enlace actualizas tus datos cuando quieras.`;
+}
+
+// ── Listado "Todos los negocios" (change agregar-listado-gestion-panel) ────
+
+export const TEXTO_NEGOCIOS_ENCABEZADO = "Todos los negocios";
+export const TEXTO_VER_TODOS_LOS_NEGOCIOS = "Ver todos los negocios";
+export const TEXTO_VER_DETALLE = "Ver detalle";
+
+export const TEXTO_FILTRAR_POR_ESTADO = "Filtrar por estado";
+export const TEXTO_FILTRO_TODOS = "Todos";
+export const TEXTO_FILTRO_EN_REVISION = "En revisión";
+export const TEXTO_FILTRO_PUBLICADOS = "Publicados";
+export const TEXTO_FILTRO_RECHAZADOS = "Rechazados";
+
+/** Estado escrito con palabras, tal cual lo pinta cada renglón del listado. */
+export function textoEstadoNegocio(estado: EstadoNegocio): string {
+  if (estado === ESTADO_NEGOCIO_PUBLICADO) return "Publicado";
+  if (estado === ESTADO_NEGOCIO_RECHAZADO) return "Rechazado";
+  return "En revisión";
+}
+
+/**
+ * "Se registró el 3 de septiembre de 2026" (delta `revision-admin`, ejemplo
+ * literal del requirement de la vista). El formato de fecha completa —día,
+ * mes en palabras, año— no tiene helper propio todavía en el panel
+ * (`detalle-registro.tsx` usa un formato corto con hora, pensado para el
+ * dato interno, no para el renglón de una lista); este es nuevo a propósito.
+ */
+export function textoFechaDeRegistro(registradoEn: Date): string {
+  const fecha = new Intl.DateTimeFormat("es-MX", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(registradoEn);
+  return `Se registró el ${fecha}`;
+}
+
+export const TEXTO_LISTADO_VACIO = "Todavía no hay negocios registrados.";
+export const TEXTO_FILTRO_SIN_RESULTADOS = "No hay negocios con ese estado.";
+
+/** "1 negocio en esta lista" / "<n> negocios en esta lista". */
+export function textoConteoNegociosListado(cantidad: number): string {
+  const plural = cantidad === 1 ? "negocio" : "negocios";
+  return `${cantidad} ${plural} en esta lista`;
+}
+
+export const TEXTO_VER_MAS_ANTIGUOS = "Ver más antiguos";
+export const TEXTO_VER_MAS_NUEVOS = "Ver más nuevos";
+
+/** "Página 2 de 5". */
+export function textoPaginaDe(paginaActual: number, totalPaginas: number): string {
+  return `Página ${paginaActual} de ${totalPaginas}`;
+}

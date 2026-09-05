@@ -401,7 +401,7 @@ describe("adversarial · la versión del aviso consentido", () => {
         estado: "publicado",
         origen: "siembra",
         publicadoEn: "1999-01-01T00:00:00.000Z",
-        tokenGestion: "token-inventado-por-el-cliente",
+        tokenGestionHash: "token-inventado-por-el-cliente",
       }),
     );
 
@@ -412,7 +412,7 @@ describe("adversarial · la versión del aviso consentido", () => {
     expect(creado.reconsintioAvisoVersion).toBeNull();
     expect(creado.estado).toBe("en_revision");
     expect(creado.publicadoEn).toBeNull();
-    expect(creado.tokenGestion).toBeNull();
+    expect(creado.tokenGestionHash).toBeNull();
   });
 
   it.each(["publicado", "en_revision"])(
@@ -821,6 +821,10 @@ describe("adversarial · el panel pinta la versión guardada sin ejecutarla", ()
     // este caso los ejercite.
     despublicadoEn: null,
     motivoDespublicacion: null,
+    // Enlace de gestión (T-014, change `agregar-enlace-de-gestion`): esta
+    // ficha nunca se aprobó, así que no tiene. Va aquí por la misma razón que
+    // el rastro de la despublicación: el tipo lo exige.
+    tokenGestionCreadoEn: null,
     girosIds: [],
   };
 

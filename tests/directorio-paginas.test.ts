@@ -454,7 +454,7 @@ describe("directorio-publico · privacidad de lo publicado (tasks #18)", () => {
     "organico",
     "registradoEn",
     "consintioAvisoEn",
-    "tokenGestion",
+    "tokenGestionHash",
     "2026-07-31", // fecha de registro y de consentimiento sembrada
   ];
 

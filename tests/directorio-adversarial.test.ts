@@ -34,7 +34,7 @@ import { crearClientePrueba } from "./db";
  * Lo que el camino feliz no cubre en la superficie de LECTURA pública:
  * XSS almacenado que sobrevivió al registro y se renderiza aquí, enlaces
  * salientes envenenados, slugs y segmentos hostiles en las rutas dinámicas,
- * fuga de datos de terceros (negocios no publicados, `tokenGestion`) y
+ * fuga de datos de terceros (negocios no publicados, `tokenGestionHash`) y
  * estados imposibles del ciclo de vida.
  *
  * TODOS los datos son ficticios (repo público + LFPDPPP): la serie de
@@ -136,7 +136,7 @@ async function crear(datos: {
   coloniaOtra?: string | null;
   estado?: "publicado" | "en_revision" | "rechazado";
   publicadoEn?: Date | null;
-  tokenGestion?: string | null;
+  tokenGestionHash?: string | null;
   queOfreces?: string | null;
   direccion?: string | null;
   horario?: string | null;
@@ -163,7 +163,7 @@ async function crear(datos: {
         datos.publicadoEn === undefined
           ? new Date("2026-08-15T10:00:00.000Z")
           : datos.publicadoEn,
-      tokenGestion: datos.tokenGestion ?? null,
+      tokenGestionHash: datos.tokenGestionHash ?? null,
       queOfreces: datos.queOfreces ?? null,
       direccion: datos.direccion ?? null,
       horario: datos.horario ?? null,
@@ -266,7 +266,7 @@ beforeAll(async () => {
     coloniaSlug: "huicalco",
     estado: "en_revision",
     publicadoEn: null,
-    tokenGestion: OCULTO.token,
+    tokenGestionHash: OCULTO.token,
     telefonoFijo: OCULTO.telefono,
     direccion: OCULTO.direccion,
     queOfreces: "Datos que el directorio público no debe enseñar.",
@@ -281,7 +281,7 @@ beforeAll(async () => {
     coloniaSlug: "atempa",
     estado: "rechazado",
     publicadoEn: new Date("2026-08-02T10:00:00.000Z"),
-    tokenGestion: RECHAZADO.token,
+    tokenGestionHash: RECHAZADO.token,
   });
 
   slugsCategorias = (await listarCategorias()).map((c) => c.slug);
@@ -526,11 +526,11 @@ describe("adversarial · un negocio sin publicar es indistinguible de uno inexis
   });
 
   it("el token de gestión no viaja ni siquiera en la ficha de un publicado", async () => {
-    // El módulo de consultas no lee `tokenGestion`; este test lo comprueba con
+    // El módulo de consultas no lee `tokenGestionHash`; este test lo comprueba con
     // un token realmente guardado en la base (el seed de demo los deja nulos).
     await prisma.negocio.update({
       where: { whatsapp: `${PREFIJO}104` },
-      data: { tokenGestion: "token-de-gestion-ficticio-1a2b3c" },
+      data: { tokenGestionHash: "token-de-gestion-ficticio-1a2b3c" },
     });
     const ficha = await renderFicha(
       construirSegmentoFicha(
@@ -541,12 +541,12 @@ describe("adversarial · un negocio sin publicar es indistinguible de uno inexis
     const listado = await renderListado("otro");
     for (const html of [ficha, listado]) {
       expect(html).not.toContain("token-de-gestion-ficticio-1a2b3c");
-      expect(html).not.toContain("tokenGestion");
+      expect(html).not.toContain("tokenGestionHash");
       expect(html).not.toContain("consintioAvisoEn");
       expect(html).not.toContain("2026-07-31");
     }
     const publicado = await obtenerNegocioPublicado(idPorWhatsapp[`${PREFIJO}104`]);
-    expect(Object.keys(publicado!)).not.toContain("tokenGestion");
+    expect(Object.keys(publicado!)).not.toContain("tokenGestionHash");
   });
 
   it("la base rechaza un estado inventado: no hay cuarto estado publicable", async () => {
@@ -965,7 +965,7 @@ describe("adversarial · el seed de demostración no puede llevar datos reales",
 
   it("ningún negocio sembrado trae token de gestión ni coordenadas", () => {
     for (const negocio of NEGOCIOS_DEMO) {
-      expect(Object.keys(negocio)).not.toContain("tokenGestion");
+      expect(Object.keys(negocio)).not.toContain("tokenGestionHash");
       expect(Object.keys(negocio)).not.toContain("latitud");
       expect(Object.keys(negocio)).not.toContain("longitud");
       expect(Object.keys(negocio)).not.toContain("fotoUrl");

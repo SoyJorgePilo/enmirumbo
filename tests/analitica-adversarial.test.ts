@@ -468,14 +468,59 @@ describe("analitica adversarial · el grupo (publico) es la frontera de la medic
   // Scenario: una página pública nueva sí queda medida. La etapa B verificó lo
   // contrario (que /admin no entre al grupo); esto cierra el círculo: toda
   // página que no sea del panel vive dentro del tronco que mide.
-  it("toda página del sitio vive o en el grupo (publico) o en /admin", () => {
+  //
+  // ENMENDADO por el change `agregar-enlace-de-gestion` (T-014, hallazgo ALTO
+  // 1 de su etapa C): la frontera dejó de tener dos lados y tiene tres. El
+  // modo edición (`/editar/<token>`) NO se puede medir, porque el tracker
+  // manda el `pathname` al recolector del proveedor y ahí el pathname ES el
+  // secreto con el que se edita una ficha. Vive en su propio grupo, con su
+  // propio layout sin script, igual que el panel.
+  //
+  // La lista de abajo no es un permiso en blanco: cada raíz excluida tiene que
+  // decir por qué, y el test que sigue comprueba que de verdad está excluida
+  // (su layout no monta el script). Una página nueva que no caiga en ninguna
+  // de las tres sigue rompiendo esto.
+  const RAICES_EXCLUIDAS: Array<[string, string]> = [
+    ["/src/app/admin/", "el panel del admin (spec layout-base)"],
+    [
+      "/src/app/(gestion)/",
+      "el modo edición: su URL lleva el token del enlace de gestión (T-014)",
+    ],
+  ];
+
+  it("toda página del sitio vive o en el grupo (publico) o en una raíz excluida a propósito", () => {
     const paginas = paginasDeLaApp();
     expect(paginas.length).toBeGreaterThanOrEqual(13);
     for (const pagina of paginas) {
+      const excluida = RAICES_EXCLUIDAS.find(([raizExcluida]) =>
+        pagina.startsWith(raizExcluida),
+      );
       expect(
-        pagina.startsWith("/src/app/(publico)/") || pagina.startsWith("/src/app/admin/"),
-        `${pagina} no está ni en el tronco medido ni en el panel excluido`,
+        pagina.startsWith("/src/app/(publico)/") || excluida !== undefined,
+        `${pagina} no está ni en el tronco medido ni en una raíz excluida a propósito`,
       ).toBe(true);
+    }
+    // Y las dos raíces excluidas existen de verdad: si alguien borra una, la
+    // lista deja de ser una excepción viva y hay que revisarla.
+    for (const [raizExcluida, porque] of RAICES_EXCLUIDAS) {
+      expect(
+        paginas.some((pagina) => pagina.startsWith(raizExcluida)),
+        `${raizExcluida} ya no tiene páginas (${porque})`,
+      ).toBe(true);
+    }
+  });
+
+  it("cada raíz excluida lo está de verdad: su layout no monta el script", () => {
+    for (const [raizExcluida] of RAICES_EXCLUIDAS) {
+      const layout = join(raiz, raizExcluida.replace(/^\/|\/$/g, ""), "layout.tsx");
+      const codigo = readFileSync(layout, "utf8")
+        // Sin comentarios: los dos layouts EXPLICAN por qué no montan el
+        // tracker, y una búsqueda de texto plano confundiría la explicación
+        // con el defecto.
+        .replace(/\/\*[\s\S]*?\*\//g, "")
+        .replace(/^\s*\/\/.*$/gm, "");
+      expect(codigo, layout).not.toMatch(/<ScriptAnalitica\b/);
+      expect(codigo, layout).not.toContain("umami");
     }
   });
 

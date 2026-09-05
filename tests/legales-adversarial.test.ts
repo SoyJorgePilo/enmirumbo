@@ -383,7 +383,7 @@ describe("adversarial · lo que el aviso promete vs. lo que la ficha publica", (
         // esto se ve; se comprueba en el peor caso, no en el limpio.
         rechazadoEn: new Date("2026-08-01T10:00:00.000Z"),
         motivoRechazo: NEGOCIO_PRUEBA.motivoRechazo,
-        tokenGestion: NEGOCIO_PRUEBA.token,
+        tokenGestionHash: NEGOCIO_PRUEBA.token,
       },
       select: { id: true },
     });
@@ -442,7 +442,7 @@ describe("adversarial · lo que el aviso promete vs. lo que la ficha publica", (
       "consintioAvisoVersion",
       "reconsintioAvisoEn",
       "reconsintioAvisoVersion",
-      "tokenGestion",
+      "tokenGestionHash",
       "motivoRechazo",
       "registradoEn",
       "en_revision",

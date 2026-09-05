@@ -12,12 +12,21 @@
  * de prueba, igual que `procesarRegistro`. Nada de lo que lee se escribe en
  * el log.
  */
+import { ESTADO_EDICION_PENDIENTE } from "@/lib/gestion/estados";
 import { ESTADO_NEGOCIO_DEFAULT, type EstadoNegocio, type OrigenNegocio } from "@/lib/negocio";
+import { tieneByteNulo } from "@/lib/texto";
 
 /** Meta operativa del PRD §10: responder cada registro en menos de 48 horas. */
 export const HORAS_META_REVISION = 48;
 
 const HORA_MS = 60 * 60 * 1000;
+
+/**
+ * De qué es este renglón de la cola (spec `revision-admin`, requirement "Cola
+ * de revisión…" MODIFIED por `agregar-enlace-de-gestion`): un alta nueva o una
+ * edición que el negocio mandó desde su enlace.
+ */
+export type TipoRenglonCola = "alta" | "edicion";
 
 /** Fila de la cola, ya lista para pintar. */
 export type RegistroColaItem = {
@@ -37,6 +46,17 @@ export type RegistroColaItem = {
    * entonces lo último que le pasó fue el reenvío, y por ahí entró a la cola.
    */
   vieneDeDespublicacion: boolean;
+  /**
+   * `"alta"` o `"edicion"` (change `agregar-enlace-de-gestion`). La cola es
+   * una sola lista con las dos cosas y cada renglón dice de qué se trata con
+   * una etiqueta de TEXTO, no con un color ni con el orden.
+   */
+  tipo: TipoRenglonCola;
+  /**
+   * A dónde lleva "Revisar": el detalle del registro para un alta, el detalle
+   * comparativo para una edición.
+   */
+  hrefDetalle: string;
 };
 
 /** Todo lo que el detalle del panel muestra de un registro. */
@@ -89,6 +109,15 @@ export type RegistroAdminDetalle = {
   despublicadoEn: Date | null;
   motivoDespublicacion: string | null;
   /**
+   * Cuándo se generó el enlace de gestión vigente, o `null` si la ficha nunca
+   * se aprobó (change `agregar-enlace-de-gestion`, requirement "Aprobar un
+   * registro genera su enlace de gestión…"): el detalle dice que TIENE enlace
+   * y desde cuándo, y nada más. **La huella no se lee aquí ni en ninguna otra
+   * consulta del panel**, porque el panel no puede mostrar el enlace: no lo
+   * conoce (design.md §3). `tests/admin-adversarial.test.ts` lo vigila.
+   */
+  tokenGestionCreadoEn: Date | null;
+  /**
    * Ids de los giros ya asignados (requirement "Aprobar asigna giros…",
    * scenario "republicar conserva los giros"): el formulario de aprobar llega
    * con ellos marcados para que republicar una ficha despublicada no los
@@ -103,6 +132,9 @@ export type ClientePanel = {
     findMany(args: unknown): Promise<unknown[]>;
     findUnique(args: unknown): Promise<unknown>;
   };
+  edicionPendiente: {
+    findMany(args: unknown): Promise<unknown[]>;
+  };
 };
 
 type FilaCola = {
@@ -113,6 +145,24 @@ type FilaCola = {
   coloniaOtra: string | null;
   colonia: { nombre: string } | null;
 };
+
+/** Renglón de la cola que viene de una edición esperando revisión. */
+type FilaColaEdicion = {
+  id: string;
+  negocioId: string;
+  creadaEn: Date;
+  coloniaOtra: string | null;
+  colonia: { nombre: string } | null;
+  negocio: { nombre: string };
+};
+
+/** La colonia del catálogo, el texto libre que capturó, o el aviso de que no hay. */
+function textoDeColonia(
+  colonia: { nombre: string } | null,
+  coloniaOtra: string | null,
+): string {
+  return colonia?.nombre ?? coloniaOtra?.trim() ?? "Colonia no capturada";
+}
 
 type FilaDetalle = FilaCola & {
   whatsapp: string;
@@ -133,6 +183,7 @@ type FilaDetalle = FilaCola & {
   rechazadoEn: Date | null;
   motivoRechazo: string | null;
   motivoDespublicacion: string | null;
+  tokenGestionCreadoEn: Date | null;
   categoria: { nombre: string };
   giros: Array<{ id: number }>;
 };
@@ -198,40 +249,105 @@ export async function obtenerColaDeRevision(
   prisma: ClientePanel,
   ahora: Date = new Date(),
 ): Promise<RegistroColaItem[]> {
-  const filas = (await prisma.negocio.findMany({
-    where: { estado: ESTADO_NEGOCIO_DEFAULT },
-    orderBy: [{ registradoEn: "asc" }, { id: "asc" }],
-    select: {
-      id: true,
-      nombre: true,
-      registradoEn: true,
-      despublicadoEn: true,
-      coloniaOtra: true,
-      colonia: { select: { nombre: true } },
-    },
-  })) as FilaCola[];
+  const [filas, ediciones] = (await Promise.all([
+    prisma.negocio.findMany({
+      where: { estado: ESTADO_NEGOCIO_DEFAULT },
+      orderBy: [{ registradoEn: "asc" }, { id: "asc" }],
+      select: {
+        id: true,
+        nombre: true,
+        registradoEn: true,
+        despublicadoEn: true,
+        coloniaOtra: true,
+        colonia: { select: { nombre: true } },
+      },
+    }),
+    // Las ediciones que esperan revisión entran a la MISMA cola (PRD §6.4).
+    // Solo las `pendiente`: las aplicadas y las descartadas se quedan en la
+    // tabla por trazabilidad, no en la lista de pendientes del admin.
+    prisma.edicionPendiente.findMany({
+      where: { estado: ESTADO_EDICION_PENDIENTE },
+      orderBy: [{ creadaEn: "asc" }, { id: "asc" }],
+      select: {
+        id: true,
+        // Hace falta para que un negocio no ocupe dos renglones (ver abajo).
+        negocioId: true,
+        creadaEn: true,
+        coloniaOtra: true,
+        colonia: { select: { nombre: true } },
+        negocio: { select: { nombre: true } },
+      },
+    }),
+  ])) as [FilaCola[], FilaColaEdicion[]];
 
-  return filas
-    .map((fila) => ({
-      fila,
-      entrada: entradaALaCola(fila.registradoEn, fila.despublicadoEn),
-    }))
+  // UN NEGOCIO, UN RENGLÓN (requirement "un negocio publicado con edición
+  // pendiente aparece en la cola una sola vez"; hallazgo MEDIO 1b de la etapa
+  // C). Si el negocio ya entró a la cola por sí mismo —está `en_revision`
+  // porque el admin lo despublicó—, su edición NO abre un segundo renglón: lo
+  // que el admin tiene enfrente es la ficha bajada, y hasta que no la vuelva a
+  // publicar esos cambios no se pueden aplicar (`aplicarEdicion` responde
+  // "ficha-no-publicada"). Mostrarlos sería una cola que miente sobre cuánto
+  // trabajo hay y que empuja al admin justo a ese callejón.
+  //
+  // La edición NO se pierde ni se toca: sigue `pendiente`, y en cuanto la
+  // ficha vuelve al directorio reaparece en la cola con su reloj intacto.
+  //
+  // Se deduplica contra las altas que ya se leyeron, sin nombrar ningún estado
+  // aquí: el filtro de visibilidad del directorio sigue viviendo en un solo
+  // sitio (`src/lib/directorio.ts`, guardián de `tests/directorio-consultas`).
+  const negociosYaEnLaCola = new Set(filas.map((fila) => fila.id));
+
+  const renglones: Array<{ entrada: Date; item: RegistroColaItem }> = [
+    ...filas.map((fila) => {
+      const entrada = entradaALaCola(fila.registradoEn, fila.despublicadoEn);
+      return {
+        entrada,
+        item: {
+          id: fila.id,
+          nombre: fila.nombre,
+          coloniaTexto: textoDeColonia(fila.colonia, fila.coloniaOtra),
+          esperaTexto: textoEspera(entrada, ahora),
+          atrasado: estaAtrasado(entrada, ahora),
+          vieneDeDespublicacion:
+            fila.despublicadoEn !== null &&
+            fila.despublicadoEn.getTime() > fila.registradoEn.getTime(),
+          tipo: "alta" as const,
+          hrefDetalle: `/admin/registros/${fila.id}`,
+        },
+      };
+    }),
+    // El reloj de una edición cuenta desde que el negocio la mandó, y si la
+    // reemplaza por otra más nueva se reinicia con ella: lo que el admin tiene
+    // que revisar es lo nuevo (requirement del indicador de 48 horas).
+    ...ediciones
+      .filter((edicion) => !negociosYaEnLaCola.has(edicion.negocioId))
+      .map((edicion) => ({
+        entrada: edicion.creadaEn,
+        item: {
+          id: edicion.id,
+          nombre: edicion.negocio.nombre,
+          coloniaTexto: textoDeColonia(edicion.colonia, edicion.coloniaOtra),
+          esperaTexto: textoEspera(edicion.creadaEn, ahora),
+          atrasado: estaAtrasado(edicion.creadaEn, ahora),
+          // Una edición nunca "viene de una despublicación": solo un negocio
+          // PUBLICADO tiene enlace con el que mandarla.
+          vieneDeDespublicacion: false,
+          tipo: "edicion" as const,
+          hrefDetalle: `/admin/ediciones/${edicion.id}`,
+        },
+      })),
+  ];
+
+  // Del más antiguo al más reciente sin importar de qué tipo sea. Un negocio
+  // publicado con edición pendiente aparece UNA sola vez y como "Edición",
+  // porque los publicados no entran a la cola por sí mismos.
+  return renglones
     .sort(
       (uno, otro) =>
         uno.entrada.getTime() - otro.entrada.getTime() ||
-        uno.fila.id.localeCompare(otro.fila.id),
+        uno.item.id.localeCompare(otro.item.id),
     )
-    .map(({ fila, entrada }) => ({
-      id: fila.id,
-      nombre: fila.nombre,
-      coloniaTexto:
-        fila.colonia?.nombre ?? fila.coloniaOtra?.trim() ?? "Colonia no capturada",
-      esperaTexto: textoEspera(entrada, ahora),
-      atrasado: estaAtrasado(entrada, ahora),
-      vieneDeDespublicacion:
-        fila.despublicadoEn !== null &&
-        fila.despublicadoEn.getTime() > fila.registradoEn.getTime(),
-    }));
+    .map(({ item }) => item);
 }
 
 /**
@@ -242,7 +358,14 @@ export async function obtenerRegistroParaPanel(
   prisma: ClientePanel,
   id: string,
 ): Promise<RegistroAdminDetalle | null> {
-  if (!id) return null;
+  // Mismo filtro de byte nulo que el detalle de una edición y que
+  // `extraerIdDeSegmentoFicha` en lo público: un `%00` en la URL del detalle
+  // abortaría la consulta de PostgreSQL y respondería un error del servidor en
+  // vez del "no encontrado" de siempre. Es deuda anterior a este change
+  // (la señaló la etapa C al mirar la superficie nueva), y se cierra aquí
+  // porque el arreglo es el mismo y dejar una de las dos puertas abierta
+  // sería peor que no haberlo mirado.
+  if (!id || tieneByteNulo(id)) return null;
 
   const fila = (await prisma.negocio.findUnique({
     where: { id },
@@ -272,6 +395,8 @@ export async function obtenerRegistroParaPanel(
       motivoRechazo: true,
       despublicadoEn: true,
       motivoDespublicacion: true,
+      // Solo la FECHA del enlace, nunca su huella (design.md §3).
+      tokenGestionCreadoEn: true,
       giros: { select: { id: true } },
     },
   })) as FilaDetalle | null;
@@ -306,6 +431,7 @@ export async function obtenerRegistroParaPanel(
     motivoRechazo: fila.motivoRechazo,
     despublicadoEn: fila.despublicadoEn,
     motivoDespublicacion: fila.motivoDespublicacion,
+    tokenGestionCreadoEn: fila.tokenGestionCreadoEn,
     girosIds: fila.giros.map((giro) => giro.id),
   };
 }

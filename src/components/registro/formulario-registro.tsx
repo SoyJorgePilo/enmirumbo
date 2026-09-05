@@ -32,9 +32,34 @@ type FormularioRegistroProps = {
   /**
    * Estado de partida del formulario. En la página siempre es el vacío; las
    * pruebas lo usan para renderizar el estado "error por campo" sin simular
-   * un envío.
+   * un envío. El modo edición lo usa para prellenar con la ficha publicada
+   * (o con la edición pendiente más reciente, spec `agregar-enlace-de-
+   * gestion`, requirement "Mandar cambios cuando ya hay otros esperando...").
    */
   estadoInicial?: EstadoAccionRegistro;
+  /**
+   * `"registro"` (por defecto) es el alta pública; `"edicion"` es el modo
+   * edición del enlace de gestión (`/editar/<token>`, change
+   * `agregar-enlace-de-gestion`, design.md §5: mismo componente, sin lógica
+   * paralela). La única diferencia de ESTRUCTURA entre los dos —además de lo
+   * que ya cubren `accion`, `textoBoton` y `aviso`— es que la edición NO
+   * ofrece cambiar la foto: la spec `revision-admin` de ese change enumera
+   * los campos que "Aplicar los cambios" copia y la foto no está en la
+   * lista (fuera de alcance explícito del ticket T-014, coordinar con
+   * T-008 cuando ese change decida sumarla).
+   */
+  modo?: "registro" | "edicion";
+  /**
+   * Server Action a la que postea el formulario. Por defecto la de alta
+   * (`registrarNegocio`); el modo edición pasa la suya, ya ligada al token
+   * con `.bind(null, token)` (mismo patrón que las Server Actions del panel).
+   */
+  accion?: (
+    estadoPrevio: EstadoAccionRegistro,
+    formData: FormData,
+  ) => Promise<EstadoAccionRegistro>;
+  /** Texto del botón de envío. Por defecto "Registrar mi negocio". */
+  textoBoton?: string;
 };
 
 /**
@@ -121,11 +146,11 @@ export function FormularioRegistro({
   honeypot,
   aviso,
   estadoInicial = ESTADO_INICIAL_REGISTRO,
+  modo = "registro",
+  accion = registrarNegocio,
+  textoBoton,
 }: FormularioRegistroProps) {
-  const [estado, accionFormulario] = useActionState(
-    registrarNegocio,
-    estadoInicial,
-  );
+  const [estado, accionFormulario] = useActionState(accion, estadoInicial);
   const { errores, valores } = estado;
 
   // Ejemplo dinámico de "¿Qué ofreces?" (único además del botón que
@@ -384,48 +409,55 @@ export function FormularioRegistro({
           por eso, a diferencia del resto de los opcionales, este siempre
           vuelve vacío (scenario "hay que volver a elegir la foto"). Sin JS
           nuevo: nada de vista previa ni recorte en el cliente (requirement
-          "El registro funciona sin JavaScript de cliente"). */}
-      <div className="flex flex-col gap-1.5">
-        <label htmlFor="foto" className="text-sm font-semibold text-tinta">
-          Foto de tu negocio (opcional)
-        </label>
-        <p className="text-sm text-tinta-suave">{TEXTO_POLITICA_FOTO}</p>
-        <input
-          type="file"
-          id="foto"
-          name="foto"
-          accept={ACCEPT_FOTO}
-          className="block min-h-11 w-full cursor-pointer rounded-lg border border-borde-control bg-fondo px-3 py-2.5 text-sm text-tinta file:mr-3 file:min-h-11 file:cursor-pointer file:rounded-lg file:border-0 file:bg-superficie file:px-4 file:py-2.5 file:text-sm file:font-semibold file:text-tinta"
-          aria-invalid={Boolean(errores.foto)}
-          aria-describedby={errores.foto ? "foto-error" : undefined}
-        />
-        <MensajeError id="foto-error" texto={errores.foto} />
+          "El registro funciona sin JavaScript de cliente").
 
-        {/*
-          Siempre visible para cualquiera, con el mismo texto (requirement
-          "El campo de foto..."): ni un registro nuevo ni un reenvío tras
-          rechazo delatan si el número ya tenía ficha. No se repuebla al
-          rebotar un error (igual que el checkbox de consentimiento): no hay
-          literal de la spec que pida lo contrario.
-        */}
-        <label
-          htmlFor="quitarFoto"
-          className="flex min-h-11 cursor-pointer items-center gap-3 text-sm font-semibold text-tinta"
-        >
+          Modo edición (change `agregar-enlace-de-gestion`): NO se ofrece,
+          porque la lista de campos editables que "Aplicar los cambios"
+          copia (spec `revision-admin` de ese change) no incluye la foto —
+          fuera de alcance explícito del ticket T-014, ver reports/a-ui.md. */}
+      {modo === "registro" && (
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="foto" className="text-sm font-semibold text-tinta">
+            Foto de tu negocio (opcional)
+          </label>
+          <p className="text-sm text-tinta-suave">{TEXTO_POLITICA_FOTO}</p>
           <input
-            type="checkbox"
-            id="quitarFoto"
-            name="quitarFoto"
-            className="h-5 w-5 shrink-0 rounded border-borde-control"
+            type="file"
+            id="foto"
+            name="foto"
+            accept={ACCEPT_FOTO}
+            className="block min-h-11 w-full cursor-pointer rounded-lg border border-borde-control bg-fondo px-3 py-2.5 text-sm text-tinta file:mr-3 file:min-h-11 file:cursor-pointer file:rounded-lg file:border-0 file:bg-superficie file:px-4 file:py-2.5 file:text-sm file:font-semibold file:text-tinta"
+            aria-invalid={Boolean(errores.foto)}
+            aria-describedby={errores.foto ? "foto-error" : undefined}
           />
-          {TEXTO_CASILLA_SIN_FOTO}
-        </label>
-      </div>
+          <MensajeError id="foto-error" texto={errores.foto} />
+
+          {/*
+            Siempre visible para cualquiera, con el mismo texto (requirement
+            "El campo de foto..."): ni un registro nuevo ni un reenvío tras
+            rechazo delatan si el número ya tenía ficha. No se repuebla al
+            rebotar un error (igual que el checkbox de consentimiento): no hay
+            literal de la spec que pida lo contrario.
+          */}
+          <label
+            htmlFor="quitarFoto"
+            className="flex min-h-11 cursor-pointer items-center gap-3 text-sm font-semibold text-tinta"
+          >
+            <input
+              type="checkbox"
+              id="quitarFoto"
+              name="quitarFoto"
+              className="h-5 w-5 shrink-0 rounded border-borde-control"
+            />
+            {TEXTO_CASILLA_SIN_FOTO}
+          </label>
+        </div>
+      )}
 
       {aviso}
       <MensajeError id="consentimiento-error" texto={errores.consentimiento} />
 
-      <BotonEnviar />
+      <BotonEnviar texto={textoBoton} />
     </form>
   );
 }

@@ -1,5 +1,9 @@
 import { MarcadorFoto } from "@/components/directorio/marcador-foto";
-import { ETIQUETA_CUANDO_DESPUBLICO, ETIQUETA_POR_QUE_DESPUBLICO } from "@/lib/admin/textos";
+import {
+  ETIQUETA_CUANDO_DESPUBLICO,
+  ETIQUETA_POR_QUE_DESPUBLICO,
+  textoTieneEnlaceGestion,
+} from "@/lib/admin/textos";
 import type { RegistroAdminDetalle } from "@/lib/admin/consultas";
 import { urlDeFoto } from "@/lib/fotos/url";
 
@@ -180,6 +184,16 @@ export function DetalleRegistro({
             />
           )}
         </dl>
+
+        {/* Enlace de gestión (change `agregar-enlace-de-gestion`, requirement
+            "Aprobar un registro genera su enlace de gestión…"): el detalle dice
+            que la ficha TIENE enlace y desde cuándo, pero NO el enlace — el
+            panel no lo conoce, solo guarda su huella (design.md §3). */}
+        {registro.tokenGestionCreadoEn && (
+          <p className="text-sm text-tinta-suave">
+            {textoTieneEnlaceGestion(FORMATO_FECHA.format(registro.tokenGestionCreadoEn))}
+          </p>
+        )}
       </div>
     </div>
   );

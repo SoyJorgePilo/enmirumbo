@@ -235,9 +235,13 @@ function esDespliegueDeVerdad(env: EntornoFotos): boolean {
  * Qué hace cada operación, y por qué no todas lanzan:
  *
  * - `guardar` **lanza**: es el único camino por el que se perderían datos en
- *   silencio. El alta sigue adelante y el vecino ve el aviso de que su foto no
- *   se guardó (`AVISO_FOTO_NO_GUARDADA`), en vez de una ficha que promete una
- *   foto que no existe.
+ *   silencio. Y lanzar aquí NO deja el alta a medias: `procesarRegistro`
+ *   atrapa el fallo y **rechaza el alta completa** con el error de foto
+ *   (`MENSAJES_ERROR_FOTO.errorProcesamiento`), sin crear la ficha —lo fija
+ *   `tests/foto-seguridad-adversarial.test.ts`, que además comprueba que no
+ *   quede ninguna fila—. El vecino vuelve al formulario con sus datos y puede
+ *   reintentar; lo que no pasa es que quede una ficha prometiendo una foto que
+ *   no existe.
  * - `listar` **lanza**: el barrido de huérfanas tiene que distinguir "no hay
  *   nada" de "no pude mirar". Su cron responde 500, que es lo que se ve.
  * - `leer` devuelve `null`: aquí no se puede servir nada, y reventar una

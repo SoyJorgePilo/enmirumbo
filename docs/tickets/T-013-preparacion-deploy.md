@@ -1,6 +1,6 @@
 # T-013 · Preparar el código para el deploy a producción
 
-**Estado:** en-review
+**Estado:** hecho
 **Prioridad:** P0
 **Épica:** E0-3 (docs/backlog.md) — la parte de código; las cuentas y decisiones finales son humanas
 **Referencias PRD:** §8 (rendimiento, LFPDPPP), ADR-004 (Supabase Postgres recomendado), ADR-006, ADR-007 (Vercel Hobby recomendado)

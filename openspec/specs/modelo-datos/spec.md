@@ -49,8 +49,8 @@ El negocio DEBE poder guardar además una **reaceptación**: la fecha (`reconsin
 
 #### Scenario: fichas anteriores al versionado
 
-- **WHEN** se aplica la migración que agrega las tres columnas sobre una base que ya tiene negocios en revisión, publicados y rechazados
-- **THEN** todas las filas siguen ahí con sus datos intactos, su versión de consentimiento queda nula y ninguna consulta del sitio falla por eso
+- **WHEN** existe una ficha guardada sin versión de consentimiento, porque se registró antes de que el versionado existiera
+- **THEN** su versión sigue nula, nada le asigna una de relleno y ninguna consulta del sitio falla por eso
 
 #### Scenario: el seed de demostración siembra la versión
 
@@ -131,7 +131,9 @@ El sistema DEBE permitir vincular giros del catálogo a un negocio (relación mu
 
 ### Requirement: Estado de revisión, origen y timestamps del ciclo de vida
 
-El negocio DEBE tener un estado con valores `en_revision | publicado | rechazado` (default `en_revision`), un origen con valores `siembra | organico` (PRD §6.3 y §10; default `organico`, el admin lo ajusta al aprobar), un timestamp de registro asignado automáticamente al crearse y un timestamp de publicación que permanece nulo hasta que la ficha se publica. **El timestamp de publicación significa "la última vez que la ficha estuvo publicada": al despublicarla NO DEBE borrarse —es el único rastro de que estuvo en el directorio y de cuándo—, y al volver a publicarla se sobrescribe con la fecha de la nueva publicación. Lo que decide si una ficha se muestra es su estado, nunca ese timestamp.** Además DEBE guardar el rastro del rechazo: un timestamp de rechazo y el motivo en texto, ambos nulos mientras el negocio no haya sido rechazado. La fecha del rechazo es lo que habilita la eliminación de los registros rechazados a los 90 días que exige el PRD §8 (la purga en sí no está implementada). Si un negocio rechazado corrige y vuelve a enviar su registro, ambos campos DEBEN volver a quedar nulos, para que la purga no se lleve un registro que ya está otra vez en la cola. La migración DEBE poder aplicarse sobre una base que ya tiene negocios, sin perder ni alterar sus datos. El seed de negocios de demostración DEBE poblar ambos campos en su negocio `rechazado`, para que el panel y la purga futura tengan un caso realista que probar.
+El negocio DEBE tener un estado con valores `en_revision | publicado | rechazado` (default `en_revision`), un origen con valores `siembra | organico` (PRD §6.3 y §10; default `organico`, el admin lo ajusta al aprobar), un timestamp de registro asignado automáticamente al crearse y un timestamp de publicación que permanece nulo hasta que la ficha se publica. **El timestamp de publicación significa "la última vez que la ficha estuvo publicada": al despublicarla NO DEBE borrarse —es el único rastro de que estuvo en el directorio y de cuándo—, y al volver a publicarla se sobrescribe con la fecha de la nueva publicación. Lo que decide si una ficha se muestra es su estado, nunca ese timestamp.** Además DEBE guardar el rastro del rechazo: un timestamp de rechazo y el motivo en texto, ambos nulos mientras el negocio no haya sido rechazado. La fecha del rechazo es lo que habilita la eliminación de los registros rechazados a los 90 días que exige el PRD §8. Si un negocio rechazado corrige y vuelve a enviar su registro, ambos campos DEBEN volver a quedar nulos, para que la purga no se lleve un registro que ya está otra vez en la cola. El seed de negocios de demostración DEBE poblar ambos campos en su negocio `rechazado`, para que el panel y la purga tengan un caso realista que probar.
+
+Los conjuntos de valores válidos los DEBE hacer cumplir la base de datos, con constraints escritas a mano en las migraciones, **en el dialecto de producción**. Esas constraints DEBEN seguir presentes después de aplicar el árbol completo de migraciones, no solo la primera: una migración posterior que las borre es un defecto que la verificación automática DEBE detectar.
 
 #### Scenario: negocio recién creado
 - **WHEN** se crea un negocio
@@ -159,11 +161,11 @@ El negocio DEBE tener un estado con valores `en_revision | publicado | rechazado
 
 #### Scenario: valores fuera del conjunto
 - **WHEN** se intenta guardar un estado u origen fuera de los valores definidos
-- **THEN** la base de datos rechaza la escritura (constraint CHECK en la migración)
+- **THEN** la base de datos rechaza la escritura (constraint CHECK en la migración), en el mismo motor que corre en producción
 
-#### Scenario: migración sobre una base con datos
-- **WHEN** se aplica la migración sobre una base que ya tiene negocios publicados, en revisión y rechazados
-- **THEN** todas las filas siguen ahí con sus datos intactos y los dos campos nuevos quedan nulos en todas
+#### Scenario: las constraints sobreviven a todo el árbol de migraciones
+- **WHEN** se aplican todas las migraciones en orden sobre una base vacía y después se intenta guardar un estado inventado
+- **THEN** la base lo rechaza: ninguna migración posterior se llevó por delante las constraints escritas a mano
 
 #### Scenario: el seed de demostración incluye un rechazo con motivo
 - **WHEN** se corre el seed de negocios de demostración
@@ -175,7 +177,7 @@ El negocio DEBE guardar un timestamp de despublicación y el motivo en texto, am
 
 Este rastro NO se limpia en ninguna transición: sobrevive a que la ficha se publique de nuevo, se rechace o el negocio la reenvíe, porque es historia útil dentro del panel ("esta ficha ya la bajaste una vez, por esto") y ninguna consulta depende de que sea nulo. Para que ese rastro viejo no ensucie la cola, **la espera de un registro se cuenta desde la más reciente entre su fecha de registro y su fecha de despublicación** (ver `revision-admin`), nunca desde la de despublicación a secas.
 
-El motivo de la despublicación es un dato interno del panel, del mismo tipo que el motivo del rechazo: NO DEBE aparecer en ninguna página pública. La migración DEBE poder aplicarse sobre una base que ya tiene negocios, sin perder ni alterar sus datos y sin tocar los CHECK de `estado` y de `origen` que ya existen.
+El motivo de la despublicación es un dato interno del panel, del mismo tipo que el motivo del rechazo: NO DEBE aparecer en ninguna página pública. Estos dos campos DEBEN nacer nulos al aplicar el árbol completo de migraciones, sin que ninguna migración los rellene ni toque los CHECK de `estado` y de `origen`.
 
 #### Scenario: negocio que nunca se ha despublicado
 - **WHEN** se crea un negocio y se publica
@@ -193,9 +195,9 @@ El motivo de la despublicación es un dato interno del panel, del mismo tipo que
 - **WHEN** una ficha despublicada se rechaza, o se publica de nuevo
 - **THEN** su fecha y su motivo de despublicación siguen guardados, sin borrarse ni alterarse
 
-#### Scenario: migración del rastro de despublicación sobre una base con datos
-- **WHEN** se aplica la migración que agrega estos dos campos sobre una base que ya tiene negocios publicados, en revisión y rechazados
-- **THEN** todas las filas siguen ahí con sus datos intactos, los dos campos nuevos quedan nulos en todas y los CHECK de `estado` y `origen` siguen vigentes
+#### Scenario: el rastro de despublicación nace nulo
+- **WHEN** se aplica el árbol completo de migraciones y se escriben negocios publicados, en revisión y rechazados sin tocar estos campos
+- **THEN** los dos quedan nulos en todos, ninguna migración los rellena y los CHECK de `estado` y `origen` siguen vigentes
 
 ### Requirement: La colonia admite "Otra" con texto libre pendiente de normalizar
 
@@ -213,7 +215,7 @@ El sistema DEBE permitir registrar un negocio sin colonia de catálogo, guardand
 
 El sistema DEBE persistir los reportes del botón "Reportar" (PRD §6.3) en una tabla propia, ligada al negocio reportado, con exactamente estos datos y ninguno más: el negocio al que apunta, el motivo, el comentario opcional, el estado y las fechas. En concreto:
 
-- **Motivo**: uno de una lista cerrada de cuatro valores estables (`cerrado`, `no_real`, `datos_incorrectos`, `inapropiado`), con la validación del conjunto hecha cumplir por la base (constraint CHECK en la migración, como ya se hace con el estado y el origen del negocio en SQLite, ADR-001). Las etiquetas que ven las personas viven en el código, no en la base: el valor guardado es estable aunque el copy cambie.
+- **Motivo**: uno de una lista cerrada de cuatro valores estables (`cerrado`, `no_real`, `datos_incorrectos`, `inapropiado`), con la validación del conjunto hecha cumplir por la base (constraint CHECK escrita a mano en la migración, como ya se hace con el estado y el origen del negocio, en el dialecto de producción — ADR-004). Las etiquetas que ven las personas viven en el código, no en la base: el valor guardado es estable aunque el copy cambie.
 - **Comentario**: texto opcional y nulo cuando el vecino no escribió nada; la cota de 300 caracteres se hace cumplir en el formulario, no en la base.
 - **Estado**: `pendiente | atendido`, con default `pendiente` y CHECK del conjunto.
 - **Fechas**: la de creación, asignada automáticamente, y la de atención, nula hasta que el admin marca el reporte como atendido.
@@ -222,7 +224,7 @@ La tabla NO DEBE tener ninguna columna que identifique a quien reportó: ni IP, 
 
 La relación con el negocio DEBE declararse **con borrado en cascada**, como exige el requirement "Borrado definitivo de un negocio (operación ARCO)": el aviso de un vecino anónimo no puede bloquear ni sobrevivir al ejercicio de un derecho ARCO del titular, y la verificación automática de las claves foráneas que apuntan a `Negocio` DEBE recorrer también esta relación, de modo que quitarle la cascada haga fallar la verificación.
 
-El sistema DEBE poder consultar, por negocio, cuántos reportes tiene en estado `pendiente`, y listar los reportes pendientes de un negocio del más antiguo al más reciente. La migración DEBE poder aplicarse sobre una base que ya tiene negocios sin alterar ni una fila ni una columna de `Negocio`, y sin borrar los CHECK que ya existen.
+El sistema DEBE poder consultar, por negocio, cuántos reportes tiene en estado `pendiente`, y listar los reportes pendientes de un negocio del más antiguo al más reciente. Al aplicar el árbol completo de migraciones, la tabla de reportes DEBE quedar creada y vacía, sin alterar ninguna columna de `Negocio` y sin borrar los CHECK que ya existen.
 
 #### Scenario: reporte recién creado
 
@@ -264,14 +266,14 @@ El sistema DEBE poder consultar, por negocio, cuántos reportes tiene en estado 
 - **WHEN** se corre la verificación de las relaciones del esquema que apuntan al negocio
 - **THEN** la de los reportes aparece entre las revisadas y está declarada con borrado en cascada; quitarle la cascada hace fallar la verificación
 
-#### Scenario: migración sobre una base con datos
+#### Scenario: la tabla de reportes nace vacía y no toca al negocio
 
-- **WHEN** se aplica la migración sobre una base que ya tiene negocios publicados, en revisión y rechazados
-- **THEN** la tabla de reportes queda creada y vacía, todos los negocios siguen con sus datos intactos y los CHECK de estado y origen del negocio siguen vigentes
+- **WHEN** se aplica el árbol completo de migraciones sobre un esquema vacío y se escribe un negocio
+- **THEN** la tabla de reportes existe y está vacía, el negocio queda con sus columnas tal como las declara el modelo y los CHECK de estado y origen siguen vigentes
 
 ### Requirement: Borrado definitivo de un negocio (operación ARCO)
 
-El sistema DEBE permitir eliminar definitivamente un negocio (hard delete real, no despublicar), **esté en el estado que esté** (`en_revision`, `publicado` o `rechazado`), borrando su fila **y todo lo que cuelgue de ella**: sus vínculos con giros, sus reportes, cualquier otra fila ligada al negocio que el modelo llegue a tener y **los archivos de su foto en el almacenamiento**, sin dejar datos ni imágenes recuperables por ninguna consulta ni por ninguna dirección del sitio (PRD §8). El borrado de los archivos DEBE incluir todas las variantes generadas: un archivo que sobrevive al borrado es el dato personal que el aviso de privacidad prometió eliminar. Si el archivo ya no estaba (por ejemplo, porque se borró antes), el borrado del negocio DEBE completarse igual y no DEBE fallar.
+El sistema DEBE permitir eliminar definitivamente un negocio (hard delete real, no despublicar), **esté en el estado que esté** (`en_revision`, `publicado` o `rechazado`), borrando su fila **y todo lo que cuelgue de ella**: sus vínculos con giros, sus reportes, cualquier otra fila ligada al negocio que el modelo llegue a tener y **los archivos de su foto en el almacenamiento**, sin dejar datos ni imágenes recuperables por ninguna consulta ni por ninguna dirección del sitio (PRD §8). El borrado de los archivos DEBE incluir todas las variantes generadas: un archivo que sobrevive al borrado es el dato personal que el aviso de privacidad prometió eliminar. Si el archivo ya no estaba (por ejemplo, porque se borró antes), el borrado del negocio DEBE completarse igual y no DEBE fallar. Otra cosa es que el almacenamiento **no se deje alcanzar**: ahí el borrado no se ejecuta y la fila no se toca, según el requirement "El borrado definitivo se niega a decir que borró lo que no borró" (`despliegue`), que también fija el orden: primero los archivos, después la fila.
 
 **El arrastre DEBE estar garantizado por el modelo, no por la acción que borra**: toda relación que apunte al negocio se declara con borrado en cascada, de modo que una tabla nueva que alguien agregue después no pueda dejar filas huérfanas ni impedir un borrado ARCO. El proyecto DEBE tener una verificación automática que recorra las relaciones declaradas en el esquema de la base y falle si alguna que apunta al negocio no está en cascada, para que la invariante no dependa de que alguien la recuerde. Ningún dato ligado a un tercero (por ejemplo el aviso de un vecino que reportó la ficha) DEBE poder bloquear el borrado: los derechos ARCO del titular pesan más.
 
@@ -303,15 +305,77 @@ El borrado DEBE ser idempotente: pedir el borrado de un identificador que ya no 
 
 ### Requirement: Migración inicial y seed reproducibles
 
-El proyecto DEBE poder levantar la base de datos desde cero con la migración inicial de Prisma y poblar los catálogos con `npm run db:seed`. El seed DEBE ser idempotente.
+El proyecto DEBE poder levantar la base de datos desde cero con las migraciones de Prisma y poblar los catálogos con `npm run db:seed`. El seed DEBE ser idempotente. La base DEBE ser del mismo motor en desarrollo, pruebas y producción (PostgreSQL, ADR-004), con un solo árbol de migraciones: el que se aplica en la laptop es el que se aplica en el proveedor. Levantar la base local DEBE requerir un solo comando documentado, sin cuentas ni servicios de pago.
 
 #### Scenario: base desde cero
-- **WHEN** se aplica la migración inicial sobre una base inexistente y luego se corre `npm run db:seed`
+- **WHEN** se aplican las migraciones sobre una base vacía y luego se corre `npm run db:seed`
 - **THEN** la base queda creada con todas las tablas y los tres catálogos poblados (8 categorías, 21 colonias, 49 giros)
 
 #### Scenario: seed idempotente
 - **WHEN** se corre `npm run db:seed` dos veces seguidas
 - **THEN** los conteos de los catálogos no cambian entre la primera y la segunda corrida
+
+#### Scenario: la base de desarrollo es la misma que la de producción
+- **WHEN** alguien levanta la base local con el comando documentado y aplica las migraciones
+- **THEN** obtiene el mismo motor y el mismo esquema que producción, y las pruebas que corre en local ejercitan el dialecto real
+
+### Requirement: El árbol de migraciones se aplica entero y sus constraints sobreviven
+
+El árbol de migraciones DEBE poder aplicarse entero sobre una base vacía con el mismo comando que se usa en producción, y el esquema resultante DEBE traer todas las tablas del modelo, sin diferencias con el esquema declarado. Una fila escrita con solo las columnas del modelo original DEBE quedar con TODAS las columnas posteriores nulas: ninguna migración DEBE rellenar datos que nadie declaró. Las constraints escritas a mano DEBEN seguir vivas después de aplicar el árbol completo, y ninguna migración DEBE borrarlas.
+
+#### Scenario: el árbol completo sobre una base vacía
+- **WHEN** se aplican todas las migraciones en orden sobre un esquema vacío
+- **THEN** quedan todas las tablas del modelo y el esquema no difiere del declarado
+
+#### Scenario: las columnas que llegaron después nacen nulas
+- **WHEN** se escribe una fila con solo las columnas del modelo original
+- **THEN** todas las columnas que se agregaron después quedan nulas, y ninguna migración las rellena
+
+#### Scenario: las constraints escritas a mano sobreviven
+- **WHEN** se aplica el árbol completo y después se intenta guardar un valor fuera del conjunto
+- **THEN** la base lo rechaza, y ninguna migración del árbol contiene una instrucción que borre esas constraints
+
+### Requirement: Los registros rechazados se eliminan definitivamente a los 90 días
+
+El sistema DEBE eliminar de forma definitiva —el mismo borrado real que la operación ARCO, sin dejar datos recuperables por ninguna consulta— los negocios en estado `rechazado` cuya fecha de rechazo tenga 90 días o más, que es el compromiso publicado en el aviso de privacidad (PRD §8). La purga NO DEBE tocar ningún negocio en otro estado, ni un rechazado que todavía no cumple el plazo, ni un rechazado sin fecha de rechazo. DEBE ser idempotente: correrla dos veces seguidas deja la base igual y no falla. DEBE informar cuántos registros eliminó, sin publicar ningún dato personal en ese informe.
+
+#### Scenario: rechazado que cumplió el plazo
+- **WHEN** se ejecuta la purga y hay un negocio rechazado con fecha de rechazo de hace 90 días o más
+- **THEN** ese negocio desaparece junto con sus vínculos con giros, y ninguna consulta posterior devuelve sus datos
+
+#### Scenario: rechazado que todavía no cumple el plazo
+- **WHEN** se ejecuta la purga y hay un negocio rechazado hace 89 días
+- **THEN** ese negocio sigue en la base, intacto
+
+#### Scenario: la purga no toca lo que no es suyo
+- **WHEN** se ejecuta la purga con negocios publicados, en revisión y rechazados recientes en la base
+- **THEN** solo desaparecen los rechazados que cumplieron el plazo; el conteo de publicados y de en revisión no cambia
+
+#### Scenario: el negocio que corrigió y volvió a la cola
+- **WHEN** un negocio fue rechazado hace más de 90 días pero corrigió y volvió a `en_revision` (su fecha de rechazo quedó nula)
+- **THEN** la purga no lo elimina
+
+#### Scenario: purga idempotente
+- **WHEN** se ejecuta la purga dos veces seguidas
+- **THEN** la segunda no elimina nada, no falla y lo informa como cero
+
+#### Scenario: el informe no filtra datos personales
+- **WHEN** la purga termina
+- **THEN** lo que informa y lo que deja en el log es un conteo, sin nombres de negocios, números de WhatsApp ni motivos de rechazo
+
+### Requirement: La purga informa lo que no pudo purgar
+
+La purga de los registros rechazados DEBE seguir adelante cuando falle con uno: un error con una ficha NO DEBE impedir que se purguen las demás. Un fallo estable con una sola ficha dejaría la obligación del aviso de privacidad sin cumplirse **nunca**, sin más señal que un error diario.
+
+DEBE informar cuántos registros quedaron sin purgar, además de cuántos se eliminaron, y el disparo por HTTP DEBE responder con un código de error cuando ese número no sea cero: un éxito con la mala noticia dentro del cuerpo lo daría por bueno el programador de tareas. Como todo lo que sale de la purga, lo que se informa DEBEN ser conteos, sin ningún dato personal.
+
+#### Scenario: una ficha falla y las demás se purgan
+- **WHEN** se ejecuta la purga y el almacén de fotos no se deja alcanzar al borrar la foto de uno de los registros
+- **THEN** ese registro NO se elimina —la fila no se toca, porque los archivos van primero—, se cuenta como no purgado, los demás registros que cumplieron el plazo sí se purgan, y el disparo por HTTP responde con error
+
+#### Scenario: un registro que no se puede eliminar
+- **WHEN** la purga no consigue eliminar un registro que ya cumplió el plazo
+- **THEN** lo cuenta aparte, sigue con los demás y el disparo por HTTP responde con error para que el programador de tareas lo registre como fallo
 
 ### Requirement: El esquema reserva el terreno para la gestión P1 sin implementarla
 

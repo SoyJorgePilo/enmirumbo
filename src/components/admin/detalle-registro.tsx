@@ -35,6 +35,13 @@ function constanciaConVersion(cuando: Date, version: string | null): string {
  * formulario de registro es anónimo: quien reenvía puede no ser el dueño, y
  * esta línea es evidencia que se lee ante una reclamación. La versión va en la
  * etiqueta porque es lo que se aceptó; el valor es cuándo pasó.
+ *
+ * El segundo literal es DEFENSIVO y hoy no se alcanza: `procesarRegistro`
+ * escribe `reconsintioAvisoEn` y `reconsintioAvisoVersion` juntos, en el mismo
+ * `updateMany`, así que no hay reaceptación sin versión. Se conserva porque el
+ * esquema permite las dos columnas por separado (una fila tocada a mano, una
+ * migración futura) y en evidencia de consentimiento vale más decir menos que
+ * pintar "versión undefined".
  */
 function etiquetaReaceptacion(version: string | null): string {
   return version

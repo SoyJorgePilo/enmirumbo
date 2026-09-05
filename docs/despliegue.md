@@ -45,8 +45,16 @@ Nada de esto lo puede hacer el código. Hazlo en este orden.
    `cname.vercel-dns.com`. La propagación puede tardar hasta una hora; Vercel
    emite el certificado HTTPS solo cuando el DNS ya resuelve.
 5. **Cuenta de Umami Cloud** (opcional pero recomendada, PRD §10). Da de alta el
-   sitio con el dominio ya definitivo y **activa el filtrado de bots** en el
-   panel del proveedor, o las métricas contarán rastreadores.
+   sitio con el dominio ya definitivo.
+   - **No hay ninguna casilla de "filtrar bots" que activar**, aunque este
+     documento lo dijera antes. La medición es un `<script>`: los rastreadores
+     que no ejecutan JavaScript —que son la mayoría, incluidos los buscadores—
+     no aparecen porque nunca llegan a mandar el evento. Umami además descarta
+     por *user agent* los que sí ejecutan y se identifican.
+   - Lo que sí existe en el panel son los **IP filters** (*Settings → Websites →
+     el sitio → Filters*), para excluir a mano tráfico raro: tu propia
+     conexión mientras pruebas, o una IP que dispare visitas sin sentido.
+     Revisa las métricas la primera semana y filtra si hace falta.
 6. **Encargado del tratamiento.** ADR-004 exige nombrar a Supabase en el aviso
    de privacidad antes del lanzamiento. Eso **no** se hace aquí: está declarado
    como pendiente operativo en el código (`PENDIENTES_OPERATIVOS_LEGALES`,
@@ -73,7 +81,7 @@ DATABASE_URL="postgresql://postgres:postgres@localhost:51214/template1?sslmode=d
 
 Para pararlo: `npm run db:local:detener`.
 
-**Tres cosas que conviene saber de esa base local:**
+**Cuatro cosas que conviene saber de esa base local:**
 
 1. **Es de usar y tirar.** `npm test` borra y vuelve a crear su esquema en cada
    corrida. Lo que hay dentro son catálogos y negocios ficticios; se repone con
@@ -90,9 +98,20 @@ Para pararlo: `npm run db:local:detener`.
    alfabético puede pasar aquí y fallar en el CI. Si vas a tocar ordenamiento,
    hazlo contra un Postgres de verdad (abajo).
 4. **Corta a las 10 conexiones simultáneas, y todas comparten una sesión.** Dos
-   consultas de verdad simultáneas se pisan, así que las pruebas de carrera
-   real se saltan en local y corren en el CI. Si algún día hace falta
-   concurrencia local de verdad, usa un PostgreSQL de verdad:
+   consultas de verdad simultáneas se pisan, y con las pruebas de carrera eso se
+   nota en dos formas distintas — conviene saber cuál es cuál antes de asustarse
+   con un rojo:
+
+   - `tests/concurrencia-real.test.ts` **sí se salta solo**: comprueba al
+     arrancar si dos conexiones caen en procesos distintos y, si no, se declara
+     no aplicable (`it.runIf`) y lo avisa por consola. En el CI corre entero.
+   - **Las carreras de `tests/reportes-seguridad-adversarial.test.ts` (`[A1]` y
+     `[A2]`) NO se saltan: se ejecutan aquí y suelen salir en rojo**, con
+     errores del motor local que no dicen nada del código. **En el CI, contra
+     `postgres:17`, pasan.** Son los dos rojos locales conocidos; si te salen
+     otros, esos sí son tuyos.
+
+   Si vas a trabajar en concurrencia, usa un PostgreSQL de verdad:
 
    ```bash
    docker run --rm -p 5432:5432 -e POSTGRES_PASSWORD=postgres postgres:17
@@ -118,7 +137,7 @@ volver a desplegar, no basta con reiniciar.
 
 | Variable | Para qué sirve | Valor |
 |---|---|---|
-| `DATABASE_URL` | La base de datos. En producción, la conexión **agrupada** (pooler) de Supabase: el runtime serverless abre y cierra conexiones todo el rato. | Supabase → *Connect* → *Transaction pooler*, **y le agregas `?sslmode=require`**: queda `postgresql://USUARIO:CLAVE@aws-0-REGION.pooler.supabase.com:6543/postgres?sslmode=require`. **Sin ella, en producción el sistema NO cae a ninguna base local: lo dice en el log y las pantallas que leen datos fallan. Y sin `sslmode` el sistema tampoco arranca: ver §3.4.** |
+| `DATABASE_URL` | La base de datos. En producción, la conexión **agrupada** (pooler) de Supabase: el runtime serverless abre y cierra conexiones todo el rato. | Supabase → *Connect* → *Transaction pooler*, **y le agregas `?sslmode=verify-full&sslrootcert=certs/supabase-root-2021-ca.crt`**: queda `postgresql://USUARIO:CLAVE@aws-0-REGION.pooler.supabase.com:6543/postgres?sslmode=verify-full&sslrootcert=certs/supabase-root-2021-ca.crt`. **Con Supabase, `sslmode=require` a secas NO funciona; el porqué y la ruta del certificado, en §3.4.** **Sin ella, en producción el sistema NO cae a ninguna base local: lo dice en el log y las pantallas que leen datos fallan. Y sin `sslmode` el sistema tampoco arranca: ver §3.4.** |
 | `SITIO_URL` | La URL pública, sin diagonal final. De aquí salen el `sitemap.xml`, la línea `Sitemap:` de `robots.txt`, las canónicas, la vista previa de WhatsApp/Facebook y el link de la ficha que el admin manda al aprobar. | `https://necesitouno.mx` (tu dominio real). Sin ella **en producción el sitio no inventa `localhost`**: el sitemap va vacío, no hay canónicas y el panel avisa a la vista. |
 | `PANEL_CONTRASENA` | La única credencial del panel `/admin`. Sin cuentas, sin correo, sin recuperación (PRD §6.6). | Una contraseña larga y que no uses en ningún otro lado. Si se pierde, se cambia la variable y se redespliega. |
 | `PANEL_SESION_SECRETO` | Con lo que el servidor firma la cookie de sesión del panel (HMAC-SHA256). | Mínimo 32 caracteres al azar: `openssl rand -base64 32`. Rotarlo cierra todas las sesiones abiertas. |
@@ -173,8 +192,41 @@ sistema no abre la base**: lo dice en el log al arrancar y falla a la vista, en
 lugar de funcionar bien y filtrar en silencio. Contra una base local no aplica
 (los bytes no salen del equipo).
 
-- Valor que hay que poner: **`sslmode=require`**, pegado al final de la
-  dirección con `?` o `&`.
+**Con Supabase, `sslmode=require` a secas NO sirve.** No es una peculiaridad
+nuestra: Supabase firma su PostgreSQL con una autoridad certificadora **propia**
+(`Supabase Root 2021 CA`) que Node no trae en su almacén de confianza, y bajo
+`require` el driver `pg` valida la cadena y corta con *"self-signed certificate
+in certificate chain"*. Se descubrió con el sitio ya desplegado, y el puente
+temporal fue `sslmode=no-verify` —que cifra pero **no valida a quién le habla**,
+o sea acepta a cualquiera que se ponga en medio—.
+
+**Ese puente ya se retiró. La cadena de producción es esta:**
+
+```
+postgresql://USUARIO:CLAVE@aws-0-REGION.pooler.supabase.com:6543/postgres?sslmode=verify-full&sslrootcert=certs/supabase-root-2021-ca.crt
+```
+
+- **`sslmode=verify-full`** es lo más estricto que hay: valida la cadena **y**
+  que el nombre del servidor coincida con el certificado.
+- **`sslrootcert=certs/supabase-root-2021-ca.crt`** es la raíz pública de
+  Supabase, versionada en este repositorio. Es un certificado **público de una
+  CA**: no es un secreto y por eso está commiteado. `next.config.ts` lo incluye
+  a mano en el rastreo de archivos del build (`outputFileTracingIncludes`)
+  porque `pg` lo abre en tiempo de ejecución y ese uso Next no lo ve solo;
+  `tests/tls-certificado-supabase.test.ts` vigila las dos cosas.
+- **La ruta es relativa a propósito**, y se resuelve contra el directorio de
+  trabajo del proceso —en Vercel, la raíz del paquete de la función—. Una ruta
+  absoluta de tu laptop no significa nada allá.
+- **Si el archivo falta, el sitio no arranca**, y el mensaje del log habla de
+  cifrado, no del archivo: `pg` no puede interpretar la dirección y la guarda la
+  trata como no cifrada. Si ves un `SIN CIFRAR` con esta cadena bien puesta, lo
+  que falta es el certificado en el paquete.
+- **`sslmode=no-verify` ya no se usa**, ni siquiera de paso. Cifra sin validar:
+  deja pasar a cualquiera que consiga ponerse en medio de la conexión, que es
+  justo de lo que protege el TLS.
+- **Cuando la raíz caduque** (2031) o Supabase la rote: se descarga la nueva de
+  Supabase → *Settings → Database → SSL configuration*, se reemplaza el archivo
+  y se redespliega. La prueba automática avisa antes, al acercarse la fecha.
 - **`prefer`, `allow` y `disable` NO cuentan como cifrado y el sistema los
   rechaza.** Hoy `pg` trata `prefer` como `verify-full`, pero el propio driver
   avisa de que en `pg` v9 adoptará la semántica de libpq, donde `prefer`
@@ -193,11 +245,12 @@ lugar de funcionar bien y filtrar en silencio. Contra una base local no aplica
   producción montada o un `pgbouncer` delante de Supabase—. Para esos comandos
   hace falta el permiso explícito (`SEED_DEMO_PERMITIR=1` / `BACKFILL_PERMITIR=1`),
   que es una decisión consciente en vez de un default silencioso.
-- Si la validación del certificado fallara contra tu proyecto de Supabase,
-  **no lo apagues con `sslmode=disable`** (eso vuelve al texto claro): descarga
-  el certificado raíz desde Supabase → *Settings → Database → SSL configuration*
-  y usa `sslmode=verify-full&sslrootcert=<ruta>`. `sslmode=no-verify` cifra pero
-  no valida: sirve como último recurso temporal, no como configuración final.
+- Si la validación siguiera fallando contra tu proyecto de Supabase, **no lo
+  apagues con `sslmode=disable`** (eso vuelve al texto claro) **ni con
+  `no-verify`**: lo que hay que revisar es que el certificado del repositorio
+  sea el que ese proyecto usa hoy (Supabase → *Settings → Database → SSL
+  configuration*) y que la ruta se resuelva desde el directorio de trabajo del
+  proceso.
 
 ### 3.5 Hasta dónde llegan los límites anti-abuso
 
@@ -240,18 +293,21 @@ lo que hace que las guardas anti-producción reconozcan dónde están.
 
    ```bash
    # ~/necesitouno-produccion.env  (chmod 600, FUERA del repo)
-   DATABASE_URL="postgresql://postgres:CLAVE@db.XXXX.supabase.co:5432/postgres?sslmode=require"
+   DATABASE_URL="postgresql://postgres:CLAVE@db.XXXX.supabase.co:5432/postgres?sslmode=verify-full&sslrootcert=certs/supabase-root-2021-ca.crt"
    ```
 
    ```bash
    umask 077 && touch ~/necesitouno-produccion.env   # la primera vez
    set -a && . ~/necesitouno-produccion.env && set +a
-   npx prisma migrate deploy
+   npx prisma migrate deploy      # DESDE LA RAÍZ DEL REPOSITORIO
    ```
 
    Supabase → *Connect* → *Direct connection* te da esa cadena (puerto `5432`);
-   agrégale `?sslmode=require` (§3.4). La de la aplicación (`:6543`, pooler) se
-   queda en Vercel.
+   agrégale el TLS de §3.4 — **`sslmode=require` a secas falla contra Supabase**.
+   La ruta del certificado es relativa al directorio desde el que corres el
+   comando: por eso `migrate deploy` se lanza desde la raíz del repositorio (o
+   pones una ruta absoluta en su lugar). La cadena de la aplicación (`:6543`,
+   pooler) se queda en Vercel.
 
    **Si ya la escribiste en la línea de comandos:** bórrala del historial
    (`history -d`, o edita `~/.zsh_history` y `~/.bash_history`) **y rota la
@@ -285,7 +341,10 @@ lo que hace que las guardas anti-producción reconozcan dónde están.
   tu máquina. Aun así: no lo intentes.
 - **`npx prisma migrate reset`** o cualquier `db push`: borran datos.
 - **Editar filas a mano** para hacer trabajo del panel. Aprobar, rechazar,
-  despublicar y borrar tienen su pantalla; el flujo ARCO completo es T-015.
+  despublicar y borrar tienen su pantalla (T-015). Lo que todavía NO tiene
+  pantalla es el acceso y la rectificación —entregarle al negocio una copia de
+  sus datos, corregirlos o quitar un campo—: es el renglón **E3-7** del backlog
+  y hasta entonces se atiende a mano, con cuidado y dejando constancia.
 
 ## 6. Tareas programadas (cron)
 
@@ -323,9 +382,15 @@ meses sin barrer y nadie se entera. En Vercel, los fallos de cron salen en
 Respuesta normal de cada una (solo conteos, nunca datos de nadie):
 
 ```json
-{"eliminados": 0, "fallidos": 0}
+{"eliminados": 0, "fallidos": 0, "cuposLimpiados": 0}
 {"barrido": true, "revisadas": 12, "huerfanas": 0, "borradas": 0, "enPeriodoDeGracia": 0, "ignoradas": 0, "noBorrables": 0}
 ```
+
+`cuposLimpiados` es lo otro que hace la purga: las marcas del cupo anti-abuso
+del panel (§3.5) que ya salieron de su ventana, más las que se podan cuando la
+tabla pasa de 5 000 filas. Va aparte a propósito: si esa limpieza falla, queda
+en el log pero **no** tumba la purga de los 90 días, que es la que tiene un
+compromiso publicado detrás.
 
 Si `fallidos` no es cero —algún registro que ya cumplió el plazo no se pudo
 eliminar—, la purga responde **500** aunque haya eliminado los demás. Es a
@@ -369,9 +434,11 @@ de datos no está en esta máquina (que es lo que distingue un *staging* real de
 un `npm run dev`).
 
 Cuando el almacenamiento no está configurado y el sistema está desplegado, el
-alta de un negocio **sigue funcionando**: lo que falla es la foto, y el vecino
-ve el aviso de que no se guardó, en vez de una ficha que promete una imagen que
-no existe. Lo único que se pierde son las fotos, y se pierde **en voz alta**.
+alta **sin foto sigue funcionando** con normalidad. El alta **con** foto se
+rechaza entera: el vecino ve *"No pudimos preparar tu foto. Intenta con otra."*
+y **no queda ninguna ficha creada** — ni siquiera una sin imagen. Es a
+propósito: media ficha guardada a espaldas de quien la mandó sería peor que
+pedirle que lo intente de nuevo. Se falla **en voz alta**, no a medias.
 
 **Y el borrado definitivo (ARCO) se niega a mentir.** Si una ficha tiene foto y
 el almacenamiento no se deja alcanzar —una llave rotada y no propagada, un
@@ -573,7 +640,11 @@ del lanzamiento:
    Declarado también en `PENDIENTES_OPERATIVOS_LEGALES`.
 2. **El encargado del tratamiento** sin nombrar en el aviso (ADR-004). Está
    declarado como pendiente operativo en el código; lo cierra E6-3.
-3. **El flujo ARCO completo (acceso y rectificación) en el panel:** T-015.
+3. **Acceso y rectificación desde el panel (lo que queda del flujo ARCO):**
+   renglón **E3-7** del backlog. Cancelación y oposición —despublicar y borrar—
+   ya son acciones del panel desde T-015 (E3-6); entregarle al negocio una copia
+   de sus datos y editarlos o quitar un campo de su ficha sigue haciéndose a
+   mano contra la base.
 4. **La CSP lleva `'unsafe-inline'` en `script-src`** (§8). Quitarlo exige un
    `nonce` por petición, y eso obliga a renderizar por petición **todas** las
    páginas, incluidas las legales, que hoy salen de la CDN. Se prefirió una CSP
@@ -608,7 +679,7 @@ del lanzamiento:
    driver sobre el que está montado todo este change (PostgreSQL por `pg`,
    sin motor binario). Cambiar la arquitectura para silenciar un aviso de una
    herramienta de desarrollo sería el peor negocio posible.
-8. **Las llamadas reales a Supabase Storage no están cubiertas por pruebas
+9. **Las llamadas reales a Supabase Storage no están cubiertas por pruebas
    automáticas**, solo el adaptador contra un `fetch` simulado. La red de
    verdad se comprueba en los pasos 10 y 11 de la prueba de humo (§9).
 9. **El token del enlace de gestión queda en el log de acceso de la

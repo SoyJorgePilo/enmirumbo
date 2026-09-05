@@ -82,9 +82,11 @@ function avisarConfiguracionAMediasUnaVez(queFalta: string): void {
   if (yaSeAvisoConfiguracion) return;
   yaSeAvisoConfiguracion = true;
   console.error(
-    `[fotos] configuración de Supabase Storage incompleta (${queFalta}): se usa el disco local. ` +
-      "En un hosting serverless eso significa que las fotos NO sobreviven un despliegue y que el " +
-      "borrado ARCO no borra de verdad (ver docs/despliegue.md §7).",
+    `[fotos] configuración de Supabase Storage incompleta (${queFalta}): NO se usa Supabase. ` +
+      "En tu máquina se cae al disco local, que ahí es lo correcto; en un despliegue —producción, " +
+      "o base que no está en esta máquina— el sitio NO acepta fotos y cada intento de guardar " +
+      "falla a la vista, en vez de escribir en un disco efímero donde las fotos no sobreviven un " +
+      "despliegue y el borrado ARCO no borra de verdad (ver docs/despliegue.md §7).",
   );
 }
 

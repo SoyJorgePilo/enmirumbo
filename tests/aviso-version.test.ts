@@ -322,9 +322,14 @@ describe("paginas-legales · el guardián ata la versión al texto", () => {
 
     // Y este change no agregó ninguna migración: estrenar versión es cambiar
     // un literal, no tocar el esquema (proposal, "modelo-datos no cambia").
+    // La tercera llegó al fusionar `main` (T-014, el enlace de gestión): no es
+    // de este change y por eso se lista aquí, en vez de aflojar la aserción a
+    // un `toContain` que dejaría entrar cualquier migración futura sin que
+    // nadie la mire.
     expect(sqls.map(({ nombre }) => nombre)).toEqual([
       "20260906000000_inicial",
       "20260907000000_agrega_cupos_compartidos",
+      "20260908000000_agrega_enlace_de_gestion",
     ]);
   });
 

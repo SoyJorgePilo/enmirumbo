@@ -1,11 +1,11 @@
 # T-020 · Avisar por correo al admin cuando haya registros pendientes
 
-**Estado:** pendiente <!-- pendiente | en-spec | en-desarrollo | en-review | hecho -->
+**Estado:** en-spec <!-- pendiente | en-spec | en-desarrollo | en-review | hecho -->
 **Prioridad:** P1
 **Épica:** E3 (docs/backlog.md)
 **Referencias PRD:** §6.3 (meta operativa de revisión <48h)
 **Depende de:** T-019
-**OpenSpec change:** —
+**OpenSpec change:** `agregar-aviso-diario-pendientes`
 **PR:** —
 
 ## Contexto

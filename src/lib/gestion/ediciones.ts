@@ -314,6 +314,38 @@ export async function aplicarEdicion(
   let desenlace: "aplicada" | "ficha-no-publicada";
   try {
     desenlace = await prisma.$transaction(async (tx) => {
+      // UN NÚMERO NUEVO NO ESTÁ VERIFICADO (hallazgo [C-1] de la etapa C de
+      // T-016). El formulario de edición no pide ninguna prueba de propiedad
+      // sobre el número que se escribe, así que conservar `numeroVerificadoEn`
+      // al cambiarlo haría que el panel afirmara —con el literal aprobado, al
+      // lado del número nuevo— una verificación que nunca ocurrió para ese
+      // número. La spec de `modelo-datos` dice que la marca sobrevive a las
+      // transiciones **porque el número no cambió**; aquí sí cambia, y su razón
+      // declarada deja de valer.
+      //
+      // Va ANTES de escribir `columnas` (que pisa `whatsapp`) y con las MISMAS
+      // dos condiciones que la escritura de la ficha, más `whatsapp distinto`:
+      //
+      //   - solo limpia cuando el número DE VERDAD cambia (editar el horario no
+      //     le cuesta la verificación a nadie);
+      //   - si la ficha ya no está publicada no afecta ninguna fila, igual que
+      //     la escritura de abajo, así que una edición que no se aplica tampoco
+      //     borra la marca;
+      //   - y al ir dentro de la misma transacción, si la edición se revierte
+      //     (`EdicionYaNoPendiente`) la marca vuelve con ella.
+      //
+      // Se hace con un `where` en vez de leer y comparar: así no hay ventana
+      // entre la lectura y la escritura. Volver a PEDIR código tras el cambio
+      // de número es otro asunto y queda fuera de este change.
+      await tx.negocio.updateMany({
+        where: {
+          id: edicion.negocioId,
+          estado: ESTADO_NEGOCIO_PUBLICADO,
+          whatsapp: { not: edicion.whatsapp },
+        },
+        data: { numeroVerificadoEn: null },
+      });
+
       const fichaEscrita = await tx.negocio.updateMany({
         where: { id: edicion.negocioId, estado: ESTADO_NEGOCIO_PUBLICADO },
         data: columnas,

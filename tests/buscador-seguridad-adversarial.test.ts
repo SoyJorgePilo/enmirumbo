@@ -794,9 +794,14 @@ describe("adversarial C · ningún camino de escritura se salta datosDeBusqueda"
     // enlace y su fecha; el nombre y "¿qué ofreces?" no los toca. Quien SÍ los
     // escribe —`src/lib/gestion/ediciones.ts`, al aplicar una edición— importa
     // `datosDeBusqueda` y recalcula, así que no está exento.
+    // Y la misma excepción, por la misma razón, para la verificación por SMS
+    // (T-016): `flujo.ts` solo escribe `numeroVerificadoEn` sobre una ficha que
+    // ya existe. No toca el nombre ni "¿qué ofreces?", así que no hay texto de
+    // búsqueda que recalcular.
     const exentos = [
       path.join(raiz, "src/lib/admin/transiciones.ts"),
       path.join(raiz, "src/lib/gestion/enlace.ts"),
+      path.join(raiz, "src/lib/verificacion/flujo.ts"),
     ];
     for (const archivo of escritores) {
       const codigo = readFileSync(archivo, "utf8");

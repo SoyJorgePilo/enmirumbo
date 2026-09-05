@@ -35,6 +35,7 @@ import ReportarNegocioPage from "../src/app/(publico)/negocio/[ficha]/reportar/p
 import NotFoundPage from "../src/app/not-found";
 import Home from "../src/app/(publico)/page";
 import TerminosPage from "../src/app/(publico)/terminos/page";
+import RegistroVerificarPage from "../src/app/(publico)/registro/verificar/page";
 import { Footer } from "../src/components/footer";
 import { Header } from "../src/components/header";
 import {
@@ -44,6 +45,14 @@ import {
   VARIABLE_URL_SITIO,
 } from "../src/lib/admin/config";
 import { NOMBRE_COOKIE_SESION, crearValorDeSesion } from "../src/lib/admin/sesion";
+import {
+  VARIABLE_BANDERA,
+  VARIABLE_SECRETO,
+  VARIABLE_TWILIO_AUTH_TOKEN,
+  VARIABLE_TWILIO_SERVICE_SID,
+  VARIABLE_TWILIO_SID,
+} from "../src/lib/verificacion/config";
+import { COOKIE_PASO, crearPasoInicial, firmarPaso } from "../src/lib/verificacion/paso";
 import { construirSegmentoFicha } from "../src/lib/ficha-url";
 import {
   type CatalogosDeLaRaiz,
@@ -151,8 +160,17 @@ let htmlColaAdmin = "";
 let htmlDetalleAdmin = "";
 let htmlAprobadoAdmin = "";
 let idsEnRevision: string[] = [];
+/**
+ * Pantalla "Confirma tu número" (T-016): entra a la misma revisión de enlaces
+ * y de `action` que el resto del sitio. Solo se puede pintar con la capacidad
+ * ENCENDIDA y con la cookie de paso firmada puesta — que es exactamente lo que
+ * fija el fail-safe (`tests/verificacion-failsafe.test.ts` prueba el 404).
+ */
+let htmlVerificar = "";
 
 const SECRETO_PANEL = "s".repeat(LONGITUD_MINIMA_SECRETO);
+/** Credenciales de mentira: no sirven para nada fuera de esta suite. */
+const SECRETO_VERIFICACION = "secreto-de-pruebas-de-32-caracteres-o-mas";
 const URL_SITIO_PANEL = "https://enmirumbo.example";
 
 beforeAll(async () => {
@@ -279,6 +297,31 @@ beforeAll(async () => {
     searchParams: Promise.resolve({}),
   });
   htmlAprobadoAdmin = renderToStaticMarkup(createElement(() => aprobado));
+
+  // Pantalla del código (T-016): capacidad encendida y cookie de paso puesta.
+  process.env[VARIABLE_BANDERA] = "1";
+  process.env[VARIABLE_TWILIO_SID] = "AC-de-mentiras-000";
+  process.env[VARIABLE_TWILIO_AUTH_TOKEN] = "token-de-mentiras-000";
+  process.env[VARIABLE_TWILIO_SERVICE_SID] = "VA-de-mentiras-000";
+  process.env[VARIABLE_SECRETO] = SECRETO_VERIFICACION;
+  peticion.cookies[COOKIE_PASO] = firmarPaso(
+    crearPasoInicial(idsEnRevision[0], "7719995099"),
+    SECRETO_VERIFICACION,
+  );
+  const verificar = await RegistroVerificarPage({
+    searchParams: Promise.resolve({}),
+  } as unknown as Parameters<typeof RegistroVerificarPage>[0]);
+  htmlVerificar = renderToStaticMarkup(createElement(() => verificar));
+  for (const variable of [
+    VARIABLE_BANDERA,
+    VARIABLE_TWILIO_SID,
+    VARIABLE_TWILIO_AUTH_TOKEN,
+    VARIABLE_TWILIO_SERVICE_SID,
+    VARIABLE_SECRETO,
+  ]) {
+    delete process.env[variable];
+  }
+  delete peticion.cookies[COOKIE_PASO];
 });
 
 afterAll(async () => {
@@ -480,6 +523,8 @@ describe("layout-base · los grupos de rutas no cambian ninguna URL", () => {
       "/",
       "/registro",
       "/registro/gracias",
+      // Change `agregar-verificacion-sms-tras-bandera` (T-016).
+      "/registro/verificar",
       "/buscar",
       "/aviso-de-privacidad",
       "/terminos",
@@ -601,6 +646,10 @@ describe("layout-base · enlaces internos y externos de las páginas servidas", 
     // Las dos páginas legales se enlazan entre sí: ninguna es un enlace muerto.
     expect(problemasDeEnlaces(htmlAvisoPrivacidad)).toEqual([]);
     expect(problemasDeEnlaces(htmlTerminos)).toEqual([]);
+    // Pantalla del código (change `agregar-verificacion-sms-tras-bandera`):
+    // su única salida es "Mejor luego, mi registro ya quedó", que lleva a la
+    // pantalla de gracias de siempre.
+    expect(problemasDeEnlaces(htmlVerificar)).toEqual([]);
   });
 
   // directorio-publico · Requirements "Página indexable por giro…" y "Desde la

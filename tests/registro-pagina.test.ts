@@ -38,6 +38,19 @@ const raiz = join(__dirname, "..");
 const fuente = (ruta: string) => readFileSync(join(raiz, ruta), "utf8");
 const normalizado = (html: string) => html.replace(/\s+/g, " ");
 
+/**
+ * La pantalla de gracias es `async` desde T-016: lee `searchParams` para saber
+ * si pinta la línea de confirmación del número. `parametros` vacío es la
+ * pantalla de SIEMPRE —la de la bandera apagada—, que es la que estas pruebas
+ * comparan contra el mensaje literal del PRD §6.1.
+ */
+async function renderGracias(parametros: Record<string, string> = {}): Promise<string> {
+  const resuelta = await RegistroGraciasPage({
+    searchParams: Promise.resolve(parametros),
+  } as unknown as Parameters<typeof RegistroGraciasPage>[0]);
+  return renderToStaticMarkup(createElement(() => resuelta));
+}
+
 let htmlRegistro = "";
 
 beforeAll(async () => {
@@ -500,9 +513,10 @@ describe("registro-negocio · el registro funciona sin JavaScript de cliente", (
 // requirements "El embudo del registro se mide con las vistas de sus dos
 // pantallas" y "Ningún dato del formulario viaja a la medición" (tasks.md #19).
 describe("registro-negocio · el embudo se mide con vistas, no con eventos", () => {
-  const htmlGraciasMedicion = renderToStaticMarkup(
-    createElement(RegistroGraciasPage),
-  );
+  let htmlGraciasMedicion: string;
+  beforeAll(async () => {
+    htmlGraciasMedicion = await renderGracias();
+  });
 
   // Scenario: sin instrumentación en el botón
   it('el botón "Enviar" no lleva ningún atributo de evento', () => {
@@ -545,7 +559,10 @@ describe("registro-negocio · el embudo se mide con vistas, no con eventos", () 
 });
 
 describe("registro-negocio · pantalla de gracias", () => {
-  const htmlGracias = renderToStaticMarkup(createElement(RegistroGraciasPage));
+  let htmlGracias: string;
+  beforeAll(async () => {
+    htmlGracias = await renderGracias();
+  });
 
   // Scenario: registro exitoso (mensaje literal del PRD §6.1)
   it("muestra el mensaje literal del PRD", () => {

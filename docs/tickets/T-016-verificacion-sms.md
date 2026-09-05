@@ -6,7 +6,7 @@
 **Referencias PRD:** §6.3 (la revisión manual no cambia de dueño), §6.6 (v0.9), §8 (LFPDPPP: el número ya es dato tratado)
 **Depende de:** T-003 (formulario), T-005 (panel), T-013 (variables de despliegue)
 **OpenSpec change:** `agregar-verificacion-sms-tras-bandera`
-**PR:** —
+**PR:** [#27](https://github.com/SoyJorgePilo/enmirumbo/pull/27)
 
 ## Contexto
 

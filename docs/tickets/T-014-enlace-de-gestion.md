@@ -6,7 +6,7 @@
 **Referencias PRD:** §6.4, §7 Flujos C y D
 **Depende de:** T-005 (panel), T-003 (formulario)
 **OpenSpec change:** `agregar-enlace-de-gestion`
-**PR:** —
+**PR:** [#24](https://github.com/SoyJorgePilo/enmirumbo/pull/24)
 
 ## Contexto
 

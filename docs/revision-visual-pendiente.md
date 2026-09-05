@@ -28,6 +28,8 @@ archivados, PRs #3 a #16.
   libre en escritorio. Superficie sensible (formulario de registro) → entra por
   pipeline, no por ruta corta.
 - Gestión de negocios publicados desde el panel → ya es ticket **T-018**.
+- [ ] Tras el merge de T-019: el wordmark "EnMiRumbo" en el encabezado a 390px —
+  que no se parta ni se sienta apretado (nota de la spec del rebrand).
 
 ---
 

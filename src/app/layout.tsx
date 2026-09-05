@@ -34,7 +34,14 @@ export const metadata: Metadata = metadataDelSitio();
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="es-MX" className="h-full antialiased">
-      <body className="flex min-h-full flex-col bg-fondo font-sans text-tinta">
+      {/*
+        `min-h-dvh` y no `min-h-full`: en Android la barra del navegador se
+        colapsa al hacer scroll y el viewport real crece; con `100%` (que mide
+        el viewport con la barra visible) quedaba una franja blanca bajo el pie
+        (bug reportado por un vecino en producción, 2026-09-04). `dvh` sigue el
+        tamaño dinámico y el pie siempre alcanza el borde.
+      */}
+      <body className="flex min-h-dvh flex-col bg-fondo font-sans text-tinta">
         <Header />
         <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 py-8 sm:px-6">
           {children}

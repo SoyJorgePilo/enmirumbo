@@ -76,7 +76,13 @@ export type RegistroAdminDetalle = {
    * lo dice, no inventa una versión.
    */
   consintioAvisoVersion: string | null;
-  /** Reaceptación: cuándo y qué versión, si un reenvío aceptó otra distinta. */
+  /**
+   * Reaceptación: cuándo y qué versión, si un reenvío aceptó una versión
+   * POSTERIOR a la de la constancia original (hallazgos MEDIO-3 y MEDIO-4 de
+   * T-012; ver `procesarRegistro`). No es "otra distinta": con una versión más
+   * vieja —un rollback del despliegue— o con una constancia sin versión no se
+   * anota nada, y el panel sigue diciendo "versión no registrada".
+   */
   reconsintioAvisoEn: Date | null;
   reconsintioAvisoVersion: string | null;
   rechazadoEn: Date | null;

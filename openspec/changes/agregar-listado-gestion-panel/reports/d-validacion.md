@@ -146,6 +146,16 @@ compuertas sobre el árbol ya fusionado. Los dos archivos que main y este change
 tocan a la vez —`src/lib/admin/consultas.ts` (comentario de la reaceptación) y
 `docs/metricas-pipeline.md`— se fusionaron sin conflicto de contenido.
 
+Compuertas sobre el árbol ya fusionado: lint y `tsc` verdes, `build` verde con
+`/admin/negocios` dinámica, y `npm test` en **2 902 verdes, 2 skipped y las 2
+rojas heredadas de siempre**. (Una corrida intermedia salió con 23 archivos en
+rojo: la base local `t018` se había caído a media corrida —`No se pudo conectar
+a la base de pruebas … :51226`— y al levantarla otra vez el resultado volvió a
+ser el de arriba. Queda anotado porque es exactamente la clase de falso rojo
+que este proyecto ya conoce del motor local.)
+
+PR abierto: [#23](https://github.com/SoyJorgePilo/enmirumbo/pull/23).
+
 ## Lo que sigue siendo del humano
 
 - Mergear el PR (punto de control humano; el CI de GitHub Actions debe estar en

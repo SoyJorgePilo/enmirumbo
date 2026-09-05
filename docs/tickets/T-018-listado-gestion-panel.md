@@ -6,7 +6,7 @@
 **Referencias PRD:** §6.3
 **Depende de:** T-014
 **OpenSpec change:** `agregar-listado-gestion-panel`
-**PR:** —
+**PR:** [#23](https://github.com/SoyJorgePilo/enmirumbo/pull/23)
 
 ## Contexto
 

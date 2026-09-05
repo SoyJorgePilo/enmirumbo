@@ -12,6 +12,7 @@
  * de prueba, igual que `procesarRegistro`. Nada de lo que lee se escribe en
  * el log.
  */
+import { FILTRO_TODOS, type FiltroEstadoListado } from "@/lib/admin/listado-parametros";
 import { ESTADO_NEGOCIO_DEFAULT, type EstadoNegocio, type OrigenNegocio } from "@/lib/negocio";
 
 /** Meta operativa del PRD §10: responder cada registro en menos de 48 horas. */
@@ -97,11 +98,41 @@ export type RegistroAdminDetalle = {
   girosIds: number[];
 };
 
+/**
+ * Renglón del listado "Todos los negocios" (change `agregar-listado-
+ * gestion-panel`, tasks.md #3): lo mínimo para reconocer una ficha y llegar
+ * a ella, nada más — ni WhatsApp, ni teléfono, ni dirección, ni foto, ni
+ * motivos (requirement "El listado hereda... la mínima exposición de datos
+ * del panel").
+ */
+export type RegistroListadoItem = {
+  id: string;
+  nombre: string;
+  /** La del catálogo o el texto libre que capturó, mismo criterio que la cola. */
+  coloniaTexto: string;
+  registradoEn: Date;
+  estado: EstadoNegocio;
+  /** Mismo criterio que `RegistroColaItem.vieneDeDespublicacion`. */
+  vieneDeDespublicacion: boolean;
+};
+
+export type ParametrosListadoDeNegocios = {
+  estado: FiltroEstadoListado;
+  pagina: number;
+  porPagina: number;
+};
+
+export type ResultadoListadoDeNegocios = {
+  registros: RegistroListadoItem[];
+  total: number;
+};
+
 /** Lo poco que estas consultas necesitan de Prisma (facilita probarlas). */
 export type ClientePanel = {
   negocio: {
     findMany(args: unknown): Promise<unknown[]>;
     findUnique(args: unknown): Promise<unknown>;
+    count(args: unknown): Promise<number>;
   };
 };
 
@@ -110,6 +141,16 @@ type FilaCola = {
   nombre: string;
   registradoEn: Date;
   despublicadoEn: Date | null;
+  coloniaOtra: string | null;
+  colonia: { nombre: string } | null;
+};
+
+type FilaListado = {
+  id: string;
+  nombre: string;
+  registradoEn: Date;
+  despublicadoEn: Date | null;
+  estado: string;
   coloniaOtra: string | null;
   colonia: { nombre: string } | null;
 };
@@ -136,6 +177,28 @@ type FilaDetalle = FilaCola & {
   categoria: { nombre: string };
   giros: Array<{ id: number }>;
 };
+
+/**
+ * La colonia que se le enseña al admin: la del catálogo si ya está
+ * normalizada, si no el texto libre que capturó el negocio. Una sola función
+ * para que la cola y el listado digan lo mismo del mismo registro.
+ */
+function textoDeColonia(fila: {
+  colonia: { nombre: string } | null;
+  coloniaOtra: string | null;
+}): string {
+  return fila.colonia?.nombre ?? fila.coloniaOtra?.trim() ?? "Colonia no capturada";
+}
+
+/**
+ * ¿Este registro llegó a la cola por una despublicación? Mismo criterio para
+ * la cola y para la etiqueta del listado: `despublicadoEn` posterior a
+ * `registradoEn` (si el negocio reenvió después, lo último que le pasó fue el
+ * reenvío y la etiqueta no aplica).
+ */
+function vieneDeDespublicacion(registradoEn: Date, despublicadoEn: Date | null): boolean {
+  return despublicadoEn !== null && despublicadoEn.getTime() > registradoEn.getTime();
+}
 
 /** Horas completas que lleva esperando un registro. */
 function horasEsperando(registradoEn: Date, ahora: Date): number {
@@ -224,14 +287,76 @@ export async function obtenerColaDeRevision(
     .map(({ fila, entrada }) => ({
       id: fila.id,
       nombre: fila.nombre,
-      coloniaTexto:
-        fila.colonia?.nombre ?? fila.coloniaOtra?.trim() ?? "Colonia no capturada",
+      coloniaTexto: textoDeColonia(fila),
       esperaTexto: textoEspera(entrada, ahora),
       atrasado: estaAtrasado(entrada, ahora),
-      vieneDeDespublicacion:
-        fila.despublicadoEn !== null &&
-        fila.despublicadoEn.getTime() > fila.registradoEn.getTime(),
+      vieneDeDespublicacion: vieneDeDespublicacion(fila.registradoEn, fila.despublicadoEn),
     }));
+}
+
+/**
+ * Una página del listado "Todos los negocios" y el total de su filtro (change
+ * `agregar-listado-gestion-panel`, requirements de la vista, del filtro y de
+ * la paginación).
+ *
+ * Tres decisiones que se leen aquí:
+ *
+ * - **El corte lo hace la base.** `skip`/`take` van en la consulta, no en un
+ *   `slice` posterior: el HTML que recibe el admin no puede crecer con el
+ *   total de fichas de la base (design.md §3). El total se pide aparte con un
+ *   `count` del mismo `where`, que también cuenta la base.
+ * - **El orden es una columna**, `registradoEn` descendente, con el
+ *   identificador como desempate. Sin desempate, dos filas con la misma fecha
+ *   pueden intercambiarse entre consultas y un registro aparecería dos veces
+ *   —o desaparecería— al pasar de página. No es el reloj de la cola
+ *   (`max(registradoEn, despublicadoEn)`, calculado en memoria): ese no es una
+ *   columna y no se puede paginar en la base (design.md §2).
+ * - **El `select` es la lista de lo que se pinta y nada más**: ni WhatsApp, ni
+ *   teléfono, ni dirección, ni foto, ni motivos. `despublicadoEn` entra porque
+ *   la etiqueta "Ya estaba publicada, la despublicaste" se deriva de él, y no
+ *   sale de esta función (se va como el booleano `vieneDeDespublicacion`).
+ *
+ * `pagina` llega ya normalizada del borde (`normalizarPagina`, que además la
+ * recorta a `PAGINA_MAXIMA` para que el `skip` no se salga del entero que la
+ * base admite). Una página más allá de la última no es un error: devuelve
+ * cero renglones con el total intacto, que es lo que la pantalla necesita
+ * para ofrecer "Ver más nuevos".
+ */
+export async function obtenerListadoDeNegocios(
+  prisma: ClientePanel,
+  { estado, pagina, porPagina }: ParametrosListadoDeNegocios,
+): Promise<ResultadoListadoDeNegocios> {
+  const where = estado === FILTRO_TODOS ? {} : { estado };
+
+  const total = await prisma.negocio.count({ where });
+
+  const filas = (await prisma.negocio.findMany({
+    where,
+    orderBy: [{ registradoEn: "desc" }, { id: "desc" }],
+    skip: (pagina - 1) * porPagina,
+    take: porPagina,
+    select: {
+      id: true,
+      nombre: true,
+      registradoEn: true,
+      despublicadoEn: true,
+      estado: true,
+      coloniaOtra: true,
+      colonia: { select: { nombre: true } },
+    },
+  })) as FilaListado[];
+
+  return {
+    registros: filas.map((fila) => ({
+      id: fila.id,
+      nombre: fila.nombre,
+      coloniaTexto: textoDeColonia(fila),
+      registradoEn: fila.registradoEn,
+      estado: fila.estado as EstadoNegocio,
+      vieneDeDespublicacion: vieneDeDespublicacion(fila.registradoEn, fila.despublicadoEn),
+    })),
+    total,
+  };
 }
 
 /**

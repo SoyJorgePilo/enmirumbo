@@ -15,6 +15,7 @@ vi.mock("next/navigation", async () => {
 
 import { seedCatalogos } from "../prisma/seed";
 import ColaAdminPage from "../src/app/admin/cola/page";
+import NegociosAdminPage from "../src/app/admin/negocios/page";
 import { aprobarRegistroAccion } from "../src/app/admin/registros/[id]/accion-aprobar";
 import { borrarRegistroAccion } from "../src/app/admin/registros/[id]/accion-borrar";
 import { despublicarRegistroAccion } from "../src/app/admin/registros/[id]/accion-despublicar";
@@ -637,6 +638,8 @@ describe("adversarial · la guarda se invoca antes de leer o escribir nada", () 
     "obtenerPrisma()",
     "obtenerRegistroParaPanel(",
     "obtenerColaDeRevision(",
+    // Listado "Todos los negocios" (change `agregar-listado-gestion-panel`).
+    "obtenerListadoDeNegocios(",
     "aprobarRegistro(",
     "rechazarRegistro(",
     "despublicarFicha(",
@@ -1424,6 +1427,212 @@ describe("adversarial · reportes del panel sin cookie de sesión", () => {
       if (ruta !== declaracion) {
         expect(fuente, ruta).not.toContain("ESTADO_REPORTE_ATENDIDO");
       }
+    }
+  });
+});
+
+// ── Listado "Todos los negocios" (change agregar-listado-gestion-panel) ─────
+
+describe("adversarial · el listado del panel bajo entrada hostil", () => {
+  const NOMBRE = "Refaccionaria Ficticia El Tornillo";
+  const WHATSAPP = "7719996900";
+  const TELEFONO = "7717776900";
+  const DIRECCION = "Andador Ficticio 4, sin número";
+  const MOTIVO_RECHAZO = "Motivo ficticio de rechazo";
+  const MOTIVO_DESPUBLICACION = "Motivo ficticio de despublicación";
+
+  /** Registro con TODO lo personal capturado: el listado no puede pintarlo. */
+  async function fichaConTodo(): Promise<string> {
+    const creado = await prisma.negocio.create({
+      data: {
+        nombre: NOMBRE,
+        categoriaId,
+        coloniaId,
+        whatsapp: WHATSAPP,
+        telefonoFijo: TELEFONO,
+        direccion: DIRECCION,
+        queOfreces: "Refacciones inventadas para carro y moto.",
+        fotoClave: "ficticia/clave-de-prueba.webp",
+        estado: "rechazado",
+        motivoRechazo: MOTIVO_RECHAZO,
+        rechazadoEn: new Date(),
+        despublicadoEn: new Date(),
+        motivoDespublicacion: MOTIVO_DESPUBLICACION,
+        consintioAvisoEn: new Date(),
+      },
+    });
+    return creado.id;
+  }
+
+  const abrirListado = (searchParams: Record<string, string | string[]> = {}) =>
+    render(
+      NegociosAdminPage({
+        params: Promise.resolve({}),
+        searchParams: Promise.resolve(searchParams),
+      } as never) as Promise<React.ReactElement>,
+    );
+
+  /** Querystrings manoseados que un curioso con sesión sí puede teclear. */
+  const QUERYSTRINGS_HOSTILES: Array<[string, Record<string, string | string[]>]> = [
+    ["estado inventado", { estado: "despublicado" }],
+    ["estado repetido", { estado: ["publicado", "rechazado"] }],
+    ["estado con inyección SQL", { estado: "publicado' OR '1'='1" }],
+    ["estado con etiqueta HTML", { estado: '<img src=x onerror="alert(1)">' }],
+    ["página cero", { pagina: "0" }],
+    ["página negativa", { pagina: "-99999" }],
+    ["página con letras", { pagina: "dos" }],
+    ["página repetida", { pagina: ["2", "3"] }],
+    ["página astronómica", { pagina: "999999999999999999999" }],
+    ["página con inyección SQL", { pagina: "1; DROP TABLE negocio" }],
+    ["los dos manoseados", { estado: ["", "x"], pagina: "-0.5" }],
+    ["parámetro que no existe", { ordenar: "whatsapp", campos: "*" }],
+  ];
+
+  // Requirement: "Un valor de `estado` que no se reconozca… DEBE tratarse como
+  // 'Todos', sin error del servidor". Y la página fuera de rango, igual.
+  it.each(QUERYSTRINGS_HOSTILES)(
+    "con sesión, %s se responde sin error y sin devolver el parámetro",
+    async (_caso, searchParams) => {
+      await fichaConTodo();
+      conSesion();
+
+      const html = await abrirListado(searchParams);
+      expect(html).toContain("Todos los negocios");
+      // Nada de lo tecleado se le devuelve al navegador (ni escapado).
+      expect(sinScriptsDeReact(html)).not.toContain("onerror");
+      expect(html).not.toContain("DROP TABLE");
+      expect(html).not.toContain("OR '1'='1");
+      // Y la base sigue intacta: la pantalla es de solo lectura.
+      expect(await prisma.negocio.count()).toBe(1);
+    },
+  );
+
+  // Scenario: nada se escribe desde el listado
+  it("ninguna petición contra el listado cambia un solo dato", async () => {
+    const id = await fichaConTodo();
+    const antes = await prisma.negocio.findUniqueOrThrow({ where: { id } });
+
+    conSesion();
+    for (const [, searchParams] of QUERYSTRINGS_HOSTILES) {
+      await abrirListado(searchParams);
+    }
+
+    const despues = await prisma.negocio.findUniqueOrThrow({ where: { id } });
+    expect(despues).toEqual(antes);
+    // La pantalla tampoco sabe escribir: no hay ninguna Server Action ahí.
+    const codigo = readFileSync(join(raiz, "src/app/admin/negocios/page.tsx"), "utf8");
+    expect(codigo).not.toContain("use server");
+    expect(codigo).not.toContain("action=");
+    expect(codigo).not.toContain("prisma.negocio.update");
+  });
+
+  // Scenario: listado sin sesión
+  it.each([
+    ["sin querystring", {}],
+    ["con filtro y página", { estado: "publicado", pagina: "3" }],
+    ["con parámetros manoseados", { estado: ["a", "b"], pagina: "-1" }],
+  ])("sin cookie %s manda al acceso, indistinguible de una base vacía", async (_caso, searchParams) => {
+    const id = await fichaConTodo();
+    reiniciarPeticion();
+
+    const destino = await urlDeRedireccion(() =>
+      abrirListado(searchParams as Record<string, string | string[]>),
+    );
+    expect(destino).toBe("/admin");
+    for (const dato of [NOMBRE, WHATSAPP, TELEFONO, DIRECCION, id, "Rechazado"]) {
+      expect(destino).not.toContain(dato);
+    }
+
+    // Y con la base vacía la respuesta es EXACTAMENTE la misma.
+    await prisma.negocio.deleteMany();
+    expect(await urlDeRedireccion(() => abrirListado(searchParams as never))).toBe(destino);
+  });
+
+  it("una cookie caducada o manipulada vale lo mismo que ninguna", async () => {
+    await fichaConTodo();
+    for (const valor of [
+      `${Date.now() + 100000}.firma-inventada`,
+      `${Date.now() - 100000}.${crearValorDeSesion(SECRETO).split(".")[1]}`,
+      "sin-punto-ni-firma",
+      "",
+    ]) {
+      reiniciarPeticion();
+      peticion.cookies[NOMBRE_COOKIE_SESION] = valor;
+      expect(await urlDeRedireccion(() => abrirListado()), valor).toBe("/admin");
+    }
+  });
+
+  // Requirement: "Nada de lo que muestra el listado DEBE escribirse en el log
+  // del servidor" (tasks.md #12).
+  it("cargar el listado no escribe un solo dato en el log", async () => {
+    const id = await fichaConTodo();
+    const capturado: string[] = [];
+    for (const nivel of ["log", "warn", "error", "info", "debug"] as const) {
+      vi.spyOn(console, nivel).mockImplementation((...args: unknown[]) => {
+        capturado.push(args.map(String).join(" "));
+      });
+    }
+
+    conSesion();
+    await abrirListado();
+    await abrirListado({ estado: "rechazado", pagina: "2" });
+    reiniciarPeticion();
+    await urlDeRedireccion(() => abrirListado());
+
+    const log = capturado.join("\n");
+    for (const dato of [
+      NOMBRE,
+      WHATSAPP,
+      TELEFONO,
+      DIRECCION,
+      MOTIVO_RECHAZO,
+      MOTIVO_DESPUBLICACION,
+      id,
+    ]) {
+      expect(log).not.toContain(dato);
+    }
+  });
+
+  // Scenario: el listado no pinta más datos de los necesarios
+  it("el HTML del listado no trae ningún dato personal de más", async () => {
+    await fichaConTodo();
+    conSesion();
+
+    const html = await abrirListado();
+    expect(html).toContain(NOMBRE); // el nombre sí: es cómo se reconoce la ficha
+    for (const dato of [
+      WHATSAPP,
+      TELEFONO,
+      DIRECCION,
+      MOTIVO_RECHAZO,
+      MOTIVO_DESPUBLICACION,
+      "clave-de-prueba",
+      "wa.me",
+    ]) {
+      expect(html, dato).not.toContain(dato);
+    }
+  });
+
+  // Requirement: "El filtro y la página son lo único que viaja en la URL de
+  // esta pantalla: ningún dato personal DEBE ir en el querystring".
+  it("ninguna URL que pinta el listado lleva un identificador ni un dato personal", async () => {
+    const id = await fichaConTodo();
+    conSesion();
+
+    const html = await abrirListado({ estado: "rechazado" });
+    const hrefs = [...html.matchAll(/href="([^"]*)"/g)].map((m) =>
+      m[1].replaceAll("&amp;", "&"),
+    );
+    for (const href of hrefs) {
+      const url = new URL(href, URL_SITIO);
+      for (const [clave, valor] of url.searchParams) {
+        expect(["estado", "pagina"], href).toContain(clave);
+        expect(valor).not.toContain(id);
+        expect(valor).not.toContain(NOMBRE);
+      }
+      // El identificador solo puede ir en la RUTA del detalle, nunca en el
+      // querystring del listado.
+      if (href.includes(id)) expect(href).toBe(`/admin/registros/${id}`);
     }
   });
 });

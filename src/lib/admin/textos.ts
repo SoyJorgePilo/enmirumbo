@@ -6,6 +6,11 @@
  * (CLAUDE.md). Módulo puro: sin acceso a datos, sin lectura de sesión ni de
  * variables de entorno.
  */
+import {
+  ESTADO_NEGOCIO_PUBLICADO,
+  ESTADO_NEGOCIO_RECHAZADO,
+  type EstadoNegocio,
+} from "@/lib/negocio";
 
 // ── Acceso (requirement "Acceso al panel...") ───────────────────────────────
 export const TEXTO_ENCABEZADO_ACCESO = "Panel de revisión";
@@ -180,3 +185,55 @@ export const TEXTO_REPORTES_SIN_ATENDER_ENCABEZADO = "Reportes sin atender";
 export const BOTON_MARCAR_ATENDIDO = "Marcar como atendido";
 export const MENSAJE_REPORTE_ATENDIDO = "Reporte atendido.";
 export const MENSAJE_REPORTE_YA_ATENDIDO = "Este reporte ya lo habías atendido.";
+
+// ── Listado "Todos los negocios" (change agregar-listado-gestion-panel) ────
+
+export const TEXTO_NEGOCIOS_ENCABEZADO = "Todos los negocios";
+export const TEXTO_VER_TODOS_LOS_NEGOCIOS = "Ver todos los negocios";
+export const TEXTO_VER_DETALLE = "Ver detalle";
+
+export const TEXTO_FILTRAR_POR_ESTADO = "Filtrar por estado";
+export const TEXTO_FILTRO_TODOS = "Todos";
+export const TEXTO_FILTRO_EN_REVISION = "En revisión";
+export const TEXTO_FILTRO_PUBLICADOS = "Publicados";
+export const TEXTO_FILTRO_RECHAZADOS = "Rechazados";
+
+/** Estado escrito con palabras, tal cual lo pinta cada renglón del listado. */
+export function textoEstadoNegocio(estado: EstadoNegocio): string {
+  if (estado === ESTADO_NEGOCIO_PUBLICADO) return "Publicado";
+  if (estado === ESTADO_NEGOCIO_RECHAZADO) return "Rechazado";
+  return "En revisión";
+}
+
+/**
+ * "Se registró el 3 de septiembre de 2026" (delta `revision-admin`, ejemplo
+ * literal del requirement de la vista). El formato de fecha completa —día,
+ * mes en palabras, año— no tiene helper propio todavía en el panel
+ * (`detalle-registro.tsx` usa un formato corto con hora, pensado para el
+ * dato interno, no para el renglón de una lista); este es nuevo a propósito.
+ */
+export function textoFechaDeRegistro(registradoEn: Date): string {
+  const fecha = new Intl.DateTimeFormat("es-MX", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(registradoEn);
+  return `Se registró el ${fecha}`;
+}
+
+export const TEXTO_LISTADO_VACIO = "Todavía no hay negocios registrados.";
+export const TEXTO_FILTRO_SIN_RESULTADOS = "No hay negocios con ese estado.";
+
+/** "1 negocio en esta lista" / "<n> negocios en esta lista". */
+export function textoConteoNegociosListado(cantidad: number): string {
+  const plural = cantidad === 1 ? "negocio" : "negocios";
+  return `${cantidad} ${plural} en esta lista`;
+}
+
+export const TEXTO_VER_MAS_ANTIGUOS = "Ver más antiguos";
+export const TEXTO_VER_MAS_NUEVOS = "Ver más nuevos";
+
+/** "Página 2 de 5". */
+export function textoPaginaDe(paginaActual: number, totalPaginas: number): string {
+  return `Página ${paginaActual} de ${totalPaginas}`;
+}

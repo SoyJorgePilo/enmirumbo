@@ -299,6 +299,11 @@ describe("directorio-publico · la página de resultados no es indexable (tasks 
       join(raiz, "src/app/(publico)/negocio/[ficha]/reportar/gracias/page.tsx"),
       join(raiz, "src/app/api/tareas/purgar-rechazados/route.ts"),
       join(raiz, "src/app/api/tareas/barrer-fotos-huerfanas/route.ts"),
+      // Y el change `agregar-verificacion-sms-tras-bandera` (T-016) suma la
+      // pantalla del código: la spec `registro-negocio` exige que NO sea
+      // indexable y que no aparezca en el sitemap, igual que
+      // `/registro/gracias`.
+      join(raiz, "src/app/(publico)/registro/verificar/page.tsx"),
     ];
     const paginas = archivosDe(join(raiz, "src/app")).filter(
       (ruta) =>

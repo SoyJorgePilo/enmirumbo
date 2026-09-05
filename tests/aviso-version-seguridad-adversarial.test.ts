@@ -476,7 +476,7 @@ describe("adversarial · la versión del aviso consentido", () => {
       envio({ whatsapp, [CAMPO_TRAMPA]: "http://spam.ficticio.test" }),
     );
 
-    expect(resultado).toEqual({ exito: true });
+    expect(resultado).toMatchObject({ exito: true });
     const despues = await prisma.negocio.findUniqueOrThrow({ where: { whatsapp } });
     expect(despues.estado).toBe("rechazado");
     expect(despues.reconsintioAvisoEn).toBeNull();
@@ -517,7 +517,7 @@ describe("adversarial · la versión del aviso consentido", () => {
     });
 
     const resultado = await procesar(envio({ whatsapp }));
-    expect(resultado).toEqual({ exito: true });
+    expect(resultado).toMatchObject({ exito: true });
 
     const despues = await prisma.negocio.findUniqueOrThrow({ where: { whatsapp } });
     // El reenvío entra (vuelve a la cola) pero la evidencia no se inventa.
@@ -538,7 +538,7 @@ describe("adversarial · la versión del aviso consentido", () => {
     const previa = await fichaPrevia(whatsapp, "rechazado", { version: null });
 
     const resultado = await procesar(envio({ whatsapp, nombre: "Cerrajería Ficticia La Intrusa" }));
-    expect(resultado).toEqual({ exito: true });
+    expect(resultado).toMatchObject({ exito: true });
 
     const despues = await prisma.negocio.findUniqueOrThrow({ where: { whatsapp } });
     expect(despues.consintioAvisoVersion).toBeNull();
@@ -564,7 +564,7 @@ describe("adversarial · la versión del aviso consentido", () => {
         reconsintioAvisoVersion: VERSION_AVISO,
       }),
     );
-    expect(primero).toEqual({ exito: true });
+    expect(primero).toMatchObject({ exito: true });
 
     let despues = await prisma.negocio.findUniqueOrThrow({ where: { whatsapp } });
     expect(despues.consintioAvisoVersion).toBeNull();
@@ -598,7 +598,7 @@ describe("adversarial · la versión del aviso consentido", () => {
       await fichaPrevia(whatsapp, "rechazado", { version });
 
       const resultado = await procesar(envio({ whatsapp }));
-      expect(resultado, version).toEqual({ exito: true });
+      expect(resultado, version).toMatchObject({ exito: true });
 
       const despues = await prisma.negocio.findUniqueOrThrow({ where: { whatsapp } });
       expect(despues.consintioAvisoVersion, version).toBe(version);
@@ -825,6 +825,10 @@ describe("adversarial · el panel pinta la versión guardada sin ejecutarla", ()
     // ficha nunca se aprobó, así que no tiene. Va aquí por la misma razón que
     // el rastro de la despublicación: el tipo lo exige.
     tokenGestionCreadoEn: null,
+    // Verificación del número por SMS (T-016): esta ficha nunca la pasó —como
+    // todas mientras la capacidad esté apagada—. Va aquí por la misma razón
+    // que los dos rastros de arriba: el tipo lo exige.
+    numeroVerificadoEn: null,
     girosIds: [],
   };
 

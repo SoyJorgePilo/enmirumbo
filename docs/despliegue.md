@@ -161,6 +161,7 @@ volver a desplegar, no basta con reiniciar.
 | `SUPABASE_SERVICE_ROLE_KEY` | **Secreto.** Llave con la que el servidor lee y escribe las fotos. | Supabase → *Settings → API → service_role*. |
 | `SUPABASE_BUCKET_FOTOS` | Nombre del bucket de fotos. | Por defecto `fotos`. |
 | `FOTOS_DIR` | Directorio de las fotos **en desarrollo**, cuando no hay Supabase configurado. | Por defecto `.fotos/` en la raíz. **En Vercel el disco es efímero: ver §7.** |
+| `VERIFICACION_SMS_ACTIVA` y las cuatro de Twilio Verify | Encienden la verificación del número por SMS (T-016 / ADR-011). **Opcionales y posteriores al lanzamiento, y cuestan dinero por mensaje: no las configures siguiendo esta tabla.** | Todo el procedimiento, el costo y las advertencias están en **§11**. Apagadas por defecto: sin ellas el sitio corre exactamente como hoy. |
 | `WHATSAPP_ADMIN` | El WhatsApp del admin al que la ficha pública ofrece escribir cuando el dueño **perdió su enlace de gestión** (PRD §6.4 y §7 Flujo D). | 10 dígitos, sin lada ni espacios. **Fail-safe: sin ella el bloque "¿Es tu negocio?" no se pinta** — nada de enlaces rotos ni de números de ejemplo. Es un dato personal en un repo público (LFPDPPP): nunca en el código, ni en los seeds, ni en un test. |
 
 Con las dos de Umami sin poner, el sitio corre igual y **no mide nada**: no
@@ -701,3 +702,97 @@ del lanzamiento:
    volver a pesar si se invita a alguien más o si se necesita observabilidad.
    Cerrarlo de verdad exige sacar el secreto de la ruta, lo que cambia la spec
    del enlace de gestión (T-014).
+
+## 11. Verificación del número por SMS — OPCIONAL Y POSTERIOR AL LANZAMIENTO
+
+> **Esta sección no es parte del despliegue.** El checklist obligatorio (§4) y
+> la prueba de humo (§9) se completan enteros **sin tocar nada de aquí**, y así
+> es como se lanza el sitio. Léela solo cuando quieras encender la
+> verificación, y con el costo delante (T-016 / ADR-011).
+
+**Con la bandera apagada —el estado de hoy— el sitio se comporta exactamente
+como el flujo manual del PRD §6.3 y el costo es cero.** El dueño llena el
+formulario, la ficha entra a la cola y tú confirmas su número por WhatsApp
+mientras revisas. Ese flujo es completo y bueno: la verificación por SMS no lo
+sustituye, solo te ahorra un paso.
+
+### 11.1 Lo que cuesta (decídelo con esto a la vista)
+
+- **~$0.05 USD por SMS enviado a México**, más los cargos del registro **A2P
+  10DLC / alfanumérico** que Twilio exige para mandar mensajes a números
+  mexicanos. Se paga por mensaje, salga o no salga bien la verificación.
+- Un reenvío es otro SMS. Por eso el sistema trae cupos estrictos: **3 códigos
+  por hora y por IP, 60 segundos de espera entre reenvíos, máximo 2 reenvíos y
+  5 códigos escritos por registro, y un tope diario global** (50 por defecto)
+  que **corta**: alcanzado el tope, ese día ya no se manda ningún SMS más, los
+  registros siguen entrando con normalidad y queda una alerta en el log.
+- **Los tres topes POR REGISTRO —espera de 60 s, 2 reenvíos y 5 códigos— se
+  cuentan en la base**, no en el navegador de quien verifica (tabla
+  `IntentoDeCupo`, la misma del límite de acceso al panel, §3.5). Eso importa
+  para el gasto: son las únicas cotas que siguen operando cuando
+  `REGISTRO_ENCABEZADO_IP` no está declarado, y valen igual con una instancia
+  que con veinte. Lo que se guarda es un HMAC del identificador del registro
+  —nunca el número, nunca una IP— y se borra al salir de la ventana.
+
+### 11.2 Qué hay que hacer, en este orden
+
+1. **Crea la cuenta** en <https://www.twilio.com> y da de alta un servicio de
+   **Verify** (Console → Verify → Services). Copia el *Service SID* (empieza
+   por `VA`), el *Account SID* (empieza por `AC`) y el *Auth Token*.
+2. **Registro A2P para México.** Twilio no manda SMS a México sin el trámite de
+   remitente registrado. Es un paso humano, con papeleo y días de espera: hazlo
+   **antes** de poner la bandera, o el proveedor rechazará cada envío y el
+   sitio degradará silenciosamente al flujo manual (que es lo correcto, pero no
+   sabrás por qué).
+3. **Pon las credenciales** en el hosting, sin la bandera todavía:
+   `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_VERIFY_SERVICE_SID` y
+   `VERIFICACION_SMS_SECRETO` (mínimo 32 caracteres al azar,
+   `openssl rand -base64 32`). Las cuatro son **secretas** y ninguna se
+   commitea. Opcionalmente, `VERIFICACION_SMS_TOPE_DIARIO`. La explicación de
+   cada una está en `.env.example`; aquí no se duplica.
+4. **Al final, la bandera:** `VERIFICACION_SMS_ACTIVA="1"`. **Solo el valor
+   exacto `1`** enciende la capacidad. Con la configuración a medias —la
+   bandera puesta y algo faltando— la capacidad se queda **apagada** y el
+   servidor deja **una** advertencia en el log diciendo qué variable falta, sin
+   ninguna credencial dentro.
+5. **Comprueba** que `/registro/verificar` deja de responder 404 solo para
+   quien acaba de enviar un registro (no se puede abrir a mano) y que una ficha
+   verificada aparece en el panel con "Número verificado por SMS".
+
+### 11.3 Cómo apagarla
+
+Quita `VERIFICACION_SMS_ACTIVA` (o ponla en cualquier otro valor) y vuelve a
+desplegar. **No hay migración que revertir ni datos que se pierdan:** el sitio
+vuelve al flujo manual de inmediato y **las fichas ya verificadas conservan su
+marca**, que el panel sigue mostrando — es un hecho que ocurrió y no se borra
+porque se apague un interruptor.
+
+### 11.4 Las dos advertencias que no son obvias
+
+1. **El tope diario global y el cupo de 3 códigos/hora/IP se cuentan POR
+   PROCESO**, igual que los cupos por IP del formulario y de los reportes
+   (§3.5). En un hosting serverless hay varias instancias vivas a la vez, así
+   que **el gasto real puede ser un múltiplo del tope configurado**: con 50/día
+   y cuatro instancias, hasta 200 SMS. Es la misma deuda que los otros cupos
+   (§10, punto 1) y se paga junto con ellos. Mientras tanto, **pon también un
+   límite de gasto en la consola de Twilio**: es el único tope que no depende
+   de cuántas instancias levante la plataforma.
+
+   Lo que **sí** vale igual con cualquier número de instancias son los topes
+   por registro (§11.1): están en la base, así que el techo de lo que un solo
+   registro puede gastar —2 reenvíos— no se multiplica ni se puede rebobinar
+   desde el navegador.
+2. **El embudo del PRD §10 se vuelve más estricto.** Con la capacidad
+   encendida, la pantalla del código se mete **entre** el envío y la pantalla
+   de gracias, así que quien abandone ahí ya tiene su ficha guardada pero **no
+   genera vista de `/registro/gracias`**. Una caída de esas vistas **no
+   significa** una caída de registros: el conteo contable de altas es la base
+   de datos, no la analítica.
+
+### 11.5 Lo que la verificación NO cambia
+
+**Ninguna ficha se publica por haber verificado su número.** El SMS solo marca
+"número confirmado" en el panel; aprobar, rechazar, despublicar y borrar siguen
+siendo exactamente lo que ya eran, y **la revisión por WhatsApp no se elimina**:
+es la evidencia de consentimiento y el filtro de moderación (PRD §6.3), que es
+el diferenciador del directorio.

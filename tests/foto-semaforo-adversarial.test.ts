@@ -277,7 +277,7 @@ describe("el que no cabe se va, no espera", () => {
       almacen: crearAlmacenLocal(temporal),
     });
 
-    expect(resultado).toEqual({ exito: true });
+    expect(resultado).toMatchObject({ exito: true });
     await liberar();
   });
 });

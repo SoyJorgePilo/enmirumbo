@@ -1,0 +1,24 @@
+-- Marca de verificación del número por SMS (T-016, change
+-- `agregar-verificacion-sms-tras-bandera`, ADR-011; spec `modelo-datos`,
+-- requirement "El negocio guarda cuándo se verificó su número por SMS").
+--
+-- Una sola columna, NULABLE y SIN VALOR POR DEFECTO. Las dos cosas son el
+-- requirement, no una preferencia:
+--
+--   * nulable, porque nula significa "ese número no pasó por la verificación
+--     por SMS" — el estado de todas las fichas mientras la bandera
+--     `VERIFICACION_SMS_ACTIVA` esté apagada, que es el estado del lanzamiento;
+--   * sin default, porque a las filas que ya existen NO se les asigna una
+--     fecha de relleno: afirmaría una verificación que nunca ocurrió.
+--
+-- `ADD COLUMN` nulable no reescribe la tabla ni toca ninguna otra columna:
+-- las filas publicadas, en revisión y rechazadas siguen intactas, y los CHECK
+-- de `estado` y `origen` —escritos a mano en la migración inicial— siguen
+-- vivos porque aquí no se borra ninguna constraint.
+--
+-- NO se agrega ninguna columna para el código de verificación: lo genera, lo
+-- caduca y lo compara el proveedor (ADR-011). En esta base no vive ningún
+-- código.
+
+-- AlterTable
+ALTER TABLE "Negocio" ADD COLUMN "numeroVerificadoEn" TIMESTAMP(3);

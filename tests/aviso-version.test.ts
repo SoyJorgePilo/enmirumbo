@@ -330,6 +330,10 @@ describe("paginas-legales · el guardián ata la versión al texto", () => {
       "20260906000000_inicial",
       "20260907000000_agrega_cupos_compartidos",
       "20260908000000_agrega_enlace_de_gestion",
+      // Y la cuarta, con T-016: agrega la columna `numeroVerificadoEn` y NADA
+      // más — ningún `UPDATE`, así que las constancias ya guardadas siguen
+      // intactas, que es lo que este guardián vigila.
+      "20260909000000_agrega_verificacion_sms",
     ]);
   });
 

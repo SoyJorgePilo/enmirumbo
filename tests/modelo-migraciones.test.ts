@@ -273,6 +273,7 @@ describe("modelo-datos · el árbol de migraciones aplicado de verdad", () => {
       `SELECT "rechazadoEn","motivoRechazo","despublicadoEn","motivoDespublicacion",
               "consintioAvisoVersion","reconsintioAvisoEn","reconsintioAvisoVersion",
               "publicadoEn","fotoClave","tokenGestionHash","tokenGestionCreadoEn",
+              "numeroVerificadoEn",
               "nombreNormalizado","queOfrecesNormalizado","origen"
          FROM "Negocio" WHERE "id" = 'viejo-sin-columnas-nuevas'`,
     );
@@ -289,6 +290,9 @@ describe("modelo-datos · el árbol de migraciones aplicado de verdad", () => {
       "fotoClave",
       "tokenGestionHash",
       "tokenGestionCreadoEn",
+      // T-016 (ADR-011): a las fichas anteriores a la columna no se les
+      // inventa una fecha de verificación de relleno.
+      "numeroVerificadoEn",
     ]) {
       expect(fila[columna], columna).toBeNull();
     }

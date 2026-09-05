@@ -4,6 +4,7 @@ import { EtiquetaTipoCola } from "@/components/admin/etiqueta-tipo-cola";
 import { IndicadorAtrasado } from "@/components/admin/indicador-atrasado";
 import { ETIQUETA_COLA_DESPUBLICADA, TEXTO_REVISAR } from "@/lib/admin/textos";
 import type { RegistroColaItem } from "@/lib/admin/consultas";
+import { ETIQUETA_COLA_NUMERO_VERIFICADO_SMS } from "@/lib/verificacion/textos";
 
 /**
  * Un renglón de la cola, tal como lo arma `obtenerColaDeRevision`. `tipo` y
@@ -27,6 +28,12 @@ export type TarjetaColaProps = RegistroColaItem;
  * literal aprobada — texto, no solo color, mismo criterio que
  * `IndicadorAtrasado`. `tipo`/`hrefDetalle` (change `agregar-enlace-de-
  * gestion`) son la misma idea aplicada a "esto es una edición, no un alta".
+ *
+ * `numeroVerificadoEn` (spec `revision-admin` MODIFIED de T-016, ADR-011):
+ * la etiqueta "Número verificado por SMS" aparece SOLO cuando la ficha trae
+ * su fecha de verificación, sin condición de la bandera — si la capacidad
+ * está apagada ninguna ficha llega con esta fecha, así que el fail-safe se
+ * cumple solo.
  */
 export function TarjetaCola({
   nombre,
@@ -36,6 +43,7 @@ export function TarjetaCola({
   vieneDeDespublicacion,
   tipo,
   hrefDetalle,
+  numeroVerificadoEn,
 }: TarjetaColaProps) {
   return (
     <article className="relative flex min-h-11 flex-col gap-1.5 rounded-xl border border-borde bg-fondo p-4">
@@ -50,6 +58,11 @@ export function TarjetaCola({
       {vieneDeDespublicacion && (
         <p className="inline-flex w-fit items-center gap-1.5 rounded-full border border-tinta px-2.5 py-1 text-xs font-semibold text-tinta">
           {ETIQUETA_COLA_DESPUBLICADA}
+        </p>
+      )}
+      {numeroVerificadoEn && (
+        <p className="inline-flex w-fit items-center gap-1.5 rounded-full border border-tinta px-2.5 py-1 text-xs font-semibold text-tinta">
+          {ETIQUETA_COLA_NUMERO_VERIFICADO_SMS}
         </p>
       )}
       {atrasado && <IndicadorAtrasado />}

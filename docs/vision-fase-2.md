@@ -32,6 +32,32 @@ su spec: que el vecino sea siempre quien inicia el WhatsApp (el negocio recibe e
 anónimo y un botón "me interesa" que le muestra su interés al vecino, no su teléfono), o
 consentimiento explícito por pedido. El aviso de privacidad necesitará una sección nueva.
 
+### 1.1 La cara del pedido: un bot de WhatsApp (idea del fundador, 2026-09-04)
+
+Quitar la fricción de "entrar a un sitio": el vecino le escribe directamente al número
+de EnMiRumbo — *"necesito un plomero por Hacienda de Guadalupe"* — y el bot le contesta
+con los verificados que le quedan cerca, o convierte su mensaje en un pedido (§1). El
+bot de WhatsApp no es otra feature: **es la interfaz natural del pedido.**
+
+Cómo se reparten los papeles: **la web es la vitrina** (el SEO de Google que WhatsApp no
+puede dar, la ficha compartible que da confianza, el registro con su consentimiento en
+forma) y **WhatsApp es el mostrador** (buscar y pedir conversando). Se refuerzan; ninguna
+sustituye a la otra — y la web es terreno propio, mientras el número de WhatsApp es
+terreno rentado a Meta (un número puede ser suspendido: nunca apostarlo todo ahí).
+
+Datos duros para cuando toque:
+- Se construye con la **WhatsApp Cloud API** de Meta; encaja en el stack actual (un
+  webhook más en el mismo Next).
+- Las conversaciones que inicia el usuario son esencialmente gratis; cuestan los
+  mensajes que inicia el negocio (plantillas, ~$0.02–0.04 USD c/u) → un bot de
+  búsqueda/pedidos opera casi gratis.
+- Requiere **verificación de negocio ante Meta** — la S.A.S. en trámite es también la
+  llave de esta puerta.
+- El **registro se queda en la web** (10 preguntas por chat son un interrogatorio, y el
+  consentimiento LFPDPPP es más limpio con su checkbox); el bot manda el link.
+- Secuencia: lanzar la web → validar demanda → con la S.A.S. lista, piloto del bot como
+  la implementación de pedidos. Si jala, el bot se vuelve el corazón y la web la vitrina.
+
 ## 2. Monetización: escalera, no cobro de entrada
 
 **Reglas de oro**: al vecino nunca se le cobra; registrarse y tener ficha siempre será

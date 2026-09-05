@@ -22,6 +22,9 @@ import LayoutPublico from "../src/app/(publico)/layout";
 import { metadata as metadataGestion } from "../src/app/(gestion)/layout";
 import LayoutPanel, { metadata as metadataPanel } from "../src/app/admin/layout";
 import ColaAdminPage, { metadata as metadataCola } from "../src/app/admin/cola/page";
+import NegociosAdminPage, {
+  metadata as metadataNegocios,
+} from "../src/app/admin/negocios/page";
 import AccesoAdminPage, { metadata as metadataAcceso } from "../src/app/admin/page";
 import DetalleRegistroAdminPage, {
   metadata as metadataDetalle,
@@ -101,6 +104,14 @@ beforeAll(async () => {
 
   peticion.cookies[NOMBRE_COOKIE_SESION] = crearValorDeSesion(SECRETO_PANEL);
   htmlAdmin.cola = await render(ColaAdminPage());
+  // El listado "Todos los negocios" (change `agregar-listado-gestion-panel`)
+  // es una pantalla más del panel: tampoco puede colar medición.
+  htmlAdmin.negocios = await render(
+    NegociosAdminPage({
+      params: Promise.resolve({}),
+      searchParams: Promise.resolve({}),
+    } as never),
+  );
   htmlAdmin.detalle = await render(
     DetalleRegistroAdminPage({
       params: Promise.resolve({ id: enRevision.id }),
@@ -146,7 +157,7 @@ describe("layout-base · el tronco público es el que mide (tasks #8)", () => {
 
 describe("layout-base · el panel del admin queda fuera de la medición (tasks #8)", () => {
   // Scenario: el panel no carga el script
-  it.each(["acceso", "cola", "detalle", "aprobado", "rechazado"])(
+  it.each(["acceso", "cola", "negocios", "detalle", "aprobado", "rechazado"])(
     "la pantalla %s del panel no trae script ni atributos de medición",
     (pantalla) => {
       const html = htmlAdmin[pantalla];
@@ -169,7 +180,9 @@ describe("layout-base · el panel del admin queda fuera de la medición (tasks #
     for (const pagina of paginasDelGrupo) {
       expect(pagina, pagina).not.toContain("/admin");
     }
-    expect(paginasBajo(join(raiz, "src/app/admin")).length).toBeGreaterThanOrEqual(6);
+    // Sube con cada pantalla nueva del panel: 7 desde el listado "Todos los
+    // negocios" (change `agregar-listado-gestion-panel`, tasks.md #11).
+    expect(paginasBajo(join(raiz, "src/app/admin")).length).toBeGreaterThanOrEqual(7);
   });
 
   it("el script se renderiza desde un único archivo, y es el layout del grupo", () => {
@@ -234,6 +247,7 @@ describe("layout-base · el panel del admin queda fuera de la medición (tasks #
 const PANTALLAS_DEL_PANEL = {
   acceso: metadataAcceso,
   cola: metadataCola,
+  negocios: metadataNegocios,
   detalle: metadataDetalle,
   aprobado: metadataAprobado,
   rechazado: metadataRechazado,

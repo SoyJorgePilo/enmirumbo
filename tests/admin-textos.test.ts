@@ -299,3 +299,75 @@ describe("revision-admin · literales de despublicar y del borrado definitivo", 
     );
   });
 });
+
+// ── Literales del change agregar-listado-gestion-panel (tasks.md #1 y #14) ──
+// Copiados del delta de `revision-admin` de ese change, carácter por carácter.
+
+describe("revision-admin · literales del listado 'Todos los negocios'", () => {
+  it.each([
+    ["encabezado del listado", textos.TEXTO_NEGOCIOS_ENCABEZADO, "Todos los negocios"],
+    [
+      "entrada desde la cola",
+      textos.TEXTO_VER_TODOS_LOS_NEGOCIOS,
+      "Ver todos los negocios",
+    ],
+    ["entrada al detalle", textos.TEXTO_VER_DETALLE, "Ver detalle"],
+    ["rótulo de los filtros", textos.TEXTO_FILTRAR_POR_ESTADO, "Filtrar por estado"],
+    ["filtro por defecto", textos.TEXTO_FILTRO_TODOS, "Todos"],
+    ["filtro de pendientes", textos.TEXTO_FILTRO_EN_REVISION, "En revisión"],
+    ["filtro de publicados", textos.TEXTO_FILTRO_PUBLICADOS, "Publicados"],
+    ["filtro de rechazados", textos.TEXTO_FILTRO_RECHAZADOS, "Rechazados"],
+    [
+      "lista sin ningún negocio en la base",
+      textos.TEXTO_LISTADO_VACIO,
+      "Todavía no hay negocios registrados.",
+    ],
+    [
+      "filtro sin resultados",
+      textos.TEXTO_FILTRO_SIN_RESULTADOS,
+      "No hay negocios con ese estado.",
+    ],
+    ["página siguiente", textos.TEXTO_VER_MAS_ANTIGUOS, "Ver más antiguos"],
+    ["página anterior", textos.TEXTO_VER_MAS_NUEVOS, "Ver más nuevos"],
+  ])("el %s es exactamente el de la spec", (_caso, actual, esperado) => {
+    expect(actual).toBe(esperado);
+  });
+
+  // Requirement "Vista 'Todos los negocios'…": los tres estados escritos con
+  // palabras, no por color.
+  it("cada estado guardado se escribe con palabras", () => {
+    expect(textos.textoEstadoNegocio("en_revision")).toBe("En revisión");
+    expect(textos.textoEstadoNegocio("publicado")).toBe("Publicado");
+    expect(textos.textoEstadoNegocio("rechazado")).toBe("Rechazado");
+  });
+
+  // La etiqueta de la despublicada NO es nueva: es la misma que ya usa la cola
+  // (design.md §1, "dos vocabularios para el mismo hecho es peor que uno").
+  it("la etiqueta de la despublicada se reutiliza, no se duplica", () => {
+    expect(textos.ETIQUETA_COLA_DESPUBLICADA).toBe(
+      "Ya estaba publicada, la despublicaste",
+    );
+    expect(textos.TEXTO_VOLVER_A_LA_COLA).toBe("Volver a la cola");
+  });
+
+  // Scenario: el conteo dice cuántos hay
+  it("el conteo concuerda en singular y en plural", () => {
+    expect(textos.textoConteoNegociosListado(1)).toBe("1 negocio en esta lista");
+    expect(textos.textoConteoNegociosListado(34)).toBe("34 negocios en esta lista");
+    expect(textos.textoConteoNegociosListado(0)).toBe("0 negocios en esta lista");
+  });
+
+  // Requirement "El listado se corta en páginas…": "Página 2 de 5".
+  it("la posición dice en qué página está y de cuántas", () => {
+    expect(textos.textoPaginaDe(2, 5)).toBe("Página 2 de 5");
+    expect(textos.textoPaginaDe(1, 1)).toBe("Página 1 de 1");
+  });
+
+  // Requirement: "su fecha de registro, escrita completa (por ejemplo 'Se
+  // registró el 3 de septiembre de 2026')". El ejemplo de la spec, literal.
+  it("la fecha de registro se escribe completa, con el mes en palabras", () => {
+    expect(textos.textoFechaDeRegistro(new Date("2026-09-03T18:00:00.000Z"))).toBe(
+      "Se registró el 3 de septiembre de 2026",
+    );
+  });
+});

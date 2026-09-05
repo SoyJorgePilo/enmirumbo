@@ -4,12 +4,12 @@
 
 ### Requirement: Página del aviso de privacidad integral en `/aviso-de-privacidad`
 
-El sitio DEBE publicar el aviso de privacidad integral en la ruta `/aviso-de-privacidad` (segmento reservado en `src/lib/rutas-reservadas.ts`), dentro del layout global, con un solo `h1` con el texto literal "Aviso de privacidad" y sus secciones como `h2`, sin saltos de jerarquía. La página DEBE mostrar, arriba del contenido, la versión vigente del aviso y la fecha en que se publicó ese texto, en una sola línea con la forma literal "Versión 1 · Última actualización: " seguida de la fecha escrita en español (por ejemplo "3 de septiembre de 2026"), donde `1` es el identificador de versión vigente. El bloque literal del requirement "Texto completo del aviso de privacidad integral" no incluye esa versión: se antepone a esa misma línea al pintarla, y por eso queda fuera de la huella del guardián (todo lo demás de ese bloque, incluida la fecha, sí entra). Los términos y condiciones NO llevan versión: su línea de última actualización se pinta tal cual. La página DEBE llevar un enlace visible a los términos y condiciones con el texto "Términos y condiciones", y NO DEBE llevar ningún enlace a una página que no exista.
+El sitio DEBE publicar el aviso de privacidad integral en la ruta `/aviso-de-privacidad` (segmento reservado en `src/lib/rutas-reservadas.ts`), dentro del layout global, con un solo `h1` con el texto literal "Aviso de privacidad" y sus secciones como `h2`, sin saltos de jerarquía. La página DEBE mostrar, arriba del contenido, la versión vigente del aviso y la fecha en que se publicó ese texto, en una sola línea con la forma literal "Versión 2 · Última actualización: " seguida de la fecha escrita en español (por ejemplo "3 de septiembre de 2026"), donde `2` es el identificador de versión vigente. El bloque literal del requirement "Texto completo del aviso de privacidad integral" no incluye esa versión: se antepone a esa misma línea al pintarla, y por eso queda fuera de la huella del guardián (todo lo demás de ese bloque, incluida la fecha, sí entra). Los términos y condiciones NO llevan versión: su línea de última actualización se pinta tal cual. La página DEBE llevar un enlace visible a los términos y condiciones con el texto "Términos y condiciones", y NO DEBE llevar ningún enlace a una página que no exista.
 
 #### Scenario: el dueño abre el aviso de privacidad
 
 - **WHEN** el dueño de un negocio abre `/aviso-de-privacidad` en su celular
-- **THEN** ve, dentro del layout con header y footer, el encabezado "Aviso de privacidad", la línea "Versión 1 · Última actualización: " con su fecha, y el contenido completo del aviso
+- **THEN** ve, dentro del layout con header y footer, el encabezado "Aviso de privacidad", la línea "Versión 2 · Última actualización: " con su fecha, y el contenido completo del aviso
 
 #### Scenario: la versión que se muestra es la vigente
 
@@ -28,7 +28,7 @@ El sitio DEBE publicar el aviso de privacidad integral en la ruta `/aviso-de-pri
 
 ### Requirement: El aviso de privacidad tiene una versión estable declarada en un solo lugar
 
-El aviso de privacidad DEBE tener un identificador de versión estable, declarado como un literal único en un solo módulo del código, del que lo leen todas las superficies que lo muestran o lo guardan (la página integral, el bloque de consentimiento del formulario y el servidor que registra la constancia). El identificador DEBE ser una cadena que solo avanza: la versión vigente es `1` y una versión ya publicada NUNCA DEBE reutilizarse para otro texto. La versión identifica al aviso completo, que a estos efectos son tres piezas inseparables: el aviso simplificado del formulario, el literal de la casilla de consentimiento y el aviso integral de `/aviso-de-privacidad`. Los términos y condiciones NO entran en esta versión.
+El aviso de privacidad DEBE tener un identificador de versión estable, declarado como un literal único en un solo módulo del código, del que lo leen todas las superficies que lo muestran o lo guardan (la página integral, el bloque de consentimiento del formulario y el servidor que registra la constancia). El identificador DEBE ser una cadena que solo avanza: la versión vigente es `2` —estrenada por el rebrand a "EnMiRumbo" (T-019), que cambió el nombre del sitio dentro del texto publicado— y una versión ya publicada NUNCA DEBE reutilizarse para otro texto. La versión identifica al aviso completo, que a estos efectos son tres piezas inseparables: el aviso simplificado del formulario, el literal de la casilla de consentimiento y el aviso integral de `/aviso-de-privacidad`. Los términos y condiciones NO entran en esta versión.
 
 #### Scenario: una sola fuente de la versión
 
@@ -38,23 +38,23 @@ El aviso de privacidad DEBE tener un identificador de versión estable, declarad
 #### Scenario: la versión vigente
 
 - **WHEN** se consulta la versión vigente del aviso
-- **THEN** es `1`, y corresponde al texto que hoy publican `/aviso-de-privacidad` y el bloque de consentimiento del formulario
+- **THEN** es `2`, y corresponde al texto que hoy publican `/aviso-de-privacidad` y el bloque de consentimiento del formulario
 
 ### Requirement: Cambiar el texto del aviso sin subir la versión rompe la verificación
 
-La verificación automática del proyecto DEBE incluir un guardián que ate la versión al texto: calcula una huella del contenido versionado del aviso —el texto del aviso simplificado, el literal de la casilla de consentimiento y todo el contenido publicado del aviso integral (encabezado, marca de borrador mientras se publique, línea de última actualización, introducción, secciones con sus párrafos y viñetas, y el enlace de cierre), excluyendo únicamente la propia línea de versión— y la compara contra la huella anclada para la versión vigente. Si no coinciden, la verificación DEBE fallar y decir qué hacer: subir la versión y anclar su huella. Las huellas de las versiones ya publicadas DEBEN quedar registradas y NO DEBEN modificarse; la tabla de huellas DEBE vivir junto a la verificación y no junto al texto, para que corregir el texto y "arreglar" la huella no sean el mismo gesto distraído. La verificación DEBE comprobar además que la versión vigente tiene huella anclada y que es la última de la tabla.
+La verificación automática del proyecto DEBE incluir un guardián que ate la versión al texto: calcula una huella del contenido versionado del aviso —el texto del aviso simplificado, el literal de la casilla de consentimiento y todo el contenido publicado del aviso integral (encabezado, marca de borrador mientras se publique, línea de última actualización, introducción, secciones con sus párrafos y viñetas, y el enlace de cierre), excluyendo únicamente la propia línea de versión— y la compara contra la huella anclada para la versión vigente. Si no coinciden, la verificación DEBE fallar y decir qué hacer: subir la versión y anclar su huella. Las huellas de las versiones ya publicadas DEBEN quedar registradas y NO DEBEN modificarse —en particular, la de la versión `1` se queda tal cual aunque su texto ya no se publique: es la prueba de contra qué texto se firmaron las constancias que la citan—; la tabla de huellas DEBE vivir junto a la verificación y no junto al texto, para que corregir el texto y "arreglar" la huella no sean el mismo gesto distraído. La verificación DEBE comprobar además que la versión vigente tiene huella anclada y que es la última de la tabla.
 
 La marca de borrador entra en la huella porque es contenido publicado: advierte al titular de que el texto que está aceptando todavía no pasó la revisión legal, y si quedara fuera, retirarla de la página no estrenaría versión y dejaría la verificación en verde.
 
 #### Scenario: alguien edita el aviso y no sube la versión
 
-- **WHEN** se cambia una frase del aviso integral, del aviso simplificado o del literal de la casilla, dejando la versión en `1`
+- **WHEN** se cambia una frase del aviso integral, del aviso simplificado o del literal de la casilla, dejando la versión vigente como está
 - **THEN** la verificación automática falla e indica que el texto del aviso cambió sin estrenar versión
 
 #### Scenario: se estrena versión junto con el texto
 
-- **WHEN** se cambia el texto del aviso, se sube la versión a `2` y se ancla la huella nueva
-- **THEN** la verificación pasa, la huella de la versión `1` sigue registrada tal cual y la tabla queda con dos entradas
+- **WHEN** se cambia el texto del aviso, se sube la versión a la siguiente y se ancla la huella nueva
+- **THEN** la verificación pasa, las huellas de las versiones anteriores siguen registradas tal cual y la tabla gana un renglón
 
 #### Scenario: versión sin huella
 
@@ -70,6 +70,32 @@ La marca de borrador entra en la huella porque es contenido publicado: advierte 
 
 - **WHEN** se dejan de publicar los placeholders y con ellos desaparece la marca de borrador de la página
 - **THEN** la verificación falla mientras no se estrene versión: la marca es contenido publicado y entra en la huella
+
+### Requirement: El rebrand estrena la versión 2 del aviso, sin tocar la evidencia de la 1
+
+Cambiar el nombre del sitio dentro del texto publicado del aviso —la introducción, la sección "Quién es responsable de tus datos" y el aviso simplificado del formulario— DEBE tratarse como lo que es: un cambio del contenido versionado. Lo mismo vale para publicar el correo del directorio en lugar de su placeholder. Los dos cambios llegan juntos, así que estrenan **una sola** versión: la `2`, con su huella nueva anclada. NO DEBE re-anclarse la huella de la versión `1`, aunque su texto ya no se publique: esa huella es la prueba de contra qué texto se firmaron las constancias que citan la versión `1`.
+
+Las constancias ya guardadas NO DEBEN modificarse: una ficha que consintió la versión `1` sigue diciendo `1`, con su fecha, y la reaceptación —cuando la haya— se anota hacia adelante con la mecánica que ya existe. El sistema NO DEBE pedirle nada al titular por este cambio ni mandarle ningún mensaje: el aviso promete avisar por WhatsApp antes de aplicar un cambio importante —"por ejemplo, si empezamos a usar tus datos para algo nuevo"—, y un cambio de marca no altera qué datos se recogen, para qué se usan, con quién se comparten ni qué queda público. La versión nueva se publica en la misma página, que es exactamente lo que la sección "Cambios a este aviso" promete.
+
+#### Scenario: la huella de la versión 1 sobrevive al rebrand
+
+- **WHEN** se revisa la tabla de huellas después de publicar el aviso con la marca nueva
+- **THEN** tiene dos renglones, el de la versión `1` es idéntico al de antes del rebrand y el de la `2` corresponde al texto que hoy se publica
+
+#### Scenario: una constancia vieja no se reescribe
+
+- **WHEN** el admin abre el detalle de una ficha que consintió antes del rebrand
+- **THEN** ve la constancia con su fecha de siempre y la versión `1`, sin que nadie le haya cambiado la versión a `2`
+
+#### Scenario: el rebrand no le pide nada al negocio ya publicado
+
+- **WHEN** se despliega el aviso con la marca nueva y hay fichas publicadas
+- **THEN** ninguna se despublica, a nadie se le manda un mensaje por el cambio y el directorio sigue funcionando igual
+
+#### Scenario: el formulario abierto antes del despliegue no se guarda a ciegas
+
+- **WHEN** un dueño abrió el formulario con la versión `1` a la vista, se despliega el rebrand y él envía después
+- **THEN** no se guarda ningún registro y ve "El aviso de privacidad cambió mientras llenabas esto. Léelo otra vez y vuelve a marcar la casilla." junto a la casilla, con sus datos todavía en el formulario y el aviso nuevo a la vista
 
 ### Requirement: El aviso integral trae los seis elementos mínimos de la LFPDPPP
 
@@ -149,13 +175,13 @@ Ojo: este texto todavía es un borrador. Nos faltan los datos que ves entre corc
 
 Última actualización: [FECHA DE PUBLICACIÓN]
 
-Este aviso explica, sin rodeos, qué datos nos das cuando registras tu negocio en NecesitoUno Tizayuca, para qué los usamos, qué queda público y cómo puedes pedirnos que los corrijamos o los borremos.
+Este aviso explica, sin rodeos, qué datos nos das cuando registras tu negocio en EnMiRumbo, el directorio de negocios de Tizayuca, para qué los usamos, qué queda público y cómo puedes pedirnos que los corrijamos o los borremos.
 
 ## Quién es responsable de tus datos
 
-El responsable del directorio NecesitoUno Tizayuca y de los datos personales que nos das es [NOMBRE O RAZÓN SOCIAL DEL RESPONSABLE — completar antes del lanzamiento], con domicilio en [DOMICILIO DEL RESPONSABLE — completar antes del lanzamiento], Tizayuca, Hidalgo, México.
+El responsable del directorio EnMiRumbo y de los datos personales que nos das es [NOMBRE O RAZÓN SOCIAL DEL RESPONSABLE — completar antes del lanzamiento], con domicilio en [DOMICILIO DEL RESPONSABLE — completar antes del lanzamiento], Tizayuca, Hidalgo, México.
 
-Para cualquier cosa relacionada con tus datos escríbenos al correo [CORREO ARCO — completar antes del lanzamiento] o por WhatsApp al [WHATSAPP DEL DIRECTORIO — completar antes del lanzamiento].
+Para cualquier cosa relacionada con tus datos escríbenos al correo contacto@enmirumbo.com o por WhatsApp al [WHATSAPP DEL DIRECTORIO — completar antes del lanzamiento].
 
 ## Qué datos recogemos
 
@@ -214,7 +240,7 @@ Todo esto lo atendemos a mano, cuando tú lo pides: no hay un botón que lo haga
 
 Tienes derecho a acceder a tus datos, a rectificarlos si están mal, a cancelarlos (que los borremos) y a oponerte a que los usemos. Eso son los derechos ARCO.
 
-Para ejercerlos escríbenos al correo [CORREO ARCO — completar antes del lanzamiento] o por WhatsApp al [WHATSAPP DEL DIRECTORIO — completar antes del lanzamiento] y dinos:
+Para ejercerlos escríbenos al correo contacto@enmirumbo.com o por WhatsApp al [WHATSAPP DEL DIRECTORIO — completar antes del lanzamiento] y dinos:
 
 - qué quieres: ver tus datos, corregirlos, borrarlos u oponerte a que los usemos;
 - el nombre de tu negocio y el número de WhatsApp con el que lo registraste;
@@ -246,6 +272,11 @@ La última línea es el enlace a `/terminos`.
 - **WHEN** se compara lo que muestra `/aviso-de-privacidad` con el contenido de esta spec
 - **THEN** coinciden párrafo por párrafo, sin texto de relleno, sin secciones vacías y sin "lorem ipsum"
 
+#### Scenario: el aviso nombra al sitio con la marca vigente
+
+- **WHEN** el dueño lee la introducción del aviso y la sección "Quién es responsable de tus datos"
+- **THEN** la introducción presenta al sitio como "EnMiRumbo, el directorio de negocios de Tizayuca" y la sección del responsable ya dice "EnMiRumbo" a secas, sin la marca anterior y sin la localidad pegada al nombre
+
 #### Scenario: nada de esto necesita conocimiento legal para entenderse
 
 - **WHEN** un vecino sin formación legal lee el aviso completo
@@ -272,7 +303,7 @@ El sitio DEBE publicar los términos y condiciones en la ruta `/terminos` (segme
 
 ### Requirement: Los términos declaran al directorio como intermediario informativo y deslindan las operaciones
 
-Los términos DEBEN establecer que NecesitoUno Tizayuca es un intermediario informativo: solo muestra información, no presta los servicios ni vende los productos de las fichas, y no cobra por publicar ni cobra comisiones. DEBEN deslindar expresamente al directorio de todo lo que ocurre entre el vecino y el negocio —precio, trabajo, entrega, pago, garantía, tiempos y cualquier problema— y de la veracidad de la información que cada negocio escribe. DEBEN además explicar qué significa el sello "Negocio verificado" (que el negocio existe y que el número registrado es suyo) y qué NO se verifica (calidad, precios, licencias, permisos, seguros ni que la información siga vigente).
+Los términos DEBEN establecer que EnMiRumbo es un intermediario informativo: solo muestra información, no presta los servicios ni vende los productos de las fichas, y no cobra por publicar ni cobra comisiones. DEBEN deslindar expresamente al directorio de todo lo que ocurre entre el vecino y el negocio —precio, trabajo, entrega, pago, garantía, tiempos y cualquier problema— y de la veracidad de la información que cada negocio escribe. DEBEN además explicar qué significa el sello "Negocio verificado" (que el negocio existe y que el número registrado es suyo) y qué NO se verifica (calidad, precios, licencias, permisos, seguros ni que la información siga vigente).
 
 #### Scenario: deslinde de la operación entre vecino y negocio
 
@@ -314,9 +345,9 @@ Ojo: este texto todavía es un borrador. Nos faltan los datos que ves entre corc
 
 Última actualización: [FECHA DE PUBLICACIÓN]
 
-Estas son las reglas de NecesitoUno Tizayuca, para los negocios que se registran y para los vecinos que los buscan. Al usar el sitio o registrar tu negocio, aceptas lo que dice aquí.
+Estas son las reglas de EnMiRumbo, el directorio de negocios de Tizayuca, para los negocios que se registran y para los vecinos que los buscan. Al usar el sitio o registrar tu negocio, aceptas lo que dice aquí.
 
-## Qué es NecesitoUno Tizayuca
+## Qué es EnMiRumbo
 
 Es un directorio de negocios y servicios de Tizayuca, Hidalgo. Sirve para dos cosas: que un negocio publique su ficha gratis y que un vecino lo encuentre y le escriba por WhatsApp. Nada más.
 
@@ -324,9 +355,9 @@ No cobramos por registrarse, no vendemos nada, no cobramos comisiones y no hay c
 
 ## Somos un intermediario informativo, no el negocio
 
-NecesitoUno Tizayuca solo muestra información. No prestamos los servicios ni vendemos los productos que aparecen en las fichas.
+EnMiRumbo solo muestra información. No prestamos los servicios ni vendemos los productos que aparecen en las fichas.
 
-Cuando le escribes a un negocio por WhatsApp, sales de este sitio. Lo que pase después —el precio, el trabajo, la entrega, el pago, la garantía, los tiempos y cualquier problema— es un trato directo entre tú y ese negocio. NecesitoUno Tizayuca no es parte de ese trato, no lo garantiza, no lo supervisa y no responde por él.
+Cuando le escribes a un negocio por WhatsApp, sales de este sitio. Lo que pase después —el precio, el trabajo, la entrega, el pago, la garantía, los tiempos y cualquier problema— es un trato directo entre tú y ese negocio. EnMiRumbo no es parte de ese trato, no lo garantiza, no lo supervisa y no responde por él.
 
 Tampoco respondemos por daños, pérdidas o desacuerdos que salgan de un servicio o una compra contratados con alguien que encontraste aquí. Si algo sale mal, resuélvelo con el negocio; y avísanos, porque nos sirve para moderar el directorio.
 
@@ -356,7 +387,7 @@ Nos reservamos el derecho de no publicar o de retirar cualquier ficha que rompa 
 
 ## Si ves algo raro
 
-Si encuentras una ficha falsa, un negocio que ya cerró o algo que rompe estas reglas, escríbenos al correo [CORREO DE CONTACTO — completar antes del lanzamiento] o por WhatsApp al [WHATSAPP DEL DIRECTORIO — completar antes del lanzamiento]. Lo revisamos y actuamos.
+Si encuentras una ficha falsa, un negocio que ya cerró o algo que rompe estas reglas, escríbenos al correo contacto@enmirumbo.com o por WhatsApp al [WHATSAPP DEL DIRECTORIO — completar antes del lanzamiento]. Lo revisamos y actuamos.
 
 ## Uso de la información del directorio
 
@@ -384,6 +415,11 @@ La línea suelta "Aviso de privacidad" es el enlace a `/aviso-de-privacidad`.
 - **WHEN** se compara lo que muestra `/terminos` con el contenido de esta spec
 - **THEN** coinciden párrafo por párrafo, sin texto de relleno ni secciones vacías
 
+#### Scenario: los términos nombran al sitio con la marca vigente
+
+- **WHEN** el vecino lee la entrada de los términos, el encabezado "Qué es EnMiRumbo" y la sección del deslinde
+- **THEN** la entrada presenta al sitio como "EnMiRumbo, el directorio de negocios de Tizayuca" y de ahí en adelante los términos dicen "EnMiRumbo" a secas, sin la marca anterior y sin la localidad pegada al nombre
+
 #### Scenario: lenguaje llano también en los términos
 
 - **WHEN** un vecino sin formación legal lee los términos
@@ -391,7 +427,9 @@ La línea suelta "Aviso de privacidad" es el enlace a `/aviso-de-privacidad`.
 
 ### Requirement: Placeholders visibles y marca de borrador mientras falten datos del responsable
 
-Todo dato que solo una persona puede aportar (nombre o razón social del responsable, domicilio, correo de contacto/ARCO, WhatsApp del directorio, fecha de publicación y jurisdicción) DEBE aparecer en la página como un placeholder visible entre corchetes con la indicación de que falta completarlo, nunca como un dato inventado, un espacio en blanco o texto de relleno. Mientras quede al menos un placeholder sin completar, ambas páginas DEBEN mostrar arriba, de forma visible, la marca de borrador con el texto literal "Ojo: este texto todavía es un borrador. Nos faltan los datos que ves entre corchetes y la revisión legal antes de que el directorio se lance." Los placeholders pendientes DEBEN estar declarados en un solo lugar del código, de modo que la verificación automática pueda listarlos y el checklist de lanzamiento no dependa de que alguien los busque a ojo.
+Todo dato que solo una persona puede aportar (nombre o razón social del responsable, domicilio, WhatsApp del directorio, fecha de publicación y jurisdicción) DEBE aparecer en la página como un placeholder visible entre corchetes con la indicación de que falta completarlo, nunca como un dato inventado, un espacio en blanco o texto de relleno. Mientras quede al menos un placeholder sin completar, ambas páginas DEBEN mostrar arriba, de forma visible, la marca de borrador con el texto literal "Ojo: este texto todavía es un borrador. Nos faltan los datos que ves entre corchetes y la revisión legal antes de que el directorio se lance." Los placeholders pendientes DEBEN estar declarados en un solo lugar del código, de modo que la verificación automática pueda listarlos y el checklist de lanzamiento no dependa de que alguien los busque a ojo.
+
+El correo del directorio ya NO es un placeholder: con el dominio comprado, el canal de contacto y de ejercicio de derechos ARCO es `contacto@enmirumbo.com` y DEBE publicarse literalmente en los tres lugares donde el texto lo pide (las dos apariciones del aviso —"Quién es responsable de tus datos" y "Tus derechos ARCO"— y la sección "Si ves algo raro" de los términos). Publicar un correo que nadie atiende sería peor que un placeholder honesto: el buzón DEBE existir y recibir antes de que el texto se publique. Los demás datos del responsable siguen pendientes, así que la marca de borrador **se queda**.
 
 Los datos que faltan no son lo único pendiente antes de retirar la marca de borrador. Junto a los placeholders DEBE declararse, en el mismo módulo y en la misma forma recorrible, la lista de los **pendientes operativos**, cada uno con el compromiso o el tratamiento del que habla, con lo que el sistema hace hoy y con el ticket que lo resuelve, para que la revisión legal y el checklist de lanzamiento los vean sin buscarlos a ojo. Esta lista NO se publica en las páginas: el texto legal dice lo que el responsable se compromete a hacer, no el estado del backlog; lo que las páginas no DEBEN hacer es prometer automatismos que no existen.
 
@@ -403,22 +441,32 @@ Hoy la lista tiene **cuatro** renglones: (1) el acceso y la rectificación, que 
 
 Los textos publicados del aviso y de los términos no dependen de esta lista y siguen siendo verdad: la despublicación y el borrado se ejecutan a mano y a petición del titular, después de que el admin verifica la titularidad por WhatsApp; el titular sigue sin tener "un botón que lo haga solo". La frase "todo esto lo atendemos a mano, cuando tú lo pides" habla de lo que el titular pide; la eliminación de los registros rechazados a los 90 días no es una solicitud suya y la ejecuta el sistema por su cuenta, así que el texto promete menos de lo que se cumple, nunca más.
 
-Completar un placeholder del aviso o retirar su marca de borrador cambia el contenido publicado del aviso y, por lo tanto, DEBE estrenar versión (ver el requirement "Cambiar el texto del aviso sin subir la versión rompe la verificación"). En los términos no, porque no se versionan.
+Completar un placeholder del aviso o retirar su marca de borrador cambia el contenido publicado del aviso y, por lo tanto, DEBE estrenar versión (ver el requirement "Cambiar el texto del aviso sin subir la versión rompe la verificación"). En los términos no, porque no se versionan. Publicar el correo del directorio es exactamente ese caso, y viajó en la misma versión `2` que el cambio de marca.
 
 #### Scenario: el domicilio del responsable todavía no existe
 
 - **WHEN** el humano abre `/aviso-de-privacidad` antes de la revisión legal
-- **THEN** en lugar del domicilio lee "[DOMICILIO DEL RESPONSABLE — completar antes del lanzamiento]", y lo mismo para el nombre del responsable, el correo ARCO y el WhatsApp del directorio
+- **THEN** en lugar del domicilio lee "[DOMICILIO DEL RESPONSABLE — completar antes del lanzamiento]", y lo mismo para el nombre del responsable y el WhatsApp del directorio
+
+#### Scenario: el correo ya no es un placeholder
+
+- **WHEN** el dueño de un negocio busca a dónde escribir para ejercer sus derechos ARCO, o un vecino busca dónde reportar una ficha falsa
+- **THEN** lee el correo `contacto@enmirumbo.com` escrito completo —en las dos secciones del aviso y en "Si ves algo raro" de los términos—, sin corchetes ni la nota de "completar antes del lanzamiento"
 
 #### Scenario: marca de borrador visible
 
 - **WHEN** cualquier persona abre cualquiera de las dos páginas legales mientras siga habiendo placeholders sin completar
 - **THEN** lee arriba "Ojo: este texto todavía es un borrador. Nos faltan los datos que ves entre corchetes y la revisión legal antes de que el directorio se lance."
 
+#### Scenario: publicar el correo no retira la marca de borrador
+
+- **WHEN** se publica el correo del directorio y siguen faltando el nombre del responsable, su domicilio, el WhatsApp, la fecha de publicación y la jurisdicción
+- **THEN** las dos páginas siguen mostrando la marca de borrador, porque la revisión legal y los datos del responsable siguen pendientes
+
 #### Scenario: los pendientes son verificables
 
 - **WHEN** se corre la verificación automática del sitio
-- **THEN** puede listar cuáles placeholders siguen sin completar, y ninguna página legal contiene un dato de contacto o un domicilio inventado
+- **THEN** puede listar cuáles placeholders siguen sin completar —cinco, ya sin el correo—, y ninguna página legal contiene un dato de contacto o un domicilio inventado
 
 #### Scenario: los pendientes operativos también están declarados
 

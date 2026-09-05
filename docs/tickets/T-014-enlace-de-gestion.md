@@ -1,6 +1,6 @@
 # T-014 · Habilitar la edición con enlace de gestión
 
-**Estado:** en-desarrollo
+**Estado:** en-review
 **Prioridad:** P1 (antes de escalar; no bloquea el lanzamiento)
 **Épica:** E8-1, E8-2, E8-3, E8-4 (docs/backlog.md)
 **Referencias PRD:** §6.4, §7 Flujos C y D
@@ -14,13 +14,13 @@ La autogestión sin cuentas del PRD §6.4: al aprobar, el sistema genera un enla
 
 ## Criterios de aceptación
 
-- [ ] Al aprobar un registro se genera el token de gestión (criptográficamente aleatorio, único) y el mensaje de WhatsApp de aviso incluye el enlace con la instrucción del PRD §6.4 (texto literal en la spec)
-- [ ] El enlace abre la ficha en modo edición con el formulario de registro prellenado (mismo formulario, sin lógica aparte); token inválido/inexistente → 404 indistinguible
-- [ ] Enviar la edición NO toca la ficha pública: crea una revisión pendiente (tabla o mecanismo que la spec decida) que entra a la cola del admin; la ficha sigue mostrando la versión publicada mientras tanto
-- [ ] La cola del admin distingue "alta nueva" de "edición"; aprobar una edición aplica los cambios a la ficha publicada; rechazarla la descarta con motivo (avisos por WhatsApp prellenado como en T-005)
-- [ ] El admin puede regenerar el enlace (invalida el anterior) desde el detalle
-- [ ] Botón "Perdí mi enlace" en la ficha pública → WhatsApp prellenado al admin (el número del admin es variable de entorno, no hardcodeado)
-- [ ] Anti-abuso: el enlace no se puede adivinar (entropía + comparación segura), cupo por IP en el envío de ediciones, y ninguna edición pendiente se filtra a lo público
+- [x] Al aprobar un registro se genera el token de gestión (criptográficamente aleatorio, único) y el mensaje de WhatsApp de aviso incluye el enlace con la instrucción del PRD §6.4 (texto literal en la spec)
+- [x] El enlace abre la ficha en modo edición con el formulario de registro prellenado (mismo formulario, sin lógica aparte); token inválido/inexistente → 404 indistinguible
+- [x] Enviar la edición NO toca la ficha pública: crea una revisión pendiente (tabla o mecanismo que la spec decida) que entra a la cola del admin; la ficha sigue mostrando la versión publicada mientras tanto
+- [x] La cola del admin distingue "alta nueva" de "edición"; aprobar una edición aplica los cambios a la ficha publicada; rechazarla la descarta con motivo (avisos por WhatsApp prellenado como en T-005)
+- [x] El admin puede regenerar el enlace (invalida el anterior) desde el detalle
+- [x] Botón "Perdí mi enlace" en la ficha pública → WhatsApp prellenado al admin (el número del admin es variable de entorno, no hardcodeado)
+- [x] Anti-abuso: el enlace no se puede adivinar (entropía + comparación segura), cupo por IP en el envío de ediciones, y ninguna edición pendiente se filtra a lo público
 
 ## Fuera de alcance de este ticket
 

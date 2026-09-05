@@ -54,11 +54,20 @@ La regla: **lo último que escribió el dueño es lo que vale**.
 
 ## 4. El token va en la URL, así que hay que taparle las fugas
 
-Un secreto en la URL se escapa por tres sitios, y los tres se cierran en la spec:
+> **Enmendado en la etapa C (vuelta 2), con el visto bueno del orquestador.**
+> Solo cambia la LETRA de los puntos 1 y 3 y se suma el 4: la intención —que la
+> ruta con el token no salga del sitio— es la misma, y ninguna otra sección ni
+> ningún scenario cambia. Los dos porqués están medidos, no razonados: ver
+> `reports/c-seguridad.md` y `reports/b-dev.md` §I2.6.
 
-1. **`Referer`:** cualquier enlace saliente de la página de edición mandaría la URL completa —con el token— al destino. La página declara `referrer: no-referrer` en su metadata y no abre enlaces externos.
+Un secreto en la URL se escapa por **cuatro** sitios, y los cuatro se cierran:
+
+1. **`Referer`:** cualquier enlace saliente de la página de edición mandaría la URL completa —con el token— al destino. La página declara **`referrer: strict-origin`** en la metadata **del layout de su grupo de rutas** (no en cada pantalla, para que las que se agreguen nazcan cubiertas) y no abre enlaces externos.
+   **Por qué `strict-origin` y no `no-referrer`**, que era la letra original: lo que hay que ocultar es la RUTA, porque la ruta *es* el secreto, y `strict-origin` manda solo el origen pelado (`https://sitio/`), nunca `/editar/<token>` — el scenario "el token no se va en el `Referer`" se cumple igual. `no-referrer`, en cambio, hace que el navegador mande `Origin: null` en los POST de navegación, y Next aborta toda Server Action cuyo `Origin` no case con el host: **el envío de cambios respondía 500 sin JavaScript de cliente**, que es justo el camino que la spec tiene prometido ("la edición funciona sin JavaScript"). Es la misma tensión que el panel ya resolvió con el mismo valor (`src/app/admin/layout.tsx`). `same-origin`, `strict-origin-when-cross-origin` y `unsafe-url` no sirven: mandan la URL completa a destinos del mismo origen, que es exactamente por donde se fugaría.
 2. **Buscadores:** `noindex, nofollow` en la página de edición y en su confirmación, y ninguna página del sitio enlaza a `/editar/...`.
-3. **Logs:** el token no se escribe nunca en el log del servidor, ni completo ni truncado, ni en el camino feliz ni en los errores. Misma regla que ya rige para la contraseña del panel y para los datos capturados.
+3. **Logs:** el token no se escribe nunca en el log **de la aplicación**, ni completo ni truncado, ni en el camino feliz ni en los errores. Misma regla que ya rige para la contraseña del panel y para los datos capturados.
+   **Lo que esta regla NO alcanza:** el log de acceso del runtime y de la plataforma registra la ruta de cada petición, así que `GET /editar/<token>` queda ahí. No hay forma de cerrarlo sin sacar el secreto del *path*, es decir sin cambiar este diseño. Es un **riesgo asumido**, documentado con sus dos condiciones operativas (ningún Log Drain; acceso al proyecto limitado al admin con 2FA) en `docs/despliegue.md` §8.1.
+4. **La medición** (fuga que este diseño no vio y que encontró la etapa C): el tracker de la analítica manda el `pathname` de cada vista al recolector del proveedor, y `data-exclude-search` solo quita la cadena de consulta. Por eso las pantallas del modo edición viven en un **grupo de rutas propio, fuera del layout que monta el script** —el mismo mecanismo estructural con el que `/admin` quedó fuera de la medición—, y no en una lista de rutas que alguien tenga que recordar.
 
 El formulario manda el token en el cuerpo del envío (no como parámetro de consulta del POST) por la misma razón.
 

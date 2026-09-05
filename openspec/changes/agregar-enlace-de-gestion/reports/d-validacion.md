@@ -229,3 +229,43 @@ comparar contra `git worktree add` en otro directorio, sin tocar el índice.
    edición pendiente (renglón que reaparece y responde el literal honesto), y
    el `sinBytesNulos` en `leerEnvioRegistro` (BAJO 1).
 5. Cuando T-008 (foto) mergee, sumar la foto al modo edición.
+
+---
+
+# Anexo — segunda re-integración de `main` (T-018 mergeado)
+
+El fundador mergeó el PR #23 (T-018, listado "Todos los negocios" del panel)
+mientras este PR esperaba. Volví a fusionar `origin/main` y a correr los gates.
+
+**Cuatro puntos de contacto, ninguno de fondo:**
+
+| Archivo | Choque | Cómo se resolvió |
+|---|---|---|
+| `src/lib/admin/consultas.ts` | T-018 añadió `obtenerListadoDeNegocios` y dos ayudantes —`textoDeColonia(fila)` y `vieneDeDespublicacion(...)`— que **generalizan** lo que T-014 había escrito para la cola | Se queda la versión de main (una sola función para cola y listado) y la cola mezclada la llama; se retiró el ayudante duplicado de dos argumentos. `ClientePanel` conserva `count` y `edicionPendiente` |
+| `src/lib/admin/textos.ts` | Los dos changes añaden bloques al final | Quedan los dos, en orden: enlace de gestión y luego listado |
+| `tests/admin-listado-consultas.test.ts` | Choque **semántico**, no textual: el cliente espía del listado dejó de compilar contra el `ClientePanel` que T-014 amplió | Se le sumó `edicionPendiente.findMany` delegando a la base real, sin aflojar lo que el test afirma |
+| `docs/metricas-pipeline.md` | Auto-merge dejó la fila de T-014 fuera de la tabla | Colocada dentro, después de la de T-018, en orden cronológico de merge |
+
+La pantalla de la cola **no** chocó: T-018 le sumó "Ver todos los negocios" y
+T-014 nunca tocó ese archivo.
+
+**La comprobación semántica, medida y no supuesta.** ¿Cómo se ve en el listado
+de T-018 una ficha con edición pendiente? Lo ejercité contra la base con las
+funciones de producción: el renglón sale con el **nombre y el estado
+publicados** ("Publicado"), aparece bajo el filtro "Publicados", y ni el valor
+propuesto ni la huella del enlace asoman en el objeto serializado; la misma
+ficha ocupa **un** renglón en la cola, como "Edición", apuntando a
+`/admin/ediciones/<id>`. Era lo esperable —T-014 no cambia estados del
+negocio— pero era exactamente lo que había que comprobar. **Observación sin
+severidad para el backlog:** el listado no dice que esa ficha tiene cambios por
+revisar; no lo pide ninguna spec y la cola es el lugar del trabajo pendiente,
+pero si el listado crece como "vista de gestión" conviene decidirlo a
+propósito.
+
+**Gates tras la segunda fusión:** `npm run lint` limpio · `npx tsc --noEmit`
+limpio (los dos errores que aparecieron al resolver —el tipo de ruta de
+`/admin/negocios` y el cliente espía— se cerraron: el primero era el tipado de
+rutas sin regenerar, el segundo el arreglo de arriba) · `npm run build`
+correcto, con `/admin/negocios` y las siete rutas de T-014 en la lista ·
+`npm test` **108 archivos, 3 148 pasando, 2 saltados, 0 en rojo**.
+El CI del PR tiene que volver a quedar en verde: sigue siendo él quien manda.

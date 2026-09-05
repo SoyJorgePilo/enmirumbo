@@ -62,7 +62,13 @@ inicio (así opera Tizayuca), pasarela después.
 - "Tu ficha en números" (§2.1) también es experiencia: sentirse visto.
 
 ### Para el que busca
-- **"Abierto ahora"**: chip verde + filtro derivado del horario guiado que ya se captura.
+- **"Abierto ahora"**: chip verde + filtro. Referencia del fundador (2026-09-04, estilo
+  Google/WhatsApp Business): horario **estructurado** por día con estados especiales
+  ("Siempre abierto", "Cerrado temporalmente", "No se aplica"). El camino decidido: el
+  registro conserva el texto libre guiado (fricción mínima), y el editor estructurado
+  vive en el **enlace de gestión** (T-014) — el negocio ya publicado "mejora su horario"
+  con calma, y ese dato estructurado es el que alimenta el chip y el filtro. Texto libre
+  y estructurado conviven; el estructurado manda cuando existe.
 - **Filtro "a domicilio"**: el dato ya existe en la ficha.
 - Más adelante: fotos múltiples, catálogo simple por ficha (precios de palabra, como se
   manejan aquí).

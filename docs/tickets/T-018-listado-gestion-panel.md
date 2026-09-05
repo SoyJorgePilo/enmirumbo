@@ -1,6 +1,6 @@
 # T-018 · Listar todos los negocios en el panel para gestionarlos
 
-**Estado:** en-review <!-- pendiente | en-spec | en-desarrollo | en-review | hecho -->
+**Estado:** hecho <!-- pendiente | en-spec | en-desarrollo | en-review | hecho -->
 **Prioridad:** P1
 **Épica:** E3 (docs/backlog.md)
 **Referencias PRD:** §6.3

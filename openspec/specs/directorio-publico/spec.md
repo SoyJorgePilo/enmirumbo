@@ -491,6 +491,20 @@ Los tres botones de contacto de la ficha DEBEN declarar su evento con atributos 
 - **WHEN** el vecino abre una ficha con el bloque "¿Es tu negocio?" visible
 - **THEN** "Enviar WhatsApp" sigue siendo el control más prominente de la página
 
+### Requirement: El mensaje prellenado del WhatsApp nombra al directorio con la marca vigente
+
+Todo botón de WhatsApp hacia un negocio —el de la tarjeta del listado, el de las páginas de giro y de resultados, y el "Enviar WhatsApp" de la ficha— DEBE abrir la conversación con el mismo mensaje ya escrito, literalmente: "Hola, te vi en EnMiRumbo. ¿Me das informes?". El mensaje DEBE ser el mismo en todas las superficies (se declara una sola vez), NO DEBE enviarse solo —lo manda el vecino— y NO DEBE contener ningún dato del vecino. Va sin descriptor geográfico a propósito: el negocio que lo recibe está en Tizayuca y ya sabe dónde está, así que decírselo solo alarga el mensaje (resolución del fundador del 2026-09-04).
+
+#### Scenario: el vecino escribe desde una tarjeta del listado
+
+- **WHEN** el vecino toca el botón de WhatsApp de una tarjeta del listado
+- **THEN** se abre la conversación con ese negocio y el mensaje "Hola, te vi en EnMiRumbo. ¿Me das informes?" ya escrito, sin enviarse
+
+#### Scenario: el vecino escribe desde la ficha
+
+- **WHEN** el vecino toca "Enviar WhatsApp" en la ficha de un negocio
+- **THEN** se abre la conversación con exactamente el mismo mensaje que abriría desde la tarjeta, sin la marca anterior en ninguna parte
+
 ### Requirement: La vista de ficha se mide sola, sin instrumentación propia
 
 La "vista de ficha" del PRD §9 DEBE medirse con la vista de página que el proveedor registra por sí mismo al cargarse la ficha: el sitio NO DEBE agregar ningún evento, contador ni JavaScript propio para contarla. Como la ficha vive en una URL propia y estable (`/negocio/<slug>-<id>`), esa vista es el denominador de la métrica del PRD §10 "clics a WhatsApp / vistas de ficha", cuyo numerador es el evento `whatsapp-ficha`. La URL que viaja al proveedor es la ruta pública de la ficha, la misma que cualquiera comparte por WhatsApp; ningún dato adicional del negocio la acompaña.
@@ -756,14 +770,14 @@ Los reportes DEBEN ser invisibles fuera del panel: un negocio reportado sigue pu
 
 ### Requirement: Botón "Perdí mi enlace" en la ficha, hacia el WhatsApp del admin
 
-Cada ficha publicada DEBE ofrecer, al final y en jerarquía claramente menor que los botones de contacto, un bloque encabezado con el texto literal "¿Es tu negocio?" y un control con el texto literal "Perdí mi enlace" que abra WhatsApp con la conversación del **admin** y el mensaje ya escrito, literalmente: "Hola, soy de «<nombre del negocio>» en NecesitoUno Tizayuca y perdí el enlace para editar mi ficha. Les escribo desde el número que registré, ¿me lo pueden pasar?" (PRD §6.4 y §7 Flujo D: el admin verifica que quien escribe lo hace desde el número registrado y le reenvía o le genera uno nuevo).
+Cada ficha publicada DEBE ofrecer, al final y en jerarquía claramente menor que los botones de contacto, un bloque encabezado con el texto literal "¿Es tu negocio?" y un control con el texto literal "Perdí mi enlace" que abra WhatsApp con la conversación del **admin** y el mensaje ya escrito, literalmente: "Hola, soy de «<nombre del negocio>» en EnMiRumbo y perdí el enlace para editar mi ficha. Les escribo desde el número que registré, ¿me lo pueden pasar?" (PRD §6.4 y §7 Flujo D: el admin verifica que quien escribe lo hace desde el número registrado y le reenvía o le genera uno nuevo).
 
 El número del admin DEBE leerse de una variable de entorno del servidor: NO DEBE estar escrito en el código, ni en los seeds, ni en los tests (repo público + LFPDPPP, PRD §8). Si esa variable falta o su valor no se puede interpretar como un número mexicano de 10 dígitos, el bloque NO DEBE pintarse: nada de enlaces rotos ni de números de ejemplo. El control NO DEBE aparecer en las tarjetas del listado ni en los resultados de búsqueda, y NO DEBE prometer que el enlace llega solo: lo manda una persona.
 
 #### Scenario: pedir el enlace desde la ficha
 
 - **WHEN** el dueño de "Tacos del Güero" abre su ficha y toca "Perdí mi enlace"
-- **THEN** sale hacia WhatsApp con la conversación del admin y el mensaje "Hola, soy de «Tacos del Güero» en NecesitoUno Tizayuca y perdí el enlace para editar mi ficha. Les escribo desde el número que registré, ¿me lo pueden pasar?" ya escrito, sin enviarse
+- **THEN** sale hacia WhatsApp con la conversación del admin y el mensaje "Hola, soy de «Tacos del Güero» en EnMiRumbo y perdí el enlace para editar mi ficha. Les escribo desde el número que registré, ¿me lo pueden pasar?" ya escrito, sin enviarse
 
 #### Scenario: sin número de admin configurado
 

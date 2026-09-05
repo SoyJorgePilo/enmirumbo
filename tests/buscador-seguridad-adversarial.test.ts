@@ -171,7 +171,7 @@ beforeAll(async () => {
       coloniaOtra: HOSTIL.coloniaOtra,
       telefonoFijo: HOSTIL.telefonoFijo,
       direccion: HOSTIL.direccion,
-      tokenGestion: HOSTIL.token,
+      tokenGestionHash: HOSTIL.token,
       whatsapp: HOSTIL.whatsapp,
       estado: "publicado",
       origen: "siembra",
@@ -204,7 +204,7 @@ beforeAll(async () => {
         ...datosDeBusqueda(ficha.nombre, ficha.queOfreces),
         telefonoFijo: ficha.telefonoFijo,
         direccion: ficha.direccion,
-        tokenGestion: ficha.token,
+        tokenGestionHash: ficha.token,
         whatsapp: ficha.whatsapp,
         estado,
         origen: "organico",
@@ -272,7 +272,7 @@ describe("adversarial C · una ficha hostil ya guardada no rompe la página de r
       HOSTIL.queOfreces,
       "queOfrecesNormalizado",
       "nombreNormalizado",
-      "tokenGestion",
+      "tokenGestionHash",
       "publicadoEn",
       "registradoEn",
       "consintioAvisoEn",
@@ -306,7 +306,7 @@ describe("adversarial C · la proyección de la búsqueda no crece", () => {
 
     expect(Object.keys(argumentos?.select ?? {})).not.toContain("nombreNormalizado");
     expect(Object.keys(argumentos?.select ?? {})).not.toContain("queOfrecesNormalizado");
-    expect(Object.keys(argumentos?.select ?? {})).not.toContain("tokenGestion");
+    expect(Object.keys(argumentos?.select ?? {})).not.toContain("tokenGestionHash");
     expect(Object.keys(argumentos?.select ?? {})).not.toContain("estado");
     // Y el filtro de estado va por construcción, no por disciplina de quien llama.
     expect(argumentos?.where).toMatchObject({ estado: "publicado" });
@@ -437,7 +437,7 @@ describe("adversarial C · el alta pública no puede auto-publicarse ni fijar su
         estado: "publicado",
         origen: "siembra",
         publicadoEn: "2020-01-01T00:00:00.000Z",
-        tokenGestion: "token-inyectado-ficticio",
+        tokenGestionHash: "token-inyectado-ficticio",
         id: "id-inyectado",
         nombreNormalizado: "plomero tacos futbol doctor",
         queOfrecesNormalizado: "plomero tacos futbol doctor",
@@ -452,7 +452,7 @@ describe("adversarial C · el alta pública no puede auto-publicarse ni fijar su
     expect(creado.estado).toBe("en_revision");
     expect(creado.origen).toBe("organico");
     expect(creado.publicadoEn).toBeNull();
-    expect(creado.tokenGestion).toBeNull();
+    expect(creado.tokenGestionHash).toBeNull();
     expect(creado.id).not.toBe("id-inyectado");
     expect(creado.nombreNormalizado).toBe("herreria impostora zzyzx ficticia");
     expect(creado.queOfrecesNormalizado).toBe("portones y barandales");
@@ -789,7 +789,15 @@ describe("adversarial C · ningún camino de escritura se salta datosDeBusqueda"
     // texto normalizado. La aserción de abajo mantiene honesta la excepción:
     // si algún día escribe esos campos, este test truena y obliga a sumar
     // `datosDeBusqueda` ahí también.
-    const exentos = [path.join(raiz, "src/lib/admin/transiciones.ts")];
+    // Misma excepción, y por la misma razón, para el enlace de gestión (change
+    // `agregar-enlace-de-gestion`): `enlace.ts` solo escribe la huella del
+    // enlace y su fecha; el nombre y "¿qué ofreces?" no los toca. Quien SÍ los
+    // escribe —`src/lib/gestion/ediciones.ts`, al aplicar una edición— importa
+    // `datosDeBusqueda` y recalcula, así que no está exento.
+    const exentos = [
+      path.join(raiz, "src/lib/admin/transiciones.ts"),
+      path.join(raiz, "src/lib/gestion/enlace.ts"),
+    ];
     for (const archivo of escritores) {
       const codigo = readFileSync(archivo, "utf8");
       if (exentos.includes(archivo)) {

@@ -276,8 +276,8 @@ describe("adversarial · los índices únicos y los nulos, en el dialecto nuevo"
 
   it("dos fichas no pueden compartir el mismo token de gestión", async () => {
     const token = "b".repeat(43);
-    await alta(`${PREFIJO}306`, { tokenGestion: token });
-    await expect(alta(`${PREFIJO}307`, { tokenGestion: token })).rejects.toThrow();
+    await alta(`${PREFIJO}306`, { tokenGestionHash: token });
+    await expect(alta(`${PREFIJO}307`, { tokenGestionHash: token })).rejects.toThrow();
   });
 
   it("dos fichas no pueden compartir el mismo WhatsApp", async () => {

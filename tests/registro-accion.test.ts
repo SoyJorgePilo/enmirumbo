@@ -102,7 +102,7 @@ describe("procesarRegistro (Server Action de registro)", () => {
     expect(creado.estado).toBe(ESTADO_NEGOCIO_DEFAULT);
     expect(creado.origen).toBe(ORIGEN_NEGOCIO_DEFAULT);
     expect(creado.publicadoEn).toBeNull();
-    expect(creado.tokenGestion).toBeNull();
+    expect(creado.tokenGestionHash).toBeNull();
     expect(creado.giros).toHaveLength(0);
     // Constancia del consentimiento: la pone el servidor al procesar
     expect(creado.consintioAvisoEn.getTime()).toBeGreaterThanOrEqual(
@@ -173,14 +173,14 @@ describe("procesarRegistro (Server Action de registro)", () => {
   // ── Blindaje contra campos no confiables ──────────────────────────────────
 
   // Scenario: el cliente no puede autopublicarse
-  it("ignora estado, origen, publicadoEn, tokenGestion y la fecha de consentimiento del cliente", async () => {
+  it("ignora estado, origen, publicadoEn, tokenGestionHash y la fecha de consentimiento del cliente", async () => {
     await procesar(
       envio({
         whatsapp: "7719990105",
         estado: "publicado",
         origen: "siembra",
         publicadoEn: "2020-01-01T00:00:00.000Z",
-        tokenGestion: "token-falsificado",
+        tokenGestionHash: "token-falsificado",
         consintioAvisoEn: "1999-01-01T00:00:00.000Z",
         id: "id-falsificado",
       }),
@@ -192,7 +192,7 @@ describe("procesarRegistro (Server Action de registro)", () => {
     expect(creado.estado).toBe("en_revision");
     expect(creado.origen).toBe("organico");
     expect(creado.publicadoEn).toBeNull();
-    expect(creado.tokenGestion).toBeNull();
+    expect(creado.tokenGestionHash).toBeNull();
     expect(creado.id).not.toBe("id-falsificado");
     expect(creado.consintioAvisoEn.getFullYear()).toBeGreaterThan(2020);
   });

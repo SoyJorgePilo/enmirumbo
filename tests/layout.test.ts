@@ -343,21 +343,58 @@ function rutaInternaExiste(href: string): boolean {
   // Panel de revisión (E3): `/admin/registros/<id>` y sus sub-rutas de
   // confirmación resuelven contra registros que existen de verdad, igual que
   // la ficha pública. Una ruta del panel inventada sigue siendo un problema.
-  return (
+  if (
     segmentos.length >= 3 &&
     segmentos[0] === "admin" &&
     segmentos[1] === "registros" &&
-    [...idsPublicados, ...idsEnRevision].includes(segmentos[2]) &&
-    (segmentos.length === 3 ||
-      (segmentos.length === 4 &&
-        // "borrar" y "despublicado" los estrena el change
-        // `agregar-despublicar-y-borrado-arco`: el detalle enlaza a la
-        // pantalla de confirmación del borrado, y la acción de despublicar
-        // lleva a la suya.
-        ["aprobado", "borrar", "despublicado", "rechazado", "ya-resuelto"].includes(
-          segmentos[3],
-        )))
-  );
+    [...idsPublicados, ...idsEnRevision].includes(segmentos[2])
+  ) {
+    if (segmentos.length === 3) return true;
+    // "borrar" y "despublicado" los estrena el change
+    // `agregar-despublicar-y-borrado-arco`: el detalle enlaza a la pantalla de
+    // confirmación del borrado, y la acción de despublicar lleva a la suya.
+    // "regenerar-enlace" (y su "/listo") los estrena `agregar-enlace-de-
+    // gestion`: el detalle de una ficha publicada enlaza a la confirmación de
+    // "Generar un enlace nuevo".
+    if (
+      segmentos.length === 4 &&
+      [
+        "aprobado",
+        "borrar",
+        "despublicado",
+        "rechazado",
+        "regenerar-enlace",
+        "ya-resuelto",
+      ].includes(segmentos[3])
+    ) {
+      return true;
+    }
+    return (
+      segmentos.length === 5 &&
+      segmentos[3] === "regenerar-enlace" &&
+      segmentos[4] === "listo"
+    );
+  }
+
+  // Ediciones del panel (change `agregar-enlace-de-gestion`):
+  // `/admin/ediciones/<id>` y sus dos confirmaciones. El identificador es el
+  // de una edición, no el de un negocio, así que aquí solo se comprueba la
+  // FORMA de la ruta —una sub-ruta inventada sigue siendo un enlace roto—.
+  if (segmentos.length >= 3 && segmentos[0] === "admin" && segmentos[1] === "ediciones") {
+    if (segmentos.length === 3) return segmentos[2] !== "";
+    return segmentos.length === 4 && ["aplicada", "descartada"].includes(segmentos[3]);
+  }
+
+  // Modo edición público (`agregar-enlace-de-gestion`): `/editar/<token>` y su
+  // confirmación. Ninguna página pública enlaza aquí —la spec lo exige y
+  // `gestion-edicion.test.ts` lo comprueba—, pero las propias pantallas del
+  // modo edición sí se enlazan a sí mismas al postear.
+  if (segmentos.length >= 2 && segmentos[0] === "editar") {
+    if (segmentos.length === 2) return segmentos[1] !== "";
+    return segmentos.length === 3 && segmentos[2] === "gracias";
+  }
+
+  return false;
 }
 
 function problemasDeEnlaces(html: string): string[] {

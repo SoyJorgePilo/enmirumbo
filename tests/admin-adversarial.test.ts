@@ -649,6 +649,15 @@ describe("adversarial · la guarda se invoca antes de leer o escribir nada", () 
     "obtenerNegociosReportados(",
     "obtenerReportesPendientesDeNegocio(",
     "marcarReporteAtendido(",
+    // Enlace de gestión y ediciones (change `agregar-enlace-de-gestion`,
+    // etapa C): los cuatro accesos nuevos que el panel estrena. Sin nombrarlos
+    // aquí, el guardián seguía comprobando que la guarda EXISTE en los
+    // archivos nuevos, pero ya no que va ANTES de tocar datos — y esa es la
+    // mitad que de verdad importa. La lista es una lista: hay que alimentarla.
+    "obtenerEdicionParaPanel(",
+    "aplicarEdicion(",
+    "descartarEdicion(",
+    "regenerarEnlaceDeGestion(",
   ];
 
   it("en cada ruta y acción, `requerirSesionAdmin()` aparece antes del primer acceso a datos", () => {
@@ -705,18 +714,73 @@ describe("adversarial · la guarda se invoca antes de leer o escribir nada", () 
     }
   });
 
-  it("ninguna pantalla ni acción del panel toca el token de gestión", () => {
+  /**
+   * ENMIENDA CONSCIENTE del guardián (change `agregar-enlace-de-gestion`,
+   * T-014). Hasta este change, el enlace de gestión era terreno reservado y la
+   * regla era la más simple posible: **ninguna** fuente del panel podía
+   * nombrar la columna `tokenGestion`. Ahora el panel SÍ genera enlaces —al
+   * aprobar y al regenerar—, así que esa regla, tal cual, ya no se puede
+   * cumplir. Lo que se conserva es la propiedad que de verdad importaba, y con
+   * MÁS precisión que antes:
+   *
+   * 1. **La huella no se lee desde el panel.** Ni `src/app/admin`, ni
+   *    `src/components/admin`, ni `src/lib/admin` nombran `tokenGestionHash`.
+   *    Las dos escrituras que la fijan viven en `src/lib/gestion/` y devuelven
+   *    las columnas ya armadas (`generarEnlaceDeGestion`), así que el panel
+   *    genera enlaces sin poder leerlos. Si alguien vuelve a meter la huella en
+   *    una consulta del panel, esta prueba lo dice.
+   * 2. **Lo único que el panel puede nombrar es la FECHA**
+   *    (`tokenGestionCreadoEn`), y solo en los dos archivos que la necesitan:
+   *    la consulta que la lee y el componente que la pinta. El requirement "el
+   *    detalle DEBE indicar que tiene enlace y desde cuándo" pide exactamente
+   *    esa fecha y nada más.
+   * 3. **Ninguna pantalla del panel arma una URL de edición.** El panel no
+   *    conoce el token, así que no podría; esto lo deja escrito.
+   */
+  it("ninguna pantalla ni acción del panel lee la huella del enlace de gestión", () => {
+    const fuentes = [
+      ...archivosDe(join(raiz, "src/app/admin")),
+      ...archivosDe(join(raiz, "src/components/admin")),
+      ...archivosDe(join(raiz, "src/lib/admin")),
+    ];
+    expect(fuentes.length).toBeGreaterThan(10);
+    for (const ruta of fuentes) {
+      expect(readFileSync(ruta, "utf8"), ruta).not.toContain("tokenGestionHash");
+    }
+  });
+
+  it("la fecha del enlace solo la nombran la consulta que la lee y el detalle que la pinta", () => {
+    const permitidos = [
+      join(raiz, "src/lib/admin/consultas.ts"),
+      join(raiz, "src/components/admin/detalle-registro.tsx"),
+    ];
+    const fuentes = [
+      ...archivosDe(join(raiz, "src/app/admin")),
+      ...archivosDe(join(raiz, "src/components/admin")),
+      ...archivosDe(join(raiz, "src/lib/admin")),
+    ].filter((ruta) => !permitidos.includes(ruta));
+    for (const ruta of fuentes) {
+      expect(readFileSync(ruta, "utf8"), ruta).not.toContain("tokenGestionCreadoEn");
+    }
+    // Y los dos permitidos sí la nombran: la lista blanca no es un permiso en
+    // blanco, es la constancia de que cada uno la necesita a propósito.
+    for (const ruta of permitidos) {
+      expect(readFileSync(ruta, "utf8"), ruta).toContain("tokenGestionCreadoEn");
+    }
+  });
+
+  it("ninguna pantalla del panel arma una URL de edición", () => {
     const fuentes = [
       ...archivosDe(join(raiz, "src/app/admin")),
       ...archivosDe(join(raiz, "src/components/admin")),
       ...archivosDe(join(raiz, "src/lib/admin")),
     ];
     for (const ruta of fuentes) {
-      expect(readFileSync(ruta, "utf8"), ruta).not.toContain("tokenGestion");
+      expect(readFileSync(ruta, "utf8"), ruta).not.toContain("/editar/");
     }
   });
 
-  it("el token de gestión de un registro no aparece en el HTML del panel", async () => {
+  it("la huella del enlace de un registro no aparece en el HTML del panel", async () => {
     const fila = await prisma.negocio.create({
       data: {
         nombre: "Ficticio con token",
@@ -724,13 +788,20 @@ describe("adversarial · la guarda se invoca antes de leer o escribir nada", () 
         coloniaId,
         whatsapp: "7719996020",
         consintioAvisoEn: new Date(),
-        tokenGestion: "token-ficticio-que-no-debe-salir-jamas",
+        estado: "publicado",
+        publicadoEn: new Date(),
+        tokenGestionHash: "huella-ficticia-que-no-debe-salir-jamas",
+        tokenGestionCreadoEn: new Date("2026-09-01T10:00:00.000Z"),
       },
     });
 
     conSesion();
     const html = await abrirDetalle(fila.id);
-    expect(html).not.toContain("token-ficticio-que-no-debe-salir-jamas");
+    // Ni la huella, ni ninguna URL de edición: el panel dice que la ficha
+    // TIENE enlace y desde cuándo, y nada más (design.md §3).
+    expect(html).not.toContain("huella-ficticia-que-no-debe-salir-jamas");
+    expect(html).not.toContain("/editar/");
+    expect(html).toContain("Tiene enlace de gestión");
   });
 });
 

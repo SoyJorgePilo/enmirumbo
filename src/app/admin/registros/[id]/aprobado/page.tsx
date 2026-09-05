@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 
 import { BotonWhatsapp } from "@/components/admin/boton-whatsapp";
@@ -12,8 +13,11 @@ import {
   MENSAJE_SIN_URL_DEL_SITIO,
   TEXTO_VOLVER_A_LA_COLA,
   mensajeAvisoPublicacion,
+  mensajeAvisoPublicacionConEnlace,
 } from "@/lib/admin/textos";
 import { construirSegmentoFicha } from "@/lib/ficha-url";
+import { leerSobre } from "@/lib/gestion/sobre";
+import { construirEnlaceDeGestion } from "@/lib/gestion/token";
 import { ESTADO_NEGOCIO_PUBLICADO } from "@/lib/negocio";
 import { obtenerPrisma } from "@/lib/prisma";
 
@@ -29,6 +33,14 @@ export const metadata: Metadata = { robots: { index: false, follow: false } };
  * de la URL pública configurada (design.md §7). Si en producción falta esa
  * variable, el panel lo dice a la vista en vez de mandarle a un negocio real
  * un enlace a `localhost`.
+ *
+ * ESTA ES LA ÚNICA PANTALLA EN LA QUE SE VE EL ENLACE DE GESTIÓN (change
+ * `agregar-enlace-de-gestion`, design.md §3): la base solo guarda su huella,
+ * así que el enlace en claro llega aquí dentro del sobre de un solo uso que
+ * dejó la acción de aprobar. Si el admin la abandona sin mandar el mensaje,
+ * para volver a tenerlo tiene que generar uno nuevo — y entonces este deja de
+ * servir. Sin sobre (URL pegada a pelo, o caducado) el mensaje se ofrece igual
+ * pero SOLO con el link de la ficha: el aviso de publicación no se pierde.
  */
 export default async function RegistroAprobadoPage({
   params,
@@ -48,6 +60,9 @@ export default async function RegistroAprobadoPage({
     ? `${origen}/negocio/${construirSegmentoFicha(registro.nombre, registro.id)}`
     : null;
 
+  const token = leerSobre(await cookies(), id);
+  const enlaceGestion = token ? construirEnlaceDeGestion(token) : null;
+
   return (
     <section className="flex flex-1 flex-col items-center justify-center gap-6 py-12 text-center">
       <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
@@ -56,7 +71,15 @@ export default async function RegistroAprobadoPage({
       {linkFicha ? (
         <BotonWhatsapp
           whatsapp={registro.whatsapp}
-          mensaje={mensajeAvisoPublicacion(registro.nombre, linkFicha)}
+          mensaje={
+            enlaceGestion
+              ? mensajeAvisoPublicacionConEnlace(
+                  registro.nombre,
+                  linkFicha,
+                  enlaceGestion,
+                )
+              : mensajeAvisoPublicacion(registro.nombre, linkFicha)
+          }
           etiqueta={BOTON_AVISAR_WHATSAPP}
         />
       ) : (

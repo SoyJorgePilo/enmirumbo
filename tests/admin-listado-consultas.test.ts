@@ -415,6 +415,15 @@ function clienteEspia(real: PrismaClient) {
       count: (args: unknown) =>
         real.negocio.count(args as Parameters<typeof real.negocio.count>[0]),
     },
+    // El listado no lee ediciones, pero `ClientePanel` las declara desde
+    // T-014 (la cola mezcla altas y ediciones): el espía delega a la base
+    // real para no fingir un cliente que no existe.
+    edicionPendiente: {
+      findMany: (args: unknown) =>
+        real.edicionPendiente.findMany(
+          args as Parameters<typeof real.edicionPendiente.findMany>[0],
+        ) as Promise<unknown[]>,
+    },
   };
   return { espia, llamadas };
 }

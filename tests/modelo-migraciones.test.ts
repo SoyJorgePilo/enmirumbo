@@ -45,7 +45,7 @@ function sqlDe(migracion: string): string {
   return readFileSync(path.join(carpetaMigraciones, migracion, "migration.sql"), "utf8");
 }
 
-/** Las cuatro constraints que Prisma no sabe escribir y mantenemos a mano. */
+/** Las cinco constraints que Prisma no sabe escribir y mantenemos a mano. */
 const CHECKS_A_MANO = {
   Negocio: {
     Negocio_estado_check: ["en_revision", "publicado", "rechazado"],
@@ -54,6 +54,10 @@ const CHECKS_A_MANO = {
   Reporte: {
     Reporte_motivo_check: ["cerrado", "no_real", "datos_incorrectos", "inapropiado"],
     Reporte_estado_check: ["pendiente", "atendido"],
+  },
+  // Change `agregar-enlace-de-gestion` (T-014).
+  EdicionPendiente: {
+    EdicionPendiente_estado_check: ["pendiente", "aplicada", "descartada"],
   },
 } as const;
 
@@ -101,6 +105,9 @@ describe("modelo-datos · el árbol de migraciones aplicado de verdad", () => {
     expect(rows.map((fila) => fila.table_name)).toEqual([
       "Categoria",
       "Colonia",
+      // Snapshot de los cambios que un negocio manda desde su enlace de
+      // gestión (change `agregar-enlace-de-gestion`, T-014).
+      "EdicionPendiente",
       "Giro",
       // Cupos anti-abuso compartidos (iteración 2, hallazgo A4 de la etapa C).
       "IntentoDeCupo",
@@ -109,6 +116,48 @@ describe("modelo-datos · el árbol de migraciones aplicado de verdad", () => {
       "_GiroToNegocio",
       "_prisma_migrations",
     ]);
+  });
+
+  /**
+   * Spec `modelo-datos` (delta de `agregar-enlace-de-gestion`) · Scenario "una
+   * sola pendiente por negocio". Prisma no expresa un índice único PARCIAL, así
+   * que va a mano en la migración; esta prueba se lo pregunta al catálogo, no
+   * al archivo.
+   */
+  it("el índice único parcial de una-pendiente-por-negocio existe en la base", async () => {
+    const { rows } = await ejecutar(
+      `SELECT indexdef FROM pg_indexes
+        WHERE schemaname = $1 AND tablename = 'EdicionPendiente'
+          AND indexname = 'EdicionPendiente_una_pendiente_por_negocio'`,
+      [ESQUEMA_MIGRACION],
+    );
+    expect(rows).toHaveLength(1);
+    const definicion = String(rows[0].indexdef);
+    expect(definicion).toMatch(/CREATE UNIQUE INDEX/i);
+    expect(definicion).toContain(`"negocioId"`);
+    expect(definicion).toMatch(/WHERE .*'pendiente'/);
+  });
+
+  // Spec `modelo-datos` · Scenario: la base no guarda el token
+  it("la columna del token en claro desapareció y quedó su huella, única", async () => {
+    const { rows } = await ejecutar(
+      `SELECT column_name FROM information_schema.columns
+        WHERE table_schema = $1 AND table_name = 'Negocio'
+          AND column_name LIKE 'tokenGestion%'`,
+      [ESQUEMA_MIGRACION],
+    );
+    expect(rows.map((fila) => fila.column_name).sort()).toEqual([
+      "tokenGestionCreadoEn",
+      "tokenGestionHash",
+    ]);
+
+    const indices = await ejecutar(
+      `SELECT indexname FROM pg_indexes
+        WHERE schemaname = $1 AND tablename = 'Negocio'
+          AND indexdef ILIKE '%tokenGestionHash%' AND indexdef ILIKE '%UNIQUE%'`,
+      [ESQUEMA_MIGRACION],
+    );
+    expect(indices.rows).toHaveLength(1);
   });
 
   // Spec `modelo-datos` · Scenario: las constraints sobreviven a todo el árbol
@@ -223,7 +272,7 @@ describe("modelo-datos · el árbol de migraciones aplicado de verdad", () => {
     const { rows } = await ejecutar(
       `SELECT "rechazadoEn","motivoRechazo","despublicadoEn","motivoDespublicacion",
               "consintioAvisoVersion","reconsintioAvisoEn","reconsintioAvisoVersion",
-              "publicadoEn","fotoClave","tokenGestion",
+              "publicadoEn","fotoClave","tokenGestionHash","tokenGestionCreadoEn",
               "nombreNormalizado","queOfrecesNormalizado","origen"
          FROM "Negocio" WHERE "id" = 'viejo-sin-columnas-nuevas'`,
     );
@@ -238,7 +287,8 @@ describe("modelo-datos · el árbol de migraciones aplicado de verdad", () => {
       "reconsintioAvisoVersion",
       "publicadoEn",
       "fotoClave",
-      "tokenGestion",
+      "tokenGestionHash",
+      "tokenGestionCreadoEn",
     ]) {
       expect(fila[columna], columna).toBeNull();
     }
@@ -270,6 +320,10 @@ describe("modelo-datos · el árbol de migraciones aplicado de verdad", () => {
   it("toda clave foránea hacia Negocio borra en cascada", async () => {
     const claves = await clavesForaneasHacia(consultarConPg(db), "Negocio");
     expect(claves.map((clave) => `${clave.tabla}.${clave.columna}`).sort()).toEqual([
+      // Change `agregar-enlace-de-gestion`: una edición guarda los mismos
+      // datos personales que la ficha, así que un borrado ARCO que la dejara
+      // atrás no sería un borrado.
+      "EdicionPendiente.negocioId",
       "Reporte.negocioId",
       "_GiroToNegocio.B",
     ]);

@@ -94,7 +94,10 @@ describe("revision-admin · aprobar publica la ficha", () => {
       AHORA,
     );
 
-    expect(resultado).toEqual({ resultado: "aprobado" });
+    // Aprobar devuelve además el enlace de gestión recién generado (change
+    // `agregar-enlace-de-gestion`): existe solo en memoria, la base guarda
+    // su huella. Se comprueba a fondo en `tests/gestion-panel.test.ts`.
+    expect(resultado).toMatchObject({ resultado: "aprobado" });
 
     const negocio = await leer(creado.id);
     expect(negocio.estado).toBe("publicado");
@@ -118,7 +121,10 @@ describe("revision-admin · aprobar publica la ficha", () => {
       AHORA,
     );
 
-    expect(resultado).toEqual({ resultado: "aprobado" });
+    // Aprobar devuelve además el enlace de gestión recién generado (change
+    // `agregar-enlace-de-gestion`): existe solo en memoria, la base guarda
+    // su huella. Se comprueba a fondo en `tests/gestion-panel.test.ts`.
+    expect(resultado).toMatchObject({ resultado: "aprobado" });
     const negocio = await leer(creado.id);
     expect(negocio.estado).toBe("publicado");
     expect(negocio.giros).toEqual([]);
@@ -226,7 +232,10 @@ describe("revision-admin · aprobar publica la ficha", () => {
       AHORA,
     );
 
-    expect(resultado).toEqual({ resultado: "aprobado" });
+    // Aprobar devuelve además el enlace de gestión recién generado (change
+    // `agregar-enlace-de-gestion`): existe solo en memoria, la base guarda
+    // su huella. Se comprueba a fondo en `tests/gestion-panel.test.ts`.
+    expect(resultado).toMatchObject({ resultado: "aprobado" });
     const negocio = await leer(creado.id);
     expect(negocio.estado).toBe("publicado");
     expect(negocio.coloniaId).toBe(otraColoniaId);

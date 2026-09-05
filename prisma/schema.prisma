@@ -23,17 +23,19 @@ datasource db {
 // ── Catálogos (poblados por prisma/seed.ts, slugs para URLs SEO) ────────────
 
 model Categoria {
-  id       Int       @id @default(autoincrement())
-  nombre   String    @unique
-  slug     String    @unique
-  negocios Negocio[]
+  id        Int                @id @default(autoincrement())
+  nombre    String             @unique
+  slug      String             @unique
+  negocios  Negocio[]
+  ediciones EdicionPendiente[]
 }
 
 model Colonia {
-  id       Int       @id @default(autoincrement())
-  nombre   String    @unique
-  slug     String    @unique
-  negocios Negocio[]
+  id        Int                @id @default(autoincrement())
+  nombre    String             @unique
+  slug      String             @unique
+  negocios  Negocio[]
+  ediciones EdicionPendiente[]
 }
 
 model Giro {
@@ -134,8 +136,74 @@ model Negocio {
   // Se borran con el negocio (ARCO, PRD §8): la cascada está en `Reporte`.
   reportes Reporte[]
 
-  // Reservado para el enlace de gestión de P1 (PRD §6.4): nulo y sin lógica en el MVP
-  tokenGestion String? @unique
+  // ── Enlace de gestión (PRD §6.4, change `agregar-enlace-de-gestion`) ──
+  //
+  // La base guarda la HUELLA SHA-256 del token, NUNCA el token en claro
+  // (design.md §3): un respaldo de la base no se lleva los enlaces de nadie.
+  // Sin sal y sin KDF a propósito — el secreto son 256 bits aleatorios, no una
+  // contraseña humana: lo que hace falta es que la huella no sea invertible.
+  //
+  // Únicas: dos negocios no pueden compartir enlace. Nulas mientras la ficha
+  // no se haya aprobado, y se SOBRESCRIBEN al regenerar, de modo que nunca hay
+  // más de un enlace válido por negocio (no hay lista de revocados: la huella
+  // vieja deja de existir y su enlace pasa a ser un 404).
+  tokenGestionHash     String?   @unique
+  tokenGestionCreadoEn DateTime?
+
+  // Cambios que el negocio mandó desde su enlace y esperan revisión. Se borran
+  // con el negocio (ARCO, PRD §8): la cascada está en `EdicionPendiente`.
+  ediciones EdicionPendiente[]
+}
+
+// ── EdicionPendiente (PRD §6.4: los cambios pasan por la misma cola) ────────
+
+/**
+ * SNAPSHOT COMPLETO de lo que el negocio quiere que quede publicado, no un
+ * diff (design.md §1, opción A). Una columna por cada campo que el formulario
+ * de registro captura, y ni una más: aquí NO existen `estado`, `origen`, los
+ * giros, `publicadoEn`, `registradoEn`, `consintioAvisoEn` ni la huella del
+ * enlace, porque no son editables y no viajan en una edición. La lista
+ * canónica vive en `src/lib/gestion/campos.ts` y `tests/gestion-modelo.test.ts`
+ * falla si esta tabla y esa lista se desincronizan.
+ *
+ * Vive fuera de `Negocio` a propósito: la ficha pública lee `Negocio` con
+ * `estado: "publicado"` y no cambia ni una línea de consulta, así que ninguna
+ * edición pendiente puede filtrarse a lo público por accidente.
+ *
+ * `estado` es texto con CHECK escrito a mano en la migración (mismo criterio
+ * que `Negocio.estado`; literales en `src/lib/gestion/estados.ts`), y un
+ * ÍNDICE ÚNICO PARCIAL —también a mano, Prisma no lo expresa— impide que un
+ * negocio tenga dos ediciones `pendiente` a la vez.
+ */
+model EdicionPendiente {
+  id String @id @default(cuid())
+
+  negocio   Negocio @relation(fields: [negocioId], references: [id], onDelete: Cascade)
+  negocioId String
+
+  // Los mismos campos capturables del formulario de registro (PRD §6.1).
+  nombre            String
+  categoria         Categoria @relation(fields: [categoriaId], references: [id])
+  categoriaId       Int
+  whatsapp          String
+  colonia           Colonia?  @relation(fields: [coloniaId], references: [id])
+  coloniaId         Int?
+  coloniaOtra       String?
+  queOfreces        String?
+  entregaADomicilio Boolean   @default(false)
+  telefonoFijo      String?
+  direccion         String?
+  horario           String?
+  facebookUrl       String?
+
+  estado         String    @default("pendiente") // pendiente | aplicada | descartada
+  creadaEn       DateTime  @default(now())
+  resueltaEn     DateTime?
+  motivoDescarte String?
+
+  // La cola pregunta siempre "las pendientes"; el detalle, "esta edición".
+  @@index([estado, creadaEn])
+  @@index([negocioId, estado])
 }
 
 // ── Reporte (PRD §6.3 y §13: botón "Reportar" de la ficha) ──────────────────

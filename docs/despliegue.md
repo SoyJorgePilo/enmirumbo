@@ -155,6 +155,7 @@ volver a desplegar, no basta con reiniciar.
 | `SUPABASE_SERVICE_ROLE_KEY` | **Secreto.** Llave con la que el servidor lee y escribe las fotos. | Supabase → *Settings → API → service_role*. |
 | `SUPABASE_BUCKET_FOTOS` | Nombre del bucket de fotos. | Por defecto `fotos`. |
 | `FOTOS_DIR` | Directorio de las fotos **en desarrollo**, cuando no hay Supabase configurado. | Por defecto `.fotos/` en la raíz. **En Vercel el disco es efímero: ver §7.** |
+| `WHATSAPP_ADMIN` | El WhatsApp del admin al que la ficha pública ofrece escribir cuando el dueño **perdió su enlace de gestión** (PRD §6.4 y §7 Flujo D). | 10 dígitos, sin lada ni espacios. **Fail-safe: sin ella el bloque "¿Es tu negocio?" no se pinta** — nada de enlaces rotos ni de números de ejemplo. Es un dato personal en un repo público (LFPDPPP): nunca en el código, ni en los seeds, ni en un test. |
 
 Con las dos de Umami sin poner, el sitio corre igual y **no mide nada**: no
 inyecta ningún `<script>`, no pide nada a ningún dominio externo y ninguna
@@ -529,10 +530,55 @@ inaccesible durante meses. Anotada en §10.
   de Umami debe registrar la visita en menos de un minuto.
 - El panel `/admin` **no** se mide: el script lo inyecta el tronco de las
   páginas públicas y ahí no llega.
+- **El modo edición (`/editar/<token>`) tampoco se mide**, y no por gusto: el
+  tracker manda el `pathname` de cada vista al recolector del proveedor, y ahí
+  el pathname **es el secreto** —el enlace de gestión con el que un negocio
+  edita su ficha— (T-014, hallazgo ALTO 1 de su etapa C). La exclusión es
+  estructural, igual que la del panel: esa ruta vive en el grupo `(gestion)`,
+  cuyo layout no inyecta el script. `data-exclude-search="true"` **no** habría
+  bastado: quita la cadena de consulta, no la ruta.
 - **Modelo de confianza, con los ojos abiertos:** quien controle esas variables
   —o el dominio configurado— ejecuta JavaScript en todas las páginas públicas,
   incluida `/registro`, que es donde el vecino teclea su nombre y su WhatsApp.
   La CSP acota los orígenes; no sustituye a decidir en quién confías.
+
+### 8.1 Los logs de ejecución y el enlace de gestión — RIESGO ASUMIDO
+
+**Qué pasa.** El enlace de gestión de un negocio (PRD §6.4) lleva su token en
+la RUTA: `/editar/<43 caracteres>`. Nuestro código no lo escribe en ningún log
+—está comprobado con tests que espían `console.*`—, pero **el log de acceso de
+la plataforma registra la ruta de cada petición**, así que el token aparece
+ahí. Lo mismo pasa, fuera de nuestro alcance, en el historial del navegador del
+dueño y en cualquier CDN o WAF intermedio.
+
+**Por qué no se arregla en el código.** Que el secreto viaje en la ruta es la
+premisa del flujo aprobado ("pega el enlace que te llegó por WhatsApp", que es
+un GET por definición). Las tres alternativas se revisaron y ninguna cierra el
+hallazgo sin cambiar la spec: un POST no aplica, no hay expiración por diseño
+(el ticket la declara fuera de alcance) y el logger de la plataforma no lo
+controlamos. **Decisión del fundador: riesgo asumido**, del mismo tipo que "el
+enlace viaja por WhatsApp, que no es un canal secreto" (PRD §6.4).
+
+**Las dos condiciones de esa decisión, que SÍ son operativas y no opcionales:**
+
+1. **NO se configuran Log Drains en Vercel.** Un drain manda los logs —y con
+   ellos los tokens— a un tercero con retención larga y otro control de acceso:
+   convertiría un dato de vida corta, visible solo para el propio admin, en un
+   depósito permanente de credenciales de gestión en manos ajenas. Sin drain,
+   los logs de ejecución se ven en vivo y se conservan un plazo corto.
+   **Si algún día hace falta observabilidad, hay que resolver antes cómo se
+   enmascara `/editar/*` — no al revés.**
+2. **El acceso al proyecto de Vercel se limita al admin, con 2FA activo.** Hoy
+   quien lee esos logs es la misma persona que puede regenerar cualquier enlace
+   desde el panel y que tiene acceso directo a la base: **el poder que la fuga
+   otorga no excede el que ese lector ya tenía**. Esa equivalencia es lo que
+   sostiene la decisión, y deja de ser cierta en cuanto se invite a alguien más
+   al proyecto. **Sumar un miembro al equipo de Vercel obliga a volver a pesar
+   esto.**
+
+**Qué hacer si un enlace se expone:** regenerarlo desde el detalle del negocio
+en el panel ("Generar un enlace nuevo"); el anterior deja de servir de
+inmediato.
 
 ## 9. Prueba de humo
 
@@ -636,3 +682,9 @@ del lanzamiento:
 9. **Las llamadas reales a Supabase Storage no están cubiertas por pruebas
    automáticas**, solo el adaptador contra un `fetch` simulado. La red de
    verdad se comprueba en los pasos 10 y 11 de la prueba de humo (§9).
+9. **El token del enlace de gestión queda en el log de acceso de la
+   plataforma** (§8.1). Riesgo asumido con dos condiciones operativas —sin Log
+   Drains y con el proyecto de Vercel limitado al admin con 2FA— que hay que
+   volver a pesar si se invita a alguien más o si se necesita observabilidad.
+   Cerrarlo de verdad exige sacar el secreto de la ruta, lo que cambia la spec
+   del enlace de gestión (T-014).

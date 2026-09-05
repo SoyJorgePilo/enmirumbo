@@ -70,7 +70,7 @@ describe("modelo Negocio", () => {
 
     // Sin giros al registrarse; token de gestión reservado y nulo
     expect(creado.giros).toHaveLength(0);
-    expect(creado.tokenGestion).toBeNull();
+    expect(creado.tokenGestionHash).toBeNull();
   });
 
   // Scenario: alta completa con opcionales

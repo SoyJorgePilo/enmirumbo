@@ -4,9 +4,12 @@ import { notFound } from "next/navigation";
 
 import { BotonReportar } from "@/components/directorio/boton-reportar";
 import { BotonesContacto } from "@/components/directorio/botones-contacto";
+import { ControlPerdiMiEnlace } from "@/components/directorio/control-perdi-mi-enlace";
 import { EtiquetaADomicilio } from "@/components/directorio/etiqueta-domicilio";
 import { MarcadorFoto } from "@/components/directorio/marcador-foto";
 import { SelloVerificado } from "@/components/directorio/sello-verificado";
+import { leerWhatsappAdmin } from "@/lib/gestion/config";
+import { construirEnlacePerdiMiEnlace } from "@/lib/gestion/enlaces";
 import {
   obtenerGirosDeNegocioPublicado,
   obtenerNegocioPublicado,
@@ -228,13 +231,22 @@ export default async function FichaNegocioPage({
         pagina={pagina}
       />
 
-      {/* Al final de la ficha, después del bloque de contacto y con jerarquía
-          claramente menor que "Enviar WhatsApp" (spec directorio-publico,
-          requirement "Control discreto 'Reportar este negocio'..."). */}
-      <BotonReportar
-        nombre={negocio.nombre}
-        href={`/negocio/${construirSegmentoFicha(negocio.nombre, negocio.id)}/reportar`}
-      />
+      {/* Controles discretos del pie de la ficha, después del bloque de
+          contacto y con jerarquía claramente menor que "Enviar WhatsApp"
+          (spec directorio-publico, requirements "Control discreto 'Reportar
+          este negocio'..." y "Botón 'Perdí mi enlace'..."; coordinación de
+          jerarquía visual de tasks.md #34 de `agregar-enlace-de-gestion`). */}
+      <div className="flex flex-col gap-3">
+        {/* `BotonReportar` ya trae su propio separador (`border-t pt-4`): es
+            el único borde del bloque, para no apilar dos líneas seguidas. */}
+        <BotonReportar
+          nombre={negocio.nombre}
+          href={`/negocio/${construirSegmentoFicha(negocio.nombre, negocio.id)}/reportar`}
+        />
+        <ControlPerdiMiEnlace
+          href={construirEnlacePerdiMiEnlace(negocio.nombre, leerWhatsappAdmin())}
+        />
+      </div>
     </article>
   );
 }

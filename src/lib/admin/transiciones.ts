@@ -19,6 +19,7 @@
  * de lo que pasa por aquí se escribe en el log.
  */
 import { almacenDeFotos, type AlmacenFotos } from "@/lib/fotos/almacen";
+import { generarEnlaceDeGestion } from "@/lib/gestion/token";
 import {
   borrarNegocioDefinitivamente,
   ESTADO_NEGOCIO_DEFAULT,
@@ -60,7 +61,19 @@ type FalloDeTransicion =
   | { resultado: "no-encontrado" };
 
 export type ResultadoAprobacion =
-  | { resultado: "aprobado" }
+  | {
+      resultado: "aprobado";
+      /**
+       * El enlace de gestión recién generado, EN CLARO (change
+       * `agregar-enlace-de-gestion`, spec `revision-admin`, requirement
+       * "Aprobar un registro genera su enlace de gestión, único e
+       * irrepetible"). Existe solo en memoria durante esta petición: la base
+       * guarda su huella. Quien llama lo pone en el sobre de un solo uso
+       * (`src/lib/gestion/sobre.ts`) para que la pantalla de confirmación
+       * pueda armar el mensaje de WhatsApp, y NO lo escribe en el log.
+       */
+      tokenGestion: string;
+    }
   | FalloDeTransicion
   | { resultado: "error"; error: "giros" | "colonia" };
 
@@ -196,6 +209,15 @@ export async function aprobarRegistro(
     if (!existe) return { resultado: "error", error: "colonia" };
   }
 
+  // El enlace de gestión se genera DENTRO de la misma transición que publica
+  // (change `agregar-enlace-de-gestion`, design.md §6): así ninguna ficha
+  // publicada se queda sin enlace y el admin no puede olvidarse de generarlo.
+  // Solo se escribe la HUELLA; el token en claro sale por el resultado y no
+  // toca ni la base ni el log. Una aprobación repetida no llega a escribir
+  // nada —la escritura va condicionada al estado— y por lo tanto NO genera un
+  // token nuevo, que invalidaría el que el admin ya mandó.
+  const enlace = generarEnlaceDeGestion(ahora);
+
   // Escritura condicionada: si otra pestaña ya resolvió, `count` es 0 y aquí
   // no se sobrescribe nada (design.md §5). `coloniaOtra` se conserva: la
   // colonia se normaliza, no se borra lo que el negocio escribió.
@@ -205,6 +227,7 @@ export async function aprobarRegistro(
       estado: ESTADO_NEGOCIO_PUBLICADO,
       publicadoEn: ahora,
       origen: datos.origen,
+      ...enlace.columnas,
       ...(datos.coloniaId !== null ? { coloniaId: datos.coloniaId } : {}),
     },
   });
@@ -237,7 +260,7 @@ export async function aprobarRegistro(
     return { resultado: "no-encontrado" };
   }
 
-  return { resultado: "aprobado" };
+  return { resultado: "aprobado", tokenGestion: enlace.token };
 }
 
 /** Rechaza con motivo obligatorio, guardando la fecha que habilita la purga. */

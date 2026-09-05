@@ -1,8 +1,17 @@
 import Link from "next/link";
 
+import { EtiquetaTipoCola } from "@/components/admin/etiqueta-tipo-cola";
 import { IndicadorAtrasado } from "@/components/admin/indicador-atrasado";
 import { ETIQUETA_COLA_DESPUBLICADA, TEXTO_REVISAR } from "@/lib/admin/textos";
 import type { RegistroColaItem } from "@/lib/admin/consultas";
+
+/**
+ * Un renglón de la cola, tal como lo arma `obtenerColaDeRevision`. `tipo` y
+ * `hrefDetalle` los trae ya el propio item (change
+ * `agregar-enlace-de-gestion`): la cola es una sola lista con altas y
+ * ediciones, y cada renglón sabe qué es y a dónde lleva.
+ */
+export type TarjetaColaProps = RegistroColaItem;
 
 /**
  * Renglón de la cola (requirement "Cola de revisión..."): nombre, colonia,
@@ -16,28 +25,28 @@ import type { RegistroColaItem } from "@/lib/admin/consultas";
  * requirement modificado "Cola de revisión..."): distingue una ficha que
  * volvió a la cola por despublicación de un alta nueva, con la etiqueta
  * literal aprobada — texto, no solo color, mismo criterio que
- * `IndicadorAtrasado`.
+ * `IndicadorAtrasado`. `tipo`/`hrefDetalle` (change `agregar-enlace-de-
+ * gestion`) son la misma idea aplicada a "esto es una edición, no un alta".
  */
 export function TarjetaCola({
-  id,
   nombre,
   coloniaTexto,
   esperaTexto,
   atrasado,
   vieneDeDespublicacion,
-}: RegistroColaItem) {
+  tipo,
+  hrefDetalle,
+}: TarjetaColaProps) {
   return (
     <article className="relative flex min-h-11 flex-col gap-1.5 rounded-xl border border-borde bg-fondo p-4">
       <h2 className="font-semibold break-words text-tinta">
-        <Link
-          href={`/admin/registros/${id}`}
-          className="after:absolute after:inset-0"
-        >
+        <Link href={hrefDetalle} className="after:absolute after:inset-0">
           {nombre}
         </Link>
       </h2>
       <p className="break-words text-sm text-tinta-suave">{coloniaTexto}</p>
       <p className="text-sm text-tinta-suave">{esperaTexto}</p>
+      <EtiquetaTipoCola tipo={tipo} />
       {vieneDeDespublicacion && (
         <p className="inline-flex w-fit items-center gap-1.5 rounded-full border border-tinta px-2.5 py-1 text-xs font-semibold text-tinta">
           {ETIQUETA_COLA_DESPUBLICADA}

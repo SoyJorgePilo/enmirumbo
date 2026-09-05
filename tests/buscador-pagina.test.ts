@@ -287,8 +287,14 @@ describe("directorio-publico · la página de resultados no es indexable (tasks 
     // TAREAS PROGRAMADAS (`/api/tareas/…`), que no son páginas: son puntos de
     // disparo de la purga y del barrido de fotos, mandan `X-Robots-Tag:
     // noindex` en su respuesta y responden 404 a quien no traiga el secreto.
+    // Y el change `agregar-enlace-de-gestion` suma el MODO EDICIÓN con su
+    // confirmación: el token viaja en la URL, así que la spec
+    // `registro-negocio` exige `noindex, nofollow` en las dos (y
+    // `referrer: no-referrer`, que se comprueba en `gestion-edicion.test.ts`).
     const noIndexables = [
       join(raiz, "src/app/(publico)/buscar/page.tsx"),
+      join(raiz, "src/app/(gestion)/editar/[token]/page.tsx"),
+      join(raiz, "src/app/(gestion)/editar/[token]/gracias/page.tsx"),
       join(raiz, "src/app/(publico)/negocio/[ficha]/reportar/page.tsx"),
       join(raiz, "src/app/(publico)/negocio/[ficha]/reportar/gracias/page.tsx"),
       join(raiz, "src/app/api/tareas/purgar-rechazados/route.ts"),

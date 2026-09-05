@@ -7,6 +7,7 @@ import { marcarReporteAtendidoAccion } from "@/app/admin/registros/[id]/accion-m
 import { rechazarRegistroAccion } from "@/app/admin/registros/[id]/accion-rechazar";
 import { BotonWhatsapp } from "@/components/admin/boton-whatsapp";
 import { ControlBorrar } from "@/components/admin/control-borrar";
+import { ControlRegenerarEnlace } from "@/components/admin/control-regenerar-enlace";
 import { DetalleRegistro } from "@/components/admin/detalle-registro";
 import { FormularioAprobar } from "@/components/admin/formulario-aprobar";
 import { FormularioDespublicar } from "@/components/admin/formulario-despublicar";
@@ -174,10 +175,20 @@ export default async function DetalleRegistroAdminPage({
       )}
 
       {publicado && (
-        <FormularioDespublicar
-          action={despublicarRegistroAccion.bind(null, id)}
-          error={errorDespublicar}
-        />
+        <>
+          <FormularioDespublicar
+            action={despublicarRegistroAccion.bind(null, id)}
+            error={errorDespublicar}
+          />
+
+          {/* "Generar un enlace nuevo" (change `agregar-enlace-de-gestion`,
+              requirement "El admin puede generar un enlace nuevo…"): solo para
+              una ficha publicada, que es la única que tiene enlace. Es un
+              enlace de NAVEGACIÓN hacia su pantalla de confirmación, nunca un
+              botón que regenere directo. El enlace vigente NO se muestra aquí:
+              el panel no lo conoce, solo guarda su huella. */}
+          <ControlRegenerarEnlace id={id} />
+        </>
       )}
 
       <ControlBorrar id={id} />

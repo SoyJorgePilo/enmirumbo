@@ -273,7 +273,7 @@ El sistema DEBE poder consultar, por negocio, cuántos reportes tiene en estado 
 
 ### Requirement: Borrado definitivo de un negocio (operación ARCO)
 
-El sistema DEBE permitir eliminar definitivamente un negocio (hard delete real, no despublicar), **esté en el estado que esté** (`en_revision`, `publicado` o `rechazado`), borrando su fila **y todo lo que cuelgue de ella**: sus vínculos con giros, sus reportes, cualquier otra fila ligada al negocio que el modelo llegue a tener y **los archivos de su foto en el almacenamiento**, sin dejar datos ni imágenes recuperables por ninguna consulta ni por ninguna dirección del sitio (PRD §8). El borrado de los archivos DEBE incluir todas las variantes generadas: un archivo que sobrevive al borrado es el dato personal que el aviso de privacidad prometió eliminar. Si el archivo ya no estaba (por ejemplo, porque se borró antes), el borrado del negocio DEBE completarse igual y no DEBE fallar. Otra cosa es que el almacenamiento **no se deje alcanzar**: ahí el borrado no se ejecuta y la fila no se toca, según el requirement "El borrado definitivo se niega a decir que borró lo que no borró" (`despliegue`), que también fija el orden: primero los archivos, después la fila.
+El sistema DEBE permitir eliminar definitivamente un negocio (hard delete real, no despublicar), **esté en el estado que esté** (`en_revision`, `publicado` o `rechazado`), borrando su fila **y todo lo que cuelgue de ella**: sus vínculos con giros, sus reportes, **todas sus ediciones —pendientes o ya resueltas—**, cualquier otra fila ligada al negocio que el modelo llegue a tener y **los archivos de su foto en el almacenamiento**, sin dejar datos ni imágenes recuperables por ninguna consulta ni por ninguna dirección del sitio (PRD §8). Una edición guarda los mismos datos personales que la ficha (nombre, WhatsApp, teléfono, dirección), así que un borrado que la dejara atrás no sería un borrado. Borrar el negocio DEBE llevarse también su huella de enlace, de modo que ningún enlace de gestión siga resolviendo a algo. El borrado de los archivos DEBE incluir todas las variantes generadas: un archivo que sobrevive al borrado es el dato personal que el aviso de privacidad prometió eliminar. Si el archivo ya no estaba (por ejemplo, porque se borró antes), el borrado del negocio DEBE completarse igual y no DEBE fallar. Otra cosa es que el almacenamiento **no se deje alcanzar**: ahí el borrado no se ejecuta y la fila no se toca, según el requirement "El borrado definitivo se niega a decir que borró lo que no borró" (`despliegue`), que también fija el orden: primero los archivos, después la fila.
 
 **El arrastre DEBE estar garantizado por el modelo, no por la acción que borra**: toda relación que apunte al negocio se declara con borrado en cascada, de modo que una tabla nueva que alguien agregue después no pueda dejar filas huérfanas ni impedir un borrado ARCO. El proyecto DEBE tener una verificación automática que recorra las relaciones declaradas en el esquema de la base y falle si alguna que apunta al negocio no está en cascada, para que la invariante no dependa de que alguien la recuerde. Ningún dato ligado a un tercero (por ejemplo el aviso de un vecino que reportó la ficha) DEBE poder bloquear el borrado: los derechos ARCO del titular pesan más.
 
@@ -286,6 +286,14 @@ El borrado DEBE ser idempotente: pedir el borrado de un identificador que ya no 
 #### Scenario: hard delete de un negocio con reportes
 - **WHEN** se elimina definitivamente un negocio que tenía reportes pendientes y atendidos
 - **THEN** el borrado se completa, sus reportes desaparecen con él y ninguna consulta posterior devuelve ni el negocio ni sus reportes
+
+#### Scenario: el borrado se lleva las ediciones
+- **WHEN** se elimina definitivamente un negocio que tenía una edición pendiente y dos ya resueltas
+- **THEN** desaparecen también esas tres ediciones y ninguna consulta posterior devuelve el nombre, el WhatsApp, el teléfono ni la dirección que traían
+
+#### Scenario: el enlace de un negocio borrado no resuelve
+- **WHEN** se abre el enlace de gestión de un negocio que fue eliminado definitivamente
+- **THEN** responde como no encontrado, igual que un enlace inventado
 
 #### Scenario: borrar en cualquier estado
 - **WHEN** se eliminan definitivamente un negocio `publicado`, uno `en_revision` y uno `rechazado`
@@ -377,13 +385,65 @@ DEBE informar cuántos registros quedaron sin purgar, además de cuántos se eli
 - **WHEN** la purga no consigue eliminar un registro que ya cumplió el plazo
 - **THEN** lo cuenta aparte, sigue con los demás y el disparo por HTTP responde con error para que el programador de tareas lo registre como fallo
 
-### Requirement: El esquema reserva el terreno para la gestión P1 sin implementarla
+### Requirement: El negocio guarda su enlace de gestión como huella, nunca en claro
 
-El modelo `Negocio` DEBE incluir un campo opcional y único para el token del enlace de gestión (PRD §6.4), que permanece nulo en el MVP y no tiene ninguna lógica asociada. Las revisiones de edición supervisadas se modelarán como tabla propia cuando llegue E8; hoy esa tabla no existe.
+El modelo `Negocio` DEBE guardar el enlace de gestión (PRD §6.4) como la **huella SHA-256 del token**, en un campo opcional y único, más la fecha en que se generó. El token en claro NO DEBE persistirse en ninguna columna, en ningún log ni en ningún archivo del proyecto: la base tiene que poder respaldarse sin que el respaldo contenga los enlaces de nadie. Ambos campos DEBEN permanecer nulos mientras la ficha no se haya aprobado. Generar un enlace nuevo DEBE sustituir la huella anterior, de modo que la base nunca conserve más de un enlace válido por negocio. La migración DEBE poder aplicarse sobre una base que ya tiene negocios, sin perder ni alterar sus datos.
 
-#### Scenario: espacio reservado sin comportamiento
-- **WHEN** se registra un negocio en el MVP
-- **THEN** su token de gestión es nulo y ninguna funcionalidad del sistema lo lee ni lo escribe
+#### Scenario: negocio recién registrado
+
+- **WHEN** se crea un negocio desde el registro
+- **THEN** su huella de enlace y su fecha de generación son nulas
+
+#### Scenario: la base no guarda el token
+
+- **WHEN** se genera un enlace de gestión y después se revisa la fila del negocio
+- **THEN** lo guardado es una huella de la que no se puede recuperar el token, y el token en claro no aparece en ninguna columna
+
+#### Scenario: dos negocios no pueden compartir huella
+
+- **WHEN** se intenta guardar en un segundo negocio la misma huella que ya tiene otro
+- **THEN** la base de datos rechaza la operación por violación de la constraint de unicidad
+
+#### Scenario: regenerar sustituye
+
+- **WHEN** un negocio que ya tenía enlace recibe uno nuevo
+- **THEN** su fila queda con una sola huella —la nueva— y con la fecha de generación actualizada
+
+#### Scenario: migración sobre una base con datos
+
+- **WHEN** se aplica la migración sobre una base que ya tiene negocios publicados, en revisión y rechazados
+- **THEN** todas las filas siguen ahí con sus datos intactos y los campos nuevos quedan nulos en todas
+
+### Requirement: Una edición pendiente guarda el contenido completo de lo que se quiere publicar
+
+El sistema DEBE persistir las ediciones que manda un negocio en una tabla propia, separada de `Negocio`, con **el contenido completo** de lo que quedaría publicado si se aprueba —los mismos campos que el negocio puede capturar en el formulario— más el negocio al que pertenece, su estado (`pendiente | aplicada | descartada`, con CHECK en la migración), la fecha en que llegó, la fecha en que se resolvió y el motivo del descarte. Guardar una edición NO DEBE modificar ninguna columna del negocio.
+
+La base DEBE impedir que un negocio tenga dos ediciones `pendiente` a la vez. Los campos de una edición NO DEBEN incluir el estado, el origen, los giros, la fecha de publicación, la constancia del consentimiento ni la huella del enlace del negocio: esos no son editables y no viajan en una edición.
+
+#### Scenario: edición guardada sin tocar la ficha
+
+- **WHEN** se guarda una edición pendiente con un nombre y un horario distintos de los del negocio
+- **THEN** la fila de la edición queda con esos valores y la fila del negocio conserva exactamente los suyos, incluidos estado, origen, giros y fecha de publicación
+
+#### Scenario: una sola pendiente por negocio
+
+- **WHEN** se intenta crear una segunda edición `pendiente` para un negocio que ya tiene una
+- **THEN** la base de datos lo impide, de modo que nunca hay dos versiones esperando revisión del mismo negocio
+
+#### Scenario: estados fuera del conjunto
+
+- **WHEN** se intenta guardar una edición con un estado distinto de `pendiente`, `aplicada` o `descartada`
+- **THEN** la base de datos rechaza la escritura (constraint CHECK en la migración)
+
+#### Scenario: una edición resuelta deja de bloquear
+
+- **WHEN** una edición pasa a `aplicada` o a `descartada` y el negocio manda cambios nuevos
+- **THEN** la edición nueva se guarda como `pendiente` sin chocar con la resuelta
+
+#### Scenario: la edición no puede cargar campos que no son editables
+
+- **WHEN** se revisan las columnas de la tabla de ediciones
+- **THEN** no existe ninguna para estado, origen, giros, fecha de publicación, constancia de consentimiento ni huella del enlace del negocio
 
 ### Requirement: El negocio guarda una versión normalizada de su nombre y de "¿Qué ofreces?" para el buscador
 

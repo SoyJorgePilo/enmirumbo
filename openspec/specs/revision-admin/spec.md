@@ -62,7 +62,7 @@ Si falta la variable de entorno de la contraseña, si está vacía, o si falta e
 
 ### Requirement: Toda pantalla y toda acción del panel exigen sesión válida
 
-Cada página del panel y cada acción sobre un registro —aprobar, rechazar, despublicar, marcar un reporte como atendido, borrar definitivamente y la pantalla que confirma el borrado— DEBEN verificar la sesión antes de leer o escribir nada. Sin sesión válida, la respuesta DEBE ser una redirección a la pantalla de acceso, sin mostrar ni un dato del registro ni de sus reportes —ni en la pantalla, ni en el HTML, ni en la URL de destino—, sin confirmar si ese identificador existe y sin ejecutar ningún cambio en la base. Ninguna de estas acciones DEBE existir en una superficie pública: el formulario de registro, los listados, las fichas y el formulario de reporte NO DEBEN poder cambiar el estado, el origen, los giros ni la colonia de un negocio, ni despublicarlo, ni borrarlo, ni marcar reportes como atendidos. El formulario público de reporte solo puede crear reportes en estado `pendiente`.
+Cada página del panel y cada acción sobre un registro —aprobar, rechazar, despublicar, **aplicar una edición, descartar una edición, generar un enlace nuevo**, marcar un reporte como atendido, borrar definitivamente y la pantalla que confirma el borrado— DEBEN verificar la sesión antes de leer o escribir nada. Sin sesión válida, la respuesta DEBE ser una redirección a la pantalla de acceso, sin mostrar ni un dato del registro, de sus reportes ni de sus ediciones —ni en la pantalla, ni en el HTML, ni en la URL de destino—, sin confirmar si ese identificador existe y sin ejecutar ningún cambio en la base. Ninguna de estas acciones DEBE existir en una superficie pública: el formulario de registro, **el modo edición**, los listados, las fichas y el formulario de reporte NO DEBEN poder cambiar el estado, el origen, los giros ni la colonia de un negocio, ni despublicarlo, ni borrarlo, ni resolver ediciones, ni generar enlaces de gestión, ni marcar reportes como atendidos. El formulario público de reporte solo puede crear reportes en estado `pendiente`.
 
 #### Scenario: cola sin sesión
 
@@ -74,10 +74,25 @@ Cada página del panel y cada acción sobre un registro —aprobar, rechazar, de
 - **WHEN** alguien sin sesión abre la URL del detalle de un registro concreto, con su identificador
 - **THEN** llega a la pantalla de acceso, sin ver ningún dato de ese registro ni de sus reportes, y sin que la respuesta confirme si ese identificador existe
 
+#### Scenario: detalle de una edición sin sesión
+
+- **WHEN** alguien sin sesión abre la URL del detalle de una edición, con su identificador
+- **THEN** llega a la pantalla de acceso, sin ver ni un dato de lo publicado ni de lo propuesto
+
 #### Scenario: aprobar sin sesión
 
 - **WHEN** llega directamente al servidor una petición de aprobar un registro sin cookie de sesión válida
-- **THEN** el registro sigue en `en_revision`, no se publica ninguna ficha y la respuesta no trae datos del negocio
+- **THEN** el registro sigue en `en_revision`, no se publica ninguna ficha, no se genera ningún enlace de gestión y la respuesta no trae datos del negocio
+
+#### Scenario: resolver una edición sin sesión
+
+- **WHEN** llegan directamente al servidor peticiones de aplicar y de descartar una edición sin cookie de sesión válida
+- **THEN** la ficha publicada no cambia, la edición sigue pendiente y no se guarda ningún motivo de descarte
+
+#### Scenario: generar un enlace sin sesión
+
+- **WHEN** llega directamente al servidor una petición de generar un enlace nuevo sin cookie de sesión válida
+- **THEN** el enlace del negocio no cambia, el que ya tenía sigue sirviendo y la respuesta no trae ningún token
 
 #### Scenario: rechazar sin sesión
 
@@ -106,8 +121,8 @@ Cada página del panel y cada acción sobre un registro —aprobar, rechazar, de
 
 #### Scenario: ninguna transición desde lo público
 
-- **WHEN** se revisan las superficies públicas (formulario de registro, listados, fichas y formulario de reporte)
-- **THEN** ninguna permite cambiar estado, origen, giros ni colonia de un negocio, ni despublicarlo, ni borrarlo, ni marcar reportes como atendidos
+- **WHEN** se revisan las superficies públicas (formulario de registro, modo edición, listados, fichas y formulario de reporte)
+- **THEN** ninguna permite cambiar estado, origen, giros ni colonia de un negocio, ni despublicarlo, ni borrarlo, ni resolver una edición, ni generar un enlace de gestión, ni marcar reportes como atendidos
 
 ### Requirement: El panel no se indexa ni se enlaza desde el sitio público
 
@@ -125,23 +140,42 @@ Las páginas del panel DEBEN pedir a los buscadores que no las indexen ni sigan 
 
 ### Requirement: Cola de revisión con los registros pendientes, más antiguos primero
 
-La cola DEBE ser la pantalla principal del panel, encabezada con el texto literal "Registros por revisar", y listar únicamente los negocios en estado `en_revision`, ordenados del más antiguo al más reciente (el que lleva más tiempo esperando, arriba), porque la meta operativa es responder cada registro en menos de 48 horas (PRD §10). Cada renglón DEBE mostrar el nombre del negocio, su colonia (la del catálogo o el texto libre que capturó), desde cuándo espera y una entrada al detalle con el texto "Revisar". Los negocios `publicado` y `rechazado` NO DEBEN aparecer en la cola. Con la cola vacía DEBE mostrarse el texto literal "No hay registros esperando. Todo al día."
+La cola DEBE ser la pantalla principal del panel, encabezada con el texto literal "Registros por revisar", y listar **dos cosas juntas**: los negocios en estado `en_revision` y las ediciones que esperan revisión (PRD §6.4: los cambios "entran a la misma cola de revisión"). El orden DEBE ser del más antiguo al más reciente según cuándo entró cada cosa a la cola (el que lleva más tiempo esperando, arriba), porque la meta operativa es responder cada caso en menos de 48 horas (PRD §10). Con la cola vacía —sin altas y sin ediciones— DEBE mostrarse el texto literal "No hay registros esperando. Todo al día."
 
-**La espera se cuenta desde que el registro entró a la cola**, que es la más reciente entre su fecha de registro y su fecha de despublicación: una ficha que estuvo publicada meses y se despublicó hoy lleva esperando desde hoy, no desde que se registró. Ese mismo reloj DEBE mandar el orden de la cola, para que la espera que se muestra y la posición del renglón no se contradigan. Los negocios que llegaron a la cola por una despublicación DEBEN distinguirse de los registros nuevos con la etiqueta literal "Ya estaba publicada, la despublicaste" en su renglón, para que el admin no los confunda con altas por revisar; el criterio de espera sigue siendo el mismo para todos, sin secciones aparte.
+Cada renglón DEBE distinguir de qué se trata con una etiqueta de texto, literalmente "Alta nueva" o "Edición", y mostrar el nombre del negocio, su colonia (la del catálogo o el texto libre que capturó), desde cuándo espera y una entrada al detalle que corresponda con el texto "Revisar". La distinción NO DEBE depender solo del color ni del orden: DEBE ser legible como texto. Los negocios `publicado` y `rechazado` NO DEBEN aparecer en la cola por sí mismos —solo a través de sus ediciones pendientes, si las tienen—, y las ediciones ya aplicadas o descartadas NO DEBEN aparecer.
 
-#### Scenario: orden de la cola
+**La espera de un alta se cuenta desde que el registro entró a la cola**, que es la más reciente entre su fecha de registro y su fecha de despublicación: una ficha que estuvo publicada meses y se despublicó hoy lleva esperando desde hoy, no desde que se registró. **La espera de una edición se cuenta desde que el negocio la mandó.** Ese mismo reloj DEBE mandar el orden de la cola, para que la espera que se muestra y la posición del renglón no se contradigan. Los negocios que llegaron a la cola por una despublicación DEBEN distinguirse además con la etiqueta literal "Ya estaba publicada, la despublicaste" en su renglón, para que el admin no los confunda con altas por revisar; el criterio de espera sigue siendo el mismo para todos, sin secciones aparte.
 
-- **WHEN** el admin abre la cola con tres registros pendientes que llegaron en días distintos
-- **THEN** los ve del más antiguo al más reciente, cada uno con su nombre, su colonia, desde cuándo espera y su entrada "Revisar"
+**Un negocio NO DEBE ocupar dos renglones.** Si ya está en la cola por sí mismo —porque espera revisión o porque el admin lo despublicó—, su edición pendiente NO DEBE abrir un renglón aparte: lo que el admin tiene que resolver primero es la ficha. La edición no se toca ni se pierde, y vuelve a aparecer como "Edición" en cuanto la ficha esté publicada otra vez.
 
-#### Scenario: la cola solo trae pendientes
+#### Scenario: orden de la cola mezclada
 
-- **WHEN** en la base hay negocios en `en_revision`, `publicado` y `rechazado`
-- **THEN** la cola muestra únicamente los `en_revision`
+- **WHEN** el admin abre la cola con dos altas y una edición que llegaron en días distintos
+- **THEN** los ve del más antiguo al más reciente sin importar de qué tipo sean, cada uno con su etiqueta "Alta nueva" o "Edición", su nombre, su colonia, desde cuándo espera y su entrada "Revisar"
+
+#### Scenario: la edición lleva a su propio detalle
+
+- **WHEN** el admin toca "Revisar" en un renglón etiquetado "Edición"
+- **THEN** llega al detalle comparativo de esos cambios, no al detalle de un alta
+
+#### Scenario: la cola solo trae lo pendiente
+
+- **WHEN** en la base hay negocios en `en_revision`, `publicado` y `rechazado`, y ediciones pendientes, aplicadas y descartadas
+- **THEN** la cola muestra únicamente los `en_revision` y las ediciones pendientes
+
+#### Scenario: un negocio publicado con edición pendiente
+
+- **WHEN** un negocio publicado manda cambios
+- **THEN** aparece en la cola una sola vez, como "Edición", sin volver a aparecer como alta
+
+#### Scenario: una ficha despublicada con edición pendiente ocupa un solo renglón
+
+- **WHEN** el admin despublica un negocio que tenía una edición esperando revisión
+- **THEN** la cola lo muestra en un solo renglón, como "Alta nueva", que lleva al detalle de la ficha; la edición sigue esperando y vuelve a aparecer como "Edición" en cuanto la ficha se publica de nuevo
 
 #### Scenario: cola vacía
 
-- **WHEN** no hay ningún registro en `en_revision`
+- **WHEN** no hay ningún registro en `en_revision` ni ninguna edición pendiente
 - **THEN** el admin ve "No hay registros esperando. Todo al día." en lugar de una lista vacía
 
 #### Scenario: una ficha despublicada aparece marcada y con su espera nueva
@@ -156,12 +190,22 @@ La cola DEBE ser la pantalla principal del panel, encabezada con el texto litera
 
 ### Requirement: Indicador visible de los registros con más de 48 horas esperando
 
-Todo registro de la cola que lleve más de 48 horas **desde que entró a la cola** —su fecha de registro o, si es más reciente, la fecha en que se despublicó— DEBE mostrarse con un indicador visible junto a su renglón, con el texto literal "Lleva más de 48 horas", y la cola DEBE decir cuántos están en esa condición (PRD §10: si el tiempo entre registro y publicación se pasa de 48 horas de forma sostenida, hay que revisar la carga del admin). El indicador NO DEBE depender solo del color: DEBE ser legible como texto.
+Todo renglón de la cola que lleve más de 48 horas esperando DEBE mostrarse con un indicador visible junto a él, con el texto literal "Lleva más de 48 horas", y la cola DEBE decir cuántos están en esa condición (PRD §10: si el tiempo entre registro y publicación se pasa de 48 horas de forma sostenida, hay que revisar la carga del admin). El reloj de un alta cuenta **desde que entró a la cola** —su fecha de registro o, si es más reciente, la fecha en que se despublicó—; el de una edición, **desde que el negocio la mandó**, y si el negocio la reemplaza por otra más nueva el reloj se reinicia con ella (lo que el admin tiene que revisar es lo nuevo). El indicador NO DEBE depender solo del color: DEBE ser legible como texto.
 
 #### Scenario: registro atrasado
 
 - **WHEN** un registro lleva 50 horas en la cola
 - **THEN** su renglón muestra el indicador "Lleva más de 48 horas" y el conteo de atrasados de la cola lo incluye
+
+#### Scenario: edición atrasada
+
+- **WHEN** una edición lleva 50 horas esperando revisión
+- **THEN** su renglón muestra el mismo indicador y también entra en el conteo de atrasados
+
+#### Scenario: el reloj de la edición se reinicia al reemplazarla
+
+- **WHEN** un negocio con una edición de 50 horas manda cambios nuevos que la reemplazan
+- **THEN** el renglón de la cola deja de estar marcado como atrasado, porque lo que hay que revisar acaba de llegar
 
 #### Scenario: registro dentro de la meta
 
@@ -497,24 +541,48 @@ Desde el detalle, el admin DEBE poder aprobar el registro en una sola acción qu
 - **WHEN** el admin aprueba un registro
 - **THEN** el nombre, el WhatsApp, "¿Qué ofreces?", el teléfono, la dirección, el horario y la página del negocio quedan exactamente como el negocio los capturó
 
-### Requirement: Al aprobar se ofrece avisarle al negocio por WhatsApp con el link de su ficha
+### Requirement: Aprobar un registro genera su enlace de gestión, único e irrepetible
 
-Después de aprobar, el panel DEBE confirmar con el texto literal "Ya quedó publicado." y ofrecer un botón "Avisarle por WhatsApp" que abra la conversación con ese negocio y un mensaje prellenado con el aviso y el link de su ficha pública, literalmente: "¡Listo! Ya quedó publicado «<nombre del negocio>» en NecesitoUno Tizayuca. Esta es tu ficha: <link de la ficha> — compártela con tus clientes." El link DEBE ser la URL completa de la ficha pública, la misma que abriría cualquier vecino. El enlace de gestión (PRD §6.4) NO entra en este mensaje.
+Al aprobar un registro, la misma transición que publica la ficha DEBE generar su enlace de gestión (PRD §6.4): un token criptográficamente aleatorio de al menos 256 bits, distinto en cada generación, del que la base guarda solo la huella (capacidad `modelo-datos`). Ninguna ficha publicada DEBE quedarse sin enlace, y dos negocios NUNCA DEBEN compartir token. Una aprobación repetida sobre un registro ya resuelto NO DEBE generar un token nuevo (invalidaría el que el admin ya mandó): sigue mostrando "Este registro ya lo habías resuelto." El detalle de un negocio publicado DEBE indicar que tiene enlace y desde cuándo, pero **no DEBE mostrar el enlace en sí**: el panel no lo conoce, porque solo guarda su huella.
 
-#### Scenario: aviso de publicación
+#### Scenario: cada aprobación estrena enlace
+
+- **WHEN** el admin aprueba dos registros distintos
+- **THEN** cada negocio queda con su propio enlace de gestión y los dos tokens son distintos entre sí
+
+#### Scenario: el token no se puede adivinar
+
+- **WHEN** se revisan los tokens generados
+- **THEN** provienen de una fuente aleatoria criptográfica, tienen al menos 256 bits de entropía y no se derivan del nombre, del identificador, del número ni de la fecha del negocio
+
+#### Scenario: aprobar dos veces no cambia el enlace
+
+- **WHEN** el admin manda la misma aprobación desde una pestaña que tenía abierta
+- **THEN** ve "Este registro ya lo habías resuelto." y el enlace que ya había mandado sigue siendo el válido
+
+#### Scenario: el panel no muestra el enlace vigente
+
+- **WHEN** el admin abre el detalle de un negocio publicado
+- **THEN** lee que ese negocio tiene enlace de gestión y desde cuándo, sin que el enlace ni el token aparezcan en la pantalla ni en el HTML de la respuesta
+
+### Requirement: Al aprobar se ofrece avisarle al negocio por WhatsApp con el link de su ficha y su enlace de gestión
+
+Después de aprobar, el panel DEBE confirmar con el texto literal "Ya quedó publicado." y ofrecer un botón "Avisarle por WhatsApp" que abra la conversación con ese negocio y un mensaje prellenado con el aviso, el link de su ficha pública y **su enlace de gestión con la instrucción del PRD §6.4**, literalmente: "¡Listo! Ya quedó publicado «<nombre del negocio>» en NecesitoUno Tizayuca. Esta es tu ficha: <link de la ficha> — compártela con tus clientes. Y este es tu enlace para editarla: <enlace de gestión> — guarda este mensaje (puedes destacarlo con la estrella), con ese enlace actualizas tus datos cuando quieras." Los dos links DEBEN ser URLs completas: la de la ficha, la misma que abriría cualquier vecino; la de gestión, la que abre el modo edición de esa ficha. Esta pantalla es **el único momento** en que el enlace de gestión se muestra en el panel: si el admin la abandona sin mandar el mensaje, para volver a tenerlo tiene que generar uno nuevo, con lo que el anterior deja de servir.
+
+#### Scenario: aviso de publicación con los dos links
 
 - **WHEN** el admin acaba de aprobar el registro de "Estética Lupita"
-- **THEN** ve "Ya quedó publicado." y un botón "Avisarle por WhatsApp" que abre la conversación con ese negocio, con el mensaje "¡Listo! Ya quedó publicado «Estética Lupita» en NecesitoUno Tizayuca. Esta es tu ficha: <link de la ficha> — compártela con tus clientes." ya escrito
+- **THEN** ve "Ya quedó publicado." y un botón "Avisarle por WhatsApp" que abre la conversación con ese negocio, con el mensaje "¡Listo! Ya quedó publicado «Estética Lupita» en NecesitoUno Tizayuca. Esta es tu ficha: <link de la ficha> — compártela con tus clientes. Y este es tu enlace para editarla: <enlace de gestión> — guarda este mensaje (puedes destacarlo con la estrella), con ese enlace actualizas tus datos cuando quieras." ya escrito, sin enviarse
 
-#### Scenario: el link del aviso abre la ficha real
+#### Scenario: los dos links abren lo que prometen
 
-- **WHEN** se abre el link que lleva ese mensaje
-- **THEN** carga la ficha pública de ese negocio, la misma a la que llega un vecino desde el listado
+- **WHEN** se abren los dos links que lleva ese mensaje
+- **THEN** el primero carga la ficha pública de ese negocio y el segundo abre su formulario de edición prellenado
 
-#### Scenario: sin enlace de gestión todavía
+#### Scenario: el enlace no se queda a la vista
 
-- **WHEN** se revisa el mensaje de aviso de publicación
-- **THEN** no incluye ningún enlace de gestión ni promete uno
+- **WHEN** el admin sale de la pantalla de confirmación y vuelve al detalle de ese negocio
+- **THEN** el enlace de gestión ya no aparece en ninguna pantalla del panel
 
 ### Requirement: Rechazar exige motivo, lo guarda con su fecha y ofrece avisar por WhatsApp
 
@@ -659,7 +727,7 @@ Este botón es la última pieza de un trámite humano que la spec deja documenta
 
 ### Requirement: El borrado definitivo se lleva todo y no deja rastro de datos personales
 
-El borrado definitivo DEBE eliminar el registro completo, esté en el estado que esté (`en_revision`, `publicado` o `rechazado`): su fila, sus vínculos con giros, sus reportes y los archivos de su foto. Después del borrado, ninguna consulta DEBE devolver sus datos, su ficha pública DEBE responder el mismo 404 que un negocio inexistente y su renglón DEBE desaparecer de la cola. El borrado DEBE ser **idempotente**: si el registro ya no existe —porque se borró desde otra pestaña o se recargó la pantalla—, NO DEBE producirse ningún error del servidor y el panel DEBE decirlo con el texto literal "Esta ficha ya no existe."
+El borrado definitivo DEBE eliminar el registro completo, esté en el estado que esté (`en_revision`, `publicado` o `rechazado`): su fila, sus vínculos con giros, sus reportes, sus ediciones —pendientes o ya resueltas— y los archivos de su foto. Después del borrado, ninguna consulta DEBE devolver sus datos, su ficha pública DEBE responder el mismo 404 que un negocio inexistente, su enlace de gestión DEBE responder ese mismo 404 y su renglón DEBE desaparecer de la cola. El borrado DEBE ser **idempotente**: si el registro ya no existe —porque se borró desde otra pestaña o se recargó la pantalla—, NO DEBE producirse ningún error del servidor y el panel DEBE decirlo con el texto literal "Esta ficha ya no existe."
 
 Hay un caso en el que el borrado NO se ejecuta y el panel DEBE decirlo en vez de confirmar: la ficha tiene foto y el almacenamiento no se deja alcanzar (requirement "El borrado definitivo se niega a decir que borró lo que no borró", `despliegue`). Ahí la ficha sigue existiendo completa y el admin DEBE leer el texto literal "La ficha no se borró: no pude alcanzar el almacén de fotos. Revisa la configuración y vuelve a intentar." Una ficha sin foto se borra con normalidad aunque el almacenamiento esté caído.
 
@@ -667,8 +735,8 @@ Terminado el borrado, el panel DEBE llevar al admin a una pantalla que confirme 
 
 #### Scenario: borrar un negocio publicado con todo colgando
 
-- **WHEN** el admin confirma el borrado de un negocio publicado que tenía giros asignados y reportes
-- **THEN** desaparecen su fila, sus vínculos con giros y sus reportes, y ninguna consulta posterior devuelve ni el negocio ni sus reportes
+- **WHEN** el admin confirma el borrado de un negocio publicado que tenía giros asignados, reportes y una edición esperando revisión
+- **THEN** desaparecen su fila, sus vínculos con giros, sus reportes y sus ediciones, ninguna consulta posterior devuelve nada de eso y su enlace de gestión deja de abrir
 
 #### Scenario: borrar en cualquier estado
 
@@ -769,12 +837,12 @@ La acción solo DEBE surtir efecto sobre un reporte que siga `pendiente`: si el 
 
 ### Requirement: El detalle ofrece las acciones que corresponden al estado, con el contexto a la vista
 
-El detalle DEBE mostrar las acciones aplicables al estado del registro y ninguna más: un registro `en_revision` ofrece aprobar y rechazar; un registro `publicado` ofrece "Despublicar"; cualquier registro, en cualquier estado, ofrece "Borrar definitivamente". Las acciones destructivas DEBEN ir después de los datos y del contexto de la decisión —incluidos los reportes sin atender del negocio—, para que el admin lea antes de actuar, y "Borrar definitivamente" DEBE distinguirse visualmente de las demás como lo que es: la acción irreversible.
+El detalle DEBE mostrar las acciones aplicables al estado del registro y ninguna más: un registro `en_revision` ofrece aprobar y rechazar; un registro `publicado` ofrece "Despublicar" y "Generar un enlace nuevo"; cualquier registro, en cualquier estado, ofrece "Borrar definitivamente". Las acciones destructivas DEBEN ir después de los datos y del contexto de la decisión —incluidos los reportes sin atender del negocio—, para que el admin lea antes de actuar, y "Borrar definitivamente" DEBE distinguirse visualmente de las demás como lo que es: la acción irreversible.
 
 #### Scenario: detalle de una ficha publicada
 
 - **WHEN** el admin abre el detalle de un negocio en estado `publicado`
-- **THEN** ve el formulario de despublicar con su rótulo "¿Por qué la despublicas?" y el control "Borrar definitivamente", y no ve los formularios de aprobar ni de rechazar
+- **THEN** ve el formulario de despublicar con su rótulo "¿Por qué la despublicas?", el control "Generar un enlace nuevo" y el control "Borrar definitivamente", y no ve los formularios de aprobar ni de rechazar
 
 #### Scenario: detalle de un registro en revisión
 
@@ -817,14 +885,148 @@ Como cualquier registro se puede borrar en cualquier momento, una aprobación ta
 - **WHEN** el admin aprueba un registro desde una pestaña mientras lo borra definitivamente desde otra
 - **THEN** la aprobación no revienta con un error del servidor, el panel la resuelve como registro no encontrado y la fila borrada no vuelve a existir
 
+### Requirement: El detalle de una edición compara lo publicado con lo propuesto
+
+El detalle de una edición DEBE encabezarse con el texto literal "Cambios por revisar" y mostrar, campo por campo, **lo que está publicado y lo que el negocio quiere cambiar**, bajo los rótulos literales "Lo que está publicado" y "Lo que quiere cambiar", marcando con el texto literal "Cambió" cada campo cuyo valor propuesto es distinto del publicado. Los campos que no cambian DEBEN verse igual, sin marca, para que el admin no tenga que adivinar qué está mirando. La marca NO DEBE depender solo del color: DEBE ser legible como texto.
+
+Si la edición propone un WhatsApp distinto, el detalle DEBE mostrar los dos números y advertirlo con el texto literal "Ojo: está cambiando su WhatsApp. Confirma con el número nuevo antes de aplicar.", y el botón "Escribirle por WhatsApp" DEBE abrir la conversación con el **número propuesto** (es a quien hay que verificar), con la misma plantilla de verificación del PRD §6.3. Estos datos personales completos DEBEN verse únicamente dentro del panel con sesión válida.
+
+#### Scenario: comparación campo por campo
+
+- **WHEN** el admin abre una edición que solo cambia el horario y la dirección
+- **THEN** ve "Cambios por revisar", las columnas "Lo que está publicado" y "Lo que quiere cambiar", la marca "Cambió" junto al horario y a la dirección, y el resto de los campos sin marca
+
+#### Scenario: cambio de WhatsApp advertido
+
+- **WHEN** el admin abre una edición que propone un número de WhatsApp distinto del publicado
+- **THEN** ve los dos números, la advertencia "Ojo: está cambiando su WhatsApp. Confirma con el número nuevo antes de aplicar." y el botón "Escribirle por WhatsApp" abre la conversación con el número nuevo
+
+#### Scenario: la marca se lee, no solo se ve
+
+- **WHEN** el admin revisa la edición en el celular o con lector de pantalla
+- **THEN** entiende qué campos cambian por su texto, sin depender de un color
+
+#### Scenario: edición inexistente
+
+- **WHEN** el admin con sesión abre el detalle de una edición que no existe
+- **THEN** ve la página de no encontrado, sin sugerencias ni datos de otros negocios
+
+### Requirement: Aplicar la edición actualiza la ficha publicada y solo eso
+
+Desde el detalle de la edición, el admin DEBE poder aplicarla en una sola acción con el botón literal "Aplicar los cambios", que copia a la ficha publicada **exactamente los campos editables** de la edición —nombre, categoría, WhatsApp, colonia (de catálogo o texto libre), qué ofrece, entregas a domicilio, teléfono fijo, dirección o referencias con su pin, horario y página— y nada más. El estado, el origen, los giros asignados, la fecha de publicación, la fecha de registro, la constancia del consentimiento y el enlace de gestión DEBEN quedar intactos: aplicar una edición NO DEBE despublicar, ni volver a poner en revisión, ni regenerar el enlace, ni obligar al negocio a re-consentir. Las versiones normalizadas de búsqueda DEBEN recalcularse, para que la ficha se siga encontrando por lo que ahora dice.
+
+Si el WhatsApp propuesto ya lo tiene otra ficha en el momento de aplicar, la edición NO DEBE aplicarse y el panel DEBE decirlo con el texto literal "Ese número ya está en otra ficha: no se pudieron aplicar los cambios.", dejando la edición pendiente para que el admin la resuelva. Si la ficha ya no está publicada cuando el admin aplica, tampoco DEBE aplicarse nada ni darse por aplicada: la edición DEBE seguir pendiente —para que se pueda aplicar cuando la ficha vuelva a publicarse— y el panel DEBE decir qué no pasó, por qué y que nada se perdió. Aplicada la edición, el panel DEBE confirmar con "Listo, la ficha ya se actualizó." y ofrecer un botón "Avisarle por WhatsApp" con el mensaje prellenado, literalmente: "¡Listo! Ya actualizamos la ficha de «<nombre del negocio>» en NecesitoUno Tizayuca. Así quedó: <link de la ficha>". El cambio DEBE verse en el directorio público de inmediato.
+
+#### Scenario: aplicar los cambios
+
+- **WHEN** el admin toca "Aplicar los cambios" en una edición que cambia el horario de "Tacos del Güero"
+- **THEN** ve "Listo, la ficha ya se actualizó.", la ficha pública muestra el horario nuevo y el negocio conserva su estado `publicado`, su origen, sus giros y su fecha de publicación
+
+#### Scenario: aplicar no toca lo que no es editable
+
+- **WHEN** se comparan el negocio antes y después de aplicar una edición
+- **THEN** su estado, su origen, sus giros, su fecha de publicación, su fecha de registro, su constancia de consentimiento y su enlace de gestión son idénticos
+
+#### Scenario: aviso de que la ficha ya se actualizó
+
+- **WHEN** el admin acaba de aplicar la edición de "Estética Lupita"
+- **THEN** ve un botón "Avisarle por WhatsApp" con el mensaje "¡Listo! Ya actualizamos la ficha de «Estética Lupita» en NecesitoUno Tizayuca. Así quedó: <link de la ficha>" ya escrito, sin enviarse
+
+#### Scenario: el número propuesto se lo ganó otra ficha
+
+- **WHEN** el admin aplica una edición cuyo WhatsApp propuesto ya quedó publicado en otra ficha
+- **THEN** no se aplica nada, ve "Ese número ya está en otra ficha: no se pudieron aplicar los cambios." y la edición sigue pendiente
+
+#### Scenario: la ficha dejó de estar publicada
+
+- **WHEN** el admin despublica una ficha desde otra pestaña y enseguida aplica la edición que tenía abierta
+- **THEN** la ficha no revive ni cambia de datos, la edición sigue pendiente, el panel explica que no se aplicó nada y que los cambios no se perdieron, y al volver a publicar la ficha esos mismos cambios sí se pueden aplicar
+
+#### Scenario: la ficha editada se sigue encontrando
+
+- **WHEN** se aplica una edición que cambia el nombre a "Plomería Güicho"
+- **THEN** un vecino que busca "plomeria" encuentra ese negocio
+
+### Requirement: Descartar la edición exige motivo, no toca la ficha y ofrece avisar por WhatsApp
+
+Desde el detalle de la edición, el admin DEBE poder descartarla escribiendo obligatoriamente el motivo, bajo el rótulo literal "¿Por qué no aplicas los cambios?" y con el botón "Descartar los cambios". Sin motivo, el descarte NO DEBE ejecutarse y DEBE mostrarse el texto literal "Escribe por qué descartas los cambios". Como ese motivo es lo que viaja dentro del WhatsApp que se le manda al negocio, tampoco DEBE recortarse en silencio: se le aplica la misma cota de 500 caracteres y el mismo mensaje literal que al motivo de la despublicación. Descartar NO DEBE modificar ni un dato de la ficha publicada, que sigue exactamente como estaba, ni cambiar su estado, ni invalidar el enlace de gestión: el negocio puede corregir y volver a mandar cambios con el mismo enlace. El sistema DEBE guardar el motivo y la fecha del descarte, y el panel DEBE confirmar con "Cambios descartados." y ofrecer un botón "Avisarle por WhatsApp" con el mensaje prellenado, literalmente: "Hola, revisamos los cambios que mandaste para «<nombre del negocio>» en NecesitoUno Tizayuca y por ahora no los pudimos aplicar: <motivo>. Tu ficha sigue publicada como estaba y puedes mandarlos otra vez con tu mismo enlace."
+
+#### Scenario: descarte con motivo
+
+- **WHEN** el admin escribe "El texto que pusiste en «¿Qué ofreces?» no lo podemos publicar" y toca "Descartar los cambios"
+- **THEN** la edición queda descartada con ese motivo y su fecha, sale de la cola, y la ficha pública sigue idéntica
+
+#### Scenario: descarte sin motivo
+
+- **WHEN** el admin toca "Descartar los cambios" con el motivo vacío
+- **THEN** no cambia nada en la base y ve "Escribe por qué descartas los cambios"
+
+#### Scenario: aviso del descarte por WhatsApp
+
+- **WHEN** el admin acaba de descartar los cambios de "Préstamos Rápidos" con el motivo "No publicamos préstamos informales"
+- **THEN** ve "Cambios descartados." y un botón "Avisarle por WhatsApp" con el mensaje "Hola, revisamos los cambios que mandaste para «Préstamos Rápidos» en NecesitoUno Tizayuca y por ahora no los pudimos aplicar: No publicamos préstamos informales. Tu ficha sigue publicada como estaba y puedes mandarlos otra vez con tu mismo enlace." ya escrito
+
+#### Scenario: el enlace sigue sirviendo tras un descarte
+
+- **WHEN** el dueño abre su enlace de gestión después de que le descartaron unos cambios
+- **THEN** el enlace funciona igual y el formulario aparece prellenado con lo que está publicado
+
+### Requirement: Una edición se resuelve una sola vez y solo si sigue siendo la última
+
+Aplicar y descartar solo DEBEN surtir efecto sobre la edición **que el admin tenía enfrente** y mientras siga pendiente. Si ya la resolvió —doble clic, dos pestañas—, la segunda acción NO DEBE aplicarse y el panel DEBE decirlo con el texto literal "Estos cambios ya los habías resuelto." Si mientras tanto el negocio mandó cambios más nuevos que reemplazaron a esos, la acción tampoco DEBE aplicarse y el panel DEBE decirlo con el texto literal "Estos cambios ya no son los últimos: el negocio mandó otros más nuevos.", dejando la edición nueva esperando en la cola y sin que la ficha se quede con nada de la edición vieja. Recargar la pantalla posterior a una resolución NO DEBE repetirla.
+
+#### Scenario: doble aplicación
+
+- **WHEN** el admin aplica una edición y vuelve a mandar la misma acción desde otra pestaña
+- **THEN** la ficha conserva lo aplicado la primera vez y ve "Estos cambios ya los habías resuelto."
+
+#### Scenario: el negocio mandó otros mientras tanto
+
+- **WHEN** el admin abre una edición, el negocio manda cambios nuevos que la reemplazan, y entonces el admin toca "Aplicar los cambios"
+- **THEN** no se aplica nada —ni lo viejo ni lo nuevo llegan a la ficha—, ve "Estos cambios ya no son los últimos: el negocio mandó otros más nuevos." y en la cola queda la edición nueva por revisar
+
+#### Scenario: recargar después de resolver
+
+- **WHEN** el admin recarga la pantalla que confirma que aplicó o descartó unos cambios
+- **THEN** no se vuelve a ejecutar ninguna acción
+
+### Requirement: El admin puede generar un enlace nuevo, y el anterior deja de servir
+
+El detalle de un negocio publicado DEBE ofrecer un botón con el texto literal "Generar un enlace nuevo" (PRD §6.4: cuando hay sospecha de que alguien más tiene el enlace, o cuando el dueño lo perdió y no aparece en el chat). Al usarlo, el sistema DEBE generar un token nuevo y **el anterior DEBE dejar de funcionar de inmediato**, respondiendo el mismo 404 que un enlace inventado. El panel DEBE confirmar con el texto literal "Listo, el enlace anterior ya no sirve." y ofrecer un botón "Mandarle el enlace por WhatsApp" con el mensaje prellenado, literalmente: "Hola, te mandamos un enlace nuevo para editar tu ficha de «<nombre del negocio>» en NecesitoUno Tizayuca: <enlace de gestión>. El anterior ya no sirve. Guarda este mensaje (puedes destacarlo con la estrella), con ese enlace actualizas tus datos cuando quieras." Ese es el **único momento** en que el enlace se muestra: si el admin sale de esa pantalla sin mandarlo, tiene que generar otro. Regenerar NO DEBE tocar los datos de la ficha ni las ediciones pendientes que ya estuvieran esperando.
+
+#### Scenario: regenerar invalida el anterior
+
+- **WHEN** el admin toca "Generar un enlace nuevo" en el detalle de un negocio
+- **THEN** ve "Listo, el enlace anterior ya no sirve.", el enlace viejo responde 404 y el nuevo abre el modo edición de esa misma ficha
+
+#### Scenario: mandar el enlace nuevo
+
+- **WHEN** el admin acaba de generar el enlace de "Tacos del Güero"
+- **THEN** ve un botón "Mandarle el enlace por WhatsApp" con el mensaje "Hola, te mandamos un enlace nuevo para editar tu ficha de «Tacos del Güero» en NecesitoUno Tizayuca: <enlace de gestión>. El anterior ya no sirve. Guarda este mensaje (puedes destacarlo con la estrella), con ese enlace actualizas tus datos cuando quieras." ya escrito
+
+#### Scenario: el enlace se muestra una sola vez
+
+- **WHEN** el admin sale de la pantalla de confirmación y vuelve al detalle del negocio
+- **THEN** el enlace ya no aparece en ninguna pantalla del panel, y para volver a mandarlo tiene que generar otro
+
+#### Scenario: regenerar no toca la ficha ni la cola
+
+- **WHEN** el admin genera un enlace nuevo para un negocio que tiene una edición pendiente
+- **THEN** los datos de la ficha no cambian y la edición sigue esperando en la cola
+
 ### Requirement: El panel se opera desde el celular y sin JavaScript de cliente innecesario
 
-El panel DEBE ser mobile-first: cola —**incluida la sección de negocios reportados**—, listado de todos los negocios con sus filtros y su paginación, detalle —**incluida la lista de reportes sin atender**—, formularios de aprobar, rechazar, despublicar y marcar atendido, y la pantalla de confirmación del borrado DEBEN verse completos y usables en un viewport de 390px, sin scroll horizontal, con áreas táctiles de al menos 44px y contraste AA (PRD §8). Las pantallas del panel DEBEN ser Server Components y sus formularios DEBEN funcionar sin JavaScript de cliente, igual que el registro público. En el listado, filtrar y cambiar de página son enlaces, no controles con JavaScript: la vista completa funciona con el JavaScript de cliente deshabilitado.
+El panel DEBE ser mobile-first: cola —**incluida la sección de negocios reportados**—, listado de todos los negocios con sus filtros y su paginación, detalle —**incluida la lista de reportes sin atender**—, **detalle comparativo de la edición**, formularios de aprobar, rechazar, despublicar, aplicar los cambios, descartar los cambios, generar un enlace nuevo y marcar atendido, y la pantalla de confirmación del borrado DEBEN verse completos y usables en un viewport de 390px, sin scroll horizontal, con áreas táctiles de al menos 44px y contraste AA (PRD §8). La comparación entre lo publicado y lo propuesto DEBE ser legible en esa pantalla, sin obligar al admin a desplazarse a los lados. Las pantallas del panel DEBEN ser Server Components y sus formularios DEBEN funcionar sin JavaScript de cliente, igual que el registro público. En el listado, filtrar y cambiar de página son enlaces, no controles con JavaScript: la vista completa funciona con el JavaScript de cliente deshabilitado.
 
 #### Scenario: revisar desde el celular
 
-- **WHEN** el admin abre la cola con la sección de reportados, el detalle de un negocio con reportes y los formularios de aprobar, rechazar, despublicar y marcar atendido en un viewport de 390px
+- **WHEN** el admin abre la cola con la sección de reportados, el detalle de un negocio con reportes, el detalle de una edición y los formularios de aprobar, rechazar, despublicar, aplicar, descartar y marcar atendido en un viewport de 390px
 - **THEN** todo se ve completo y legible, sin scroll horizontal —incluido un comentario de reporte sin espacios— y cada control tocable mide al menos 44px en su dimensión menor
+
+#### Scenario: la comparación se lee en el celular
+
+- **WHEN** el admin revisa en 390px una edición que cambia varios campos
+- **THEN** entiende qué está publicado y qué se propone sin desplazarse horizontalmente
 
 #### Scenario: el listado también se opera en el celular
 
@@ -833,8 +1035,8 @@ El panel DEBE ser mobile-first: cola —**incluida la sección de negocios repor
 
 #### Scenario: el panel funciona sin JavaScript
 
-- **WHEN** el admin entra, aprueba, rechaza, despublica, marca un reporte como atendido y borra con el JavaScript de cliente deshabilitado
-- **THEN** las seis acciones funcionan igual, porque cada una es un envío de formulario del servidor
+- **WHEN** el admin entra, aprueba, rechaza, despublica, aplica una edición, la descarta, genera un enlace nuevo, marca un reporte como atendido y borra con el JavaScript de cliente deshabilitado
+- **THEN** las nueve acciones funcionan igual, porque cada una es un envío de formulario del servidor
 
 #### Scenario: el listado se filtra y se pagina sin JavaScript
 

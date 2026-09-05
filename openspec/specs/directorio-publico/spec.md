@@ -437,14 +437,14 @@ Cada negocio publicado DEBE tener una ficha en URL propia y estable, con el nomb
 
 ### Requirement: Botones de contacto de la ficha con el WhatsApp como acción principal
 
-La ficha DEBE ofrecer los botones del PRD §6.2, cada uno solo si el negocio registró el dato: "Enviar WhatsApp" (siempre presente y como única acción principal, con el verde de acción del sitio), "Llamar" solo si registró teléfono fijo, "Cómo llegar" solo si capturó dirección o referencias (abre Google Maps con esa referencia y su colonia en Tizayuca) y el enlace a la página que registró, solo si la registró. El enlace a la página registrada NO DEBE afirmar que lleva a Facebook: DEBE mostrar el dominio real al que apunta (hallazgo M4 de T-003). Ningún otro control DEBE competir en jerarquía visual con el de WhatsApp, **incluido el control "Reportar este negocio", que no es un botón de contacto: va aparte de este bloque, después de él y con peso visual menor**. Los botones DEBEN mostrar la acción, no el número de teléfono como texto. El botón "Llamar" solo se genera si el teléfono fijo se normaliza a 10 dígitos nacionales; si no es normalizable, la ficha muestra el dato capturado como texto plano ("Teléfono: …") sin enlace de llamada (decisión ratificada al cerrar T-004: no se pierde lo registrado y ningún código de marcado hostil llega a un `tel:`).
+La ficha DEBE ofrecer los botones del PRD §6.2, cada uno solo si el negocio registró el dato: "Enviar WhatsApp" (siempre presente y como única acción principal, con el verde de acción del sitio), "Llamar" solo si registró teléfono fijo, "Cómo llegar" solo si capturó dirección o referencias (abre Google Maps con esa referencia y su colonia en Tizayuca) y el enlace a la página que registró, solo si la registró. El enlace a la página registrada NO DEBE afirmar que lleva a Facebook: DEBE mostrar el dominio real al que apunta (hallazgo M4 de T-003). Ningún otro control DEBE competir en jerarquía visual con el de WhatsApp, **incluidos los controles "Reportar este negocio" y "Perdí mi enlace", que no son botones de contacto: van aparte de este bloque, después de él y con peso visual menor**. Los botones DEBEN mostrar la acción, no el número de teléfono como texto. El botón "Llamar" solo se genera si el teléfono fijo se normaliza a 10 dígitos nacionales; si no es normalizable, la ficha muestra el dato capturado como texto plano ("Teléfono: …") sin enlace de llamada (decisión ratificada al cerrar T-004: no se pierde lo registrado y ningún código de marcado hostil llega a un `tel:`).
 
 Los tres botones de contacto de la ficha DEBEN declarar su evento con atributos de marcado y sin JavaScript propio, según el contrato único de medición de `layout-base`: "Enviar WhatsApp" el evento `whatsapp-ficha`, "Llamar" el evento `llamar` y "Cómo llegar" el evento `como-llegar`, los tres con las propiedades `categoria` y `colonia` del negocio como slugs del catálogo (PRD §9). Como el enlace `tel:` de "Llamar" no abre pestaña nueva, su evento DEBE declararse en un elemento envolvente y no en el propio enlace, para que el proveedor no pueda aplazar la marcación. El enlace a la página registrada NO se instrumenta.
 
 #### Scenario: WhatsApp como acción principal
 
 - **WHEN** el vecino abre cualquier ficha publicada
-- **THEN** ve el botón "Enviar WhatsApp" con el verde de acción, más grande o más prominente que cualquier otro control de la página —incluido "Reportar este negocio"—, y al tocarlo sale hacia la conversación con ese negocio
+- **THEN** ve el botón "Enviar WhatsApp" con el verde de acción, más grande o más prominente que cualquier otro control de la página —incluidos "Reportar este negocio" y "Perdí mi enlace"—, y al tocarlo sale hacia la conversación con ese negocio
 
 #### Scenario: botones que dependen de lo registrado
 
@@ -484,7 +484,12 @@ Los tres botones de contacto de la ficha DEBEN declarar su evento con atributos 
 #### Scenario: reportar queda fuera del bloque de contacto
 
 - **WHEN** se revisa el orden de la ficha
-- **THEN** el bloque de contacto trae solo los botones del PRD §6.2 y "Reportar este negocio" aparece después, separado de ellos
+- **THEN** el bloque de contacto trae solo los botones del PRD §6.2, y "Reportar este negocio" y el bloque "¿Es tu negocio?" con "Perdí mi enlace" aparecen después, separados de ellos
+
+#### Scenario: "Perdí mi enlace" no pelea con el contacto
+
+- **WHEN** el vecino abre una ficha con el bloque "¿Es tu negocio?" visible
+- **THEN** "Enviar WhatsApp" sigue siendo el control más prominente de la página
 
 ### Requirement: La vista de ficha se mide sola, sin instrumentación propia
 
@@ -502,7 +507,7 @@ La "vista de ficha" del PRD §9 DEBE medirse con la vista de página que el prov
 
 ### Requirement: Se publica la colonia, nunca el domicilio exacto ni los datos internos de la ficha
 
-El directorio DEBE mostrar la colonia del negocio y NO DEBE mostrar ningún dato de ubicación que el negocio no haya capturado él mismo: lo único que puede aparecer como dirección es el texto de dirección o referencias que escribió (PRD §8). Ni el listado ni la ficha DEBEN exponer, ni en la pantalla ni en el HTML de la respuesta, los datos internos de la ficha: estado, origen, fecha de registro, constancia del consentimiento ni token de gestión.
+El directorio DEBE mostrar la colonia del negocio y NO DEBE mostrar ningún dato de ubicación que el negocio no haya capturado él mismo: lo único que puede aparecer como dirección es el texto de dirección o referencias que escribió (PRD §8). Ni el listado ni la ficha DEBEN exponer, ni en la pantalla ni en el HTML de la respuesta, los datos internos de la ficha: estado, origen, fecha de registro, constancia del consentimiento, **la huella del enlace de gestión ni ningún token o URL de edición**, ni **nada del contenido de una edición pendiente**.
 
 #### Scenario: negocio sin dirección capturada
 
@@ -516,8 +521,8 @@ El directorio DEBE mostrar la colonia del negocio y NO DEBE mostrar ningún dato
 
 #### Scenario: sin datos internos en la respuesta
 
-- **WHEN** se inspecciona el HTML de un listado o de una ficha
-- **THEN** no aparecen el estado, el origen, la fecha de registro, la constancia del consentimiento —ni su fecha, ni su versión, ni la reaceptación— ni el token de gestión del negocio
+- **WHEN** se inspecciona el HTML de un listado o de una ficha de un negocio que tiene enlace de gestión y una edición pendiente
+- **THEN** no aparecen el estado, el origen, la fecha de registro, la constancia del consentimiento —ni su fecha, ni su versión, ni la reaceptación—, la huella del enlace, ninguna URL de edición ni ningún valor propuesto en la edición
 
 ### Requirement: Desde la ficha se llega a las páginas de sus giros
 
@@ -748,6 +753,56 @@ Los reportes DEBEN ser invisibles fuera del panel: un negocio reportado sigue pu
 
 - **WHEN** se inspecciona el HTML de la ficha reportada, de su listado, de sus páginas de giro y de una página de resultados que la incluye
 - **THEN** no aparece ningún conteo, motivo ni comentario de reportes
+
+### Requirement: Botón "Perdí mi enlace" en la ficha, hacia el WhatsApp del admin
+
+Cada ficha publicada DEBE ofrecer, al final y en jerarquía claramente menor que los botones de contacto, un bloque encabezado con el texto literal "¿Es tu negocio?" y un control con el texto literal "Perdí mi enlace" que abra WhatsApp con la conversación del **admin** y el mensaje ya escrito, literalmente: "Hola, soy de «<nombre del negocio>» en NecesitoUno Tizayuca y perdí el enlace para editar mi ficha. Les escribo desde el número que registré, ¿me lo pueden pasar?" (PRD §6.4 y §7 Flujo D: el admin verifica que quien escribe lo hace desde el número registrado y le reenvía o le genera uno nuevo).
+
+El número del admin DEBE leerse de una variable de entorno del servidor: NO DEBE estar escrito en el código, ni en los seeds, ni en los tests (repo público + LFPDPPP, PRD §8). Si esa variable falta o su valor no se puede interpretar como un número mexicano de 10 dígitos, el bloque NO DEBE pintarse: nada de enlaces rotos ni de números de ejemplo. El control NO DEBE aparecer en las tarjetas del listado ni en los resultados de búsqueda, y NO DEBE prometer que el enlace llega solo: lo manda una persona.
+
+#### Scenario: pedir el enlace desde la ficha
+
+- **WHEN** el dueño de "Tacos del Güero" abre su ficha y toca "Perdí mi enlace"
+- **THEN** sale hacia WhatsApp con la conversación del admin y el mensaje "Hola, soy de «Tacos del Güero» en NecesitoUno Tizayuca y perdí el enlace para editar mi ficha. Les escribo desde el número que registré, ¿me lo pueden pasar?" ya escrito, sin enviarse
+
+#### Scenario: sin número de admin configurado
+
+- **WHEN** el sitio corre sin la variable de entorno del WhatsApp del admin, o con un valor que no se normaliza a 10 dígitos
+- **THEN** la ficha se muestra completa pero sin el bloque "¿Es tu negocio?" ni el control "Perdí mi enlace", y no aparece ningún enlace roto ni ningún número inventado
+
+#### Scenario: el número del admin no vive en el repo
+
+- **WHEN** se revisan el código, los seeds y las suites de pruebas
+- **THEN** no aparece ningún número de WhatsApp real del admin: solo la lectura de la variable de entorno
+
+#### Scenario: el control no compite con el contacto
+
+- **WHEN** un vecino abre una ficha
+- **THEN** "Enviar WhatsApp" sigue siendo la acción principal y "Perdí mi enlace" se ve claramente como algo secundario, al final de la ficha
+
+#### Scenario: solo en la ficha
+
+- **WHEN** se revisan las tarjetas del listado y de los resultados de búsqueda
+- **THEN** ninguna muestra "Perdí mi enlace"
+
+### Requirement: Una edición esperando revisión no se asoma a ninguna superficie pública
+
+Mientras una edición espera revisión, el directorio DEBE seguir mostrando **exactamente la versión publicada** (PRD §6.4: "Mientras tanto, la ficha sigue mostrando la versión anterior"). Ningún dato propuesto DEBE aparecer en la ficha, en el listado por categoría, en el filtro por colonia, en los resultados de búsqueda, en ningún conteo ni en el HTML de ninguna respuesta. La búsqueda DEBE seguir encontrando al negocio por lo que está publicado, no por lo propuesto. Tampoco DEBE existir ninguna señal de que hay una edición esperando: ni una etiqueta, ni un "actualizando", ni una diferencia observable entre una ficha con edición pendiente y una sin ella.
+
+#### Scenario: la ficha sigue mostrando lo publicado
+
+- **WHEN** un negocio con una edición pendiente que cambia su nombre, su horario y su teléfono aparece en su ficha
+- **THEN** se ven el nombre, el horario y el teléfono publicados, y ninguno de los valores propuestos está en el HTML de la respuesta
+
+#### Scenario: la búsqueda no encuentra lo propuesto
+
+- **WHEN** un negocio publicado como "Estética Lupita" tiene una edición pendiente que lo renombra "Estética Lupita y Asociados", y un vecino busca "asociados"
+- **THEN** no lo encuentra por ese término, y sí lo sigue encontrando buscando "estetica"
+
+#### Scenario: nada delata que hay cambios esperando
+
+- **WHEN** se comparan la ficha y la tarjeta de un negocio con edición pendiente contra las de uno sin ella
+- **THEN** no hay ninguna diferencia visible ni en el HTML que permita saber cuál tiene cambios en revisión
 
 ### Requirement: Buscador en la home que funciona sin JavaScript de cliente
 

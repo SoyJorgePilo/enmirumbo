@@ -227,7 +227,7 @@ Todo enlace interno del sitio DEBE apuntar a una ruta que existe, incluidas las 
 
 ### Requirement: El sitio publica un `robots.txt` que permite lo público y excluye lo que no toca
 
-El sitio DEBE servir un `robots.txt` en su raíz que permita rastrear el sitio público y excluya `/admin` (el panel de revisión), `/buscar` (las URLs con consulta, que además ya declaran `noindex`) y `/registro/gracias` (la pantalla de confirmación del registro). NO DEBE listar rutas que todavía no existen, en particular las de enlaces de gestión (E8): anunciar en un archivo público la ruta de un enlace secreto es peor que no excluirla. El archivo DEBE apuntar al sitemap del sitio con su URL absoluta, salvo que la URL pública del sitio no esté declarada, en cuyo caso esa línea se omite en vez de apuntar a una dirección local.
+El sitio DEBE servir un `robots.txt` en su raíz que permita rastrear el sitio público y excluya `/admin` (el panel de revisión), `/buscar` (las URLs con consulta, que además ya declaran `noindex`) y `/registro/gracias` (la pantalla de confirmación del registro). NO DEBE listar las rutas del enlace de gestión (`/editar/...`) ni ninguna otra ruta que el sitio no sirva: anunciar en un archivo público por dónde viven los enlaces secretos es peor que no excluirlos, y esas pantallas ya se protegen con `noindex, nofollow` y sin ningún enlace público que lleve a ellas. El archivo DEBE apuntar al sitemap del sitio con su URL absoluta, salvo que la URL pública del sitio no esté declarada, en cuyo caso esa línea se omite en vez de apuntar a una dirección local.
 
 Este `robots.txt` es una petición a los rastreadores que se portan bien, no una defensa contra la cosecha masiva del directorio (hallazgo M5 de T-004), que sigue siendo deuda pendiente (E5-5).
 
@@ -244,7 +244,7 @@ Este `robots.txt` es una petición a los rastreadores que se portan bien, no una
 #### Scenario: no se anuncian rutas secretas
 
 - **WHEN** se revisa el `robots.txt`
-- **THEN** no aparece ninguna ruta de enlaces de gestión ni ninguna otra ruta que el sitio todavía no sirva
+- **THEN** no aparece ninguna ruta de enlaces de gestión ni ninguna otra ruta que el sitio no sirva
 
 #### Scenario: el sitemap se anuncia con URL absoluta
 
@@ -308,19 +308,24 @@ El sitio DEBE cargar el script del proveedor de analítica cookieless (ADR-005) 
 - **WHEN** un vecino recorre el sitio con la medición configurada
 - **THEN** no ve ningún banner, aviso ni interruptor de cookies o de consentimiento de medición, y no tiene que aceptar nada para usar el directorio
 
-### Requirement: El panel del admin queda fuera de la medición
+### Requirement: El panel del admin y el modo edición quedan fuera de la medición
 
-Ninguna página bajo `/admin` DEBE cargar el script de medición ni enviar visitas o eventos al proveedor, aunque las variables estén configuradas. La exclusión DEBE ser una propiedad de la estructura del sitio —el script se inyecta desde el tronco de las páginas públicas, no desde el layout raíz que también envuelve al panel— y no una lista de rutas que alguien deba recordar actualizar. La razón es doble: el panel no es tráfico de vecinos y ensuciaría las métricas del PRD §10, y sus URLs (`/admin/registros/<id>`) apuntan a un registro concreto de una persona, que no tiene por qué llegar a un tercero (PRD §8, LFPDPPP).
+Ninguna página bajo `/admin` ni ninguna pantalla del modo edición (`/editar/<token>` y su confirmación) DEBE cargar el script de medición ni enviar visitas o eventos al proveedor, aunque las variables estén configuradas. La exclusión DEBE ser una propiedad de la estructura del sitio —el script se inyecta desde el tronco de las páginas públicas medidas, no desde el layout raíz que también envuelve a esas otras— y no una lista de rutas que alguien deba recordar actualizar. Las razones: el panel no es tráfico de vecinos y ensuciaría las métricas del PRD §10; sus URLs (`/admin/registros/<id>`) apuntan a un registro concreto de una persona; y en el modo edición la ruta **es** la credencial del negocio, así que mandarla al proveedor sería entregarle a un tercero la llave de una ficha (PRD §8, LFPDPPP). Cada tronco excluido DEBE tener escrito por qué lo está, y la verificación automática DEBE fallar si una exclusión se queda sin páginas o si aparece una sin justificar.
 
 #### Scenario: el panel no carga el script
 
 - **WHEN** el admin abre `/admin`, la cola o el detalle de un registro, con la medición configurada
 - **THEN** el HTML de esas páginas no contiene el script del proveedor ni ningún atributo de evento, y el proveedor no recibe ninguna visita ni ningún identificador de registro
 
+#### Scenario: el modo edición tampoco carga el script
+
+- **WHEN** el dueño abre su enlace de gestión y manda sus cambios, con la medición configurada
+- **THEN** ni la pantalla de edición ni la de confirmación cargan el script del proveedor, y ninguna ruta con el token sale del sitio
+
 #### Scenario: una página pública nueva sí queda medida
 
-- **WHEN** se agrega una página pública nueva al sitio
-- **THEN** hereda la medición sin tocar ninguna lista de rutas, porque vive en el mismo tronco que las demás páginas públicas
+- **WHEN** se agrega una página pública nueva al tronco de las páginas medidas
+- **THEN** hereda la medición sin tocar ninguna lista de rutas, y el resto del sitio (home, registro y fichas) sigue midiéndose con normalidad aunque existan troncos excluidos
 
 ### Requirement: La medición no lleva datos personales ni el texto que escribe la gente
 
@@ -329,7 +334,7 @@ Los eventos que el sitio manda al proveedor DEBEN limitarse a un nombre de event
 Los canales de datos hacia el proveedor son **cuatro, no dos**: además del nombre del evento con sus propiedades y de la URL, el proveedor recibe en cada envío el **título del documento** y el **referente** de la página. Los cuatro están sujetos a la misma regla, y los dos últimos se nombran aquí para que nadie los deje fuera de la cuenta al tocar metadata o al agregar enlaces:
 
 - **Título.** Ningún título de una página pública DEBE contener texto escrito por un visitante ni datos que la regla de arriba prohíbe. En particular, la página de resultados (`/buscar`) DEBE declarar un título **estático**, sin el término que escribió el vecino: es la misma protección que la exclusión de la cadena de consulta, que por sí sola no cubre el título. Como esa página no es indexable, un título dinámico no aporta nada de SEO y sí filtraría texto libre; quien le dé metadata propia a las páginas del directorio DEBE respetar esta excepción.
-- **Referente.** Las pantallas del panel (`/admin`) DEBEN declarar una política de referente que impida que la **ruta** salga como referente: al pasar del panel a una página pública, el proveedor NO DEBE poder saber de qué URL del panel venía la visita. Sin eso, `/admin/registros/<id>` —que apunta al registro de una persona concreta— llegaría a un tercero, porque el proveedor reenvía los referentes del mismo origen como ruta. Esa política NO DEBE anular el encabezado `Origin` de los envíos de formulario: el panel tiene prometido funcionar sin JavaScript de cliente (requirement "El panel se opera desde el celular y sin JavaScript de cliente innecesario" de `revision-admin`), y un `Origin` anulado hace que el servidor rechace sus envíos. Las dos condiciones juntas descartan tanto `no-referrer` (anula el `Origin`) como `same-origin` (deja pasar la ruta entre páginas propias); `strict-origin` —el valor vigente— y `origin` las cumplen. La política DEBE vivir en el tronco del panel, no en cada enlace del encabezado o del pie: así cubre también los enlaces que se agreguen después (PRD §8, LFPDPPP). Si algún día se declara además como cabecera del hosting, DEBE llevar el mismo valor y por la misma razón.
+- **Referente.** Las pantallas del panel (`/admin`) y las del modo edición (`/editar/<token>`) DEBEN declarar una política de referente que impida que la **ruta** salga como referente: al pasar del panel a una página pública, el proveedor NO DEBE poder saber de qué URL del panel venía la visita. Sin eso, `/admin/registros/<id>` —que apunta al registro de una persona concreta— llegaría a un tercero, porque el proveedor reenvía los referentes del mismo origen como ruta. En el modo edición el motivo es aún más directo: la ruta lleva el token, así que dejarla salir como referente entregaría la llave de la ficha. Esa política NO DEBE anular el encabezado `Origin` de los envíos de formulario: tanto el panel como el modo edición tienen prometido funcionar sin JavaScript de cliente (requirements "El panel se opera desde el celular y sin JavaScript de cliente innecesario" de `revision-admin` y "El enlace de gestión abre la ficha en modo edición con el mismo formulario prellenado" de `registro-negocio`), y un `Origin` anulado hace que el servidor rechace sus envíos. Las dos condiciones juntas descartan tanto `no-referrer` (anula el `Origin`) como `same-origin` (deja pasar la ruta entre páginas propias); `strict-origin` —el valor vigente— y `origin` las cumplen. La política DEBE vivir en el tronco de cada uno de esos grupos, no en cada enlace del encabezado o del pie: así cubre también los enlaces que se agreguen después (PRD §8, LFPDPPP). Si algún día se declara además como cabecera del hosting, DEBE llevar el mismo valor y por la misma razón.
 
 #### Scenario: propiedades de un evento
 

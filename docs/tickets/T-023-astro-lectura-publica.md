@@ -1,11 +1,11 @@
 # T-023 · Superficie pública de lectura en Astro (Fase 2)
 
-**Estado:** pendiente <!-- pendiente | en-spec | en-desarrollo | en-review | hecho -->
+**Estado:** en-spec <!-- pendiente | en-spec | en-desarrollo | en-review | hecho -->
 **Prioridad:** P1
 **Épica:** E9 (docs/backlog.md)
 **Referencias PRD:** v2 §10 (técnica reemplazable); ADR-013
 **Depende de:** T-022
-**OpenSpec change:** —
+**OpenSpec change:** `migrar-lectura-publica-astro` (Fase 2a; la 2b se propone como change aparte, ver su `proposal.md`)
 **PR:** —
 
 ## Contexto

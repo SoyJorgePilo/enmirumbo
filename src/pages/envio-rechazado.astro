@@ -1,0 +1,44 @@
+---
+// fuera de la medición: es la respuesta a un envío rechazado (o la de una dirección que no existe), no una visita; no recibe nada de la petición (change `migrar-formularios-publicos-astro`, design.md §1).
+/**
+ * Las respuestas que arma el middleware sin ejecutar nada (spec
+ * `plataforma-astro`, requirements "Los envíos de otro origen se rechazan en
+ * español…" y "Cada Action corre solo por envío de formulario y solo desde su
+ * ruta"). El middleware reescribe aquí:
+ *
+ * - CON la marca `locals.envioRechazado` (envío de otro origen): el 403 en
+ *   español dentro del documento base. Hoy no existía: Next respondía un 500
+ *   (`Invalid Server Actions request.`) y `checkOrigin` de Astro, un texto en
+ *   inglés sin cabeceras. Textos aprobados por el fundador (proposal.md).
+ * - SIN la marca (una Action pedida por RPC o desde otra ruta, y cualquiera
+ *   que abra `/envio-rechazado` a mano): la 404 de no encontrado, la misma
+ *   que cualquier slug que no existe. La marca no la puede poner el cliente.
+ *
+ * NO LEE NADA DE LA PETICIÓN: ni el `Origin`, ni el host, ni la ruta, ni el
+ * cuerpo. Sin medición (`DocumentoBase` directo) y con `noindex`.
+ */
+import NoEncontradoDinamico from "@/astro/componentes/NoEncontradoDinamico.astro";
+import DocumentoBase from "@/layouts/DocumentoBase.astro";
+
+export const prerender = false;
+
+const rechazado = Astro.locals.envioRechazado === true;
+Astro.response.status = rechazado ? 403 : 404;
+---
+
+{
+  rechazado ? (
+    <DocumentoBase metadatos={{ robots: { index: false } }}>
+      <section class="flex flex-1 flex-col items-center justify-center gap-6 py-12 text-center">
+        <h1 class="max-w-md text-2xl font-bold tracking-tight sm:text-3xl">No pudimos recibir tu envío</h1>
+        <p class="max-w-md text-tinta-suave">Vuelve a abrir la página e inténtalo otra vez.</p>
+        <a
+          class="inline-flex min-h-11 items-center justify-center px-4 text-base font-semibold text-accion-fuerte underline underline-offset-4"
+          href="/">Ir al inicio</a
+        >
+      </section>
+    </DocumentoBase>
+  ) : (
+    <NoEncontradoDinamico />
+  )
+}

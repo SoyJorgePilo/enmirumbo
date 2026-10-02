@@ -21,7 +21,16 @@ async function cargarMiddleware(): Promise<Middleware> {
   return modulo.onRequest as unknown as Middleware;
 }
 
-const contexto = (ruta = "/") => ({ isPrerendered: false, url: new URL(`https://sitio.example${ruta}`) });
+// Desde 3a (change `migrar-formularios-publicos-astro`) el middleware lee
+// también la petición (método y `Origin`), `locals` y el patrón de la ruta:
+// el contexto falso los trae como los trae Astro, con un GET.
+const contexto = (ruta = "/") => ({
+  isPrerendered: false,
+  url: new URL(`https://sitio.example${ruta}`),
+  request: new Request(`https://sitio.example${ruta}`),
+  locals: {},
+  routePattern: ruta,
+});
 
 async function pasar(respuesta: Response, ruta = "/"): Promise<Response> {
   const onRequest = await cargarMiddleware();

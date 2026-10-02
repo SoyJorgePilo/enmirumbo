@@ -1,0 +1,7 @@
+---
+// Fixture del guardián de `clientAddress` (tests/plataforma-astro-cupos.test.ts):
+// una página que toma la IP del marco. NO se sirve: vive en tests/fixtures.
+const ip = Astro.clientAddress;
+---
+
+<p>{ip ? "con ip" : "sin ip"}</p>

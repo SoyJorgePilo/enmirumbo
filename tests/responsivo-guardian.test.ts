@@ -18,7 +18,6 @@ vi.mock("next/navigation", async () => {
 
 import { seedCatalogos } from "../prisma/seed";
 import { sembrarNegociosDemo } from "../prisma/seed-demo";
-import ReportarNegocioPage from "../src/app/(publico)/negocio/[ficha]/reportar/page";
 import EditarPage from "../src/app/(gestion)/editar/[token]/page";
 import EditarGraciasPage from "../src/app/(gestion)/editar/[token]/gracias/page";
 import RegistroPage from "../src/app/(publico)/registro/page";
@@ -50,6 +49,9 @@ import { crearClientePrueba } from "./db";
 // Las páginas del directorio ya se sirven con Astro (change
 // `migrar-directorio-publico-astro`, tasks.md #15).
 import { pintarBuscar, pintarDestino, pintarFicha } from "./paginas-directorio";
+// El reporte y su confirmación ya se sirven con Astro (change
+// `migrar-formularios-publicos-astro`, tasks.md #15).
+import { pintarGracias, respuestaDeReportar } from "./reportar-astro";
 
 /**
  * GUARDIÁN DEL COLAPSO RESPONSIVO — spec `layout-base`, requirement "Diseño
@@ -174,15 +176,8 @@ beforeAll(async () => {
   pantallas.set("home", await pintarPagina(Home, { ruta: "/" }));
   pantallas.set("listado", (await pintarDestino("servicios-del-hogar")).documento);
   pantallas.set("ficha", (await pintarFicha(segmento)).documento);
-  pantallas.set(
-    "reportar",
-    await render(
-      await ReportarNegocioPage({
-        params: Promise.resolve({ ficha: segmento }),
-        searchParams: Promise.resolve({}),
-      }),
-    ),
-  );
+  pantallas.set("reportar", (await respuestaDeReportar(segmento)).html);
+  pantallas.set("reportar-gracias", await pintarGracias(segmento));
   pantallas.set("buscar", (await pintarBuscar({ q: "plomero" })).documento);
   pantallas.set("registro", await render(await RegistroPage()));
 

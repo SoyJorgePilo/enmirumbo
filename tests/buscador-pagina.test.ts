@@ -295,6 +295,12 @@ describe("directorio-publico · la página de resultados no es indexable (tasks 
       join(raiz, "src/app/(gestion)/editar/[token]/gracias/page.tsx"),
       join(raiz, "src/app/(publico)/negocio/[ficha]/reportar/page.tsx"),
       join(raiz, "src/app/(publico)/negocio/[ficha]/reportar/gracias/page.tsx"),
+      // El reporte en Astro (change `migrar-formularios-publicos-astro`): su
+      // metadata (`noindex, nofollow`) vive en este módulo y las dos páginas
+      // `.astro` la usan tal cual. La del envío rechazado (403) también pide
+      // no indexarse.
+      join(raiz, "src/astro/reportar.ts"),
+      join(raiz, "src/pages/envio-rechazado.astro"),
       join(raiz, "src/app/api/tareas/purgar-rechazados/route.ts"),
       join(raiz, "src/app/api/tareas/barrer-fotos-huerfanas/route.ts"),
       // La página de error del servidor de Astro (hallazgo M1 de T-023): sale

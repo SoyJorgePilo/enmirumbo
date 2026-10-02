@@ -14,6 +14,7 @@ import {
   extraerPagina,
   limpiarHtml,
   NORMALIZACIONES_404_DINAMICA,
+  NORMALIZACIONES_FORMULARIO,
 } from "../scripts/diff-html/nucleo.mjs";
 
 const CSP = "default-src 'self'";
@@ -278,5 +279,63 @@ describe("diff-html · respuestas binarias (fotos)", () => {
   it("una cabecera Location en Astro reprueba", () => {
     const d = compararRespuestas("/api/foto/x/ficha", foto([1]), foto([1], { location: "https://bucket.example/x" }), { dinamica: true });
     expect(d.join("\n")).toContain("location");
+  });
+});
+
+// ── Change `migrar-formularios-publicos-astro` (3a, design.md §4) ──────────
+// El formulario de reporte: exactamente dos normalizaciones, impresas, y todo
+// lo demás del formulario se sigue comparando.
+
+const DOC = (form: string) =>
+  `<!DOCTYPE html><html lang="es-MX"><head><title>T</title></head><body><main><h1>Reportar</h1>${form}</main></body></html>`;
+const CAMPOS = `<input type="text" name="sitio_web"><input type="radio" name="motivo" value="cerrado">Ya cerró<textarea name="comentario"></textarea><button type="submit">Enviar reporte</button>`;
+const FORM_NEXT = `<form class="f" action="" encType="multipart/form-data" method="POST"><input type="hidden" name="$ACTION_REF_1"><input type="hidden" name="$ACTION_1:0" value="{}"><input type="hidden" name="$ACTION_1:1" value="[&quot;c1&quot;]">${CAMPOS}</form>`;
+const FORM_ASTRO = `<form class="f" action="?_action=reportar" method="post">${CAMPOS}</form>`;
+const URL_FORM = "https://enmirumbo.example/negocio/x-c1/reportar?error=motivo";
+
+describe("diff · normalizaciones del formulario (3a)", () => {
+  it("son exactamente dos, con id y descripción", () => {
+    expect(NORMALIZACIONES_FORMULARIO.map((n) => n.id)).toEqual(["atributos-del-form", "campos-action-de-next"]);
+    expect(Object.isFrozen(NORMALIZACIONES_FORMULARIO)).toBe(true);
+  });
+
+  it("el formulario de Next y el nativo de Astro salen iguales, y se anota dónde se aplicó cada una", () => {
+    const aplicadas: string[] = [];
+    const d = compararRespuestas("/f", respuesta(DOC(FORM_NEXT)), respuesta(DOC(FORM_ASTRO)), { formulario: { urlPagina: URL_FORM, aplicadas } });
+    expect(d).toEqual([]);
+    expect(aplicadas).toEqual(["atributos-del-form", "campos-action-de-next"]);
+  });
+
+  it("sin marcar la ruta como formulario, las mismas páginas SÍ difieren", () => {
+    expect(compararRespuestas("/f", respuesta(DOC(FORM_NEXT)), respuesta(DOC(FORM_ASTRO))).length).toBeGreaterThan(0);
+  });
+
+  it("un campo oculto de más en Astro se reporta", () => {
+    const conExtra = FORM_ASTRO.replace(CAMPOS, `<input type="hidden" name="negocioId" value="c1">${CAMPOS}`);
+    const d = compararRespuestas("/f", respuesta(DOC(FORM_NEXT)), respuesta(DOC(conExtra)), { formulario: { urlPagina: URL_FORM, aplicadas: [] } });
+    expect(d.join("\n")).toContain("negocioId");
+  });
+
+  it("un oculto $ACTION_ en Astro NO se quita (la normalización es solo de Next)", () => {
+    const conAction = FORM_ASTRO.replace(CAMPOS, `<input type="hidden" name="$ACTION_1:1" value="x">${CAMPOS}`);
+    const d = compararRespuestas("/f", respuesta(DOC(FORM_NEXT)), respuesta(DOC(conAction)), { formulario: { urlPagina: URL_FORM, aplicadas: [] } });
+    expect(d.join("\n")).toContain("$ACTION_1:1");
+  });
+
+  it("si Astro postea a otra ruta o con otro método, se reporta y no se normaliza", () => {
+    const otraRuta = FORM_ASTRO.replace('action="?_action=reportar"', 'action="/otra?_action=reportar"');
+    const d1 = compararRespuestas("/f", respuesta(DOC(FORM_NEXT)), respuesta(DOC(otraRuta)), { formulario: { urlPagina: URL_FORM, aplicadas: [] } });
+    expect(d1.join("\n")).toMatch(/Next hace POST a \/negocio\/x-c1\/reportar y Astro POST a \/otra/);
+    const porGet = FORM_ASTRO.replace('method="post"', 'method="get"');
+    const d2 = compararRespuestas("/f", respuesta(DOC(FORM_NEXT)), respuesta(DOC(porGet)), { formulario: { urlPagina: URL_FORM, aplicadas: [] } });
+    expect(d2.join("\n")).toContain("Astro GET");
+  });
+
+  it("un cambio en el cuerpo del formulario (etiqueta, radio, botón) se sigue reportando", () => {
+    for (const [antes, despues] of [["Ya cerró", "Cerró"], ['value="cerrado"', 'value="cerrado" checked'], ["Enviar reporte", "Enviar"]]) {
+      const cambiado = FORM_ASTRO.replace(antes, despues);
+      const d = compararRespuestas("/f", respuesta(DOC(FORM_NEXT)), respuesta(DOC(cambiado)), { formulario: { urlPagina: URL_FORM, aplicadas: [] } });
+      expect(d.length, despues).toBeGreaterThan(0);
+    }
   });
 });

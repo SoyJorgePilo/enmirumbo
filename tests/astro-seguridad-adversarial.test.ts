@@ -14,10 +14,9 @@
  *   función (no puede pisar una política de referente más estricta) y los
  *   nombres de archivo con metacaracteres no abren patrones;
  * - la salida construida, servida por el emulador: métodos y codificaciones
- *   raras conservan las cuatro cabeceras, y las brechas conocidas (500 con la
- *   base caída, ya cerrada; 403 de `checkOrigin`) quedan documentadas con
- *   `it.fails`: cuando se cierren, esas pruebas se ponen rojas y hay que
- *   volverlas `it`.
+ *   raras conservan las cuatro cabeceras, y las brechas que se documentaron
+ *   con `it.fails` (500 con la base caída; 403 de `checkOrigin`, cerrada en
+ *   T-024) ya son pruebas normales.
  *
  * Todos los datos son ficticios.
  */
@@ -115,7 +114,15 @@ describe("adversarial · DocumentoBase escapa los metadatos al pintarlos", () =>
 
 type Middleware = (contexto: unknown, siguiente: () => Promise<Response>) => Promise<Response>;
 const middleware = async () => (await import("../src/middleware")).onRequest as unknown as Middleware;
-const contexto = { isPrerendered: false, url: new URL("https://enmirumbo.example/") };
+// Con la petición, `locals` y el patrón de ruta que trae Astro (el middleware
+// los lee desde 3a, change `migrar-formularios-publicos-astro`): un GET.
+const contexto = {
+  isPrerendered: false,
+  url: new URL("https://enmirumbo.example/"),
+  request: new Request("https://enmirumbo.example/"),
+  locals: {},
+  routePattern: "/",
+};
 
 describe("adversarial · el middleware con respuestas atípicas", () => {
   it("un 500 que DEVUELVE la página (no que lanza) lleva las cuatro y no se cachea", async () => {
@@ -317,19 +324,26 @@ describe("adversarial · la salida construida ante métodos, codificaciones y fa
     expect(html).not.toMatch(/prisma|DATABASE_URL|stack|at\s+\S+\s+\(|127\.0\.0\.1|Error:/i);
   });
 
-  // Brecha conocida (proposal.md, T-024): el 403 de `checkOrigin` sale antes
-  // del middleware. Al cerrarla, esta prueba se pone roja: cámbiese a `it`.
-  it("el 403 de checkOrigin no filtra nada más que su frase", async () => {
+  // Brecha cerrada en T-024 (change `migrar-formularios-publicos-astro`):
+  // `checkOrigin` de Astro está apagado y el 403 lo arma el middleware con la
+  // regla de Next. Antes aquí se exigía que el 403 en inglés midiera menos de
+  // 80 caracteres; ahora se exige algo más estricto: la página en español sin
+  // NADA de la petición (ni el Origin, ni el host, ni la ruta, ni el cuerpo).
+  it("[T-024] el 403 de origen es la página en español y no repite nada de la petición", async () => {
     const r = await sano("/", {
       method: "POST",
-      body: "a=1",
+      body: "a=1&marcadoreco=Zq9ficticio",
       headers: { "content-type": "application/x-www-form-urlencoded", origin: "https://ajeno.example" },
     });
     expect(r.status).toBe(403);
-    expect((await r.text()).length).toBeLessThan(80);
+    const html = await r.text();
+    expect(html).toContain("No pudimos recibir tu envío");
+    for (const eco of ["ajeno.example", "Zq9ficticio", "marcadoreco", "127.0.0.1", "Cross-site", "forbidden"]) {
+      expect(html, eco).not.toContain(eco);
+    }
   });
 
-  it.fails("[brecha conocida T-024] el 403 de checkOrigin lleva las cuatro cabeceras", async () => {
+  it("[T-024] el 403 de origen lleva las cuatro cabeceras", async () => {
     const r = await sano("/", {
       method: "POST",
       body: "a=1",

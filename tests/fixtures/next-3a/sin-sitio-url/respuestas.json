@@ -1,0 +1,608 @@
+{
+  "pantallas": {
+    "formulario.html": {
+      "status": 200,
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8"
+    },
+    "formulario-error-motivo.html": {
+      "status": 200,
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8"
+    },
+    "formulario-error-comentario.html": {
+      "status": 200,
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8"
+    },
+    "formulario-error-cupo.html": {
+      "status": 200,
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8"
+    },
+    "formulario-error-servidor.html": {
+      "status": 200,
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8"
+    },
+    "formulario-error-inventado.html": {
+      "status": 200,
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8"
+    },
+    "formulario-borrador.html": {
+      "status": 200,
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8"
+    },
+    "formulario-segmento-viejo.html": {
+      "status": 200,
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8"
+    },
+    "404-revision.html": {
+      "status": 404,
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8"
+    },
+    "404-inexistente.html": {
+      "status": 404,
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8"
+    },
+    "gracias.html": {
+      "status": 200,
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8"
+    },
+    "gracias-hostil.html": {
+      "status": 200,
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8"
+    }
+  },
+  "desenlaces": {
+    "exito": {
+      "cadena": [
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        },
+        {
+          "metodo": "POST",
+          "status": 303,
+          "location": "/negocio/plomeria-hermanos-rosales-ficticio-<id>/reportar/gracias",
+          "cookies": [
+            {
+              "nombre": "nu_reporte_borrador",
+              "httponly": "",
+              "max-age": "0",
+              "path": "/negocio/plomeria-hermanos-rosales-ficticio-<id>/reportar",
+              "samesite": "lax",
+              "secure": ""
+            }
+          ]
+        },
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        }
+      ],
+      "post": {
+        "status": 303,
+        "cache-control": "no-cache, no-store, max-age=0, must-revalidate",
+        "content-type": null,
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "seguridad": true,
+        "cookies": [
+          {
+            "path": "/negocio/plomeria-hermanos-rosales-ficticio-<id>/reportar",
+            "max-age": "0",
+            "secure": "",
+            "httponly": "",
+            "samesite": "lax"
+          }
+        ]
+      }
+    },
+    "sin-motivo-con-comentario": {
+      "cadena": [
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        },
+        {
+          "metodo": "POST",
+          "status": 303,
+          "location": "/negocio/plomeria-hermanos-rosales-ficticio-<id>/reportar?error=motivo",
+          "cookies": [
+            {
+              "nombre": "nu_reporte_borrador",
+              "httponly": "",
+              "max-age": "120",
+              "path": "/negocio/plomeria-hermanos-rosales-ficticio-<id>/reportar",
+              "samesite": "lax",
+              "secure": ""
+            }
+          ]
+        },
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        }
+      ],
+      "post": {
+        "status": 303,
+        "cache-control": "no-cache, no-store, max-age=0, must-revalidate",
+        "content-type": null,
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "seguridad": true,
+        "cookies": [
+          {
+            "path": "/negocio/plomeria-hermanos-rosales-ficticio-<id>/reportar",
+            "max-age": "120",
+            "secure": "",
+            "httponly": "",
+            "samesite": "lax"
+          }
+        ]
+      }
+    },
+    "comentario-301": {
+      "cadena": [
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        },
+        {
+          "metodo": "POST",
+          "status": 303,
+          "location": "/negocio/plomeria-hermanos-rosales-ficticio-<id>/reportar?error=comentario",
+          "cookies": [
+            {
+              "nombre": "nu_reporte_borrador",
+              "httponly": "",
+              "max-age": "120",
+              "path": "/negocio/plomeria-hermanos-rosales-ficticio-<id>/reportar",
+              "samesite": "lax",
+              "secure": ""
+            }
+          ]
+        },
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        }
+      ],
+      "post": {
+        "status": 303,
+        "cache-control": "no-cache, no-store, max-age=0, must-revalidate",
+        "content-type": null,
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "seguridad": true,
+        "cookies": [
+          {
+            "path": "/negocio/plomeria-hermanos-rosales-ficticio-<id>/reportar",
+            "max-age": "120",
+            "secure": "",
+            "httponly": "",
+            "samesite": "lax"
+          }
+        ]
+      }
+    },
+    "honeypot": {
+      "cadena": [
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        },
+        {
+          "metodo": "POST",
+          "status": 303,
+          "location": "/negocio/plomeria-hermanos-rosales-ficticio-<id>/reportar/gracias",
+          "cookies": [
+            {
+              "nombre": "nu_reporte_borrador",
+              "httponly": "",
+              "max-age": "0",
+              "path": "/negocio/plomeria-hermanos-rosales-ficticio-<id>/reportar",
+              "samesite": "lax",
+              "secure": ""
+            }
+          ]
+        },
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        }
+      ],
+      "post": {
+        "status": 303,
+        "cache-control": "no-cache, no-store, max-age=0, must-revalidate",
+        "content-type": null,
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "seguridad": true,
+        "cookies": [
+          {
+            "path": "/negocio/plomeria-hermanos-rosales-ficticio-<id>/reportar",
+            "max-age": "0",
+            "secure": "",
+            "httponly": "",
+            "samesite": "lax"
+          }
+        ]
+      }
+    },
+    "cupo-1": {
+      "cadena": [
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        },
+        {
+          "metodo": "POST",
+          "status": 303,
+          "location": "/negocio/plomeria-hermanos-rosales-ficticio-<id>/reportar/gracias",
+          "cookies": [
+            {
+              "nombre": "nu_reporte_borrador",
+              "httponly": "",
+              "max-age": "0",
+              "path": "/negocio/plomeria-hermanos-rosales-ficticio-<id>/reportar",
+              "samesite": "lax",
+              "secure": ""
+            }
+          ]
+        },
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        }
+      ],
+      "post": {
+        "status": 303,
+        "cache-control": "no-cache, no-store, max-age=0, must-revalidate",
+        "content-type": null,
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "seguridad": true,
+        "cookies": [
+          {
+            "path": "/negocio/plomeria-hermanos-rosales-ficticio-<id>/reportar",
+            "max-age": "0",
+            "secure": "",
+            "httponly": "",
+            "samesite": "lax"
+          }
+        ]
+      }
+    },
+    "cupo-2": {
+      "cadena": [
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        },
+        {
+          "metodo": "POST",
+          "status": 303,
+          "location": "/negocio/plomeria-hermanos-rosales-ficticio-<id>/reportar/gracias",
+          "cookies": [
+            {
+              "nombre": "nu_reporte_borrador",
+              "httponly": "",
+              "max-age": "0",
+              "path": "/negocio/plomeria-hermanos-rosales-ficticio-<id>/reportar",
+              "samesite": "lax",
+              "secure": ""
+            }
+          ]
+        },
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        }
+      ],
+      "post": {
+        "status": 303,
+        "cache-control": "no-cache, no-store, max-age=0, must-revalidate",
+        "content-type": null,
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "seguridad": true,
+        "cookies": [
+          {
+            "path": "/negocio/plomeria-hermanos-rosales-ficticio-<id>/reportar",
+            "max-age": "0",
+            "secure": "",
+            "httponly": "",
+            "samesite": "lax"
+          }
+        ]
+      }
+    },
+    "cupo-3": {
+      "cadena": [
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        },
+        {
+          "metodo": "POST",
+          "status": 303,
+          "location": "/negocio/plomeria-hermanos-rosales-ficticio-<id>/reportar/gracias",
+          "cookies": [
+            {
+              "nombre": "nu_reporte_borrador",
+              "httponly": "",
+              "max-age": "0",
+              "path": "/negocio/plomeria-hermanos-rosales-ficticio-<id>/reportar",
+              "samesite": "lax",
+              "secure": ""
+            }
+          ]
+        },
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        }
+      ],
+      "post": {
+        "status": 303,
+        "cache-control": "no-cache, no-store, max-age=0, must-revalidate",
+        "content-type": null,
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "seguridad": true,
+        "cookies": [
+          {
+            "path": "/negocio/plomeria-hermanos-rosales-ficticio-<id>/reportar",
+            "max-age": "0",
+            "secure": "",
+            "httponly": "",
+            "samesite": "lax"
+          }
+        ]
+      }
+    },
+    "cupo-4": {
+      "cadena": [
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        },
+        {
+          "metodo": "POST",
+          "status": 303,
+          "location": "/negocio/plomeria-hermanos-rosales-ficticio-<id>/reportar?error=cupo",
+          "cookies": [
+            {
+              "nombre": "nu_reporte_borrador",
+              "httponly": "",
+              "max-age": "0",
+              "path": "/negocio/plomeria-hermanos-rosales-ficticio-<id>/reportar",
+              "samesite": "lax",
+              "secure": ""
+            }
+          ]
+        },
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        }
+      ],
+      "post": {
+        "status": 303,
+        "cache-control": "no-cache, no-store, max-age=0, must-revalidate",
+        "content-type": null,
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "seguridad": true,
+        "cookies": [
+          {
+            "path": "/negocio/plomeria-hermanos-rosales-ficticio-<id>/reportar",
+            "max-age": "0",
+            "secure": "",
+            "httponly": "",
+            "samesite": "lax"
+          }
+        ]
+      }
+    },
+    "tope": {
+      "cadena": [
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        },
+        {
+          "metodo": "POST",
+          "status": 303,
+          "location": "/negocio/taller-ficticio-del-tope-<id>/reportar/gracias",
+          "cookies": [
+            {
+              "nombre": "nu_reporte_borrador",
+              "httponly": "",
+              "max-age": "0",
+              "path": "/negocio/taller-ficticio-del-tope-<id>/reportar",
+              "samesite": "lax",
+              "secure": ""
+            }
+          ]
+        },
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        }
+      ],
+      "post": {
+        "status": 303,
+        "cache-control": "no-cache, no-store, max-age=0, must-revalidate",
+        "content-type": null,
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "seguridad": true,
+        "cookies": [
+          {
+            "path": "/negocio/taller-ficticio-del-tope-<id>/reportar",
+            "max-age": "0",
+            "secure": "",
+            "httponly": "",
+            "samesite": "lax"
+          }
+        ]
+      }
+    },
+    "identificador-inexistente": {
+      "cadena": [
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        },
+        {
+          "metodo": "POST",
+          "status": 404,
+          "location": null,
+          "cookies": []
+        }
+      ],
+      "post": {
+        "status": 404,
+        "cache-control": "no-cache, no-store, max-age=0, must-revalidate",
+        "content-type": "text/html; charset=utf-8",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "seguridad": true,
+        "cookies": []
+      }
+    },
+    "origen-null": {
+      "cadena": [
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        },
+        {
+          "metodo": "POST",
+          "status": 500,
+          "location": null,
+          "cookies": []
+        }
+      ],
+      "post": {
+        "status": 500,
+        "cache-control": null,
+        "content-type": "text/plain",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "seguridad": true,
+        "cookies": []
+      }
+    },
+    "origen-ajeno": {
+      "cadena": [
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        },
+        {
+          "metodo": "POST",
+          "status": 500,
+          "location": null,
+          "cookies": []
+        }
+      ],
+      "post": {
+        "status": 500,
+        "cache-control": null,
+        "content-type": "text/plain",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "seguridad": true,
+        "cookies": []
+      }
+    },
+    "sin-origen": {
+      "cadena": [
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        },
+        {
+          "metodo": "POST",
+          "status": 303,
+          "location": "/negocio/plomeria-hermanos-rosales-ficticio-<id>/reportar/gracias",
+          "cookies": [
+            {
+              "nombre": "nu_reporte_borrador",
+              "httponly": "",
+              "max-age": "0",
+              "path": "/negocio/plomeria-hermanos-rosales-ficticio-<id>/reportar",
+              "samesite": "lax",
+              "secure": ""
+            }
+          ]
+        },
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        }
+      ],
+      "post": {
+        "status": 303,
+        "cache-control": "no-cache, no-store, max-age=0, must-revalidate",
+        "content-type": null,
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "seguridad": true,
+        "cookies": [
+          {
+            "path": "/negocio/plomeria-hermanos-rosales-ficticio-<id>/reportar",
+            "max-age": "0",
+            "secure": "",
+            "httponly": "",
+            "samesite": "lax"
+          }
+        ]
+      }
+    }
+  }
+}

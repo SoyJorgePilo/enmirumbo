@@ -14,7 +14,7 @@ import { imagenDeMarca } from "./src/astro/integraciones/imagen-de-marca";
  * Fase 2a (change `migrar-lectura-publica-astro`): el middleware de
  * cabeceras vive en `src/middleware.ts`; aquí se registran la imagen de marca
  * (generada al construir) y las cabeceras de lo que sirve la CDN.
- * `checkOrigin` y `env.schema` entran con las fases que los usan (3–5).
+ * `env.schema` entra con la fase que lo use.
  *
  * Tailwind no se monta aquí: Vite carga solo `postcss.config.mjs` de la raíz,
  * el mismo `@tailwindcss/postcss` que usa Next (design.md §2).
@@ -36,9 +36,22 @@ function sinRutaDeImagen(adaptador) {
     throw new Error("@astrojs/vercel ya no usa astro:routes:resolved: revisa sinRutaDeImagen en astro.config.mjs");
   }
   adaptador.hooks["astro:routes:resolved"] = (params) =>
-    original({ ...params, routes: params.routes.filter((ruta) => ruta.pattern !== "/_image") });
+    original({ ...params, routes: params.routes.filter((ruta) => !RUTAS_FUERA_DE_LA_TABLA.includes(ruta.pattern)) });
   return adaptador;
 }
+
+/**
+ * Rutas que Astro inyecta y que el sitio NO publica en la tabla de Vercel:
+ *
+ * - `/_image` (ver `image.endpoint` abajo);
+ * - `/_actions/[...path]`, la vía RPC de las Actions (change
+ *   `migrar-formularios-publicos-astro`, design.md §2). Ninguna Action se
+ *   llama desde JavaScript del navegador, así que fuera de la tabla
+ *   `/_actions/<lo que sea>` cae en la 404 de la CDN, igual que `/a/b/c`. Si
+ *   aun así llegara a la función, el middleware la responde como una
+ *   dirección inexistente (`src/astro/acciones.ts`).
+ */
+const RUTAS_FUERA_DE_LA_TABLA = ["/_image", "/_actions/[...path]"];
 
 export default defineConfig({
   // Todo por petición salvo lo que diga `prerender = true`, como hoy en la app.
@@ -55,10 +68,21 @@ export default defineConfig({
   // `cabecerasEnLaCdn` reescribe el `config.json` del adaptador en
   // `astro:build:done`; Astro corre ese hook primero en el adaptador y luego
   // en estas, en este orden. Si el archivo no existe aún, el build truena.
-  // `cabecerasEnLaCdn` reescribe el `config.json` del adaptador en
-  // `astro:build:done`; Astro corre ese hook primero en el adaptador y luego
-  // en estas, en este orden. Si el archivo no existe aún, el build truena.
   integrations: [react(), imagenDeMarca(), cabecerasEnLaCdn()],
+  security: {
+    // La comprobación de origen la hace `src/middleware.ts` con la regla de
+    // Next (`src/astro/origen.ts`; change `migrar-formularios-publicos-astro`,
+    // design.md §1). La de Astro responde ANTES del middleware un 403 en
+    // inglés y sin las cuatro cabeceras, sin gancho para cambiarlo: se apaga
+    // aquí y SOLO junto con la del middleware.
+    checkOrigin: false,
+    // El tope del cuerpo de una Action es por sitio. 6 MiB, igual que
+    // `serverActions.bodySizeLimit: "6mb"` de `next.config.ts`, para que una
+    // foto de hasta 5 MB llegue a la validación propia (design.md §6). Al
+    // pasarse, la Action no corre y el middleware vuelve al formulario con
+    // el error `servidor`.
+    actionBodySizeLimit: 6 * 1024 * 1024,
+  },
   vite: {
     // `src/app/globals.css` empieza con `@import "tailwindcss"`. En los
     // entornos de servidor de Vite (`ssr` y `prerender`) el resolvedor de

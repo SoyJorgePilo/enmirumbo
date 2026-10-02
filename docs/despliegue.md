@@ -161,11 +161,26 @@ volver a desplegar, no basta con reiniciar.
 | `SUPABASE_SERVICE_ROLE_KEY` | **Secreto.** Llave con la que el servidor lee y escribe las fotos. | Supabase → *Settings → API → service_role*. |
 | `SUPABASE_BUCKET_FOTOS` | Nombre del bucket de fotos. | Por defecto `fotos`. |
 | `FOTOS_DIR` | Directorio de las fotos **en desarrollo**, cuando no hay Supabase configurado. | Por defecto `.fotos/` en la raíz. **En Vercel el disco es efímero: ver §7.** |
+| `VERIFICACION_SMS_ACTIVA` y las cuatro de Twilio Verify | Encienden la verificación del número por SMS (T-016 / ADR-011). **Opcionales y posteriores al lanzamiento, y cuestan dinero por mensaje: no las configures siguiendo esta tabla.** | Todo el procedimiento, el costo y las advertencias están en **§11**. Apagadas por defecto: sin ellas el sitio corre exactamente como hoy. |
+| `RESEND_API_KEY` | **Secreto.** Credencial del proveedor de correo (Resend) con la que sale el **aviso diario de pendientes** (T-020, §6). | La da Resend en *API Keys*; empieza por `re_`. **Sin ella no se manda ningún correo**: queda una línea en el log diciendo qué falta y todo lo demás sigue igual. |
+| `AVISOS_CORREO_REMITENTE` | La dirección DESDE la que sale ese aviso. Tiene que estar en un dominio **verificado** en Resend, o el proveedor rechaza el envío. | `avisos@enmirumbo.com` (después de verificar el dominio, §6.1). **Sin ella no se manda ningún correo.** |
+| `AVISOS_CORREO_DESTINO` | El buzón que RECIBE el aviso: el correo que el admin abre a diario. | Recomendación: el **Gmail directo** del admin, no una dirección que reenvíe (el reenvío puede tropezar con SPF y mandar a spam justo el correo del día que sí importa). **Sin ella no se manda ningún correo.** Es un dato personal en un repo público (LFPDPPP): nunca en el código, ni en los seeds, ni en un test, ni en `.env.example`. |
 | `WHATSAPP_ADMIN` | El WhatsApp del admin al que la ficha pública ofrece escribir cuando el dueño **perdió su enlace de gestión** (PRD §6.4 y §7 Flujo D). | 10 dígitos, sin lada ni espacios. **Fail-safe: sin ella el bloque "¿Es tu negocio?" no se pinta** — nada de enlaces rotos ni de números de ejemplo. Es un dato personal en un repo público (LFPDPPP): nunca en el código, ni en los seeds, ni en un test. |
 
 Con las dos de Umami sin poner, el sitio corre igual y **no mide nada**: no
 inyecta ningún `<script>`, no pide nada a ningún dominio externo y ninguna
 página cambia.
+
+Las tres del correo funcionan igual, y con `SITIO_URL` son **cuatro**: falte la
+que falte, **no se manda ningún correo**, el log lo dice una sola vez nombrando
+la que falta y la tarea programada responde con normalidad —no configurar el
+aviso es una decisión legítima, no un fallo—. `SITIO_URL` entra en la cuenta
+porque de ahí sale el único enlace del correo: sin ella el aviso llevaría a
+`localhost`, que desde el celular del admin no lleva a ningún lado. Por lo
+mismo, el aviso **exige que `SITIO_URL` apunte a un host público**: con
+`http://localhost:3001`, `http://127.0.0.1:3000`, `http://[::1]:3000` o una IP
+de red interna (`192.168.…`, `10.…`) se apaga igual que si faltara, en vez de
+mandar todos los días un enlace que no abre.
 
 ### 3.3 Solo para operar a mano (nunca configuradas de forma permanente)
 
@@ -358,8 +373,14 @@ Dos tareas corren solas en producción. Están declaradas en `vercel.json`:
 
 | Ruta | Cuándo | Qué hace |
 |---|---|---|
-| `/api/tareas/purgar-rechazados` | diario, 09:17 UTC (~03:17 en Tizayuca) | Borra definitivamente los registros **rechazados** con 90 días o más desde el rechazo (PRD §8, compromiso publicado en el aviso de privacidad). |
+| `/api/tareas/purgar-rechazados` | diario, **13:17 UTC (~07:17 en Tizayuca)** | Dos cosas: borra definitivamente los registros **rechazados** con 90 días o más desde el rechazo (PRD §8, compromiso publicado en el aviso de privacidad) y, encima, manda el **aviso diario de pendientes** (T-020). |
 | `/api/tareas/barrer-fotos-huerfanas` | diario, 09:47 UTC | Borra del almacén las fotos que ya no son de ninguna ficha (datos personales fuera del alcance del borrado ARCO si se quedan). |
+
+**Por qué a las 13:17 UTC y no a las 09:17, como antes:** porque encima de esa
+tarea viaja el aviso por correo, y 13:17 UTC son las **07:17 en Tizayuca**. Un
+aviso que llega a las tres de la mañana se lee cuando ya se perdió media
+jornada; a las siete acompaña el primer café. A la purga la hora le da igual:
+solo tiene que correr una vez al día.
 
 Las dos exigen el encabezado `Authorization: Bearer $CRON_SECRET`. **Sin secreto
 configurado, o con uno equivocado, responden el mismo 404 que una ruta que no
@@ -388,7 +409,7 @@ meses sin barrer y nadie se entera. En Vercel, los fallos de cron salen en
 Respuesta normal de cada una (solo conteos, nunca datos de nadie):
 
 ```json
-{"eliminados": 0, "fallidos": 0, "cuposLimpiados": 0}
+{"eliminados": 0, "fallidos": 0, "cuposLimpiados": 0, "aviso": "sin-pendientes"}
 {"barrido": true, "revisadas": 12, "huerfanas": 0, "borradas": 0, "enPeriodoDeGracia": 0, "ignoradas": 0, "noBorrables": 0}
 ```
 
@@ -403,6 +424,64 @@ eliminar—, la purga responde **500** aunque haya eliminado los demás. Es a
 propósito: un 200 con la mala noticia dentro del cuerpo lo daría por bueno el
 programador de tareas, y el incumplimiento del aviso de privacidad se repetiría
 todos los días en silencio.
+
+### 6.1 El aviso diario de pendientes (T-020)
+
+Encima de la purga viaja un correo: **si hay algo esperando en la cola del
+panel, a las 07:17 de Tizayuca llega un aviso** con cuántos hay de cada tipo
+—altas nuevas, ediciones y reportes sin atender— y el enlace al panel. Si no hay
+nada esperando **no llega nada**: el silencio significa "todo al día".
+
+**El correo no lleva ni un dato de nadie.** Ni nombres de negocios, ni WhatsApp,
+ni colonias, ni comentarios de reportes, ni identificadores: solo números y el
+enlace. Viaja por servidores de un tercero y se queda guardado en un buzón, así
+que lo que no va dentro no hay que cuidarlo (PRD §8, LFPDPPP).
+
+**Va encima de la purga y no en una tarea propia** porque el plan Hobby admite
+dos tareas diarias y ya están las dos. Los dos trabajos son independientes: la
+purga corre aunque el correo falle, y el correo se intenta aunque la purga no se
+complete.
+
+El campo `aviso` de la respuesta dice en qué quedó el correo del día:
+
+| Valor | Qué significa | Código |
+|---|---|---|
+| `mandado` | Había pendientes y el correo salió (o ya había salido antes en la misma ejecución). | 200 |
+| `sin-pendientes` | La cola estaba vacía: no había nada que avisar. | 200 |
+| `sin-configurar` | Falta alguna de las cuatro variables (§3.2). No se mandó nada. **No es un fallo.** | 200 |
+| `fallido` | Había algo que avisar y el correo NO salió. | **500** |
+
+**Un correo al día, aunque dispares la tarea dos veces.** El envío viaja con una
+marca del día (`enmirumbo-pendientes-<AAAA-MM-DD>`, con la fecha de Tizayuca) y
+Resend descarta el segundo envío con la misma marca durante 24 horas. Un intento
+que ni siquiera llegó al proveedor (red caída, tiempo agotado) no gasta el día:
+el siguiente disparo lo vuelve a intentar con la misma marca.
+
+**Si ves `"aviso":"fallido"` en un segundo disparo del día**, mira el log: la
+línea `[aviso] el proveedor respondió 409` significa que la marca de hoy ya la
+usó otra petición y que **esta** no mandó nada. Puede ser lo bueno (el correo ya
+había salido desde otra ejecución) o lo malo (el intento anterior fue rechazado
+y hoy no ha salido ningún aviso). Desde el servidor no se distingue, así que se
+avisa en rojo a propósito: **compruébalo en Resend → *Emails***, que lista lo
+que salió de verdad. Un 200 diciendo "mandado" en ese caso te dejaría sin aviso
+y sin enterarte durante 24 horas.
+
+**Paso humano, una sola vez, antes de que esto sirva de algo: verificar el
+dominio en Resend.**
+
+1. En Resend → *Domains* → *Add Domain*, `enmirumbo.com`.
+2. Resend da tres registros DNS (uno TXT de verificación, uno TXT de DKIM y uno
+   MX o TXT de SPF). Se dan de alta en **Namecheap** → *Advanced DNS*, tal cual,
+   sin cambiarles el host ni el valor.
+3. Esperar a que Resend marque el dominio como *Verified* (suele ser minutos).
+4. Solo entonces `AVISOS_CORREO_REMITENTE` puede ser `avisos@enmirumbo.com`.
+
+**Si el correo no llega:** mira en este orden. (a) La respuesta del `curl`: si
+dice `sin-configurar`, falta una variable; si dice `sin-pendientes`, es que de
+verdad no había nada. (b) Los logs de Vercel, línea `[aviso]`. (c) El panel de
+Resend → *Emails*, que muestra los envíos y por qué se rechazaron. (d) La
+carpeta de spam del buzón destino: si el aviso aterriza ahí, casi siempre es un
+reenvío de por medio (usa el buzón directo, §3.2).
 
 ## 7. Fotos de los negocios
 
@@ -632,6 +711,15 @@ Con el sitio ya en línea, abre estas pantallas en el celular, con datos móvile
 
     Las dos tienen que responder `200` con sus conteos. Y sin el encabezado,
     la misma página 404 que `https://enmirumbo.com/una-direccion-inventada`.
+11-bis. **El aviso diario de pendientes** (T-020) — con el dominio ya
+    verificado en Resend (§6.1) y las tres variables puestas: deja el alta de
+    prueba del paso 3 **sin revisar** en la cola y vuelve a disparar la purga
+    con el `curl` de arriba. La respuesta tiene que traer `"aviso":"mandado"`
+    y en el buzón de `AVISOS_CORREO_DESTINO` tiene que llegar un correo de
+    "EnMiRumbo" que diga cuántos pendientes hay y traiga el enlace al panel.
+    **Léelo entero antes de seguir: no puede aparecer el nombre del negocio de
+    prueba, ni su WhatsApp, ni su colonia — solo números.** Dispáralo una
+    segunda vez: no debe llegar un segundo correo ese día.
 12. **Borra el alta de prueba** desde el panel (borrado definitivo) y comprueba
     que la ficha ya no abre (y que su foto desapareció del bucket, paso 10).
 
@@ -701,3 +789,97 @@ del lanzamiento:
    volver a pesar si se invita a alguien más o si se necesita observabilidad.
    Cerrarlo de verdad exige sacar el secreto de la ruta, lo que cambia la spec
    del enlace de gestión (T-014).
+
+## 11. Verificación del número por SMS — OPCIONAL Y POSTERIOR AL LANZAMIENTO
+
+> **Esta sección no es parte del despliegue.** El checklist obligatorio (§4) y
+> la prueba de humo (§9) se completan enteros **sin tocar nada de aquí**, y así
+> es como se lanza el sitio. Léela solo cuando quieras encender la
+> verificación, y con el costo delante (T-016 / ADR-011).
+
+**Con la bandera apagada —el estado de hoy— el sitio se comporta exactamente
+como el flujo manual del PRD §6.3 y el costo es cero.** El dueño llena el
+formulario, la ficha entra a la cola y tú confirmas su número por WhatsApp
+mientras revisas. Ese flujo es completo y bueno: la verificación por SMS no lo
+sustituye, solo te ahorra un paso.
+
+### 11.1 Lo que cuesta (decídelo con esto a la vista)
+
+- **~$0.05 USD por SMS enviado a México**, más los cargos del registro **A2P
+  10DLC / alfanumérico** que Twilio exige para mandar mensajes a números
+  mexicanos. Se paga por mensaje, salga o no salga bien la verificación.
+- Un reenvío es otro SMS. Por eso el sistema trae cupos estrictos: **3 códigos
+  por hora y por IP, 60 segundos de espera entre reenvíos, máximo 2 reenvíos y
+  5 códigos escritos por registro, y un tope diario global** (50 por defecto)
+  que **corta**: alcanzado el tope, ese día ya no se manda ningún SMS más, los
+  registros siguen entrando con normalidad y queda una alerta en el log.
+- **Los tres topes POR REGISTRO —espera de 60 s, 2 reenvíos y 5 códigos— se
+  cuentan en la base**, no en el navegador de quien verifica (tabla
+  `IntentoDeCupo`, la misma del límite de acceso al panel, §3.5). Eso importa
+  para el gasto: son las únicas cotas que siguen operando cuando
+  `REGISTRO_ENCABEZADO_IP` no está declarado, y valen igual con una instancia
+  que con veinte. Lo que se guarda es un HMAC del identificador del registro
+  —nunca el número, nunca una IP— y se borra al salir de la ventana.
+
+### 11.2 Qué hay que hacer, en este orden
+
+1. **Crea la cuenta** en <https://www.twilio.com> y da de alta un servicio de
+   **Verify** (Console → Verify → Services). Copia el *Service SID* (empieza
+   por `VA`), el *Account SID* (empieza por `AC`) y el *Auth Token*.
+2. **Registro A2P para México.** Twilio no manda SMS a México sin el trámite de
+   remitente registrado. Es un paso humano, con papeleo y días de espera: hazlo
+   **antes** de poner la bandera, o el proveedor rechazará cada envío y el
+   sitio degradará silenciosamente al flujo manual (que es lo correcto, pero no
+   sabrás por qué).
+3. **Pon las credenciales** en el hosting, sin la bandera todavía:
+   `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_VERIFY_SERVICE_SID` y
+   `VERIFICACION_SMS_SECRETO` (mínimo 32 caracteres al azar,
+   `openssl rand -base64 32`). Las cuatro son **secretas** y ninguna se
+   commitea. Opcionalmente, `VERIFICACION_SMS_TOPE_DIARIO`. La explicación de
+   cada una está en `.env.example`; aquí no se duplica.
+4. **Al final, la bandera:** `VERIFICACION_SMS_ACTIVA="1"`. **Solo el valor
+   exacto `1`** enciende la capacidad. Con la configuración a medias —la
+   bandera puesta y algo faltando— la capacidad se queda **apagada** y el
+   servidor deja **una** advertencia en el log diciendo qué variable falta, sin
+   ninguna credencial dentro.
+5. **Comprueba** que `/registro/verificar` deja de responder 404 solo para
+   quien acaba de enviar un registro (no se puede abrir a mano) y que una ficha
+   verificada aparece en el panel con "Número verificado por SMS".
+
+### 11.3 Cómo apagarla
+
+Quita `VERIFICACION_SMS_ACTIVA` (o ponla en cualquier otro valor) y vuelve a
+desplegar. **No hay migración que revertir ni datos que se pierdan:** el sitio
+vuelve al flujo manual de inmediato y **las fichas ya verificadas conservan su
+marca**, que el panel sigue mostrando — es un hecho que ocurrió y no se borra
+porque se apague un interruptor.
+
+### 11.4 Las dos advertencias que no son obvias
+
+1. **El tope diario global y el cupo de 3 códigos/hora/IP se cuentan POR
+   PROCESO**, igual que los cupos por IP del formulario y de los reportes
+   (§3.5). En un hosting serverless hay varias instancias vivas a la vez, así
+   que **el gasto real puede ser un múltiplo del tope configurado**: con 50/día
+   y cuatro instancias, hasta 200 SMS. Es la misma deuda que los otros cupos
+   (§10, punto 1) y se paga junto con ellos. Mientras tanto, **pon también un
+   límite de gasto en la consola de Twilio**: es el único tope que no depende
+   de cuántas instancias levante la plataforma.
+
+   Lo que **sí** vale igual con cualquier número de instancias son los topes
+   por registro (§11.1): están en la base, así que el techo de lo que un solo
+   registro puede gastar —2 reenvíos— no se multiplica ni se puede rebobinar
+   desde el navegador.
+2. **El embudo del PRD §10 se vuelve más estricto.** Con la capacidad
+   encendida, la pantalla del código se mete **entre** el envío y la pantalla
+   de gracias, así que quien abandone ahí ya tiene su ficha guardada pero **no
+   genera vista de `/registro/gracias`**. Una caída de esas vistas **no
+   significa** una caída de registros: el conteo contable de altas es la base
+   de datos, no la analítica.
+
+### 11.5 Lo que la verificación NO cambia
+
+**Ninguna ficha se publica por haber verificado su número.** El SMS solo marca
+"número confirmado" en el panel; aprobar, rechazar, despublicar y borrar siguen
+siendo exactamente lo que ya eran, y **la revisión por WhatsApp no se elimina**:
+es la evidencia de consentimiento y el filtro de moderación (PRD §6.3), que es
+el diferenciador del directorio.

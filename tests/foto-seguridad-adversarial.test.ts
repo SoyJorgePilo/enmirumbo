@@ -322,7 +322,7 @@ describe("multipart hostil: campos repetidos y valores que no son archivo", () =
     );
 
     const resultado = await procesarRegistro(datos, contexto("203.0.113.64"));
-    expect(resultado).toEqual({ exito: true });
+    expect(resultado).toMatchObject({ exito: true });
 
     const creado = await prisma.negocio.findUniqueOrThrow({
       where: { whatsapp: "7719998011" },
@@ -353,7 +353,7 @@ describe("multipart hostil: campos repetidos y valores que no son archivo", () =
     datos.set("foto", valor);
 
     const resultado = await procesarRegistro(datos, contexto(ip));
-    expect(resultado).toEqual({ exito: true });
+    expect(resultado).toMatchObject({ exito: true });
 
     const creado = await prisma.negocio.findUniqueOrThrow({ where: { whatsapp: numero } });
     expect(creado.fotoClave).toBeNull();
@@ -495,7 +495,7 @@ describe("transiciones ilegales y referencia de foto impuesta por el cliente", (
       contexto("203.0.113.85"),
     );
 
-    expect(resultado).toEqual({ exito: true });
+    expect(resultado).toMatchObject({ exito: true });
     const ficha = await prisma.negocio.findUniqueOrThrow({
       where: { whatsapp: "7719998040" },
     });
@@ -533,7 +533,7 @@ describe("transiciones ilegales y referencia de foto impuesta por el cliente", (
       contexto("203.0.113.86"),
     );
 
-    expect(resultado).toEqual({ exito: true });
+    expect(resultado).toMatchObject({ exito: true });
     const ficha = await prisma.negocio.findUniqueOrThrow({
       where: { whatsapp: "7719998042" },
     });
@@ -780,7 +780,7 @@ describe("el GPS del celular no sobrevive hasta lo que se sirve por HTTP", () =>
       formulario("7719998060", { foto: archivoDeFormulario(conGps, "celular.jpg") }),
       contexto("203.0.113.90", almacenDeFotos()),
     );
-    expect(resultado).toEqual({ exito: true });
+    expect(resultado).toMatchObject({ exito: true });
 
     const negocio = await prisma.negocio.findUniqueOrThrow({
       where: { whatsapp: "7719998060" },

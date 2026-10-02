@@ -304,6 +304,11 @@ describe("directorio-publico · la página de resultados no es indexable (tasks 
       // metadata, con la instrucción de no indexar, vive en este módulo y la
       // página `src/pages/buscar.astro` la usa tal cual.
       join(raiz, "src/astro/buscar.ts"),
+      // Y el change `agregar-verificacion-sms-tras-bandera` (T-016) suma la
+      // pantalla del código: la spec `registro-negocio` exige que NO sea
+      // indexable y que no aparezca en el sitemap, igual que
+      // `/registro/gracias`.
+      join(raiz, "src/app/(publico)/registro/verificar/page.tsx"),
     ];
     const paginas = archivosDe(join(raiz, "src/app"))
       .filter(

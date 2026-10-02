@@ -365,7 +365,7 @@ describe("adversarial · reaceptación hacia adelante contra la base", () => {
     const previa = await fichaRechazada(whatsapp, "1");
 
     const resultado = await procesar(envio({ whatsapp }));
-    expect(resultado).toEqual({ exito: true });
+    expect(resultado).toMatchObject({ exito: true });
 
     const despues = await prisma.negocio.findUniqueOrThrow({ where: { whatsapp } });
     expect(despues.estado).toBe("en_revision");
@@ -386,7 +386,7 @@ describe("adversarial · reaceptación hacia adelante contra la base", () => {
     const previa = await fichaRechazada(whatsapp, "3");
 
     const resultado = await procesar(envio({ whatsapp }));
-    expect(resultado).toEqual({ exito: true });
+    expect(resultado).toMatchObject({ exito: true });
 
     const despues = await prisma.negocio.findUniqueOrThrow({ where: { whatsapp } });
     expect(despues.estado).toBe("en_revision");
@@ -435,7 +435,7 @@ describe("adversarial · reaceptación hacia adelante contra la base", () => {
     formData.append("consintioAvisoVersion", "1");
     formData.append("reconsintioAvisoVersion", "99");
 
-    expect(await procesar(formData)).toEqual({ exito: true });
+    expect(await procesar(formData)).toMatchObject({ exito: true });
 
     const creado = await prisma.negocio.findUniqueOrThrow({ where: { whatsapp } });
     expect(creado.consintioAvisoVersion).toBe(VERSION_AVISO);

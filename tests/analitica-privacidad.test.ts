@@ -138,7 +138,13 @@ beforeAll(async () => {
   htmlFicha = await mainDeFicha(construirSegmentoFicha(NEGOCIO.nombre, id));
   htmlHome = await pintarPagina(Home, { ruta: "/" });
   htmlRegistro = await render(RegistroPage());
-  htmlGracias = renderToStaticMarkup(createElement(RegistroGraciasPage));
+  // `async` desde T-016 (lee `searchParams`); sin parámetros es la pantalla de
+  // siempre, la de la bandera apagada.
+  htmlGracias = await render(
+    RegistroGraciasPage({
+      searchParams: Promise.resolve({}),
+    } as unknown as Parameters<typeof RegistroGraciasPage>[0]),
+  );
   htmlAviso = await pintarPagina(AvisoDePrivacidadPage, { ruta: "/aviso-de-privacidad" });
   htmlTerminos = await pintarPagina(TerminosPage, { ruta: "/terminos" });
 });

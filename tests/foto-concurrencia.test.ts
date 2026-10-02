@@ -196,7 +196,7 @@ describe("el envío que no cupo recibe el literal de la spec", () => {
       formulario("7719989002", { foto: archivoDeFormulario(jpeg) }),
       { prisma, ip: null, ahora: AHORA },
     );
-    expect(resultado).toEqual({ exito: true });
+    expect(resultado).toMatchObject({ exito: true });
     const creado = await prisma.negocio.findUniqueOrThrow({
       where: { whatsapp: "7719989002" },
     });

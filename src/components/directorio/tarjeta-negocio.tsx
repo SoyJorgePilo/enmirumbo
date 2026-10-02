@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "@/components/compat/link";
 
 import { EtiquetaADomicilio } from "@/components/directorio/etiqueta-domicilio";
 import { MarcadorFoto } from "@/components/directorio/marcador-foto";

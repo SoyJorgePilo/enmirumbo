@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "@/components/compat/link";
 
 import { CONTROL_REPORTAR } from "@/lib/reportes/textos";
 

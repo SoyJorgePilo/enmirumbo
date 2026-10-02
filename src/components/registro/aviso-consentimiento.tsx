@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "@/components/compat/link";
 
 import { VERSION_AVISO } from "@/lib/legales/version";
 import {

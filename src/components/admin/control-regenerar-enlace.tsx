@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "@/components/compat/link";
 
 import { BOTON_GENERAR_ENLACE_NUEVO } from "@/lib/admin/textos";
 import { CLASE_BOTON_SECUNDARIO } from "@/lib/estilos-boton";

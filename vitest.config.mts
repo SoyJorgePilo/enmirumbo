@@ -1,5 +1,7 @@
+/// <reference types="vitest/config" />
 import { fileURLToPath } from "node:url";
-import { defineConfig } from "vitest/config";
+
+import { getViteConfig } from "astro/config";
 
 try {
   // `npm test` no lee .env solo: sin esto, quien tenga su base local en otro
@@ -12,7 +14,11 @@ try {
   // Sin .env (clon recién hecho o CI): se usa lo que traiga el entorno.
 }
 
-export default defineConfig({
+// `getViteConfig` monta la configuración de Vite de Astro (la de
+// `astro.config.mjs`, con sus integraciones) para que las pruebas puedan
+// renderizar `.astro` con la Container API (change `agregar-andamio-astro`,
+// design.md §4). Lo de abajo se fusiona encima, sin cambios respecto a antes.
+export default getViteConfig({
   resolve: {
     // Mismo alias que tsconfig.json ("@/*" → "./src/*").
     alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },

@@ -20,6 +20,10 @@
 # production
 /build
 
+# astro (ADR-013): salida del build y tipos generados por `astro sync`
+/dist/
+/.astro/
+
 # misc
 .DS_Store
 *.pem

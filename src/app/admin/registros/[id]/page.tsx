@@ -25,6 +25,7 @@ import {
 } from "@/lib/admin/textos";
 import { ESTADO_NEGOCIO_DEFAULT, ESTADO_NEGOCIO_PUBLICADO } from "@/lib/negocio";
 import { obtenerPrisma } from "@/lib/prisma";
+import { verificacionEncendida } from "@/lib/verificacion/config";
 
 export const metadata: Metadata = { robots: { index: false, follow: false } };
 
@@ -116,7 +117,17 @@ export default async function DetalleRegistroAdminPage({
         </p>
       )}
 
-      <DetalleRegistro registro={registro} />
+      {/* `capacidadVerificacionSmsEncendida` (T-016, ADR-011) decide SOLO si
+          una ficha sin verificar muestra "Sin verificar — confirma por
+          WhatsApp como siempre". Una ficha que SÍ trae su fecha la muestra
+          siempre, encendida o apagada: un hecho comprobado no se borra porque
+          después se apague un interruptor. Con la capacidad apagada —el
+          lanzamiento— ninguna ficha trae fecha y esto es `false`, así que el
+          detalle no pinta ninguna de las dos líneas. */}
+      <DetalleRegistro
+        registro={registro}
+        capacidadVerificacionSmsEncendida={verificacionEncendida()}
+      />
 
       {/* Requirement "Marcar un reporte como atendido, una sola vez": el
           panel DEBE confirmar, sin condición. El aviso va AQUÍ y no dentro de

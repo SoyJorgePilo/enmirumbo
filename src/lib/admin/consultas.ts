@@ -58,6 +58,14 @@ export type RegistroColaItem = {
    * comparativo para una edición.
    */
   hrefDetalle: string;
+  /**
+   * Cuándo confirmó su código por SMS, o `null`/`undefined` si no lo ha
+   * hecho (spec `revision-admin` MODIFIED de T-016, ADR-011; etiqueta
+   * "Número verificado por SMS"). Opcional a propósito, mismo criterio que
+   * `agregar-despublicar-y-borrado-arco`: los renglones de edición no lo
+   * traen, y `TarjetaCola` entonces no pinta ninguna etiqueta.
+   */
+  numeroVerificadoEn?: Date | null;
 };
 
 /** Todo lo que el detalle del panel muestra de un registro. */
@@ -131,6 +139,13 @@ export type RegistroAdminDetalle = {
    * borre en silencio (`aprobarRegistro` hace `giros: { set: … }`).
    */
   girosIds: number[];
+  /**
+   * Cuándo confirmó su código por SMS, o `null` si nunca lo hizo (spec
+   * `revision-admin` MODIFIED de T-016, ADR-011). Con la capacidad apagada es
+   * `null` en todas las fichas, así que el detalle del lanzamiento no pinta
+   * ninguna de las dos líneas de verificación — exactamente el de hoy.
+   */
+  numeroVerificadoEn: Date | null;
 };
 
 /**
@@ -181,6 +196,8 @@ type FilaCola = {
   despublicadoEn: Date | null;
   coloniaOtra: string | null;
   colonia: { nombre: string } | null;
+  /** T-016: nula en todas las fichas mientras la capacidad esté apagada. */
+  numeroVerificadoEn: Date | null;
 };
 
 /** Renglón de la cola que viene de una edición esperando revisión. */
@@ -321,6 +338,10 @@ export async function obtenerColaDeRevision(
         despublicadoEn: true,
         coloniaOtra: true,
         colonia: { select: { nombre: true } },
+        // T-016: la etiqueta "Número verificado por SMS" del renglón. Con la
+        // capacidad apagada esto es nulo en todas las filas, así que la cola
+        // del lanzamiento se ve exactamente como se ve hoy.
+        numeroVerificadoEn: true,
       },
     }),
     // Las ediciones que esperan revisión entran a la MISMA cola (PRD §6.4).
@@ -375,6 +396,7 @@ export async function obtenerColaDeRevision(
           ),
           tipo: "alta" as const,
           hrefDetalle: `/admin/registros/${fila.id}`,
+          numeroVerificadoEn: fila.numeroVerificadoEn,
         },
       };
     }),
@@ -522,6 +544,8 @@ export async function obtenerRegistroParaPanel(
       motivoRechazo: true,
       despublicadoEn: true,
       motivoDespublicacion: true,
+      // T-016: las dos líneas de verificación junto al WhatsApp.
+      numeroVerificadoEn: true,
       // Solo la FECHA del enlace, nunca su huella (design.md §3).
       tokenGestionCreadoEn: true,
       giros: { select: { id: true } },
@@ -559,6 +583,7 @@ export async function obtenerRegistroParaPanel(
     despublicadoEn: fila.despublicadoEn,
     motivoDespublicacion: fila.motivoDespublicacion,
     tokenGestionCreadoEn: fila.tokenGestionCreadoEn,
+    numeroVerificadoEn: fila.numeroVerificadoEn,
     girosIds: fila.giros.map((giro) => giro.id),
   };
 }

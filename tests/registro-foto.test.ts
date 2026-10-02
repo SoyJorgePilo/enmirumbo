@@ -135,7 +135,7 @@ describe("alta con foto", () => {
       }),
       { prisma, ip: IP, ahora: AHORA, almacen: espia.almacen },
     );
-    expect(resultado).toEqual({ exito: true });
+    expect(resultado).toMatchObject({ exito: true });
 
     const creado = await prisma.negocio.findUniqueOrThrow({
       where: { whatsapp: NUMERO },
@@ -166,7 +166,7 @@ describe("alta con foto", () => {
       almacen: espia.almacen,
     });
 
-    expect(resultado).toEqual({ exito: true });
+    expect(resultado).toMatchObject({ exito: true });
     expect(espia.guardadas).toHaveLength(0);
     const creado = await prisma.negocio.findUniqueOrThrow({
       where: { whatsapp: NUMERO },
@@ -188,7 +188,7 @@ describe("alta con foto", () => {
       ip: IP,
       ahora: AHORA,
       almacen: espia.almacen,
-    })).toEqual({ exito: true });
+    })).toMatchObject({ exito: true });
 
     const creado = await prisma.negocio.findUniqueOrThrow({
       where: { whatsapp: NUMERO },
@@ -250,7 +250,9 @@ describe("el bot no paga procesamiento de imagen", () => {
       { prisma, ip: IP, ahora: AHORA, almacen: espia.almacen },
     );
 
-    expect(resultado).toEqual({ exito: true }); // se finge éxito, como siempre
+    // Se finge éxito, como siempre, y sin ficha tocada: el campo trampa
+    // tampoco puede provocar un SMS (T-016).
+    expect(resultado).toEqual({ exito: true, ficha: null });
     expect(espia.guardadas).toHaveLength(0);
     expect(await archivosDelAlmacen()).toEqual(antes);
     expect(await prisma.negocio.count()).toBe(0);
@@ -364,7 +366,7 @@ describe("reenvío tras un rechazo: cambiar, quitar o dejar la foto", () => {
       formulario({ foto: archivoDeFormulario(await pngDePrueba(900, 700), "otra.png", "image/png") }),
       { prisma, ip: IP, ahora: AHORA, almacen: espia.almacen },
     );
-    expect(resultado).toEqual({ exito: true });
+    expect(resultado).toMatchObject({ exito: true });
 
     const ficha = await prisma.negocio.findUniqueOrThrow({ where: { whatsapp: NUMERO } });
     expect(ficha.estado).toBe("en_revision");
@@ -387,7 +389,7 @@ describe("reenvío tras un rechazo: cambiar, quitar o dejar la foto", () => {
       ip: IP,
       ahora: AHORA,
     });
-    expect(resultado).toEqual({ exito: true });
+    expect(resultado).toMatchObject({ exito: true });
 
     const ficha = await prisma.negocio.findUniqueOrThrow({ where: { whatsapp: NUMERO } });
     expect(ficha.fotoClave).toBeNull();
@@ -403,7 +405,7 @@ describe("reenvío tras un rechazo: cambiar, quitar o dejar la foto", () => {
       formulario({ horario: "L-S 9am-8pm (corregido)" }),
       { prisma, ip: IP, ahora: AHORA },
     );
-    expect(resultado).toEqual({ exito: true });
+    expect(resultado).toMatchObject({ exito: true });
 
     const ficha = await prisma.negocio.findUniqueOrThrow({ where: { whatsapp: NUMERO } });
     expect(ficha.fotoClave).toBe(anterior);

@@ -1,8 +1,8 @@
 # Proceso de desarrollo — EnMiRumbo
 
-> Versión 0.5 — borrador para afinar. Este documento ES parte del building in public: describe cómo se construye el producto con un flujo asistido por agentes de IA.
+> Versión 0.6 — borrador para afinar. Este documento ES parte del building in public: describe cómo se construye el producto con un flujo asistido por agentes de IA.
 >
-> Cambios v0.5 (tras la revisión de las primeras corridas registradas — ver ADR-009): la etapa A deja de ser experimento y se vuelve permanente con contrato de reemplazo obligatorio; los mandatos de integración del validador para corridas en paralelo quedan escritos (§5c); el `/checkpoint` rellena la columna Post-merge de la bitácora. Cambios v0.4: cada agente declara su modelo en el frontmatter, asignado por costo del error (ADR-008) — el modelo deja de ser una variable de ambiente y pasa a ser una constante versionada del pipeline. Cambios v0.3 (tras investigar el estado del arte 2026 — ver ADR-002): CI de GitHub Actions como gate determinista; ruta corta `/rapido` para cambios chicos (ceremonia proporcional al tamaño); handoffs entre agentes por archivo (`reports/`), no por conversación; el dev trabaja en TDD y seguridad-test pasa a auditoría + tests adversariales; bitácora de métricas del pipeline; la etapa UI-first queda marcada como experimento con criterio de salida. Cambios v0.2: el pipeline de implementación pasa de 1 implementador + revisor a 4 agentes especializados (ui, dev, seguridad-test, validador); solo el validador toca git.
+> Cambios v0.6 (aligerar el harness sin perder compuertas — ADR-012): reportes con tope de ~150 líneas; la etapa C corre solo cuando el change cruza una frontera de confianza; `/rapido` de solo docs/comentarios/config va sin validador (CI + humano); filas de métricas de una línea. Cambios v0.5 (tras la revisión de las primeras corridas registradas — ver ADR-009): la etapa A deja de ser experimento y se vuelve permanente con contrato de reemplazo obligatorio; los mandatos de integración del validador para corridas en paralelo quedan escritos (§5c); el `/checkpoint` rellena la columna Post-merge de la bitácora. Cambios v0.4: cada agente declara su modelo en el frontmatter, asignado por costo del error (ADR-008) — el modelo deja de ser una variable de ambiente y pasa a ser una constante versionada del pipeline. Cambios v0.3 (tras investigar el estado del arte 2026 — ver ADR-002): CI de GitHub Actions como gate determinista; ruta corta `/rapido` para cambios chicos (ceremonia proporcional al tamaño); handoffs entre agentes por archivo (`reports/`), no por conversación; el dev trabaja en TDD y seguridad-test pasa a auditoría + tests adversariales; bitácora de métricas del pipeline; la etapa UI-first queda marcada como experimento con criterio de salida. Cambios v0.2: el pipeline de implementación pasa de 1 implementador + revisor a 4 agentes especializados (ui, dev, seguridad-test, validador); solo el validador toca git.
 
 ## El flujo en una línea
 
@@ -38,10 +38,13 @@ Comando: **`/implementar <change-id>`**. La sesión principal orquesta; cuatro a
 |---|---|---|---|---|
 | A | `ui` | `sonnet` | Capa de interfaz con datos mock: componentes, copy es-MX, estados, mobile-first. Se salta si el change no tiene UI o reutiliza UI existente (justificación registrada en la fila de métricas) | `reports/a-ui.md` con formas de datos esperadas + contrato de reemplazo |
 | B | `dev` | `opus` | Perfil de ingeniero de software en **TDD**: por cada scenario automatizable, primero el test (rojo), luego el código (verde); `tasks.md` tarea por tarea | `reports/b-dev.md` + tareas marcadas |
-| C | `seguridad-test` | `opus` | Auditoría de seguridad del diff (entrada, inyección, secretos, LFPDPPP) + tests adversariales que el dev no pensó. Sus hallazgos regresan al dev hasta quedar limpio | `reports/c-seguridad.md`; crítico/alto bloquea |
+| C (condicional) | `seguridad-test` | `opus` | Auditoría de seguridad del diff (entrada, inyección, secretos, LFPDPPP) + tests adversariales que el dev no pensó. Sus hallazgos regresan al dev hasta quedar limpio | `reports/c-seguridad.md`; crítico/alto bloquea |
 | D | `validador` | `opus` | Compuerta final: re-verifica spec, ticket, alcance y gates de forma independiente. **Único agente que toca git**: si aprueba, commitea, push y abre el PR | `reports/d-validacion.md` + link del PR |
 
 Reglas clave:
+
+- **Reportes cortos:** cada reporte de etapa pesa ≤~150 líneas (hallazgos como `archivo:línea` + una frase). El costo del pipeline lo domina lo que cada etapa tiene que leer de la anterior.
+- **La etapa C es condicional:** corre si el change toca entrada pública, escritura del panel admin, tokens/enlaces de gestión, subida de archivos, datos personales o infra/deploy. Un change solo de literales, lectura o docs la salta con justificación en la fila de métricas (el validador verifica esa justificación, como ya hace con la etapa A).
 
 - **Handoff por archivo, no por conversación:** cada agente escribe su reporte en `openspec/changes/<id>/reports/` y el siguiente lo lee de ahí. Lo que no está en un archivo no existe para la siguiente etapa.
 - **El modelo es parte del pipeline, no del ambiente:** cada agente declara su modelo en el frontmatter, asignado por costo del error (ADR-008). Sin eso, el mismo change costaría y rendiría distinto según con qué modelo se abrió la terminal ese día, y las métricas compararían corridas que no son comparables.
@@ -55,7 +58,7 @@ Reglas clave:
 ### 5b. Ruta corta — `/rapido`
 La ceremonia debe ser proporcional al cambio: un fix o chore que se describe en una frase no paga spec ni pipeline de 4 agentes.
 
-Comando: **`/rapido <descripción o T-XXX>`**. Elegible solo si: se describe en una frase, no cambia comportamiento de producto definido en specs, y no toca superficies sensibles (formulario público, panel admin, enlaces de gestión, datos personales). La sesión principal implementa directo en una rama `fix/<slug>`, y el `validador` valida, commitea y abre el PR igual que siempre. Si el validador detecta que el diff sí toca superficie sensible o comportamiento especificado, aborta y exige la ruta completa.
+Comando: **`/rapido <descripción o T-XXX>`**. Elegible solo si: se describe en una frase, no cambia comportamiento de producto definido en specs, y no toca superficies sensibles (formulario público, panel admin, enlaces de gestión, datos personales). La sesión principal implementa directo en una rama `fix/<slug>`, y el `validador` valida, commitea y abre el PR igual que siempre. Excepción (v0.6): si el diff es solo docs, comentarios o config sin comportamiento (nada de lógica en `src/` ni `tests/`), la sesión principal abre el PR sin validador y la compuerta son el CI y el humano. Si el validador detecta que el diff sí toca superficie sensible o comportamiento especificado, aborta y exige la ruta completa.
 
 ### 5c. Corridas en paralelo — mandatos de integración del validador
 
@@ -96,7 +99,7 @@ Escribe una entrada en `docs/devlog/` con la plantilla: qué se construyó, qué
 
 ## Medición del pipeline
 
-El pipeline se mide por retrabajo, no por volumen. Cada corrida de `/implementar` o `/rapido` agrega una fila a `docs/metricas-pipeline.md`: ruta, iteraciones dev↔seguridad, hallazgos del validador, veredicto de primera pasada, y (rellenado después) correcciones post-merge. **Rellenar "Post-merge" es parte del `/checkpoint`:** en cada checkpoint, el cronista revisa las corridas mergeadas hace dos semanas o más y escribe la celda (los commits de corrección sobre esa feature, o "0" explícito). Una celda vacía no significa cero: significa que no se midió. Si las corridas muestran que una etapa no aporta hallazgos, esa etapa se elimina — el harness también obedece la regla de no crecer sin evidencia.
+El pipeline se mide por retrabajo, no por volumen. Cada corrida de `/implementar` o `/rapido` agrega una fila de UNA línea a `docs/metricas-pipeline.md`: ruta, iteraciones dev↔seguridad, hallazgos del validador, veredicto de primera pasada, y (rellenado después) correcciones post-merge. **Rellenar "Post-merge" es parte del `/checkpoint`:** en cada checkpoint, el cronista revisa las corridas mergeadas hace dos semanas o más y escribe la celda (los commits de corrección sobre esa feature, o "0" explícito). Una celda vacía no significa cero: significa que no se midió. Si las corridas muestran que una etapa no aporta hallazgos, esa etapa se elimina — el harness también obedece la regla de no crecer sin evidencia.
 
 ## Reglas del proyecto
 

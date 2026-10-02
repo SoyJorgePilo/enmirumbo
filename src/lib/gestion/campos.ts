@@ -59,27 +59,65 @@ export const COLUMNAS_CICLO_EDICION = [
 ] as const;
 
 /**
- * Columnas de `Negocio` que una edición NO puede tocar nunca, ni al guardarse
- * ni al aplicarse. Están aquí solo para que el guardián las pueda nombrar: el
+ * Columnas de `Negocio` que una edición NO puede FIJAR nunca, ni al guardarse
+ * ni al aplicarse. Están aquí para que el guardián las pueda nombrar: el
  * código que aplica una edición no las menciona, copia por lista blanca.
+ *
+ * "No puede fijar" no es lo mismo que "no cambia": ver `numeroVerificadoEn`.
  */
 export const CAMPOS_PROHIBIDOS_EN_EDICION = [
+  // Identidad y ciclo de vida de la ficha.
+  "id",
   "estado",
   "origen",
   "giros",
   "publicadoEn",
   "registradoEn",
+  // Constancia LFPDPPP y su reaceptación.
   "consintioAvisoEn",
   "consintioAvisoVersion",
   "reconsintioAvisoEn",
   "reconsintioAvisoVersion",
+  // Rastros que solo escribe el panel.
   "rechazadoEn",
   "motivoRechazo",
   "despublicadoEn",
   "motivoDespublicacion",
+  // Referencia de la foto y huella del enlace: las genera el servidor.
   "fotoClave",
   "tokenGestionHash",
   "tokenGestionCreadoEn",
+  // Pin del mapa: no es editable hoy (no se captura en ningún formulario).
+  "latitud",
+  "longitud",
+  /**
+   * Marca de la verificación por SMS (T-016, hallazgo [C-1] de su etapa C).
+   * Ningún valor del envío puede fijarla —solo la escribe el servidor tras la
+   * confirmación del proveedor—, PERO aplicar una edición sí la LIMPIA cuando
+   * el número cambia: un número nuevo no está verificado
+   * (`aplicarEdicion`, `src/lib/gestion/ediciones.ts`). Está en esta lista
+   * porque una edición no la puede poner, que es lo que la lista vigila.
+   */
+  "numeroVerificadoEn",
+] as const;
+
+/**
+ * Columnas de `Negocio` que aplicar una edición SÍ escribe, pero que **no
+ * vienen del formulario**: las calcula el servidor a partir de los campos
+ * editables. No son editables ni prohibidas; son derivadas.
+ *
+ * Existen aquí para que el censo de columnas sea EXHAUSTIVO: entre las tres
+ * listas de este archivo tienen que estar TODAS las columnas de `Negocio`, y
+ * `tests/gestion-modelo.test.ts` falla si alguna se queda fuera. Ese guardián
+ * es la segunda mitad del hallazgo [C-1b] de T-016: antes, la lista de
+ * prohibidos se escribía a mano y no se contrastaba contra el esquema, así que
+ * una columna nueva podía entrar al modelo sin que nadie decidiera qué pasa
+ * con ella al editar. Ahora no se puede: agregar una columna a `Negocio`
+ * rompe la suite hasta que alguien la declare en una de las tres.
+ */
+export const COLUMNAS_DERIVADAS_AL_APLICAR = [
+  "nombreNormalizado",
+  "queOfrecesNormalizado",
 ] as const;
 
 /**

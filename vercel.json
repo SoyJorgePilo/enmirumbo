@@ -3,7 +3,7 @@
   "crons": [
     {
       "path": "/api/tareas/purgar-rechazados",
-      "schedule": "17 9 * * *"
+      "schedule": "17 13 * * *"
     },
     {
       "path": "/api/tareas/barrer-fotos-huerfanas",

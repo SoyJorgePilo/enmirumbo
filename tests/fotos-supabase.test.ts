@@ -427,8 +427,10 @@ describe("fotos · el disco efímero no vuelve en silencio (hallazgo R2)", () =>
   });
 
   it("el aviso se dispara al ARRANCAR, con los otros tres", () => {
-    const layout = readFileSync(new URL("../src/app/layout.tsx", import.meta.url), "utf8");
-    const cuerpo = layout.slice(0, layout.search(/export\s+default\s+function/));
+    // En Astro viven en el tronco de `src/middleware.ts` (change
+    // `migrar-lectura-publica-astro`): se cargan una vez con la función.
+    const layout = readFileSync(new URL("../src/middleware.ts", import.meta.url), "utf8");
+    const cuerpo = layout.slice(0, layout.search(/export\s+const\s+onRequest/));
     expect(cuerpo).toContain("avisarSinAlmacenDeFotosUnaVez()");
   });
 });

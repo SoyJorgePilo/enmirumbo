@@ -3,13 +3,18 @@ import react from "@astrojs/react";
 import vercel from "@astrojs/vercel";
 import { defineConfig, passthroughImageService } from "astro/config";
 
+import { cabecerasEnLaCdn } from "./src/astro/integraciones/cabeceras-en-la-cdn";
+import { imagenDeMarca } from "./src/astro/integraciones/imagen-de-marca";
+
 /**
  * Astro en la raíz (ADR-013, Fase 1; change `agregar-andamio-astro`,
  * design.md §6). En la rama `migracion-astro` este es el único build: Next
  * queda como código fuente inerte hasta el corte (design.md §1).
  *
- * Middleware, cabeceras de seguridad, `checkOrigin` y `env.schema` NO van
- * aquí: entran con las fases que los usan (2–5).
+ * Fase 2a (change `migrar-lectura-publica-astro`): el middleware de
+ * cabeceras vive en `src/middleware.ts`; aquí se registran la imagen de marca
+ * (generada al construir) y las cabeceras de lo que sirve la CDN.
+ * `checkOrigin` y `env.schema` entran con las fases que los usan (3–5).
  *
  * Tailwind no se monta aquí: Vite carga solo `postcss.config.mjs` de la raíz,
  * el mismo `@tailwindcss/postcss` que usa Next (design.md §2).
@@ -47,7 +52,25 @@ export default defineConfig({
       includeFiles: ["./certs/supabase-root-2021-ca.crt"],
     }),
   ),
-  integrations: [react()],
+  // `cabecerasEnLaCdn` reescribe el `config.json` del adaptador en
+  // `astro:build:done`; Astro corre ese hook primero en el adaptador y luego
+  // en estas, en este orden. Si el archivo no existe aún, el build truena.
+  // `cabecerasEnLaCdn` reescribe el `config.json` del adaptador en
+  // `astro:build:done`; Astro corre ese hook primero en el adaptador y luego
+  // en estas, en este orden. Si el archivo no existe aún, el build truena.
+  integrations: [react(), imagenDeMarca(), cabecerasEnLaCdn()],
+  vite: {
+    // `src/app/globals.css` empieza con `@import "tailwindcss"`. En los
+    // entornos de servidor de Vite (`ssr` y `prerender`) el resolvedor de
+    // `@import` de CSS trata los paquetes como externos y devolvía el
+    // especificador sin resolver (el build tronaba con ENOENT
+    // `<raíz>/tailwindcss`). Agruparlo deja que lo resuelva por su campo
+    // `style`, igual que hace Astro con `@fontsource/*`.
+    environments: {
+      prerender: { resolve: { noExternal: ["tailwindcss"] } },
+      ssr: { resolve: { noExternal: ["tailwindcss"] } },
+    },
+  },
   image: {
     // Sin optimizador: las fotos ya salen en su tamaño final y en WebP (spec
     // `directorio-publico`), y ningún componente pinta `/_image`.

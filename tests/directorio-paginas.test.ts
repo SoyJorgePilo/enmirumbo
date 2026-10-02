@@ -9,10 +9,13 @@ import { seedCatalogos } from "../prisma/seed";
 import { sembrarNegociosDemo } from "../prisma/seed-demo";
 import ListadoCategoriaPage from "../src/app/(publico)/[destino]/page";
 import FichaNegocioPage from "../src/app/(publico)/negocio/[ficha]/page";
-import NotFoundPage from "../src/app/not-found";
-import Home from "../src/app/(publico)/page";
 import type { PrismaClient } from "../src/generated/prisma/client";
 import { construirSegmentoFicha } from "../src/lib/ficha-url";
+// Home y 404 ya se sirven con Astro (change `migrar-lectura-publica-astro`,
+// tasks.md #15). Se mira lo que pintaba la página: el contenido de <main>.
+import NotFoundPage from "../src/pages/404.astro";
+import Home from "../src/pages/index.astro";
+import { contenidoDelMain, pintarPagina } from "./astro-paginas";
 import { crearClientePrueba } from "./db";
 
 // Spec: directorio-publico (home, listado, filtro, tarjeta, ficha, botones de
@@ -107,8 +110,7 @@ beforeAll(async () => {
   });
   idPorWhatsapp = Object.fromEntries(negocios.map((n) => [n.whatsapp, n.id]));
 
-  const home = await Home();
-  htmlHome = renderToStaticMarkup(createElement(() => home));
+  htmlHome = contenidoDelMain(await pintarPagina(Home, { ruta: "/" }));
 });
 
 afterAll(async () => {
@@ -496,7 +498,10 @@ describe("directorio-publico · privacidad de lo publicado (tasks #18)", () => {
 });
 
 describe("layout-base · página 404 en español (tasks #6)", () => {
-  const html404 = renderToStaticMarkup(createElement(NotFoundPage));
+  let html404 = "";
+  beforeAll(async () => {
+    html404 = contenidoDelMain(await pintarPagina(NotFoundPage, { ruta: "/no-existe" }));
+  });
 
   // Scenario: URL desconocida
   it("trae los tres textos literales de la spec", () => {
@@ -519,8 +524,11 @@ describe("directorio-publico · Server Components sin JS de cliente", () => {
   // Scenario: sin JS de cliente nuevo
   it('ningún archivo del directorio declara "use client"', () => {
     const archivos = [
-      join(raiz, "src/app/(publico)/page.tsx"),
-      join(raiz, "src/app/not-found.tsx"),
+      // Home y 404 en Astro (change `migrar-lectura-publica-astro`): tampoco
+      // pueden hidratarse con una directiva `client:` (abajo).
+      join(raiz, "src/pages/index.astro"),
+      join(raiz, "src/pages/404.astro"),
+      join(raiz, "src/astro/componentes/NoEncontrado.astro"),
       join(raiz, "src/app/(publico)/[destino]/page.tsx"),
       join(raiz, "src/app/(publico)/negocio/[ficha]/page.tsx"),
       ...readdirSync(join(raiz, "src/components/directorio")).map((nombre) =>
@@ -530,6 +538,7 @@ describe("directorio-publico · Server Components sin JS de cliente", () => {
     expect(archivos.length).toBeGreaterThanOrEqual(9);
     for (const ruta of archivos) {
       expect(readFileSync(ruta, "utf8"), ruta).not.toMatch(/["']use client["']/);
+      expect(readFileSync(ruta, "utf8"), ruta).not.toMatch(/\sclient:[a-z]+/i);
     }
   });
 

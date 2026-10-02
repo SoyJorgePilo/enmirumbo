@@ -12,8 +12,10 @@ import DestinoPage, {
 import FichaNegocioPage, {
   generateMetadata as metadataFicha,
 } from "../src/app/(publico)/negocio/[ficha]/page";
-import robots from "../src/app/robots";
-import sitemap from "../src/app/sitemap";
+// `robots.txt` y `sitemap.xml` ya se sirven con Astro (change
+// `migrar-lectura-publica-astro`, tasks.md #15): mismos objetos que antes.
+import { reglasDeRobots as robots } from "../src/pages/robots.txt";
+import { entradasDelSitemap as sitemap } from "../src/pages/sitemap.xml";
 import type { PrismaClient } from "../src/generated/prisma/client";
 import { datosDeBusqueda } from "../src/lib/busqueda";
 import { reiniciarMemoriaDeCatalogos } from "../src/lib/directorio";
@@ -1027,7 +1029,11 @@ describe("seo/seguridad · SITIO_URL hostil o mal escrita", () => {
 
 describe("seo/seguridad · la imagen para compartir", () => {
   it("la imagen de marca no recibe nada de un negocio: no hay superficie que inyectar", () => {
-    const fuente = readFileSync(join(raiz, "src/app/opengraph-image.tsx"), "utf8");
+    // El árbol de la imagen (Astro, change `migrar-lectura-publica-astro`) y
+    // su generador, que solo corre al construir.
+    const fuente = ["src/astro/imagen-de-marca/arbol.tsx", "src/astro/imagen-de-marca/generar.ts", "src/pages/opengraph-image.ts"]
+      .map((archivo) => readFileSync(join(raiz, archivo), "utf8"))
+      .join("\n");
     // Ni parámetros de ruta, ni consulta, ni base de datos: el PNG se pinta
     // con literales de la marca, así que un nombre hostil no puede entrar.
     for (const prohibido of [
@@ -1484,11 +1490,12 @@ describe("seo/seguridad · iteración 2 · la memoria de catálogos (M4)", () =>
 
 describe("seo/seguridad · iteración 2 · M1 y O1", () => {
   it("los dos niveles raíz de metadata declaran su imagen, no la heredan", () => {
-    for (const archivo of ["src/app/layout.tsx", "src/app/not-found.tsx"]) {
+    // En Astro (change `migrar-lectura-publica-astro`): el documento base y la 404.
+    for (const archivo of ["src/layouts/DocumentoBase.astro", "src/pages/404.astro"]) {
       const fuente = readFileSync(join(raiz, archivo), "utf8");
       expect(fuente, archivo).toMatch(/images|metadataDelSitio/);
     }
-    const notFound = readFileSync(join(raiz, "src/app/not-found.tsx"), "utf8");
+    const notFound = readFileSync(join(raiz, "src/pages/404.astro"), "utf8");
     expect(notFound).toContain("imagenesDeMarca()");
   });
 

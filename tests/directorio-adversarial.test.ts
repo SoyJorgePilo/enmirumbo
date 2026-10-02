@@ -11,8 +11,10 @@ import {
 } from "../prisma/seed-demo";
 import ListadoCategoriaPage from "../src/app/(publico)/[destino]/page";
 import FichaNegocioPage from "../src/app/(publico)/negocio/[ficha]/page";
-import Home from "../src/app/(publico)/page";
+// La home ya se sirve con Astro (change `migrar-lectura-publica-astro`).
+import Home from "../src/pages/index.astro";
 import type { PrismaClient } from "../src/generated/prisma/client";
+import { pintarPagina } from "./astro-paginas";
 import {
   listarCategorias,
   obtenerNegocioPublicado,
@@ -717,9 +719,9 @@ describe("adversarial · el recorrido completo funciona sin JavaScript de client
   // ahora solo estaba verificado a mano con `curl` (reports/b-dev.md). Cada
   // paso tiene que ser un enlace del servidor tomado del HTML del paso previo.
   it("ninguna página del directorio necesita un control con JavaScript", async () => {
-    const home = await Home();
     const paginas = [
-      renderToStaticMarkup(createElement(() => home)),
+      // El documento completo de Astro: el header y el footer entran también.
+      await pintarPagina(Home, { ruta: "/" }),
       await renderListado("otro"),
       await renderListado("otro", "huicalco"),
       await renderFicha(

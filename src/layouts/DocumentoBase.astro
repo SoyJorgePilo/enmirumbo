@@ -1,0 +1,71 @@
+---
+/**
+ * Documento base del sitio en Astro (change `migrar-lectura-publica-astro`,
+ * design.md §1): lo que era `src/app/layout.tsx`. `<html lang="es-MX">`,
+ * header, `<main>` y footer con las mismas clases, y la hoja de estilos de
+ * siempre (`src/app/globals.css`, design de T-022 §2).
+ *
+ * Header y Footer son componentes de React pintados en el servidor, sin
+ * directiva de cliente: el documento no manda JavaScript propio.
+ *
+ * Los metadatos los resuelve `src/astro/metadatos.ts` con la metadata base de
+ * `src/lib/seo/metadata.ts` y la de la página, igual que hacía Next.
+ *
+ * NO MIDE. Las páginas públicas usan `TroncoPublico.astro`, que envuelve a este
+ * documento y agrega la medición. Una página que use este documento directo
+ * queda fuera de la medición y DEBE decir por qué con un comentario
+ * `// fuera de la medición: <motivo>` (lo vigila la prueba de exclusión de
+ * la medición).
+ */
+import "../app/globals.css";
+
+import { versionIcono, versionImagenDeMarca } from "virtual:enmirumbo/versiones";
+
+import { type MetadatosDePagina, resolverMetadatos } from "@/astro/metadatos";
+import { Footer } from "@/components/footer";
+import { Header } from "@/components/header";
+import { metadataDelSitio } from "@/lib/seo/metadata";
+
+interface Props {
+  /** Metadatos propios de la página (los del sitio se agregan aquí). */
+  metadatos?: MetadatosDePagina;
+  /** Respuesta 404: pide no indexarse, como hace Next. */
+  noEncontrado?: boolean;
+}
+
+const { metadatos, noEncontrado = false } = Astro.props;
+// En el <body>, `min-h-dvh` y no `min-h-full`: en Android la barra del
+// navegador se colapsa al hacer scroll y con `100%` quedaba una franja blanca
+// bajo el pie (bug reportado por un vecino en producción, 2026-09-04).
+const etiquetas = resolverMetadatos({
+  sitio: metadataDelSitio(),
+  pagina: metadatos,
+  noEncontrado,
+  versionImagenDeMarca,
+  versionIcono,
+});
+---
+
+<!doctype html>
+<html lang="es-MX" class="h-full antialiased">
+  <head>
+    {
+      etiquetas.map((e) =>
+        e.etiqueta === "title" ? (
+          <title>{e.texto}</title>
+        ) : e.etiqueta === "meta" ? (
+          <meta {...e.atributos} />
+        ) : (
+          <link {...e.atributos} />
+        ),
+      )
+    }
+  </head>
+  <body class="flex min-h-dvh flex-col bg-fondo font-sans text-tinta">
+    <Header />
+    <main class="mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 py-8 sm:px-6">
+      <slot />
+    </main>
+    <Footer />
+  </body>
+</html>

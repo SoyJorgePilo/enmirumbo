@@ -5,13 +5,20 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { seedCatalogos } from "../prisma/seed";
 import { sembrarNegociosDemo } from "../prisma/seed-demo";
-import robots from "../src/app/robots";
-import sitemap from "../src/app/sitemap";
+// `robots.txt`, `sitemap.xml` y la imagen de marca ya se sirven con Astro
+// (change `migrar-lectura-publica-astro`, tasks.md #15). `reglasDeRobots` y
+// `entradasDelSitemap` son los mismos objetos que devolvían `src/app/robots.ts`
+// y `src/app/sitemap.ts`; además se prueba lo que el endpoint responde.
 import {
-  alt as altImagenDeMarca,
-  contentType as tipoImagenDeMarca,
-  size as tamanoImagenDeMarca,
-} from "../src/app/opengraph-image";
+  ALT_IMAGEN_DE_MARCA as altImagenDeMarca,
+  TAMANO_IMAGEN_DE_MARCA as tamanoImagenDeMarca,
+  TIPO_IMAGEN_DE_MARCA as tipoImagenDeMarca,
+} from "../src/astro/imagen-de-marca/datos";
+import * as endpointRobots from "../src/pages/robots.txt";
+import { reglasDeRobots as robots } from "../src/pages/robots.txt";
+import * as endpointSitemap from "../src/pages/sitemap.xml";
+import { entradasDelSitemap as sitemap } from "../src/pages/sitemap.xml";
+import { pedirEndpoint } from "./astro-paginas";
 import type { PrismaClient } from "../src/generated/prisma/client";
 import { construirSegmentoFicha } from "../src/lib/ficha-url";
 import { COLORES_MARCA } from "../src/lib/colores-marca";
@@ -235,7 +242,7 @@ describe("layout-base · imagen de marca para compartir (tasks #17)", () => {
   });
 
   it("no mete hexadecimales sueltos en un componente: usa los tokens de la marca", () => {
-    const fuente = readFileSync(join(raiz, "src/app/opengraph-image.tsx"), "utf8");
+    const fuente = readFileSync(join(raiz, "src/astro/imagen-de-marca/arbol.tsx"), "utf8");
     expect(fuente).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
     expect(fuente).toContain("COLORES_MARCA");
   });
@@ -253,3 +260,95 @@ describe("layout-base · imagen de marca para compartir (tasks #17)", () => {
     }
   });
 });
+
+// Spec `plataforma-astro` (change `migrar-lectura-publica-astro`), requirement
+// "`robots.txt` y `sitemap.xml` responden igual que en Next": el cuerpo y el
+// tipo de contenido que da la build de Next de `main` (capturados con la base
+// semilla; el diff completo está en `reports/b-dev.md`).
+describe("plataforma-astro · robots.txt y sitemap.xml responden igual que en Next", () => {
+  it("robots igual al de hoy: mismo cuerpo, texto plano y sin caché compartida larga", async () => {
+    const respuesta = await pedirEndpoint(endpointRobots, "/robots.txt");
+    expect(respuesta.status).toBe(200);
+    expect(respuesta.headers.get("content-type")).toBe("text/plain");
+    expect(respuesta.headers.get("cache-control")).toBe("public, max-age=0, must-revalidate");
+    expect(await respuesta.text()).toBe(
+      "User-Agent: *\nAllow: /\nDisallow: /admin\nDisallow: /buscar\nDisallow: /registro/gracias\n\n" +
+        `Sitemap: ${URL_SITIO}/sitemap.xml\n`,
+    );
+  });
+
+  it("robots sin URL pública: sin línea de sitemap ni dirección local", async () => {
+    delete process.env[VARIABLE_URL_SITIO];
+    vi.stubEnv("NODE_ENV", "production");
+    try {
+      const cuerpo = await (await pedirEndpoint(endpointRobots, "/robots.txt")).text();
+      expect(cuerpo).not.toContain("Sitemap:");
+      expect(cuerpo).not.toContain("localhost");
+      expect(cuerpo.endsWith("Disallow: /registro/gracias\n\n")).toBe(true);
+    } finally {
+      vi.unstubAllEnvs();
+      process.env[VARIABLE_URL_SITIO] = URL_SITIO;
+    }
+  });
+
+  it("sitemap: XML con cada URL y su fecha, como lo serializaba Next", async () => {
+    const respuesta = await pedirEndpoint(endpointSitemap, "/sitemap.xml");
+    expect(respuesta.headers.get("content-type")).toBe("application/xml");
+    expect(respuesta.headers.get("cache-control")).toBe("public, max-age=0, must-revalidate");
+    const xml = await respuesta.text();
+    expect(xml.startsWith(
+      '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n',
+    )).toBe(true);
+    expect(xml.endsWith("</urlset>\n")).toBe(true);
+    const entradas = await sitemap();
+    const locs = [...xml.matchAll(/<loc>([^<]*)<\/loc>/g)].map((m) => m[1]);
+    expect(locs).toEqual(entradas.map((e) => e.url));
+    const segmento = construirSegmentoFicha("Plomería Hermanos Rosales (ficticio)", idPorWhatsapp["7719995001"]);
+    expect(xml).toContain(
+      `<url>\n<loc>${URL_SITIO}/negocio/${segmento}</loc>\n<lastmod>2026-08-01T10:00:00.000Z</lastmod>\n</url>\n`,
+    );
+  });
+
+  it("el sitemap se sigue armando por petición: un giro nuevo aparece sin reconstruir", async () => {
+    const pedir = async () => (await pedirEndpoint(endpointSitemap, "/sitemap.xml")).text();
+    expect(await pedir()).not.toContain(`${URL_SITIO}/veterinaria<`);
+    const categoria = await prisma.categoria.findUniqueOrThrow({ where: { slug: "salud" } });
+    const colonia = await prisma.colonia.findUniqueOrThrow({ where: { slug: "atempa" } });
+    const giro = await prisma.giro.findFirst({ where: { slug: "veterinaria" } });
+    expect(giro, "el catálogo de giros trae veterinaria").not.toBeNull();
+    const nuevo = await prisma.negocio.create({
+      data: {
+        nombre: "Veterinaria Patitas Inventada",
+        categoriaId: categoria.id,
+        coloniaId: colonia.id,
+        whatsapp: "7719995041",
+        estado: "publicado",
+        origen: "siembra",
+        publicadoEn: new Date("2026-08-26T10:00:00.000Z"),
+        consintioAvisoEn: new Date("2026-07-31T10:00:00.000Z"),
+        giros: { connect: [{ slug: "veterinaria" }] },
+      },
+    });
+    const despues = await pedir();
+    expect(despues).toContain(`<loc>${URL_SITIO}/veterinaria</loc>`);
+    expect(despues).toContain(`<loc>${URL_SITIO}/negocio/${construirSegmentoFicha(nuevo.nombre, nuevo.id)}</loc>`);
+  });
+
+  it("sitemap sin URL pública: documento XML válido sin ninguna URL", async () => {
+    delete process.env[VARIABLE_URL_SITIO];
+    vi.stubEnv("NODE_ENV", "production");
+    const aviso = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const xml = await (await pedirEndpoint(endpointSitemap, "/sitemap.xml")).text();
+      expect(xml).toBe(
+        '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n</urlset>\n',
+      );
+    } finally {
+      aviso.mockRestore();
+      vi.unstubAllEnvs();
+      reiniciarAvisoDeUrlSitio();
+      process.env[VARIABLE_URL_SITIO] = URL_SITIO;
+    }
+  });
+});
+

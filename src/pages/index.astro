@@ -1,0 +1,58 @@
+---
+/**
+ * Home del directorio (spec `layout-base`, requirement "Home del sitio dentro
+ * del layout, con la entrada al registro"; spec `directorio-publico`,
+ * requirements "La home muestra las 8 categorías..." y "Bloque 'Deporte en
+ * Tizayuca'..."). Lo que era `src/app/(publico)/page.tsx`, con el mismo
+ * marcado.
+ *
+ * Por petición (como el `force-dynamic` de Next): las categorías salen de la
+ * base en su orden de siembra, y el build no abre la base.
+ *
+ * Los botones de categoría y la entrada de deporte usan el estilo NEUTRO; el
+ * verde de acción se reserva para "Registra tu negocio gratis" (PRD §11). El
+ * buscador va arriba de "Busca por categoría" sin encabezado propio: la home
+ * conserva su único `h1` y sus tres `h2`.
+ */
+import { Buscador } from "@/components/directorio/buscador";
+import { CategoriasGrid } from "@/components/directorio/categorias-grid";
+import TroncoPublico from "@/layouts/TroncoPublico.astro";
+import { SLUG_CATEGORIA_DEPORTE, listarCategorias } from "@/lib/directorio";
+import { CLASE_BOTON_PRIMARIO, CLASE_BOTON_SECUNDARIO } from "@/lib/estilos-boton";
+
+const categorias = await listarCategorias();
+---
+
+<TroncoPublico>
+  <div class="flex flex-col gap-10 py-6">
+    <section class="flex flex-col gap-3 text-center">
+      <h1 class="text-3xl font-bold tracking-tight sm:text-4xl">¿Qué necesitas en Tizayuca?</h1>
+      <p class="text-lg text-tinta-suave">Encuentra negocios y servicios de aquí cerquita y contáctalos directo por WhatsApp.</p>
+    </section>
+
+    <Buscador />
+
+    <section class="flex flex-col gap-4">
+      <h2 class="text-xl font-bold tracking-tight">Busca por categoría</h2>
+      <CategoriasGrid categorias={categorias} />
+    </section>
+
+    <section class="flex flex-col gap-3 rounded-xl border border-borde bg-superficie p-5">
+      {
+        /* Icono decorativo HERMANO del h2, no dentro: el encabezado sigue
+           siendo literalmente "Deporte en Tizayuca" (spec `directorio-publico`). */
+      }
+      <div class="flex items-center gap-2">
+        <span aria-hidden="true" class="text-xl leading-none">⚽</span>
+        <h2 class="text-xl font-bold tracking-tight">Deporte en Tizayuca</h2>
+      </div>
+      <p class="text-tinta-suave">Escuelas, clubes y entrenadores para que los niños (y los grandes) se muevan.</p>
+      <a class={`${CLASE_BOTON_SECUNDARIO} w-fit bg-fondo`} href={`/${SLUG_CATEGORIA_DEPORTE}`}>Ver clubes y escuelas deportivas</a>
+    </section>
+
+    <section class="flex flex-col items-center gap-3 border-t border-borde pt-8 text-center">
+      <h2 class="text-xl font-bold tracking-tight">¿Tienes un negocio en Tizayuca?</h2>
+      <a class={CLASE_BOTON_PRIMARIO} href="/registro">Registra tu negocio gratis</a>
+    </section>
+  </div>
+</TroncoPublico>

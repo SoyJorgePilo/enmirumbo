@@ -1,20 +1,20 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { createElement } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
-import AvisoDePrivacidadPage, {
-  metadata as metadataAviso,
-} from "../src/app/(publico)/aviso-de-privacidad/page";
-import { metadata as metadataSitio } from "../src/app/layout";
-import TerminosPage, { metadata as metadataTerminos } from "../src/app/(publico)/terminos/page";
 import {
   HAY_PLACEHOLDERS_PENDIENTES,
   PLACEHOLDERS_LEGALES,
   TEXTO_MARCA_BORRADOR,
 } from "../src/lib/legales/textos";
 import { VERSION_AVISO } from "../src/lib/legales/version";
+import { DESCRIPCION_DEL_SITIO, TITULO_DEL_SITIO } from "../src/lib/seo/metadata";
+// Las legales ya se sirven con Astro (change `migrar-lectura-publica-astro`,
+// tasks.md #15). Lo que pintaba la página es el contenido de <main>; sus
+// metadatos se leen del <head> que de verdad se sirve.
+import AvisoDePrivacidadPage from "../src/pages/aviso-de-privacidad.astro";
+import TerminosPage from "../src/pages/terminos.astro";
+import { cabezaDe, contenidoDelMain, pintarPagina } from "./astro-paginas";
 
 // Spec: paginas-legales (change `agregar-paginas-legales`).
 //
@@ -196,8 +196,25 @@ Estos términos se rigen por las leyes mexicanas. [JURISDICCIÓN PARA CONTROVERS
 const raiz = join(__dirname, "..");
 const fuente = (ruta: string) => readFileSync(join(raiz, ruta), "utf8");
 
-const htmlAviso = renderToStaticMarkup(createElement(AvisoDePrivacidadPage));
-const htmlTerminos = renderToStaticMarkup(createElement(TerminosPage));
+const documentoAviso = await pintarPagina(AvisoDePrivacidadPage, { ruta: "/aviso-de-privacidad" });
+const documentoTerminos = await pintarPagina(TerminosPage, { ruta: "/terminos" });
+const htmlAviso = contenidoDelMain(documentoAviso).trim();
+const htmlTerminos = contenidoDelMain(documentoTerminos).trim();
+
+/** Título, descripción y robots tal como salen en el <head> servido. */
+function metadatosServidos(documento: string) {
+  const head = cabezaDe(documento);
+  const meta = (nombre: string) =>
+    new RegExp(`<meta name="${nombre}" content="([^"]*)"`).exec(head)?.[1]?.replace(/&quot;/g, '"');
+  return {
+    title: /<title>([^<]*)<\/title>/.exec(head)?.[1],
+    description: meta("description"),
+    robots: meta("robots"),
+  };
+}
+const metadataAviso = metadatosServidos(documentoAviso);
+const metadataTerminos = metadatosServidos(documentoTerminos);
+const metadataSitio = { title: TITULO_DEL_SITIO, description: DESCRIPCION_DEL_SITIO };
 
 const ENTIDADES: Record<string, string> = {
   "&amp;": "&",
@@ -355,12 +372,12 @@ describe("paginas-legales · el dueño abre el aviso de privacidad", () => {
   // Scenario: la versión que se muestra es la vigente
   it("la versión sale del literal del módulo, no escrita a mano en la página", () => {
     for (const ruta of [
-      "src/app/(publico)/aviso-de-privacidad/page.tsx",
+      "src/pages/aviso-de-privacidad.astro",
       "src/components/legales/documento-legal.tsx",
     ]) {
       expect(fuente(ruta), ruta).not.toMatch(/Versión\s+\d/);
     }
-    expect(fuente("src/app/(publico)/aviso-de-privacidad/page.tsx")).toContain("VERSION_AVISO");
+    expect(fuente("src/pages/aviso-de-privacidad.astro")).toContain("VERSION_AVISO");
     expect(htmlAviso).toContain(`Versión ${VERSION_AVISO} · Última actualización:`);
   });
 
@@ -375,7 +392,7 @@ describe("paginas-legales · el dueño abre el aviso de privacidad", () => {
   });
 
   // Scenario: el dueño abre el aviso de privacidad (dentro del layout global:
-  // el header y el footer del sitio los pone `src/app/layout.tsx`, la página
+  // el header y el footer del sitio los pone `src/layouts/DocumentoBase.astro`, la página
   // no los repinta. El `<header>` que sí tiene es el del propio documento,
   // dentro del `<article>`, que no es un landmark del sitio.)
   it("vive dentro del layout global, sin repintar el chrome del sitio", () => {
@@ -385,7 +402,7 @@ describe("paginas-legales · el dueño abre el aviso de privacidad", () => {
       expect(html.match(/<header[\s>]/g)).toHaveLength(1); // el del documento
       expect(html).toMatch(/^<article[\s>]/);
     }
-    const layout = fuente("src/app/layout.tsx");
+    const layout = fuente("src/layouts/DocumentoBase.astro");
     expect(layout).toMatch(/<Header \/>/);
     expect(layout).toMatch(/<Footer \/>/);
   });
@@ -416,8 +433,8 @@ describe("paginas-legales · el dueño abre el aviso de privacidad", () => {
     expect(delAviso[0].href).toBe("/terminos");
     expect(lineasAviso[lineasAviso.length - 1]).toBe("Términos y condiciones");
     // Y no apunta a ninguna página inexistente: el único destino es una ruta
-    // que existe (`src/app/(publico)/terminos/page.tsx`).
-    expect(fuente("src/app/(publico)/terminos/page.tsx")).toContain("export default");
+    // que existe (`src/pages/terminos.astro`).
+    expect(fuente("src/pages/terminos.astro")).toContain("<TroncoPublico");
   });
 });
 
@@ -784,15 +801,17 @@ describe("paginas-legales · indexables y con metadata propia", () => {
   it("ninguna de las dos pide a los buscadores que no la indexe", () => {
     expect(metadataAviso.robots).toBeUndefined();
     expect(metadataTerminos.robots).toBeUndefined();
-    for (const ruta of ["src/app/(publico)/aviso-de-privacidad/page.tsx", "src/app/(publico)/terminos/page.tsx"]) {
+    for (const ruta of ["src/pages/aviso-de-privacidad.astro", "src/pages/terminos.astro"]) {
       expect(fuente(ruta), ruta).not.toMatch(/noindex|index:\s*false/);
     }
   });
 
   // Scenario: título y descripción propios
   it("cada una tiene título y descripción del documento, distintos de los del sitio", () => {
-    expect(metadataAviso.title).toBe("Aviso de privacidad — EnMiRumbo");
-    expect(metadataTerminos.title).toBe("Términos y condiciones — EnMiRumbo");
+    // El título propio pasa por la plantilla "%s — EnMiRumbo" del sitio, igual
+    // que en Next (que también repite la marca: ver reports/b-dev.md).
+    expect(metadataAviso.title).toBe("Aviso de privacidad — EnMiRumbo — EnMiRumbo");
+    expect(metadataTerminos.title).toBe("Términos y condiciones — EnMiRumbo — EnMiRumbo");
     expect(metadataAviso.description).toBe(
       "Qué datos pide EnMiRumbo al registrar un negocio, para qué los usa, qué queda público en el directorio y cómo ejercer tus derechos ARCO.",
     );
@@ -809,8 +828,8 @@ describe("paginas-legales · indexables y con metadata propia", () => {
 
 describe("paginas-legales · Server Components mobile-first sin JS de cliente", () => {
   const archivosNuevos = [
-    "src/app/(publico)/aviso-de-privacidad/page.tsx",
-    "src/app/(publico)/terminos/page.tsx",
+    "src/pages/aviso-de-privacidad.astro",
+    "src/pages/terminos.astro",
     "src/components/legales/documento-legal.tsx",
     "src/lib/legales/textos.ts",
   ];
@@ -819,6 +838,8 @@ describe("paginas-legales · Server Components mobile-first sin JS de cliente", 
   it('ninguno de los archivos de las páginas legales declara "use client"', () => {
     for (const ruta of archivosNuevos) {
       expect(fuente(ruta), ruta).not.toMatch(/["']use client["']/);
+      // Ni su equivalente en Astro (spec `paginas-legales`, MODIFIED).
+      expect(fuente(ruta), ruta).not.toMatch(/\sclient:[a-z]+/i);
     }
   });
 

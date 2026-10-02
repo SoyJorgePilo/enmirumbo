@@ -32,6 +32,7 @@
 | 2026-10-01 | explorar-migracion-astro (spike T-021) | completa (sin etapa A: sin pantallas) | 1 (0 altos, 2 medios: M1 sslmode repetido corregido; M2 costo del spike) | 0 bloqueantes; 4 bajos al PR; pendientes humanos declarados, sin go/no-go | sí | [#29](https://github.com/SoyJorgePilo/enmirumbo/pull/29) | |
 | 2026-10-01 | agregar-andamio-astro (T-022, Fase 1 Astro) | completa (sin etapa A) | 1 (0 altos, 3 medios corregidos: `/_image` abierto, `path-to-regexp`, scenarios sin prueba) | 1 bloqueante de alcance (archivo nuevo en `src/lib/`), corregido; 2a pasada limpia | no | [#31](https://github.com/SoyJorgePilo/enmirumbo/pull/31) | |
 | 2026-10-01 | fix: `next` 16.3.3→16.3.8 (GHSA-vcvr-r3jv-pc5j, RCE en `next/og`) | corta | — | 0; canario de la 404 re-medido con Chrome | sí | [#30](https://github.com/SoyJorgePilo/enmirumbo/pull/30) | |
+| 2026-10-01 | migrar-lectura-publica-astro (T-023, Fase 2a) | completa (sin etapa A: reutiliza componentes) | 1 (0 altos; 1 medio: 500 sin cabeceras, corregido con `500.astro`) | 0 bloqueantes; 6 bajos y 4 candidatos a ticket al PR; diff de HTML en cero en 7 rutas | sí | [#32](https://github.com/SoyJorgePilo/enmirumbo/pull/32) | |
 
 ## Qué mirar cada ~5 corridas
 

@@ -1,11 +1,11 @@
 # T-023 · Superficie pública de lectura en Astro (Fase 2)
 
-**Estado:** en-review <!-- pendiente | en-spec | en-desarrollo | en-review | hecho --> — mitad 2a en review; la 2b (`/[destino]`, `/negocio/[ficha]`, `/buscar`, fotos) sigue pendiente, así que el ticket NO pasa a hecho con este PR
+**Estado:** en-spec <!-- pendiente | en-spec | en-desarrollo | en-review | hecho --> — mitad 2a en review (PR #32); mitad 2b (`/[destino]`, `/negocio/[ficha]`, `/buscar`, fotos) en spec, pendiente de aprobación humana. El ticket no pasa a hecho hasta mergear las dos
 **Prioridad:** P1
 **Épica:** E9 (docs/backlog.md)
 **Referencias PRD:** v2 §10 (técnica reemplazable); ADR-013
 **Depende de:** T-022
-**OpenSpec change:** `migrar-lectura-publica-astro` (Fase 2a; la 2b se propone como change aparte, ver su `proposal.md`)
+**OpenSpec change:** `migrar-lectura-publica-astro` (Fase 2a) · `migrar-directorio-publico-astro` (Fase 2b)
 **PR:** #32 (mitad 2a, apilado sobre #31) — https://github.com/SoyJorgePilo/enmirumbo/pull/32
 
 ## Contexto

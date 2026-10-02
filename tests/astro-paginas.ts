@@ -31,12 +31,14 @@ type OpcionesDePintado = {
   props?: Record<string, unknown>;
   /** Parámetros de una ruta dinámica (`[destino]`, `[ficha]`), ya decodificados. */
   params?: Record<string, string>;
+  /** Cabeceras de la petición (p. ej. la `cookie` del borrador del reporte, 3a). */
+  cabeceras?: Record<string, string>;
 };
 
 function opcionesDelContenedor(opciones: OpcionesDePintado) {
   return {
     partial: false,
-    request: new Request(`${URL_DE_PRUEBA}${opciones.ruta ?? "/"}`),
+    request: new Request(`${URL_DE_PRUEBA}${opciones.ruta ?? "/"}`, { headers: opciones.cabeceras ?? {} }),
     ...(opciones.slots ? { slots: opciones.slots } : {}),
     ...(opciones.props ? { props: opciones.props } : {}),
     ...(opciones.params ? { params: opciones.params } : {}),

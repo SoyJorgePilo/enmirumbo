@@ -24,8 +24,11 @@ const TEXTO_POR_ERROR: Record<ErrorFormularioReporte, string> = {
 };
 
 export type FormularioReporteProps = {
-  /** Server Action ya ligada al negocio con `.bind`. */
-  action: (formData: FormData) => void | Promise<void>;
+  /**
+   * Server Action ya ligada al negocio con `.bind` (Next), o la URL a la que
+   * postea el formulario nativo (Astro: `"?_action=reportar"`).
+   */
+  action: string | ((formData: FormData) => void | Promise<void>);
   /** Lo que ya se había escrito, para no perderlo si el envío regresa con error. */
   comentarioPrevio?: string;
   error?: ErrorFormularioReporte;
@@ -56,7 +59,8 @@ export function FormularioReporte({
   const errorEsDeComentario = error === "comentario";
 
   return (
-    <form action={action} className="flex flex-col gap-6">
+    // Con una URL el método se pone a mano; con una función lo fija React.
+    <form action={action} method={typeof action === "string" ? "post" : undefined} className="flex flex-col gap-6">
       <CampoHoneypot />
 
       {(error === "cupo" || error === "servidor") && (

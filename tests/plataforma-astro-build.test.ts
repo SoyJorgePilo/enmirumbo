@@ -92,10 +92,18 @@ type Ruta = { src?: string; dest?: string; handle?: string };
 const rutasDeVercel = (): Ruta[] =>
   (JSON.parse(readFileSync(path.join(salida, "config.json"), "utf8")) as { routes: Ruta[] }).routes;
 
-/** Los `component` de las rutas que la función lleva en su manifiesto. */
+/**
+ * Los `component` de las rutas que la función lleva en su manifiesto. Desde
+ * 3a (el middleware importa la tabla de Actions) el empaquetador puede dejar
+ * el manifiesto en un trozo compartido en vez de en `entry.mjs`: se lee de
+ * los dos sitios.
+ */
 function componentesDeLaFuncion(): string[] {
-  const entrada = readFileSync(path.join(funcion, "dist/server/entry.mjs"), "utf8");
-  return [...entrada.matchAll(/"component":"([^"]*)"/g)].map((m) => m[1]);
+  const servidor = path.join(funcion, "dist/server");
+  const archivos = ["entry.mjs", ...listar(path.join(servidor, "chunks")).map((f) => path.join("chunks", f))];
+  return archivos.flatMap((archivo) =>
+    [...readFileSync(path.join(servidor, archivo), "utf8").matchAll(/"component":"([^"]*)"/g)].map((m) => m[1]),
+  );
 }
 
 /**
@@ -451,6 +459,65 @@ describe("plataforma-astro · 2b sobre la salida construida", () => {
       expect(html, ruta).not.toContain("modulepreload");
       expect(html, ruta).not.toContain("astro-island");
     }
+  });
+
+  // ── 3a (change `migrar-formularios-publicos-astro`, tasks.md #16) ─────────
+  // Scenario "cabeceras en todo el recorrido": el formulario, el 303 con
+  // borrador, el 303 a la confirmación, la confirmación, el 403 de origen y
+  // la 404 de una ficha no publicada por GET y por POST. El `Cache-Control`
+  // es el que manda Next a esa misma respuesta (fixtures
+  // `tests/fixtures/next-3a/*\/respuestas.json`); el 403 no existía en Next
+  // (respondía 500) y lleva el del HTML dinámico.
+  it("[3a] cabeceras en todo el recorrido del reporte, con el Cache-Control de Next y el Set-Cookie del borrador", async () => {
+    const dinamico = "private, no-cache, no-store, max-age=0, must-revalidate";
+    const deAccion = "no-cache, no-store, max-age=0, must-revalidate";
+    const formulario = `${fichaConFoto}/reportar`;
+    const noPublicada = `${fichaNoPublicada}/reportar`;
+    const enviar = (ruta: string, cuerpo: string, origin = produccion.base) =>
+      produccion.pedir(`${ruta}?_action=reportar`, {
+        method: "POST",
+        body: cuerpo,
+        headers: { "content-type": "application/x-www-form-urlencoded", origin },
+      });
+    const casos: Array<[string, Response, number, string | null]> = [
+      ["formulario", await pedir(formulario), 200, dinamico],
+      ["303 con borrador", await enviar(formulario, "comentario=hola"), 303, deAccion],
+      ["303 a la confirmación", await enviar(formulario, "motivo=cerrado"), 303, deAccion],
+      ["confirmación", await pedir(`${formulario}/gracias`), 200, dinamico],
+      ["403 de origen", await enviar(formulario, "motivo=cerrado", "https://ajeno.example"), 403, dinamico],
+      ["404 GET de una ficha no publicada", await pedir(noPublicada), 404, dinamico],
+      ["404 POST de una ficha no publicada", await enviar(noPublicada, "motivo=cerrado"), 404, deAccion],
+    ];
+    for (const [nombre, r, status, cache] of casos) {
+      expect(r.status, nombre).toBe(status);
+      expect(r.headers.get("cache-control"), nombre).toBe(cache);
+      for (const { key, value } of cabecerasDeSeguridad()) expect(r.headers.get(key), `${nombre} · ${key}`).toBe(value);
+      expect(r.headers.get("referrer-policy"), nombre).toBe("strict-origin-when-cross-origin");
+      for (const cabecera of r.headers.keys()) expect(cabecera, nombre).not.toMatch(/^x-(powered-by|astro|nextjs)/);
+    }
+    const [, conBorrador] = casos[1];
+    expect(conBorrador.headers.get("location")).toBe(`${formulario}?error=motivo`);
+    expect(conBorrador.headers.getSetCookie()).toHaveLength(1);
+    expect(conBorrador.headers.getSetCookie()[0]).toMatch(/^nu_reporte_borrador=[A-Za-z0-9_-]+;/);
+    const [, aLaConfirmacion] = casos[2];
+    expect(aLaConfirmacion.headers.get("location")).toBe(`${formulario}/gracias`);
+    expect(aLaConfirmacion.headers.getSetCookie()[0]).toMatch(/^nu_reporte_borrador=;.*Max-Age=0/i);
+    for (const [nombre, r] of casos.slice(4)) expect(r.headers.getSetCookie(), nombre).toEqual([]);
+  });
+
+  // Scenario "cero JS propio" (3a): el formulario y la confirmación.
+  it("[3a] el formulario de reporte y su confirmación: sin <script>, modulepreload ni islas", async () => {
+    for (const ruta of [`${fichaConFoto}/reportar`, `${fichaConFoto}/reportar/gracias`, `${fichaConFoto}/reportar?error=motivo`]) {
+      const html = await (await pedir(ruta)).text();
+      expect(html, ruta).not.toMatch(/<script\b/);
+      expect(html, ruta).not.toContain("modulepreload");
+      expect(html, ruta).not.toContain("astro-island");
+    }
+  });
+
+  it("[3a] la vía RPC de las Actions no está en la tabla de rutas de Vercel", () => {
+    const { routes } = JSON.parse(readFileSync(path.join(salida, "config.json"), "utf8")) as { routes: Array<{ src?: string }> };
+    expect(routes.filter((r) => r.src?.includes("_actions"))).toEqual([]);
   });
 
   it("la 404 dinámica sale de la función (Cache-Control dinámico), no de la 404 prerenderizada", async () => {

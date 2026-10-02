@@ -190,8 +190,8 @@ const NEXT_MEDIDO: Array<{ ruta: (c: typeof claves) => string; init?: RequestIni
   { ruta: () => "/api/foto/%2e%2e/ficha", status: 404, tipo: "text/html; charset=utf-8" },
   { ruta: (c) => `/api/foto/${c.publicada}/ficha/extra`, status: 404, tipo: "text/html; charset=utf-8" },
   { ruta: () => "/api/foto", status: 404, tipo: "text/html; charset=utf-8" },
-  // Con `Origin` del propio sitio (un navegador lo manda): sin él, ver el
-  // `it.fails` de T-024 abajo.
+  // Con `Origin` del propio sitio (un navegador lo manda); sin él, ver la
+  // prueba "[T-024] POST sin Origin" abajo.
   { ruta: (c) => foto(c.publicada, "ficha"), init: { method: "POST", headers: { origin: "MISMO" } }, status: 405, tipo: "" },
   { ruta: (c) => foto(c.publicada, "ficha"), init: { method: "DELETE", headers: { origin: "MISMO" } }, status: 405, tipo: "" },
   { ruta: (c) => foto(c.publicada, "ficha"), init: { method: "OPTIONS" }, status: 204, tipo: "" },
@@ -220,11 +220,10 @@ describe("fotos en la salida · rutas adversariales", () => {
     }
   });
 
-  // Brecha conocida (2a, c-seguridad obs. 1; decide la Fase 3, T-024): sin
-  // `Origin`, `checkOrigin` de Astro responde 403 en inglés y sin las cuatro
-  // cabeceras ANTES del middleware y del endpoint. Next respondía 405. Cuando
-  // T-024 lo cierre, esta prueba se pone roja y pasa a `it`.
-  it.fails("[T-024] POST sin Origin responde como Next (405 con las cuatro)", async () => {
+  // Brecha de 2a (c-seguridad obs. 1), cerrada en T-024: `checkOrigin` está
+  // apagado y la regla del middleware deja pasar un POST sin `Origin`, como
+  // Next, que respondía 405.
+  it("[T-024] POST sin Origin responde como Next (405 con las cuatro)", async () => {
     const r = await emulador.pedir(foto(claves.publicada, "ficha"), { method: "POST" });
     expect(r.status).toBe(405);
     lasCuatro(r, "POST sin Origin");

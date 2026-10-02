@@ -1,0 +1,62 @@
+---
+/**
+ * Formulario de reporte en `/negocio/<slug>-<id>/reportar` (lo que era
+ * `src/app/(publico)/negocio/[ficha]/reportar/page.tsx`; change
+ * `migrar-formularios-publicos-astro`). Spec `directorio-publico`,
+ * requirement "Mini-formulario de reporte sin cuenta…"; spec
+ * `plataforma-astro`, "La página de reporte responde desde Astro el mismo HTML
+ * que Next".
+ *
+ * Formulario HTML nativo, SIN JavaScript ni isla: postea a
+ * `?_action=reportar` de esta misma ruta, el middleware corre la Action y
+ * responde el 303 (`src/astro/acciones.ts`). El identificador del negocio NO
+ * viaja en el formulario: sale del segmento de la URL.
+ *
+ * Si el negocio no existe o no está publicado —o la Action ya dijo "no
+ * encontrado"—, la página responde 404 con `NoEncontradoDinamico`, que no
+ * recibe nada del negocio.
+ */
+import { actions } from "astro:actions";
+
+import NoEncontradoDinamico from "@/astro/componentes/NoEncontradoDinamico.astro";
+import { METADATOS_REPORTAR, cargarReportar } from "@/astro/reportar";
+import { FormularioReporte } from "@/components/reportes/formulario-reporte";
+import TroncoPublico from "@/layouts/TroncoPublico.astro";
+import { NOMBRE_COOKIE_BORRADOR } from "@/lib/reportes/borrador";
+import { CONTROL_REPORTAR, ENLACE_VOLVER_A_LA_FICHA, FRASE_REPORTAR } from "@/lib/reportes/textos";
+
+export const prerender = false;
+
+// Un envío que la Action ya resolvió como "no encontrado" no vuelve a leer nada.
+const envioNoEncontrado = Astro.getActionResult(actions.reportar)?.error !== undefined;
+const carga = envioNoEncontrado
+  ? ({ tipo: "no-encontrado" } as const)
+  : await cargarReportar(
+      Astro.params.ficha,
+      Astro.url.searchParams.get("error"),
+      Astro.cookies.get(NOMBRE_COOKIE_BORRADOR)?.value,
+    );
+if (carga.tipo === "no-encontrado") Astro.response.status = 404;
+---
+
+{
+  carga.tipo === "no-encontrado" ? (
+    <NoEncontradoDinamico />
+  ) : (
+    <TroncoPublico metadatos={METADATOS_REPORTAR}>
+      <section class="flex flex-col gap-6 py-4">
+        <div class="flex flex-col gap-2">
+          <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">{CONTROL_REPORTAR}</h1>
+          <p class="break-words font-semibold text-tinta">{carga.nombre}</p>
+          <p class="text-tinta-suave">{FRASE_REPORTAR}</p>
+        </div>
+        <FormularioReporte action={actions.reportar.toString()} comentarioPrevio={carga.comentarioPrevio} error={carga.error} />
+        <a
+          href={carga.hrefFicha}
+          class="inline-flex min-h-11 items-center text-base font-semibold text-accion-fuerte underline underline-offset-4"
+          >{ENLACE_VOLVER_A_LA_FICHA}</a
+        >
+      </section>
+    </TroncoPublico>
+  )
+}

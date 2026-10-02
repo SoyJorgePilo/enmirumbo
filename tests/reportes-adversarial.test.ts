@@ -1,16 +1,6 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-
-vi.mock("next/headers", async () => {
-  const simulado = await import("./admin-mocks");
-  return { cookies: simulado.cookies, headers: simulado.headers };
-});
-vi.mock("next/navigation", async () => {
-  const simulado = await import("./admin-mocks");
-  return { redirect: simulado.redirect, notFound: simulado.notFound };
-});
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { seedCatalogos } from "../prisma/seed";
-import { reportarNegocio } from "../src/app/(publico)/negocio/[ficha]/reportar/accion";
 import type { PrismaClient } from "../src/generated/prisma/client";
 import { construirSegmentoFicha } from "../src/lib/ficha-url";
 import { TOPE_REPORTES_PENDIENTES_POR_NEGOCIO, reiniciarCupoDeReportes } from "../src/lib/reportes/limite";
@@ -21,6 +11,9 @@ import {
   reiniciarPeticion,
 } from "./admin-mocks";
 import { crearClientePrueba } from "./db";
+// El envío ya lo atiende la Action de Astro (change
+// `migrar-formularios-publicos-astro`, tasks.md #15), con la misma forma.
+import { reportarNegocio } from "./reportar-astro";
 
 /**
  * Pruebas ADVERSARIALES del botón "Reportar" (tasks.md #15). No repiten el

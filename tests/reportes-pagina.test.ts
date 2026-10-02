@@ -1,30 +1,9 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import { createElement } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-
-// La Server Action lee `headers()` y corta con `redirect()`/`notFound()`, que
-// solo existen dentro de un request real: se simulan igual que en las suites
-// del panel para poder mandarle envíos directos al servidor.
-vi.mock("next/headers", async () => {
-  const simulado = await import("./admin-mocks");
-  return { cookies: simulado.cookies, headers: simulado.headers };
-});
-vi.mock("next/navigation", async () => {
-  const simulado = await import("./admin-mocks");
-  const real = await vi.importActual<typeof import("next/navigation")>("next/navigation");
-  return { ...real, redirect: simulado.redirect, notFound: simulado.notFound };
-});
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { seedCatalogos } from "../prisma/seed";
-import { reportarNegocio } from "../src/app/(publico)/negocio/[ficha]/reportar/accion";
-import ReportarGraciasPage, {
-  metadata as metadataGracias,
-} from "../src/app/(publico)/negocio/[ficha]/reportar/gracias/page";
-import ReportarNegocioPage, {
-  metadata as metadataReportar,
-} from "../src/app/(publico)/negocio/[ficha]/reportar/page";
+import { METADATOS_REPORTAR } from "../src/astro/reportar";
 import type { PrismaClient } from "../src/generated/prisma/client";
 import { construirSegmentoFicha } from "../src/lib/ficha-url";
 import {
@@ -60,6 +39,11 @@ import { crearClientePrueba } from "./db";
 // Las páginas del directorio ya se sirven con Astro (change
 // `migrar-directorio-publico-astro`, tasks.md #15).
 import { mainDeFicha } from "./paginas-directorio";
+// El formulario, su envío y la confirmación ya se sirven con Astro (change
+// `migrar-formularios-publicos-astro`, tasks.md #15): la Action real y las
+// páginas `.astro`, con la misma forma que tenían la acción y las páginas de
+// Next en estas pruebas.
+import { pintarGracias, pintarReportar, reportarNegocio } from "./reportar-astro";
 
 // Spec: directorio-publico (delta del change `agregar-boton-reportar`) ·
 // Requirements del control de la ficha, del mini-formulario, de la validación
@@ -117,16 +101,8 @@ function envio(campos: Record<string, string | string[]> = {}): FormData {
  */
 const reportar = (formData: FormData, id = idPublicado) => reportarNegocio(id, formData);
 
-async function renderReportar(
-  segmento: string,
-  searchParams: Record<string, string | string[]> = {},
-): Promise<string> {
-  const elemento = await ReportarNegocioPage({
-    params: Promise.resolve({ ficha: segmento }),
-    searchParams: Promise.resolve(searchParams),
-  });
-  return renderToStaticMarkup(createElement(() => elemento));
-}
+const renderReportar = (segmento: string, searchParams: Record<string, string | string[]> = {}) =>
+  pintarReportar(segmento, searchParams);
 
 beforeAll(async () => {
   prisma = crearClientePrueba();
@@ -201,9 +177,13 @@ describe("directorio-publico · el formulario de reporte", () => {
   });
 
   // Scenario: la página de reporte no se indexa
-  it("la página y su confirmación declaran noindex", () => {
-    expect(metadataReportar.robots).toEqual({ index: false, follow: false });
-    expect(metadataGracias.robots).toEqual({ index: false, follow: false });
+  it("la página y su confirmación declaran noindex", async () => {
+    // Las dos páginas `.astro` usan los mismos metadatos; además se mira el
+    // `<head>` servido de cada una.
+    expect(METADATOS_REPORTAR.robots).toEqual({ index: false, follow: false });
+    const { respuestaDeReportar } = await import("./reportar-astro");
+    const { html } = await respuestaDeReportar(segmentoPublicado);
+    expect(html).toContain('<meta name="robots" content="noindex, nofollow">');
   });
 
   // Scenario: celular a 390px (lo automatizable: área táctil de cada control)
@@ -220,6 +200,9 @@ describe("directorio-publico · el formulario de reporte", () => {
   it('ningún archivo nuevo del reporte declara "use client"', () => {
     const archivos = [
       ...archivosDe(join(raiz, "src/app/(publico)/negocio")),
+      join(raiz, "src/astro/reportar.ts"),
+      join(raiz, "src/astro/acciones.ts"),
+      join(raiz, "src/actions/index.ts"),
       ...archivosDe(join(raiz, "src/components/reportes")),
       ...archivosDe(join(raiz, "src/lib/reportes")),
       join(raiz, "src/components/directorio/boton-reportar.tsx"),
@@ -270,17 +253,14 @@ describe("directorio-publico · los errores vuelven al formulario", () => {
     expect(html).not.toContain("texto-metido-a-mano-en-la-url");
   });
 
-  // Iteración 3 (hallazgo M3): lo que se liga con `.bind` viaja al navegador
-  // como campo oculto sin firmar y vuelve como el cliente quiera, así que la
-  // acción liga SOLO el identificador —que valida contra la base— y reconstruye
-  // la ruta de la ficha en el servidor.
-  it("el formulario liga un solo argumento: el identificador del negocio", () => {
-    const fuente = readFileSync(
-      join(raiz, "src/app/(publico)/negocio/[ficha]/reportar/page.tsx"),
-      "utf8",
-    );
-    expect(fuente).toContain("reportarNegocio.bind(null, negocio.id)");
-    expect(fuente).not.toMatch(/reportarNegocio\.bind\(null,[^)]*,/);
+  // Iteración 3 (hallazgo M3): lo que se ligaba con `.bind` viajaba al
+  // navegador como campo oculto sin firmar. En Astro (3a) el formulario no
+  // liga NADA: postea a la URL de la Action y el identificador sale del
+  // segmento de la ruta.
+  it("el formulario no liga ningún argumento: postea a la Action y el id sale de la URL", () => {
+    const fuente = readFileSync(join(raiz, "src/pages/negocio/[ficha]/reportar.astro"), "utf8");
+    expect(fuente).toContain("action={actions.reportar.toString()}");
+    expect(fuente).not.toMatch(/<FormularioReporte[^>]*(\.bind|negocio|\bid\b)/);
   });
 
   it("un error inventado en la URL no pinta ningún aviso", async () => {
@@ -313,16 +293,19 @@ describe("directorio-publico · el envío del reporte", () => {
     );
   });
 
-  // Iteración 3: un POST que manda más argumentos ligados de los que la acción
-  // declara deja en `formData` lo que quiera el cliente. Responde 404, no un
-  // error del servidor, y no escribe nada.
+  // Iteración 3: en Next, un POST con más argumentos ligados de los que la
+  // acción declaraba dejaba en `formData` lo que quisiera el cliente (404). En
+  // Astro (3a) no hay argumentos ligados: lo que no es un formulario lo
+  // rechaza Astro antes del manejador (`ActionError`) y la tabla de Actions
+  // vuelve al formulario con el error `servidor` (design.md §6). Nunca un 500
+  // y nunca una fila.
   it.each([
     ["una cadena", "https://evil.example"],
     ["un objeto", { get: () => "cerrado" }],
     ["null", null],
-  ])("un envío con %s en vez del formulario responde 404 y no guarda", async (_caso, basura) => {
-    await expect(reportar(basura as unknown as FormData)).rejects.toBeInstanceOf(
-      NoEncontradoSimulado,
+  ])("un envío con %s en vez del formulario vuelve con el error de servidor y no guarda", async (_caso, basura) => {
+    expect(await urlDeRedireccion(() => reportar(basura as unknown as FormData))).toBe(
+      `/negocio/${segmentoPublicado}/reportar?error=servidor`,
     );
     expect(await prisma.reporte.count()).toBe(0);
   });
@@ -479,11 +462,7 @@ describe("directorio-publico · el envío del reporte", () => {
 describe("directorio-publico · la confirmación", () => {
   // Scenario: reporte enviado + Scenario: recargar la confirmación no duplica
   it("muestra el mensaje, vuelve a la ficha y no crea ningún reporte", async () => {
-    const elemento = await ReportarGraciasPage({
-      params: Promise.resolve({ ficha: segmentoPublicado }),
-      searchParams: Promise.resolve({}),
-    });
-    const html = normalizado(renderToStaticMarkup(createElement(() => elemento)));
+    const html = normalizado(await pintarGracias(segmentoPublicado));
 
     expect(html).toContain(MENSAJE_REPORTE_ENVIADO);
     expect(html).toContain(ENLACE_VOLVER_A_LA_FICHA);
@@ -498,11 +477,7 @@ describe("directorio-publico · la confirmación", () => {
     await prisma.reporte.createMany({
       data: Array.from({ length: 4 }, () => ({ negocioId: idPublicado, motivo: "cerrado" })),
     });
-    const elemento = await ReportarGraciasPage({
-      params: Promise.resolve({ ficha: segmentoPublicado }),
-      searchParams: Promise.resolve({}),
-    });
-    const html = normalizado(renderToStaticMarkup(createElement(() => elemento)));
+    const html = normalizado(await pintarGracias(segmentoPublicado));
 
     expect(html).not.toMatch(/\b\d+\s+reporte/i);
     expect(html).not.toMatch(/despublic|dar de baja|pendiente/i);

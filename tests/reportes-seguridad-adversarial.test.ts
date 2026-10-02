@@ -14,9 +14,6 @@ vi.mock("next/navigation", async () => {
 import { seedCatalogos } from "../prisma/seed";
 import DetalleRegistroAdminPage from "../src/app/admin/registros/[id]/page";
 import { marcarReporteAtendidoAccion } from "../src/app/admin/registros/[id]/accion-marcar-reporte-atendido";
-import { reportarNegocio } from "../src/app/(publico)/negocio/[ficha]/reportar/accion";
-import ReportarGraciasPage from "../src/app/(publico)/negocio/[ficha]/reportar/gracias/page";
-import ReportarNegocioPage from "../src/app/(publico)/negocio/[ficha]/reportar/page";
 import type { PrismaClient } from "../src/generated/prisma/client";
 import {
   LONGITUD_MINIMA_SECRETO,
@@ -48,6 +45,10 @@ import { crearClientePrueba } from "./db";
 // Las páginas del directorio ya se sirven con Astro (change
 // `migrar-directorio-publico-astro`, tasks.md #15).
 import { pintarFicha } from "./paginas-directorio";
+// El formulario, su envío y la confirmación ya se sirven con Astro (change
+// `migrar-formularios-publicos-astro`, tasks.md #15): la Action real y las
+// páginas `.astro`, con la misma forma que tenían en estas pruebas.
+import { pintarGracias, pintarReportar, reportarNegocio, respuestaDeReportar } from "./reportar-astro";
 
 /**
  * ETAPA C · pruebas adversariales de seguridad del botón "Reportar"
@@ -135,6 +136,8 @@ function envio(campos: Record<string, string> = {}): FormData {
   return formData;
 }
 
+
+/** Pinta una página de Next que sigue en `src/app` (el panel, Fase 5). */
 async function render(pagina: Promise<React.ReactElement> | React.ReactElement) {
   const resuelta = await pagina;
   return renderToStaticMarkup(createElement(() => resuelta));
@@ -268,8 +271,7 @@ describe("adversarial · carreras contra el cupo y el tope", () => {
 // ── 2. La confirmación falsa: indistinguible byte a byte ────────────────────
 
 describe("adversarial · la confirmación falsa no se distingue de la buena", () => {
-  const graciasHtml = () =>
-    render(ReportarGraciasPage({ params: Promise.resolve({ ficha: segmento }) } as never));
+  const graciasHtml = () => pintarGracias(segmento);
 
   it("guardado, honeypot y tope terminan en la MISMA URL y el MISMO HTML", async () => {
     const bueno = await respuestaDe(envio({ motivo: "cerrado" }));
@@ -363,12 +365,7 @@ describe("adversarial · la confirmación falsa no se distingue de la buena", ()
   });
 
   it("el formulario esconde el campo trampa de teclado y lector de pantalla", async () => {
-    const html = await render(
-      ReportarNegocioPage({
-        params: Promise.resolve({ ficha: segmento }),
-        searchParams: Promise.resolve({}),
-      } as never),
-    );
+    const html = await pintarReportar(segmento);
     expect(html).toContain('aria-hidden="true"');
     expect(html).toContain('name="sitio_web"');
     expect(html).toContain('tabindex="-1"');
@@ -378,13 +375,7 @@ describe("adversarial · la confirmación falsa no se distingue de la buena", ()
 // ── 3. Oráculos: qué se puede averiguar preguntando ─────────────────────────
 
 describe("adversarial · la página de reporte no es un oráculo de existencia", () => {
-  const abrir = (ficha: string) =>
-    render(
-      ReportarNegocioPage({
-        params: Promise.resolve({ ficha }),
-        searchParams: Promise.resolve({}),
-      } as never),
-    );
+  const abrir = (ficha: string) => pintarReportar(ficha);
 
   it.each([
     ["en revisión", () => construirSegmentoFicha(NOMBRE_REVISION, idEnRevision)],
@@ -397,21 +388,18 @@ describe("adversarial · la página de reporte no es un oráculo de existencia",
     await expect(abrir(ficha())).rejects.toBeInstanceOf(NoEncontradoSimulado);
   });
 
-  it("el 404 del formulario y el del envío son el mismo notFound(), sin argumentos", async () => {
-    const capturado: unknown[][] = [];
-    const espia = vi
-      .spyOn(await import("./admin-mocks"), "notFound")
-      .mockImplementation(((...args: unknown[]) => {
-        capturado.push(args);
-        throw new NoEncontradoSimulado();
-      }) as never);
-
+  // En Next era el mismo `notFound()` sin argumentos; en Astro (3a) es la
+  // misma 404 dinámica (`NoEncontradoDinamico`, sin props): el documento de
+  // una ficha en revisión es idéntico al de un id que no existe.
+  it("el 404 del formulario es el mismo documento, sin argumentos ni datos del negocio", async () => {
     await expect(
       abrir(construirSegmentoFicha(NOMBRE_REVISION, idEnRevision)),
     ).rejects.toBeInstanceOf(NoEncontradoSimulado);
-    espia.mockRestore();
+    const enRevision = await respuestaDeReportar(construirSegmentoFicha(NOMBRE_REVISION, idEnRevision));
+    const inexistente = await respuestaDeReportar("algo-cmtaaaaaaaaaaaaaaaaaaaaaa");
+    expect(enRevision.html).toBe(inexistente.html);
     // Ni el nombre, ni el WhatsApp, ni el estado viajan en la respuesta 404.
-    expect(JSON.stringify(capturado)).not.toContain(NOMBRE_REVISION);
+    expect(enRevision.html).not.toContain(NOMBRE_REVISION);
   });
 
   // La 404 no consume cupo: sondear fichas no publicadas es gratis (queda
@@ -429,27 +417,21 @@ describe("adversarial · la página de reporte no es un oráculo de existencia",
   });
 
   it("la confirmación no consulta la base: la de una ficha inventada es idéntica", async () => {
-    const real = await render(
-      ReportarGraciasPage({ params: Promise.resolve({ ficha: segmento }) } as never),
-    );
-    const inventada = await render(
-      ReportarGraciasPage({
-        params: Promise.resolve({ ficha: "negocio-que-no-existe-cmtzzz" }),
-      } as never),
-    );
+    const real = await pintarGracias(segmento);
+    const inventada = await pintarGracias("negocio-que-no-existe-cmtzzz");
     expect(real.replace(segmento, "X")).toBe(
       inventada.replace("negocio-que-no-existe-cmtzzz", "X"),
     );
   });
 
+  // El segmento llega en la URL, así que llega CODIFICADO y así se devuelve
+  // en el `href`, igual que Next servido (fixture
+  // `tests/fixtures/next-3a/*\/gracias-hostil.html`; la prueba de Next pasaba
+  // el valor ya decodificado a la página, sin servidor de por medio).
   it("un segmento hostil en la confirmación se escapa y no sale del sitio", async () => {
-    const html = await render(
-      ReportarGraciasPage({
-        params: Promise.resolve({ ficha: '"><img src=x onerror=alert(1)>' }),
-      } as never),
-    );
+    const html = await pintarGracias('"><img src=x onerror=alert(1)>');
     expect(html).not.toContain("<img src=x");
-    expect(html).toContain("&quot;&gt;&lt;img");
+    expect(html).toContain('href="/negocio/%22%3E%3Cimg%20src%3Dx%20onerror%3Dalert(1)%3E"');
     // El único enlace sigue siendo interno: nada de esquema ni de "//".
     const hrefs = [...html.matchAll(/href="([^"]*)"/g)].map((m) => m[1]);
     for (const href of hrefs) {
@@ -827,12 +809,7 @@ describe("adversarial · el directorio público no sabe nada de los reportes", (
       })),
     });
 
-    const html = await render(
-      ReportarNegocioPage({
-        params: Promise.resolve({ ficha: segmento }),
-        searchParams: Promise.resolve({}),
-      } as never),
-    );
+    const html = await pintarReportar(segmento);
 
     expect(html).not.toContain(CANARIO);
     expect(html).not.toMatch(/\d+\s+reportes?/i);
@@ -850,12 +827,7 @@ describe("adversarial · el directorio público no sabe nada de los reportes", (
       LIMITE_COMENTARIO_REPORTE,
     );
 
-    const html = await render(
-      ReportarNegocioPage({
-        params: Promise.resolve({ ficha: segmento }),
-        searchParams: Promise.resolve({ error: "comentario" }),
-      } as never),
-    );
+    const html = await pintarReportar(segmento, { error: "comentario" });
     expect(html).not.toContain("<script>alert(1)");
     expect(html).toContain("&lt;script&gt;");
     expect(html).not.toContain("</textarea><script>");
@@ -873,14 +845,9 @@ describe("adversarial · el directorio público no sabe nada de los reportes", (
     ]) {
       peticion.cookies[NOMBRE_COOKIE_BORRADOR] = valor;
       const html = (
-        await render(
-          ReportarNegocioPage({
-            params: Promise.resolve({ ficha: segmento }),
-            searchParams: Promise.resolve({}),
-          } as never),
-        )
-        // Sin el `<script>` de reposicion de formularios que React siempre
-        // agrega al final: es andamiaje del framework, no contenido.
+        await pintarReportar(segmento)
+        // Sin ningún `<script>` (en Next, el de reposición de formularios que
+        // React agregaba al final; en Astro no hay ninguno).
       ).replace(/<script>[\s\S]*?<\/script>/g, "");
 
       expect(html, valor).toMatch(/<textarea[^>]*><\/textarea>/);
@@ -929,12 +896,7 @@ describe("adversarial · el directorio público no sabe nada de los reportes", (
   });
 
   it("un valor inventado en ?error no pinta ningún aviso", async () => {
-    const html = await render(
-      ReportarNegocioPage({
-        params: Promise.resolve({ ficha: segmento }),
-        searchParams: Promise.resolve({ error: "<b>inventado</b>" }),
-      } as never),
-    );
+    const html = await pintarReportar(segmento, { error: "<b>inventado</b>" });
     expect(html).not.toContain("<b>inventado</b>");
     expect(html).not.toContain('role="alert"');
   });

@@ -38,6 +38,7 @@ export const SEGMENTOS_RESERVADOS = [
   "opengraph-image", // src/app/opengraph-image.tsx
   "favicon.ico", // src/app/favicon.ico
   "404", "500", // páginas de error que Astro publica como /404 y /500 (T-023, Fase 2b)
+  "envio-rechazado", // respuestas del middleware: 403 de origen y "no existe" (T-024, Fase 3a)
 ] as const;
 
 /** ¿Este slug taparía (o quedaría tapado por) una ruta propia del sitio? */

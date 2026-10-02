@@ -495,6 +495,10 @@ const MOTIVO_DE_EXCLUSION = /^\s*\/\/\s*fuera de la medición:\s*\S.{10,}$/m;
 const EXCLUSIONES_DE_ASTRO: Array<[string, string]> = [
   ["src/pages/404.astro", "la 404 de las URLs que no casan con ninguna ruta (spec layout-base)"],
   ["src/pages/500.astro", "la página de error del servidor, que sale también con la base caída (hallazgo M1 de T-023)"],
+  // Change `migrar-formularios-publicos-astro` (3a, design.md §1): el 403 de
+  // un envío de otro origen (y "como dirección inexistente"). Es la respuesta
+  // a un envío, no una visita.
+  ["src/pages/envio-rechazado.astro", "la respuesta a un envío rechazado por origen (T-024)"],
   // Change `migrar-directorio-publico-astro` (2b, design.md §1): la 404 de
   // `/[destino]` y `/negocio/[ficha]`. Las URLs de fichas no publicadas llevan
   // el nombre del negocio; hoy tampoco se miden.

@@ -273,6 +273,82 @@ function normalizar404Dinamica(next, astro, referencia, aplicadas) {
   return [n, a];
 }
 
+/**
+ * Las ÚNICAS diferencias aceptadas en el formulario de reporte entre Next y
+ * Astro (change `migrar-formularios-publicos-astro`, design.md §4; spec
+ * `plataforma-astro`, requirement "La página de reporte responde desde Astro
+ * el mismo HTML que Next"). Se aplican solo si quien llama marca la ruta como
+ * formulario (pasando `formulario: { urlPagina }`). Todo lo demás del
+ * formulario —etiquetas, radios, textarea, honeypot, botón— se sigue
+ * comparando, y Astro NO puede agregar campos ocultos: uno de más sale como
+ * diferencia. No se agregan entradas.
+ */
+export const NORMALIZACIONES_FORMULARIO = Object.freeze([
+  {
+    id: "atributos-del-form",
+    descripcion: "se ignoran action, method y enctype del <form>, solo si los dos hacen POST a la misma ruta",
+  },
+  {
+    id: "campos-action-de-next",
+    descripcion: "se quitan del formulario de Next sus <input type=\"hidden\" name=\"$ACTION_…\">",
+  },
+]);
+
+function atributoSinMayusculas(nodo, nombre) {
+  const entrada = Object.entries(nodo.attributes).find(([clave]) => clave.toLowerCase() === nombre);
+  return entrada ? entrada[1] : undefined;
+}
+
+function quitarAtributo(nodo, nombre) {
+  for (const clave of Object.keys(nodo.attributes)) {
+    if (clave.toLowerCase() === nombre) nodo.removeAttribute(clave);
+  }
+}
+
+/**
+ * Aplica `NORMALIZACIONES_FORMULARIO` a los dos documentos. Devuelve los HTML
+ * ya ajustados y las diferencias que impiden aplicarlas (otro número de
+ * formularios, otro método u otra ruta de destino).
+ *
+ * @param {string} htmlNext
+ * @param {string} htmlAstro
+ * @param {string} urlPagina URL con la que se pidió la página (resuelve los `action` relativos).
+ * @param {string[]} aplicadas Aquí se anotan los `id` que se aplicaron.
+ */
+export function normalizarFormulario(htmlNext, htmlAstro, urlPagina, aplicadas) {
+  const opciones = { comment: true, blockTextElements: { script: true, style: true } };
+  const raizNext = parse(htmlNext, opciones);
+  const raizAstro = parse(htmlAstro, opciones);
+  const formsNext = raizNext.querySelectorAll("form");
+  const formsAstro = raizAstro.querySelectorAll("form");
+  const diferencias = [];
+  if (formsNext.length !== formsAstro.length) {
+    diferencias.push(`formularios: ${formsNext.length} en Next ≠ ${formsAstro.length} en Astro`);
+  }
+  formsNext.forEach((formNext, i) => {
+    const formAstro = formsAstro[i];
+    if (!formAstro) return;
+    const destino = (form) => ({
+      metodo: (atributoSinMayusculas(form, "method") ?? "get").toUpperCase(),
+      ruta: new URL(atributoSinMayusculas(form, "action") || urlPagina, urlPagina).pathname,
+    });
+    const dn = destino(formNext);
+    const da = destino(formAstro);
+    if (dn.metodo === "POST" && da.metodo === "POST" && dn.ruta === da.ruta) {
+      for (const form of [formNext, formAstro]) for (const a of ["action", "method", "enctype"]) quitarAtributo(form, a);
+      aplicadas.push(NORMALIZACIONES_FORMULARIO[0].id);
+    } else {
+      diferencias.push(`formulario #${i}: Next hace ${dn.metodo} a ${dn.ruta} y Astro ${da.metodo} a ${da.ruta}`);
+    }
+    const ocultosNext = formNext
+      .querySelectorAll("input")
+      .filter((n) => (atributoSinMayusculas(n, "type") ?? "").toLowerCase() === "hidden" && (atributoSinMayusculas(n, "name") ?? "").startsWith("$ACTION_"));
+    for (const nodo of ocultosNext) nodo.remove();
+    if (ocultosNext.length) aplicadas.push(NORMALIZACIONES_FORMULARIO[1].id);
+  });
+  return { next: raizNext.toString(), astro: raizAstro.toString(), diferencias };
+}
+
 const sha256 = (bytes) => createHash("sha256").update(bytes).digest("hex");
 
 function minusculas(cabeceras) {
@@ -293,11 +369,13 @@ export function medidasPng(bytes) {
  * @param {string} ruta
  * @param {{status: number, headers: Record<string,string>, cuerpo: string|Uint8Array}} next
  * @param {{status: number, headers: Record<string,string>, cuerpo: string|Uint8Array}} astro
- * @param {{dinamica?: boolean, referencia404?: string, aplicadas?: string[]}} [opciones]
+ * @param {{dinamica?: boolean, referencia404?: string, aplicadas?: string[], formulario?: {urlPagina: string, aplicadas: string[]}}} [opciones]
  *   `dinamica`: también se exige el mismo `Cache-Control`. `referencia404`: la
  *   ruta es una 404 dinámica; el HTML de Next en `/a/b/c` contra el que se
  *   compara el `<body>`. `aplicadas`: aquí se anotan las normalizaciones de
- *   `NORMALIZACIONES_404_DINAMICA` que se aplicaron.
+ *   `NORMALIZACIONES_404_DINAMICA` que se aplicaron. `formulario`: la ruta
+ *   pinta el formulario de reporte; se aplican `NORMALIZACIONES_FORMULARIO` y
+ *   se anotan en `formulario.aplicadas`.
  */
 export function compararRespuestas(ruta, next, astro, opciones = {}) {
   const d = [];
@@ -322,8 +400,16 @@ export function compararRespuestas(ruta, next, astro, opciones = {}) {
   }
 
   if (tipoNext.startsWith("text/html")) {
-    let pn = extraerPagina(String(next.cuerpo));
-    let pa = extraerPagina(String(astro.cuerpo));
+    let htmlNext = String(next.cuerpo);
+    let htmlAstro = String(astro.cuerpo);
+    if (opciones.formulario) {
+      const n = normalizarFormulario(htmlNext, htmlAstro, opciones.formulario.urlPagina, opciones.formulario.aplicadas);
+      htmlNext = n.next;
+      htmlAstro = n.astro;
+      d.push(...n.diferencias);
+    }
+    let pn = extraerPagina(htmlNext);
+    let pa = extraerPagina(htmlAstro);
     if (opciones.referencia404 && next.status === 404 && astro.status === 404) {
       [pn, pa] = normalizar404Dinamica(pn, pa, opciones.referencia404, opciones.aplicadas ?? []);
     }

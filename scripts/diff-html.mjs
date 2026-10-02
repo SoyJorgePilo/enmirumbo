@@ -4,9 +4,10 @@
  * `plataforma-astro`, requirement "El HTML servido no difiere del de Next").
  *
  * Uso:
- *   node scripts/diff-html.mjs <baseNext> <baseAstro> --datos <json> [--rutas archivo]
+ *   node scripts/diff-html.mjs <baseNext> <baseAstro> --datos <json> [--rutas archivo | --solo-3a]
  *   node scripts/diff-html.mjs --capturar-head <baseNext> <directorio>
  *   node scripts/diff-html.mjs --capturar-2b <baseNext> <directorio> --datos <json>
+ *   node scripts/diff-html.mjs --capturar-3a <baseNext> <directorio> --datos <json>
  *
  * Sale con código 1 y lista cada diferencia por ruta; 0 si no hay ninguna.
  * NO corre en el CI (necesita las dos builds); su núcleo sí tiene pruebas
@@ -72,7 +73,13 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
-import { compararRespuestas, limpiarHtml, NORMALIZACIONES_404_DINAMICA } from "./diff-html/nucleo.mjs";
+import {
+  compararRespuestas,
+  limpiarHtml,
+  NORMALIZACIONES_404_DINAMICA,
+  NORMALIZACIONES_FORMULARIO,
+} from "./diff-html/nucleo.mjs";
+import { enviarFormulario, enviosDe3a, leerSetCookie, resumenDelDesenlace } from "./enviar-formulario.mjs";
 
 /** Rutas de 2a. `dinamica`: también se exige el mismo `Cache-Control`. */
 export const RUTAS_2A = [
@@ -156,6 +163,60 @@ export function rutas2b(datos, urlsDelSitemap) {
   ];
 }
 
+/**
+ * Rutas de 3a (change `migrar-formularios-publicos-astro`, tasks.md #14): el
+ * formulario de reporte (con `formulario: true`, las únicas con
+ * `NORMALIZACIONES_FORMULARIO`), sus 404 dinámicas y la confirmación.
+ * `fichaPublicada`: la ruta de una ficha del sitemap de Next.
+ */
+export function rutas3a(datos, fichaPublicada) {
+  if (!fichaPublicada) return [];
+  const id = fichaPublicada.split("-").at(-1);
+  const dinamica = true;
+  const formulario = `${fichaPublicada}/reportar`;
+  return [
+    { ruta: formulario, dinamica, formulario: true },
+    ...["motivo", "comentario", "cupo", "servidor", "inventado"].map((e) => ({ ruta: `${formulario}?error=${e}`, dinamica, formulario: true })),
+    { ruta: `/negocio/nombre-anterior-${id}/reportar`, dinamica, formulario: true },
+    ...[
+      `/negocio/x-${datos.revision}/reportar`,
+      `/negocio/x-${datos.rechazado}/reportar`,
+      `/negocio/x-${datos.despublicado}/reportar`,
+      "/negocio/x-cnoexiste0000000000000000/reportar",
+      "/negocio/sin-identificador/reportar",
+    ].map((ruta) => ({ ruta, dinamica, es404Dinamica: true })),
+    { ruta: `${formulario}/gracias`, dinamica },
+    { ruta: "/negocio/inventado-xyz/reportar/gracias", dinamica },
+    { ruta: "/negocio/%22%3E%3Cscript%3Eficticio()%3C%2Fscript%3E/reportar/gracias", dinamica },
+  ];
+}
+
+/**
+ * Los envíos del arnés contra las dos versiones (tasks.md #14 y #17): cadena
+ * de estados, ruta del `Location` y atributos de las cookies. La ÚNICA
+ * diferencia aceptada es el origen ajeno (Next 500, Astro 403).
+ */
+async function compararEnvios(baseNext, baseAstro, datos, fichaPublicada) {
+  const id = fichaPublicada?.split("-").at(-1);
+  if (!id) return [];
+  const envios = enviosDe3a({ ...datos, publicado: id });
+  const diferencias = [];
+  const anonimo = (texto) => [id, datos.tope].filter(Boolean).reduce((t, x) => t.replaceAll(x, "<id>"), texto);
+  for (const envio of envios) {
+    const resultados = [];
+    for (const base of [baseNext, baseAstro]) {
+      const r = await enviarFormulario({ urlPagina: new URL(envio.ruta, base).toString(), elecciones: envio.elecciones, cabecerasExtra: envio.cabeceras ?? {} });
+      resultados.push(JSON.parse(anonimo(JSON.stringify(resumenDelDesenlace(r)))));
+    }
+    const [rn, ra] = resultados;
+    const aceptada = envio.aceptada?.(rn, ra);
+    const igual = JSON.stringify(rn) === JSON.stringify(ra);
+    console.log(`${igual ? "igual   " : aceptada ? "ACEPTADA" : "DISTINTA"} envío: ${envio.nombre} (${rn.map((p) => p.status).join("→")} / ${ra.map((p) => p.status).join("→")})`);
+    if (!igual && !aceptada) diferencias.push(`envío ${envio.nombre}:\n  Next : ${JSON.stringify(rn)}\n  Astro: ${JSON.stringify(ra)}`);
+  }
+  return diferencias;
+}
+
 /** Páginas cuyo `<head>` se captura como fixture (tasks.md #5 de 2a). */
 const PAGINAS_DE_FIXTURE = [
   ["home", "/"],
@@ -230,6 +291,84 @@ async function capturar2b(baseNext, directorio, datos) {
   escribir("cabeceras.json", `${JSON.stringify(cabeceras, null, 2)}\n`);
 }
 
+/**
+ * Fixtures de 3a (change `migrar-formularios-publicos-astro`, tasks.md #2):
+ * las pantallas de reportar y lo que responde Next a cada envío, con el arnés
+ * de `enviar-formulario.mjs`. `datos`: `{ publicado, revision, rechazado,
+ * despublicado, tope }` (identificadores ficticios; salen como `<id>`).
+ */
+async function capturar3a(baseNext, directorio, datos) {
+  mkdirSync(directorio, { recursive: true });
+  const ids = [datos.publicado, datos.revision, datos.rechazado, datos.despublicado, datos.tope].filter(Boolean);
+  const anonimizar = (texto) => ids.reduce((t, id) => t.replaceAll(id, "<id>"), texto);
+  const escribir = (nombre, contenido) => {
+    const archivo = path.join(directorio, nombre);
+    writeFileSync(archivo, anonimizar(contenido));
+    console.log(`capturado ${archivo}`);
+  };
+  const legible = (html) => `${html.replace(/></g, ">\n<")}\n`;
+  const pedirConCookie = async (ruta, cookie) => {
+    const r = await fetch(new URL(ruta, baseNext), { redirect: "manual", headers: cookie ? { cookie } : {} });
+    return { status: r.status, headers: Object.fromEntries(r.headers), cuerpo: await r.text() };
+  };
+  const formulario = (id, nombre = "x") => `/negocio/${nombre}-${id}/reportar`;
+  // El segmento actual sale del propio formulario ("Volver a la ficha").
+  const inicial = await pedirConCookie(formulario(datos.publicado));
+  const segmento = /href="\/negocio\/([^"/]+)"/.exec(inicial.cuerpo)?.[1];
+  if (!segmento) throw new Error("no encontré el segmento de la ficha publicada");
+  const borrador = Buffer.from("texto ficticio del borrador", "utf8").toString("base64url");
+  const pantallas = [
+    ["formulario.html", `/negocio/${segmento}/reportar`],
+    ...["motivo", "comentario", "cupo", "servidor", "inventado"].map((e) => [`formulario-error-${e}.html`, `/negocio/${segmento}/reportar?error=${e}`]),
+    ["formulario-borrador.html", `/negocio/${segmento}/reportar?error=motivo`, `nu_reporte_borrador=${borrador}`],
+    ["formulario-segmento-viejo.html", formulario(datos.publicado, "nombre-anterior")],
+    ["404-revision.html", formulario(datos.revision)],
+    ["404-inexistente.html", formulario("cnoexiste0000000000000000")],
+    ["gracias.html", `/negocio/${segmento}/reportar/gracias`],
+    ["gracias-hostil.html", "/negocio/%22%3E%3Cscript%3Eficticio()%3C%2Fscript%3E/reportar/gracias"],
+  ];
+  const cabecerasDe = {};
+  for (const [nombre, ruta, cookie] of pantallas) {
+    const r = await pedirConCookie(ruta, cookie);
+    escribir(nombre, legible(limpiarHtml(r.cuerpo)));
+    cabecerasDe[nombre] = { status: r.status, "cache-control": r.headers["cache-control"], "content-type": r.headers["content-type"] };
+  }
+  const desenlaces = {};
+  const enviar = async (nombre, opciones) => {
+    const resultado = await enviarFormulario({ urlPagina: new URL(opciones.ruta ?? formulario(datos.publicado), baseNext).toString(), ...opciones });
+    const post = resultado.cadena[1];
+    desenlaces[nombre] = {
+      cadena: resumenDelDesenlace(resultado),
+      post: {
+        status: post.status,
+        "cache-control": post.cabeceras.get("cache-control"),
+        "content-type": post.cabeceras.get("content-type"),
+        "referrer-policy": post.cabeceras.get("referrer-policy"),
+        seguridad: ["content-security-policy", "x-content-type-options", "x-frame-options", "referrer-policy"].every((h) => post.cabeceras.has(h)),
+        // Sin `Expires`: es la hora del envío (el `Max-Age` dice lo mismo).
+        cookies: post.setCookie.map((linea) =>
+          Object.fromEntries(Object.entries(leerSetCookie(linea).atributos).filter(([clave]) => clave !== "expires")),
+        ),
+      },
+    };
+  };
+  await enviar("exito", { elecciones: { motivo: "cerrado" } });
+  await enviar("sin-motivo-con-comentario", { elecciones: { comentario: "hablé con la dueña" } });
+  await enviar("comentario-301", { elecciones: { motivo: "cerrado", comentario: "a".repeat(301) } });
+  await enviar("honeypot", { elecciones: { motivo: "cerrado", sitio_web: "http://spam.example" } });
+  for (let i = 1; i <= 4; i++) {
+    await enviar(`cupo-${i}`, { elecciones: { motivo: "cerrado" }, cabecerasExtra: { "x-forwarded-for": `198.51.100.${i}, 203.0.113.99` } });
+  }
+  await enviar("tope", { ruta: formulario(datos.tope), elecciones: { motivo: "cerrado" } });
+  // Identificador inexistente: el formulario de la ficha publicada con el
+  // argumento ligado cambiado (lo único que en Next fija el negocio).
+  await enviar("identificador-inexistente", { elecciones: { motivo: "cerrado", "$ACTION_1:1": '["cnoexiste0000000000000000"]' } });
+  await enviar("origen-null", { elecciones: { motivo: "cerrado" }, cabecerasExtra: { origin: "null" } });
+  await enviar("origen-ajeno", { elecciones: { motivo: "cerrado" }, cabecerasExtra: { origin: "https://ajeno.example" } });
+  await enviar("sin-origen", { elecciones: { motivo: "cerrado" }, cabecerasExtra: { origin: null } });
+  escribir("respuestas.json", `${JSON.stringify({ pantallas: cabecerasDe, desenlaces }, null, 2)}\n`);
+}
+
 function argumento(argumentos, nombre) {
   const i = argumentos.indexOf(nombre);
   return i === -1 ? undefined : argumentos[i + 1];
@@ -242,6 +381,11 @@ async function principal(argumentos) {
   }
   const archivoDatos = argumento(argumentos, "--datos");
   const datos = archivoDatos ? JSON.parse(readFileSync(archivoDatos, "utf8")) : null;
+  if (argumentos[0] === "--capturar-3a") {
+    if (!datos) throw new Error("--capturar-3a necesita --datos <json>");
+    await capturar3a(argumentos[1], argumentos[2], datos);
+    return 0;
+  }
   if (argumentos[0] === "--capturar-2b") {
     if (!datos) throw new Error("--capturar-2b necesita --datos <json>");
     await capturar2b(argumentos[1], argumentos[2], datos);
@@ -252,7 +396,17 @@ async function principal(argumentos) {
     console.error("Uso: node scripts/diff-html.mjs <baseNext> <baseAstro> --datos <json> [--rutas archivo]");
     return 2;
   }
-  let rutas = [...RUTAS_2A, ...rutas2b(datos, await urlsDelSitemap(baseNext))];
+  const sitemap = await urlsDelSitemap(baseNext);
+  // La del `datos.publicado` si viene (así "éxito" no cae en una ficha con el tope lleno).
+  const fichaPublicada =
+    sitemap.find((r) => r.startsWith("/negocio/") && datos.publicado && r.endsWith(`-${datos.publicado}`)) ??
+    sitemap.find((r) => r.startsWith("/negocio/")) ??
+    // Sin URL pública el sitemap sale vacío: por identificador.
+    (datos.publicado ? `/negocio/x-${datos.publicado}` : undefined);
+  // `--solo-3a`: solo las rutas y los envíos de 3a (no necesita las fotos de 2b).
+  let rutas = argumentos.includes("--solo-3a")
+    ? rutas3a(datos, fichaPublicada)
+    : [...RUTAS_2A, ...rutas2b(datos, sitemap), ...rutas3a(datos, fichaPublicada)];
   const archivoRutas = argumento(argumentos, "--rutas");
   if (archivoRutas) {
     rutas = readFileSync(archivoRutas, "utf8")
@@ -264,9 +418,10 @@ async function principal(argumentos) {
 
   const referencia404 = String((await pedir(baseNext, "/a/b/c")).cuerpo);
   const dondeSeAplico = Object.fromEntries(NORMALIZACIONES_404_DINAMICA.map((n) => [n.id, []]));
+  const dondeSeAplicoFormulario = Object.fromEntries(NORMALIZACIONES_FORMULARIO.map((n) => [n.id, []]));
   const diferencias = [];
   const medidas404 = [];
-  for (const { ruta, dinamica, es404Dinamica, metodo, mismoOrigen, medir404 } of rutas) {
+  for (const { ruta, dinamica, es404Dinamica, metodo, mismoOrigen, medir404, formulario } of rutas) {
     const [next, astro] = await Promise.all([
       pedir(baseNext, ruta, metodo, mismoOrigen),
       pedir(baseAstro, ruta, metodo, mismoOrigen),
@@ -274,12 +429,17 @@ async function principal(argumentos) {
     const medidaDinamica = Boolean(medir404) && next.status === 404 && /<html id="__next_error__"/.test(String(next.cuerpo));
     if (medidaDinamica) medidas404.push(ruta);
     const aplicadas = [];
+    const aplicadasFormulario = [];
     const propias = compararRespuestas(`${metodo ? `${metodo} ` : ""}${ruta}`, next, astro, {
       dinamica: Boolean(dinamica),
       ...(es404Dinamica || medidaDinamica ? { referencia404, aplicadas } : {}),
+      ...(formulario ? { formulario: { urlPagina: new URL(ruta, baseNext).toString(), aplicadas: aplicadasFormulario } } : {}),
     });
     for (const id of aplicadas) dondeSeAplico[id].push(ruta);
-    const marca = aplicadas.length ? ` [normalizaciones 404: ${aplicadas.length}]` : "";
+    for (const id of aplicadasFormulario) dondeSeAplicoFormulario[id].push(ruta);
+    const marca =
+      (aplicadas.length ? ` [normalizaciones 404: ${aplicadas.length}]` : "") +
+      (aplicadasFormulario.length ? ` [normalizaciones del formulario: ${aplicadasFormulario.length}]` : "");
     console.log(`${propias.length === 0 ? "igual   " : "DISTINTA"} ${metodo ? `${metodo} ` : ""}${ruta} (${next.status}/${astro.status})${marca}`);
     diferencias.push(...propias);
   }
@@ -287,6 +447,14 @@ async function principal(argumentos) {
   console.log("Normalizaciones de la 404 dinámica aplicadas (NORMALIZACIONES_404_DINAMICA):");
   for (const { id, descripcion } of NORMALIZACIONES_404_DINAMICA) {
     console.log(`- ${id} (${descripcion}): ${dondeSeAplico[id].length} → ${dondeSeAplico[id].join(", ") || "ninguna"}`);
+  }
+  console.log("Normalizaciones del formulario aplicadas (NORMALIZACIONES_FORMULARIO):");
+  for (const { id, descripcion } of NORMALIZACIONES_FORMULARIO) {
+    console.log(`- ${id} (${descripcion}): ${dondeSeAplicoFormulario[id].length} → ${dondeSeAplicoFormulario[id].join(", ") || "ninguna"}`);
+  }
+  if (!archivoRutas) {
+    console.log("\nEnvíos del arnés (sin JS):");
+    diferencias.push(...(await compararEnvios(baseNext, baseAstro, datos, fichaPublicada)));
   }
   if (diferencias.length > 0) {
     console.log(`\n${diferencias.length} diferencias:\n`);

@@ -119,6 +119,19 @@ describe("compat · Imagen ante src hostiles (sin proxy ni SSRF)", () => {
   });
 });
 
+/**
+ * ¿El middleware aplica la regla de origen (`envioDeOtroOrigen`) antes de la
+ * tabla de Actions? Se lee el código sin comentarios.
+ */
+function revisaElOrigenAntesDeLasActions(): boolean {
+  const fuente = readFileSync(new URL("../src/middleware.ts", import.meta.url), "utf8")
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/^\s*\/\/.*$/gm, "");
+  const origen = fuente.indexOf("envioDeOtroOrigen(contexto.request.method, contexto.request.headers)");
+  const acciones = fuente.indexOf("atenderAcciones(contexto, siguiente)");
+  return origen !== -1 && acciones !== -1 && origen < acciones;
+}
+
 describe("astro.config.mjs · superficie del andamio", () => {
   const texto = readFileSync(new URL("../astro.config.mjs", import.meta.url), "utf8");
 
@@ -128,9 +141,14 @@ describe("astro.config.mjs · superficie del andamio", () => {
     expect(coincidencia![1].trim()).toBe('"./certs/supabase-root-2021-ca.crt"');
   });
 
-  it("no expone variables al cliente ni desactiva la revisión de origen", () => {
+  // Antes: la revisión de origen de Astro NUNCA se apagaba. Desde 3a (change
+  // `migrar-formularios-publicos-astro`, design.md §1) se apaga porque su 403
+  // sale antes del middleware, en inglés y sin cabeceras; la invariante sigue
+  // siendo la misma —el origen SIEMPRE se revisa—, y ahora se exige que, si
+  // Astro no la hace, la haga el middleware ANTES de atender cualquier Action.
+  it("no expone variables al cliente ni deja el origen sin revisar", () => {
     expect(texto).not.toMatch(/PUBLIC_|envPrefix|import\.meta\.env|process\.env/);
-    expect(texto).not.toMatch(/checkOrigin\s*:\s*false/);
+    expect(!/checkOrigin\s*:\s*false/.test(texto) || revisaElOrigenAntesDeLasActions()).toBe(true);
   });
 
   it("el servicio de imágenes no descarga de dominios externos", async () => {
@@ -138,6 +156,6 @@ describe("astro.config.mjs · superficie del andamio", () => {
     expect(config.image?.service?.entrypoint).toBe("astro/assets/services/noop");
     expect(config.image?.domains ?? []).toEqual([]);
     expect(config.image?.remotePatterns ?? []).toEqual([]);
-    expect(config.security?.checkOrigin).not.toBe(false);
+    expect(config.security?.checkOrigin !== false || revisaElOrigenAntesDeLasActions()).toBe(true);
   });
 });

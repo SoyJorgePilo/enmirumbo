@@ -1,0 +1,31 @@
+---
+/**
+ * Confirmación del reporte (lo que era
+ * `src/app/(publico)/negocio/[ficha]/reportar/gracias/page.tsx`; change
+ * `migrar-formularios-publicos-astro`). Destino del 303 tras un envío
+ * aceptado: recargarla no reenvía nada, porque aquí no hay `<form>`.
+ *
+ * NO CONSULTA LA BASE: "Volver a la ficha" usa el mismo segmento con el que se
+ * llegó, así que la respuesta no confirma ni niega el estado del negocio. El
+ * segmento es el CRUDO de la URL (sin decodificar), como lo recibía Next, y
+ * sale escapado en el `href`.
+ */
+import { METADATOS_REPORTAR } from "@/astro/reportar";
+import TroncoPublico from "@/layouts/TroncoPublico.astro";
+import { ENLACE_VOLVER_A_LA_FICHA, MENSAJE_REPORTE_ENVIADO } from "@/lib/reportes/textos";
+
+export const prerender = false;
+
+const ficha = Astro.url.pathname.split("/")[2] ?? "";
+---
+
+<TroncoPublico metadatos={METADATOS_REPORTAR}>
+  <section class="flex flex-1 flex-col items-center justify-center gap-6 py-12 text-center">
+    <h1 class="max-w-md text-2xl font-bold tracking-tight sm:text-3xl">{MENSAJE_REPORTE_ENVIADO}</h1>
+    <a
+      href={`/negocio/${ficha}`}
+      class="inline-flex min-h-11 items-center justify-center px-4 text-base font-semibold text-accion-fuerte underline underline-offset-4"
+      >{ENLACE_VOLVER_A_LA_FICHA}</a
+    >
+  </section>
+</TroncoPublico>

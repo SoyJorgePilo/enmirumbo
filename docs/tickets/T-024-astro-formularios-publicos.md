@@ -6,7 +6,7 @@
 **Referencias PRD:** v2 §10 (técnica reemplazable); ADR-013
 **Depende de:** T-023
 **OpenSpec change:** `migrar-formularios-publicos-astro` (3a: reportar + lo transversal); `migrar-registro-astro` (3b-1: `/registro` con foto, `/registro/gracias`, `acciones.ts` sin Next, O1); `migrar-verificacion-sms-astro` (3b-2: `/registro/verificar`, por especificar)
-**PR:** #36 (3a, hacia `migracion-astro`) — https://github.com/SoyJorgePilo/enmirumbo/pull/36
+**PR:** #36 (3a, hacia `migracion-astro`) — https://github.com/SoyJorgePilo/enmirumbo/pull/36; #37 (3b-1, hacia `migracion-astro`) — https://github.com/SoyJorgePilo/enmirumbo/pull/37
 
 ## Contexto
 

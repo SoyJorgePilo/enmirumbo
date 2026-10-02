@@ -139,4 +139,4 @@ Reglas:
     - `curl` de las cuatro cabeceras en `/registro`, el 303 y gracias.
     - Una foto de 4.6 MB, para anotar el 413 de Vercel (candidato a ticket, no se arregla aquí).
     - Anotarlo en el ticket.
-- [ ] 20. **PR hacia `migracion-astro`.** Lleva en la descripción las salidas de las tareas 16 y 19, las normalizaciones, las dos enmiendas de `registro-negocio`, el estado intermedio de la bandera y lo pendiente para 3b-2. Se enlaza en T-024.
+- [x] 20. **PR hacia `migracion-astro`** (#37). Lleva en la descripción las salidas de las tareas 16 y 19, las normalizaciones, las dos enmiendas de `registro-negocio`, el estado intermedio de la bandera y lo pendiente para 3b-2. Se enlaza en T-024.

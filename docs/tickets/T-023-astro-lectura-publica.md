@@ -6,7 +6,7 @@
 **Referencias PRD:** v2 §10 (técnica reemplazable); ADR-013
 **Depende de:** T-022
 **OpenSpec change:** `migrar-lectura-publica-astro` (Fase 2a; la 2b se propone como change aparte, ver su `proposal.md`)
-**PR:** —
+**PR:** #32 (mitad 2a, apilado sobre #31) — https://github.com/SoyJorgePilo/enmirumbo/pull/32
 
 ## Contexto
 

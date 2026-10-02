@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { Imagen as Image } from "@/components/compat/imagen";
 
 import type { VarianteFoto } from "@/lib/fotos/clave";
 import { urlDeFoto, type AmbitoFoto } from "@/lib/fotos/url";

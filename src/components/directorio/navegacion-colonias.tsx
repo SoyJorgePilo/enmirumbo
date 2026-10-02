@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "@/components/compat/link";
 
 /** Una opción del filtro: su nombre, a dónde lleva y si es la actual. */
 export type OpcionDeColonia = {

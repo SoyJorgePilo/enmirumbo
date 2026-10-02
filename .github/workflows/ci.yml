@@ -42,10 +42,19 @@ jobs:
 
       - run: npm run lint
 
-      # El build corre SIN base alcanzable, a propósito (requirement "El build
-      # de producción no necesita la base de datos"). Si alguien agrega una
-      # página que consulta la base al construir, este paso falla aquí y no en
-      # el primer deploy. La dirección apunta a un puerto donde no hay nadie.
+      # Revisión de tipos de `.astro`, `.ts` y `.tsx` (spec `plataforma-astro`,
+      # "El CI prueba el nuevo marco con la misma exigencia"): el build de Astro
+      # no revisa tipos como lo hacía el de Next. Mientras exista `src/app/`,
+      # `next typegen` genera sus tipos de rutas (sin construir nada) para que
+      # `astro check` también lo cubra.
+      - name: Revisar tipos
+        run: npm run typecheck
+
+      # El build (Astro, ADR-013) corre SIN base alcanzable, a propósito
+      # (requirement "El build de producción no necesita la base de datos").
+      # Si alguien agrega una página que consulta la base al construir, este
+      # paso falla aquí y no en el primer deploy. La dirección apunta a un
+      # puerto donde no hay nadie.
       - name: Build sin base de datos
         run: npm run build
         env:

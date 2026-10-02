@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "@/components/compat/link";
 
 /**
  * Footer global: identificación del sitio y los dos enlaces legales (E6,

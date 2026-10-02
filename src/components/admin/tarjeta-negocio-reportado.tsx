@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "@/components/compat/link";
 
 import type { NegocioReportadoColaItem } from "@/lib/admin/reportes";
 import { TEXTO_VER_REPORTES, textoReportesSinAtender } from "@/lib/admin/textos";

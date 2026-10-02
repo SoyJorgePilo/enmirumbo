@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "@/components/compat/link";
 
 import { EtiquetaTipoCola } from "@/components/admin/etiqueta-tipo-cola";
 import { IndicadorAtrasado } from "@/components/admin/indicador-atrasado";

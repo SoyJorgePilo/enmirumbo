@@ -1,12 +1,12 @@
 # T-022 · Andamio de Astro en la raíz (Fase 1)
 
-**Estado:** en-spec <!-- pendiente | en-spec | en-desarrollo | en-review | hecho -->
+**Estado:** en-review <!-- pendiente | en-spec | en-desarrollo | en-review | hecho -->
 **Prioridad:** P1
 **Épica:** E9 (docs/backlog.md)
 **Referencias PRD:** v2 §10 (técnica reemplazable); ADR-013
 **Depende de:** T-021 (go del spike)
 **OpenSpec change:** `agregar-andamio-astro`
-**PR:** —
+**PR:** [#31](https://github.com/SoyJorgePilo/enmirumbo/pull/31)
 
 ## Contexto
 
@@ -14,10 +14,10 @@ Astro + `@astrojs/vercel` + `@astrojs/react` + Tailwind 4 + Vitest conviven con 
 
 ## Criterios de aceptación
 
-- [ ] `astro build` y `npm test` de `src/lib` en verde
-- [ ] Los 41 archivos de pruebas de render siguen pasando sin cambios de aserciones
-- [ ] Existe una capa de compatibilidad (`Link`, `Imagen`) que reemplaza `next/link`/`next/image` en los componentes
-- [ ] El CI corre lint, build y test del nuevo marco
+- [x] `astro build` y `npm test` de `src/lib` en verde
+- [x] Los 41 archivos de pruebas de render siguen pasando sin cambios de aserciones (en realidad son 43; todos en verde)
+- [x] Existe una capa de compatibilidad (`Link`, `Imagen`) que reemplaza `next/link`/`next/image` en los componentes
+- [ ] El CI corre lint, build y test del nuevo marco (configurado; falta verlo en verde en el PR)
 
 ## Fuera de alcance de este ticket
 

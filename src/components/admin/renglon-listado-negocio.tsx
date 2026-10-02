@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "@/components/compat/link";
 
 import type { RegistroListadoItem } from "@/lib/admin/consultas";
 import {

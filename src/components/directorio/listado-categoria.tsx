@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "@/components/compat/link";
 
 import { ListaNegocios } from "@/components/directorio/lista-negocios";
 import { NavegacionColonias } from "@/components/directorio/navegacion-colonias";

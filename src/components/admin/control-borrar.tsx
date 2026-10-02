@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "@/components/compat/link";
 
 import { BOTON_BORRAR_DEFINITIVAMENTE } from "@/lib/admin/textos";
 import { CLASE_BOTON_SECUNDARIO } from "@/lib/estilos-boton";

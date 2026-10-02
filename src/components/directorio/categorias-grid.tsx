@@ -12,7 +12,7 @@
  * Sin encabezado propio: quien la monta decide su título (la home la titula
  * con su `h2` "Busca por categoría"; `/buscar` la ofrece bajo su propio texto).
  */
-import Link from "next/link";
+import { Link } from "@/components/compat/link";
 
 import type { CategoriaCatalogo } from "@/lib/directorio";
 import { iconoDeCategoria } from "@/lib/ui/iconos-categorias";

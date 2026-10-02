@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "@/components/compat/link";
 
 import { NOTA_PRIVACIDAD_VIGENTE } from "@/lib/gestion/textos";
 import { TEXTO_ENLACE_AVISO_INTEGRAL } from "@/lib/registro/textos";

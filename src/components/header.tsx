@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "@/components/compat/link";
 
 /**
  * Header global: wordmark tipográfico "EnMiRumbo" solo, enlazado a la home.

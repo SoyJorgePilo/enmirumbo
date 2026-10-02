@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "@/components/compat/link";
 
 import { hrefListadoDeNegocios, type FiltroEstadoListado } from "@/lib/admin/listado-parametros";
 import { TEXTO_VER_MAS_ANTIGUOS, TEXTO_VER_MAS_NUEVOS, textoPaginaDe } from "@/lib/admin/textos";

@@ -161,11 +161,25 @@ volver a desplegar, no basta con reiniciar.
 | `SUPABASE_SERVICE_ROLE_KEY` | **Secreto.** Llave con la que el servidor lee y escribe las fotos. | Supabase → *Settings → API → service_role*. |
 | `SUPABASE_BUCKET_FOTOS` | Nombre del bucket de fotos. | Por defecto `fotos`. |
 | `FOTOS_DIR` | Directorio de las fotos **en desarrollo**, cuando no hay Supabase configurado. | Por defecto `.fotos/` en la raíz. **En Vercel el disco es efímero: ver §7.** |
+| `RESEND_API_KEY` | **Secreto.** Credencial del proveedor de correo (Resend) con la que sale el **aviso diario de pendientes** (T-020, §6). | La da Resend en *API Keys*; empieza por `re_`. **Sin ella no se manda ningún correo**: queda una línea en el log diciendo qué falta y todo lo demás sigue igual. |
+| `AVISOS_CORREO_REMITENTE` | La dirección DESDE la que sale ese aviso. Tiene que estar en un dominio **verificado** en Resend, o el proveedor rechaza el envío. | `avisos@enmirumbo.com` (después de verificar el dominio, §6.1). **Sin ella no se manda ningún correo.** |
+| `AVISOS_CORREO_DESTINO` | El buzón que RECIBE el aviso: el correo que el admin abre a diario. | Recomendación: el **Gmail directo** del admin, no una dirección que reenvíe (el reenvío puede tropezar con SPF y mandar a spam justo el correo del día que sí importa). **Sin ella no se manda ningún correo.** Es un dato personal en un repo público (LFPDPPP): nunca en el código, ni en los seeds, ni en un test, ni en `.env.example`. |
 | `WHATSAPP_ADMIN` | El WhatsApp del admin al que la ficha pública ofrece escribir cuando el dueño **perdió su enlace de gestión** (PRD §6.4 y §7 Flujo D). | 10 dígitos, sin lada ni espacios. **Fail-safe: sin ella el bloque "¿Es tu negocio?" no se pinta** — nada de enlaces rotos ni de números de ejemplo. Es un dato personal en un repo público (LFPDPPP): nunca en el código, ni en los seeds, ni en un test. |
 
 Con las dos de Umami sin poner, el sitio corre igual y **no mide nada**: no
 inyecta ningún `<script>`, no pide nada a ningún dominio externo y ninguna
 página cambia.
+
+Las tres del correo funcionan igual, y con `SITIO_URL` son **cuatro**: falte la
+que falte, **no se manda ningún correo**, el log lo dice una sola vez nombrando
+la que falta y la tarea programada responde con normalidad —no configurar el
+aviso es una decisión legítima, no un fallo—. `SITIO_URL` entra en la cuenta
+porque de ahí sale el único enlace del correo: sin ella el aviso llevaría a
+`localhost`, que desde el celular del admin no lleva a ningún lado. Por lo
+mismo, el aviso **exige que `SITIO_URL` apunte a un host público**: con
+`http://localhost:3001`, `http://127.0.0.1:3000`, `http://[::1]:3000` o una IP
+de red interna (`192.168.…`, `10.…`) se apaga igual que si faltara, en vez de
+mandar todos los días un enlace que no abre.
 
 ### 3.3 Solo para operar a mano (nunca configuradas de forma permanente)
 
@@ -358,8 +372,14 @@ Dos tareas corren solas en producción. Están declaradas en `vercel.json`:
 
 | Ruta | Cuándo | Qué hace |
 |---|---|---|
-| `/api/tareas/purgar-rechazados` | diario, 09:17 UTC (~03:17 en Tizayuca) | Borra definitivamente los registros **rechazados** con 90 días o más desde el rechazo (PRD §8, compromiso publicado en el aviso de privacidad). |
+| `/api/tareas/purgar-rechazados` | diario, **13:17 UTC (~07:17 en Tizayuca)** | Dos cosas: borra definitivamente los registros **rechazados** con 90 días o más desde el rechazo (PRD §8, compromiso publicado en el aviso de privacidad) y, encima, manda el **aviso diario de pendientes** (T-020). |
 | `/api/tareas/barrer-fotos-huerfanas` | diario, 09:47 UTC | Borra del almacén las fotos que ya no son de ninguna ficha (datos personales fuera del alcance del borrado ARCO si se quedan). |
+
+**Por qué a las 13:17 UTC y no a las 09:17, como antes:** porque encima de esa
+tarea viaja el aviso por correo, y 13:17 UTC son las **07:17 en Tizayuca**. Un
+aviso que llega a las tres de la mañana se lee cuando ya se perdió media
+jornada; a las siete acompaña el primer café. A la purga la hora le da igual:
+solo tiene que correr una vez al día.
 
 Las dos exigen el encabezado `Authorization: Bearer $CRON_SECRET`. **Sin secreto
 configurado, o con uno equivocado, responden el mismo 404 que una ruta que no
@@ -388,7 +408,7 @@ meses sin barrer y nadie se entera. En Vercel, los fallos de cron salen en
 Respuesta normal de cada una (solo conteos, nunca datos de nadie):
 
 ```json
-{"eliminados": 0, "fallidos": 0, "cuposLimpiados": 0}
+{"eliminados": 0, "fallidos": 0, "cuposLimpiados": 0, "aviso": "sin-pendientes"}
 {"barrido": true, "revisadas": 12, "huerfanas": 0, "borradas": 0, "enPeriodoDeGracia": 0, "ignoradas": 0, "noBorrables": 0}
 ```
 
@@ -403,6 +423,64 @@ eliminar—, la purga responde **500** aunque haya eliminado los demás. Es a
 propósito: un 200 con la mala noticia dentro del cuerpo lo daría por bueno el
 programador de tareas, y el incumplimiento del aviso de privacidad se repetiría
 todos los días en silencio.
+
+### 6.1 El aviso diario de pendientes (T-020)
+
+Encima de la purga viaja un correo: **si hay algo esperando en la cola del
+panel, a las 07:17 de Tizayuca llega un aviso** con cuántos hay de cada tipo
+—altas nuevas, ediciones y reportes sin atender— y el enlace al panel. Si no hay
+nada esperando **no llega nada**: el silencio significa "todo al día".
+
+**El correo no lleva ni un dato de nadie.** Ni nombres de negocios, ni WhatsApp,
+ni colonias, ni comentarios de reportes, ni identificadores: solo números y el
+enlace. Viaja por servidores de un tercero y se queda guardado en un buzón, así
+que lo que no va dentro no hay que cuidarlo (PRD §8, LFPDPPP).
+
+**Va encima de la purga y no en una tarea propia** porque el plan Hobby admite
+dos tareas diarias y ya están las dos. Los dos trabajos son independientes: la
+purga corre aunque el correo falle, y el correo se intenta aunque la purga no se
+complete.
+
+El campo `aviso` de la respuesta dice en qué quedó el correo del día:
+
+| Valor | Qué significa | Código |
+|---|---|---|
+| `mandado` | Había pendientes y el correo salió (o ya había salido antes en la misma ejecución). | 200 |
+| `sin-pendientes` | La cola estaba vacía: no había nada que avisar. | 200 |
+| `sin-configurar` | Falta alguna de las cuatro variables (§3.2). No se mandó nada. **No es un fallo.** | 200 |
+| `fallido` | Había algo que avisar y el correo NO salió. | **500** |
+
+**Un correo al día, aunque dispares la tarea dos veces.** El envío viaja con una
+marca del día (`enmirumbo-pendientes-<AAAA-MM-DD>`, con la fecha de Tizayuca) y
+Resend descarta el segundo envío con la misma marca durante 24 horas. Un intento
+que ni siquiera llegó al proveedor (red caída, tiempo agotado) no gasta el día:
+el siguiente disparo lo vuelve a intentar con la misma marca.
+
+**Si ves `"aviso":"fallido"` en un segundo disparo del día**, mira el log: la
+línea `[aviso] el proveedor respondió 409` significa que la marca de hoy ya la
+usó otra petición y que **esta** no mandó nada. Puede ser lo bueno (el correo ya
+había salido desde otra ejecución) o lo malo (el intento anterior fue rechazado
+y hoy no ha salido ningún aviso). Desde el servidor no se distingue, así que se
+avisa en rojo a propósito: **compruébalo en Resend → *Emails***, que lista lo
+que salió de verdad. Un 200 diciendo "mandado" en ese caso te dejaría sin aviso
+y sin enterarte durante 24 horas.
+
+**Paso humano, una sola vez, antes de que esto sirva de algo: verificar el
+dominio en Resend.**
+
+1. En Resend → *Domains* → *Add Domain*, `enmirumbo.com`.
+2. Resend da tres registros DNS (uno TXT de verificación, uno TXT de DKIM y uno
+   MX o TXT de SPF). Se dan de alta en **Namecheap** → *Advanced DNS*, tal cual,
+   sin cambiarles el host ni el valor.
+3. Esperar a que Resend marque el dominio como *Verified* (suele ser minutos).
+4. Solo entonces `AVISOS_CORREO_REMITENTE` puede ser `avisos@enmirumbo.com`.
+
+**Si el correo no llega:** mira en este orden. (a) La respuesta del `curl`: si
+dice `sin-configurar`, falta una variable; si dice `sin-pendientes`, es que de
+verdad no había nada. (b) Los logs de Vercel, línea `[aviso]`. (c) El panel de
+Resend → *Emails*, que muestra los envíos y por qué se rechazaron. (d) La
+carpeta de spam del buzón destino: si el aviso aterriza ahí, casi siempre es un
+reenvío de por medio (usa el buzón directo, §3.2).
 
 ## 7. Fotos de los negocios
 
@@ -632,6 +710,15 @@ Con el sitio ya en línea, abre estas pantallas en el celular, con datos móvile
 
     Las dos tienen que responder `200` con sus conteos. Y sin el encabezado,
     la misma página 404 que `https://enmirumbo.com/una-direccion-inventada`.
+11-bis. **El aviso diario de pendientes** (T-020) — con el dominio ya
+    verificado en Resend (§6.1) y las tres variables puestas: deja el alta de
+    prueba del paso 3 **sin revisar** en la cola y vuelve a disparar la purga
+    con el `curl` de arriba. La respuesta tiene que traer `"aviso":"mandado"`
+    y en el buzón de `AVISOS_CORREO_DESTINO` tiene que llegar un correo de
+    "EnMiRumbo" que diga cuántos pendientes hay y traiga el enlace al panel.
+    **Léelo entero antes de seguir: no puede aparecer el nombre del negocio de
+    prueba, ni su WhatsApp, ni su colonia — solo números.** Dispáralo una
+    segunda vez: no debe llegar un segundo correo ese día.
 12. **Borra el alta de prueba** desde el panel (borrado definitivo) y comprueba
     que la ficha ya no abre (y que su foto desapareció del bucket, paso 10).
 

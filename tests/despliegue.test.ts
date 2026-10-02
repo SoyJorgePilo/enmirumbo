@@ -338,6 +338,92 @@ describe("despliegue · las tareas programadas están declaradas", () => {
     expect(seccion).toContain("Authorization: Bearer");
     expect(seccion).toContain("CRON_SECRET");
   });
+
+  /**
+   * Change `agregar-aviso-diario-pendientes` · spec `despliegue`, scenario "la
+   * hora a la que llega el correo". La purga se movió de 09:17 a 13:17 UTC
+   * porque encima viaja el aviso diario: un correo que llega a las tres de la
+   * mañana se lee cuando ya se perdió media jornada.
+   */
+  it("la tarea que lleva el aviso corre a las 13:17 UTC, ~07:17 en Tizayuca", () => {
+    const purga = vercel.crons?.find((cron) => cron.path === "/api/tareas/purgar-rechazados");
+    expect(purga!.schedule).toBe("17 13 * * *");
+    // Y el barrido de fotos se quedó donde estaba: no se tocó lo que no había
+    // por qué tocar.
+    const barrido = vercel.crons?.find(
+      (cron) => cron.path === "/api/tareas/barrer-fotos-huerfanas",
+    );
+    expect(barrido!.schedule).toBe("47 9 * * *");
+    // El plan Hobby admite dos tareas diarias, y siguen siendo dos.
+    expect(vercel.crons).toHaveLength(2);
+  });
+
+  it("el documento dice a qué hora sale el correo y por qué a esa", () => {
+    const seccion = documento.slice(documento.indexOf("## 6. Tareas programadas"));
+    expect(seccion).toContain("13:17 UTC");
+    expect(seccion).toContain("07:17");
+    expect(seccion.toLowerCase()).toContain("aviso");
+  });
+});
+
+// ── 3-bis. El aviso diario de pendientes (T-020) ───────────────────────────
+
+describe("despliegue · el aviso diario de pendientes está documentado", () => {
+  // Scenario: las variables nuevas están documentadas
+  it("las tres variables del correo salen en el documento con su descripción", () => {
+    const opcionales = documento.slice(
+      documento.indexOf("### 3.2 Opcionales"),
+      documento.indexOf("### 3.3"),
+    );
+    for (const variable of [
+      "RESEND_API_KEY",
+      "AVISOS_CORREO_REMITENTE",
+      "AVISOS_CORREO_DESTINO",
+    ]) {
+      expect(opcionales, variable).toContain(variable);
+    }
+    // Y qué pasa sin ellas, que es lo que un operador necesita saber.
+    expect(opcionales.toLowerCase()).toContain("no se manda");
+  });
+
+  // Scenario: el buzón del directorio no vive en el repositorio
+  it("ninguna dirección de correo de verdad quedó en el repo", () => {
+    const sospechosas =
+      /[a-z0-9._%+-]+@(?!ejemplo\.invalid|enmirumbo\.com|TU-DOMINIO|dominio)[a-z0-9.-]+\.[a-z]{2,}/gi;
+    const revisar = [
+      ...archivosDeCodigo(),
+      path.join(raiz, ".env.example"),
+      path.join(raiz, "tests/aviso-pendientes.test.ts"),
+      path.join(raiz, "tests/aviso-pendientes-tarea.test.ts"),
+    ];
+    const encontradas: string[] = [];
+    for (const archivo of revisar) {
+      const contenido = readFileSync(archivo, "utf8");
+      for (const coincidencia of contenido.matchAll(sospechosas)) {
+        // `.invalid` y `.example` están reservados por el RFC 2606: no son de
+        // nadie y no pueden serlo. Las de ejemplo del proveedor, tampoco.
+        // Cualquier otra sí lo parece y hay que mirarla.
+        if (/\.(invalid|example)\b|resend\.dev|acme/i.test(coincidencia[0])) continue;
+        encontradas.push(`${coincidencia[0]} (${path.relative(raiz, archivo)})`);
+      }
+    }
+    expect(
+      encontradas,
+      `esto parece una dirección de correo real en un repo público:\n  ${encontradas.join("\n  ")}`,
+    ).toEqual([]);
+  });
+
+  it("el aviso viaja encima de una tarea que ya existía, sin cron nuevo", () => {
+    const ruta = readFileSync(
+      path.join(raiz, "src/app/api/tareas/purgar-rechazados/route.ts"),
+      "utf8",
+    );
+    expect(ruta).toContain("avisarPendientes");
+    // Sin ruta propia: el plan del hosting no da para una tercera tarea.
+    expect(() =>
+      readFileSync(path.join(raiz, "src/app/api/tareas/avisar-pendientes/route.ts"), "utf8"),
+    ).toThrow();
+  });
 });
 
 // ── 4. Content-Security-Policy ──────────────────────────────────────────────

@@ -1,11 +1,11 @@
 # T-022 · Andamio de Astro en la raíz (Fase 1)
 
-**Estado:** pendiente <!-- pendiente | en-spec | en-desarrollo | en-review | hecho -->
+**Estado:** en-spec <!-- pendiente | en-spec | en-desarrollo | en-review | hecho -->
 **Prioridad:** P1
 **Épica:** E9 (docs/backlog.md)
 **Referencias PRD:** v2 §10 (técnica reemplazable); ADR-013
 **Depende de:** T-021 (go del spike)
-**OpenSpec change:** —
+**OpenSpec change:** `agregar-andamio-astro`
 **PR:** —
 
 ## Contexto

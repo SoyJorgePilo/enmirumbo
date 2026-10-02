@@ -1,0 +1,23 @@
+---
+// fuera de la medición: la 404 de las URLs que no casan con ninguna ruta no se mide, igual que `src/app/not-found.tsx` vivía fuera del grupo `(publico)` (spec `layout-base`; design.md §1 del change `migrar-lectura-publica-astro`).
+/**
+ * 404 global en español (spec `plataforma-astro`, requirement "La 404 responde
+ * igual que en Next"). Prerenderizada: la sirve la CDN con estado 404 para
+ * toda URL desconocida, con las cabeceras que agrega
+ * `src/astro/integraciones/cabeceras-en-la-cdn.ts`.
+ *
+ * Declara la imagen de la vista previa EXPLÍCITAMENTE, como la de Next
+ * (iteración 2, hallazgo M1): sin URL pública queda vacía en vez de apuntar a
+ * la dirección local. `noEncontrado` agrega la instrucción de no indexar que
+ * Next pone en toda 404.
+ */
+import NoEncontrado from "@/astro/componentes/NoEncontrado.astro";
+import DocumentoBase from "@/layouts/DocumentoBase.astro";
+import { imagenesDeMarca } from "@/lib/seo/metadata";
+
+export const prerender = true;
+---
+
+<DocumentoBase metadatos={{ openGraph: { images: imagenesDeMarca() } }} noEncontrado>
+  <NoEncontrado />
+</DocumentoBase>

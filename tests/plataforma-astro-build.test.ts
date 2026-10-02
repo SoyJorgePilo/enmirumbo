@@ -13,12 +13,29 @@
  *
  * El build de Astro tarda un par de segundos, así que la prueba lo corre ella
  * misma (sin base alcanzable, como el CI) en vez de fiarse de una salida vieja.
+ *
+ * Desde el change `migrar-lectura-publica-astro` (T-023, tasks.md #9, #10 y
+ * #14), además, sobre la salida servida por `scripts/servir-salida-vercel.mjs`
+ * (el emulador del Build Output API):
+ *
+ * - "cero JS propio": el HTML de `/`, legales y 404, sin `<script>` (salvo
+ *   datos), `modulepreload` ni `astro-island`;
+ * - "las cuatro en todas partes": las cuatro cabeceras de seguridad en cada
+ *   ruta del alcance, y ninguna que anuncie el marco;
+ * - "nada se renderiza por petición": `/opengraph-image` es un estático y la
+ *   función no lleva el generador de imágenes;
+ * - las cabeceras de la CDN están en el `config.json` construido.
  */
-import { execFileSync } from "node:child_process";
+import { type ChildProcess, execFileSync, spawn } from "node:child_process";
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 
-import { beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+
+import { seedCatalogos } from "../prisma/seed";
+import { medidasPng } from "../scripts/diff-html/nucleo.mjs";
+import { cabecerasDeSeguridad } from "../src/lib/seguridad/csp";
+import { crearClientePrueba } from "./db";
 
 const raiz = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
 const salida = path.join(raiz, ".vercel/output");
@@ -184,3 +201,150 @@ describe("plataforma-astro · ningún componente importa Next", () => {
     expect(culpables.map((f) => path.relative(raiz, f))).toEqual([]);
   });
 });
+
+// ── Fase 2a (change `migrar-lectura-publica-astro`) ─────────────────────────
+
+const URL_PUBLICA = "https://enmirumbo.example";
+const PUERTO = 46_000 + Math.floor(Math.random() * 1000);
+const BASE = `http://127.0.0.1:${PUERTO}`;
+let emulador: ChildProcess | undefined;
+
+describe("plataforma-astro · la salida construida, servida como en Vercel", () => {
+  beforeAll(async () => {
+    const prisma = crearClientePrueba();
+    await seedCatalogos(prisma);
+    await prisma.$disconnect();
+
+    emulador = spawn(process.execPath, [path.join(raiz, "scripts/servir-salida-vercel.mjs")], {
+      cwd: raiz,
+      env: {
+        ...entornoDeBuild(),
+        // La base de la suite (la home la lee por petición) y la URL pública.
+        DATABASE_URL: process.env.DATABASE_URL ?? "",
+        SITIO_URL: URL_PUBLICA,
+        PORT: String(PUERTO),
+      },
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    await new Promise<void>((listo, falla) => {
+      const tiempo = setTimeout(() => falla(new Error("el emulador no arrancó")), 30_000);
+      emulador!.stdout!.on("data", (d: Buffer) => {
+        if (d.toString().includes("[emulador]")) {
+          clearTimeout(tiempo);
+          listo();
+        }
+      });
+      emulador!.on("exit", (codigo) => falla(new Error(`el emulador terminó (${codigo})`)));
+    });
+  }, 60_000);
+
+  afterAll(() => {
+    emulador?.kill();
+  });
+
+  const pedir = (ruta: string) => fetch(`${BASE}${ruta}`, { redirect: "manual" });
+
+  function hojaDeEstilos(): string {
+    const archivo = listar(path.join(salida, "static/_astro")).find((f) => f.endsWith(".css"));
+    expect(archivo, "la build no dejó hoja de estilos en /_astro/").toBeDefined();
+    return `/_astro/${archivo}`;
+  }
+
+  // Scenario "las cuatro en todas partes" (emulado; el preview de Vercel es
+  // la palabra final, tasks.md #19).
+  it("las cuatro cabeceras, con sus valores, en cada ruta del alcance, y ninguna del marco", async () => {
+    const rutas = ["/", "/aviso-de-privacidad", "/terminos", "/no-existe", "/a/b/c", "/robots.txt", "/sitemap.xml", "/opengraph-image", hojaDeEstilos()];
+    for (const ruta of rutas) {
+      const respuesta = await pedir(ruta);
+      for (const { key, value } of cabecerasDeSeguridad()) {
+        expect(respuesta.headers.get(key), `${ruta} · ${key}`).toBe(value);
+      }
+      for (const nombre of respuesta.headers.keys()) {
+        expect(nombre, ruta).not.toMatch(/^x-(powered-by|astro|nextjs)/);
+      }
+    }
+  });
+
+  it("las URLs desconocidas responden 404 con la página en español", async () => {
+    for (const ruta of ["/no-existe", "/a/b/c"]) {
+      const respuesta = await pedir(ruta);
+      expect(respuesta.status, ruta).toBe(404);
+      expect(await respuesta.text(), ruta).toContain("No encontramos esta página");
+    }
+  });
+
+  it("la home dinámica manda el Cache-Control de Next y su juego de caracteres", async () => {
+    const respuesta = await pedir("/");
+    expect(respuesta.status).toBe(200);
+    expect(respuesta.headers.get("cache-control")).toBe("private, no-cache, no-store, max-age=0, must-revalidate");
+    expect(respuesta.headers.get("content-type")).toBe("text/html; charset=utf-8");
+  });
+
+  // Scenario "cero JS propio" sobre el HTML servido.
+  it("/, legales y 404: sin <script> (salvo datos), sin modulepreload ni islas", async () => {
+    for (const ruta of ["/", "/aviso-de-privacidad", "/terminos", "/no-existe"]) {
+      const html = await (await pedir(ruta)).text();
+      const scripts = [...html.matchAll(/<script\b[^>]*>/g)].map((m) => m[0]);
+      expect(scripts.filter((s) => !s.includes('type="application/ld+json"')), ruta).toEqual([]);
+      expect(html, ruta).not.toContain("modulepreload");
+      expect(html, ruta).not.toContain("astro-island");
+    }
+  });
+
+  // Scenario "la imagen responde en su dirección de siempre".
+  it("/opengraph-image: 200, image/png y 1200×630", async () => {
+    const respuesta = await pedir("/opengraph-image");
+    expect(respuesta.status).toBe(200);
+    expect(respuesta.headers.get("content-type")).toBe("image/png");
+    expect(medidasPng(new Uint8Array(await respuesta.arrayBuffer()))).toEqual({ ancho: 1200, alto: 630 });
+  });
+});
+
+describe("plataforma-astro · nada se renderiza por petición", () => {
+  it("/opengraph-image es un archivo estático y no una ruta de la función", () => {
+    expect(existsSync(path.join(salida, "static/opengraph-image"))).toBe(true);
+    const fuentes = rutasDeVercel().filter((r) => r.dest === "_render").map((r) => r.src ?? "");
+    expect(fuentes.filter((src) => src.includes("opengraph"))).toEqual([]);
+  });
+
+  it("la función no incluye el generador de imágenes", () => {
+    const archivos = listar(funcion);
+    expect(archivos.filter((f) => /satori|resvg|yoga|harfbuzz/i.test(f))).toEqual([]);
+    const codigo = archivos
+      .filter((f) => /\.(m?js|cjs)$/.test(f) && f.startsWith("dist"))
+      .map((f) => readFileSync(path.join(funcion, f), "utf8"))
+      .join("\n");
+    expect(codigo).not.toMatch(/satori|resvg/i);
+  });
+});
+
+describe("plataforma-astro · cabeceras de la CDN en el config.json construido", () => {
+  type RutaConCabeceras = { src?: string; dest?: string; status?: number; headers?: Record<string, string>; handle?: string };
+  const tabla = () =>
+    (JSON.parse(readFileSync(path.join(salida, "config.json"), "utf8")) as { routes: RutaConCabeceras[] }).routes;
+
+  it("cada estático y la 404 llevan las cuatro; la imagen, además, su tipo", () => {
+    const rutas = tabla();
+    const filesystem = rutas.findIndex((r) => r.handle === "filesystem");
+    const antes = rutas.slice(0, filesystem);
+    const seguridad = Object.fromEntries(cabecerasDeSeguridad().map(({ key, value }) => [key, value]));
+    for (const ruta of ["/aviso-de-privacidad", "/terminos", "/opengraph-image", "/404.html", "/favicon.ico", hojaDeLaBuild()]) {
+      const cabeceras = Object.assign({}, ...antes.filter((r) => r.headers && new RegExp(r.src!).test(ruta)).map((r) => r.headers));
+      expect(cabeceras, ruta).toMatchObject(seguridad);
+    }
+    const imagen = antes.find((r) => r.src && new RegExp(r.src).test("/opengraph-image") && r.headers?.["Content-Type"]);
+    expect(imagen?.headers?.["Content-Type"]).toBe("image/png");
+    const comodin = rutas.find((r) => r.dest === "/404.html" && r.status === 404);
+    expect(comodin?.headers).toMatchObject(seguridad);
+  });
+
+  it("ninguna ruta de la función recibe cabeceras de la CDN", () => {
+    for (const r of tabla().filter((r) => r.dest === "_render")) expect(r.headers, r.src).toBeUndefined();
+  });
+
+  function hojaDeLaBuild(): string {
+    const archivo = listar(path.join(salida, "static/_astro")).find((f) => f.endsWith(".css"));
+    return `/_astro/${archivo}`;
+  }
+});
+

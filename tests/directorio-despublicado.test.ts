@@ -6,8 +6,6 @@ import { seedCatalogos } from "../prisma/seed";
 import DestinoPage from "../src/app/(publico)/[destino]/page";
 import BuscarPage from "../src/app/(publico)/buscar/page";
 import FichaNegocioPage from "../src/app/(publico)/negocio/[ficha]/page";
-import Home from "../src/app/(publico)/page";
-import sitemap from "../src/app/sitemap";
 import type { PrismaClient } from "../src/generated/prisma/client";
 import { borrarNegocio, despublicarFicha } from "../src/lib/admin/transiciones";
 import { datosDeBusqueda } from "../src/lib/busqueda";
@@ -20,6 +18,12 @@ import {
 } from "../src/lib/directorio";
 import { construirSegmentoFicha } from "../src/lib/ficha-url";
 import { VARIABLE_URL_SITIO } from "../src/lib/sitio";
+// La home y el sitemap ya se sirven con Astro (change
+// `migrar-lectura-publica-astro`, tasks.md #15). `entradasDelSitemap` es la
+// misma lista que devolvía `src/app/sitemap.ts`; el endpoint la serializa.
+import Home from "../src/pages/index.astro";
+import { entradasDelSitemap as sitemap } from "../src/pages/sitemap.xml";
+import { contenidoDelMain, pintarPagina } from "./astro-paginas";
 import { crearClientePrueba } from "./db";
 
 // Spec: directorio-publico (delta `agregar-despublicar-y-borrado-arco`) ·
@@ -68,7 +72,9 @@ async function render(pagina: Promise<React.ReactElement>): Promise<string> {
   return renderToStaticMarkup(createElement(() => elemento));
 }
 
-const abrirHome = () => render(Home() as Promise<React.ReactElement>);
+// Lo que pintaba la página en Next: el contenido de <main> (el <head> lleva la
+// URL pública de esta prueba, `despublicar.example`).
+const abrirHome = async () => contenidoDelMain(await pintarPagina(Home, { ruta: "/" }));
 
 /** Cualquiera de las tres páginas del segmento de la raíz (T-009). */
 const abrirDestino = (destino: string, colonia?: string) =>
@@ -323,12 +329,15 @@ describe("directorio-publico · ninguna superficie pública despublica ni borra"
       return readdirSync(dir, { withFileTypes: true }).flatMap((entrada) => {
         const ruta = join(dir, entrada.name);
         if (entrada.isDirectory()) return archivosDe(ruta);
-        return /\.tsx?$/.test(entrada.name) ? [ruta] : [];
+        return /\.(tsx?|astro)$/.test(entrada.name) ? [ruta] : [];
       });
     }
 
     const publicos = archivosDe(join(raiz, "src/app"))
       .filter((ruta) => !ruta.includes(`${join("src", "app", "admin")}`))
+      // Las rutas de Astro (change `migrar-lectura-publica-astro`).
+      .concat(archivosDe(join(raiz, "src/pages")))
+      .concat(archivosDe(join(raiz, "src/layouts")))
       .concat(archivosDe(join(raiz, "src/components/directorio")))
       .concat(archivosDe(join(raiz, "src/components/registro")));
 

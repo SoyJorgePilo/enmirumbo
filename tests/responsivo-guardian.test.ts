@@ -19,21 +19,25 @@ vi.mock("next/navigation", async () => {
 import { seedCatalogos } from "../prisma/seed";
 import { sembrarNegociosDemo } from "../prisma/seed-demo";
 import ListadoCategoriaPage from "../src/app/(publico)/[destino]/page";
-import AvisoDePrivacidadPage from "../src/app/(publico)/aviso-de-privacidad/page";
 import BuscarPage from "../src/app/(publico)/buscar/page";
 import FichaNegocioPage from "../src/app/(publico)/negocio/[ficha]/page";
 import ReportarNegocioPage from "../src/app/(publico)/negocio/[ficha]/reportar/page";
 import EditarPage from "../src/app/(gestion)/editar/[token]/page";
 import EditarGraciasPage from "../src/app/(gestion)/editar/[token]/gracias/page";
-import Home from "../src/app/(publico)/page";
 import RegistroPage from "../src/app/(publico)/registro/page";
-import TerminosPage from "../src/app/(publico)/terminos/page";
-import NotFoundPage from "../src/app/not-found";
 import { Footer } from "../src/components/footer";
 import { Header } from "../src/components/header";
 import type { PrismaClient } from "../src/generated/prisma/client";
 import { construirSegmentoFicha } from "../src/lib/ficha-url";
 import { huellaDeToken } from "../src/lib/gestion/token";
+// Home, legales y 404 ya se sirven con Astro (change
+// `migrar-lectura-publica-astro`, tasks.md #15): se mide su documento
+// completo, layout incluido.
+import NotFoundPage from "../src/pages/404.astro";
+import AvisoDePrivacidadPage from "../src/pages/aviso-de-privacidad.astro";
+import Home from "../src/pages/index.astro";
+import TerminosPage from "../src/pages/terminos.astro";
+import { pintarPagina } from "./astro-paginas";
 import { crearClientePrueba } from "./db";
 
 /**
@@ -89,10 +93,14 @@ function archivosPublicos(): string[] {
     for (const entrada of readdirSync(dir, { withFileTypes: true })) {
       const ruta = join(dir, entrada.name);
       if (entrada.isDirectory()) recorrer(ruta);
-      else if (ruta.endsWith(".tsx")) rutas.push(ruta);
+      else if (ruta.endsWith(".tsx") || ruta.endsWith(".astro")) rutas.push(ruta);
     }
   };
   recorrer(join(raiz, "src/app/(publico)"));
+  // Astro (change `migrar-lectura-publica-astro`).
+  recorrer(join(raiz, "src/pages"));
+  recorrer(join(raiz, "src/layouts"));
+  recorrer(join(raiz, "src/astro/componentes"));
   recorrer(join(raiz, "src/components/directorio"));
   recorrer(join(raiz, "src/components/registro"));
   // Modo edición del enlace de gestión (change `agregar-enlace-de-gestion`).
@@ -117,7 +125,8 @@ function clasesDelHtml(html: string): string[] {
 
 /** Todas las clases sueltas de un archivo fuente (cualquier literal de clase). */
 function clasesDelFuente(codigo: string): string[] {
-  return [...codigo.matchAll(/className=(?:"([^"]*)"|\{`([^`]*)`\})/g)]
+  // `class=` es el atributo en `.astro` (change `migrar-lectura-publica-astro`).
+  return [...codigo.matchAll(/(?:className|class)=(?:"([^"]*)"|\{`([^`]*)`\})/g)]
     .flatMap((m) => (m[1] ?? m[2] ?? "").split(/[\s`]+/))
     .filter((clase) => Boolean(clase) && !clase.includes("$"));
 }
@@ -151,7 +160,7 @@ beforeAll(async () => {
   const render = async (elemento: unknown) =>
     renderToStaticMarkup(createElement(() => elemento as never));
 
-  pantallas.set("home", await render(await Home()));
+  pantallas.set("home", await pintarPagina(Home, { ruta: "/" }));
   pantallas.set(
     "listado",
     await render(
@@ -197,9 +206,9 @@ beforeAll(async () => {
     ),
   );
   pantallas.set("editar-gracias", renderToStaticMarkup(createElement(EditarGraciasPage)));
-  pantallas.set("aviso", renderToStaticMarkup(createElement(AvisoDePrivacidadPage)));
-  pantallas.set("terminos", renderToStaticMarkup(createElement(TerminosPage)));
-  pantallas.set("404", renderToStaticMarkup(createElement(NotFoundPage)));
+  pantallas.set("aviso", await pintarPagina(AvisoDePrivacidadPage, { ruta: "/aviso-de-privacidad" }));
+  pantallas.set("terminos", await pintarPagina(TerminosPage, { ruta: "/terminos" }));
+  pantallas.set("404", await pintarPagina(NotFoundPage, { ruta: "/no-existe" }));
   pantallas.set("header", renderToStaticMarkup(createElement(Header)));
   pantallas.set("footer", renderToStaticMarkup(createElement(Footer)));
 });

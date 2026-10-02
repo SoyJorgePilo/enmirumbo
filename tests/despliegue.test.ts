@@ -202,6 +202,9 @@ function resolverImportacion(desde: string, especificador: string): string | nul
   else return null;
 
   for (const candidato of [
+    // `.astro` y demás importaciones con extensión explícita (change
+    // `migrar-lectura-publica-astro`).
+    ...(path.extname(base) ? [base] : []),
     `${base}.ts`,
     `${base}.tsx`,
     path.join(base, "index.ts"),
@@ -304,6 +307,53 @@ describe("despliegue · el build de producción no necesita la base", () => {
     expect(queLeen.map((ruta) => path.relative(raiz, ruta))).toContain(
       path.join("src", "app", "sitemap.ts"),
     );
+  });
+});
+
+// ── 2b. Lo mismo en Astro (change `migrar-lectura-publica-astro`, design.md
+// §4; spec `plataforma-astro`, scenario "una prerenderizada que lee la base
+// reprueba"). En Astro todo es por petición salvo `export const prerender =
+// true`; una página así que consultara la base haría fallar `astro build` en el
+// CI, que construye sin base. Se señala antes: ni importar el acceso a datos
+// (`@/lib/directorio`, `@/lib/prisma`, `@/lib/fotos/*`) ni llegar a
+// `obtenerPrisma()` por ningún camino.
+
+const IMPORTA_ACCESO_A_DATOS = /from\s+"(?:@\/lib\/(?:directorio|prisma)|@\/lib\/fotos\/[^"]+)"/;
+
+function rutasDeAstro(dir = path.join(raiz, "src/pages")): string[] {
+  const encontradas: string[] = [];
+  for (const entrada of readdirSync(dir, { withFileTypes: true })) {
+    const completo = path.join(dir, entrada.name);
+    if (entrada.isDirectory()) encontradas.push(...rutasDeAstro(completo));
+    else if (/\.(astro|ts|js)$/.test(entrada.name)) encontradas.push(completo);
+  }
+  return encontradas;
+}
+
+/** Las rutas prerenderizadas que leen la base (o importan su acceso). */
+function prerenderizadasQueLeenLaBase(rutas: string[]): string[] {
+  return rutas
+    .filter((ruta) => /export\s+const\s+prerender\s*=\s*true/.test(readFileSync(ruta, "utf8")))
+    .filter((ruta) => IMPORTA_ACCESO_A_DATOS.test(readFileSync(ruta, "utf8")) || leeLaBase(ruta))
+    .map((ruta) => path.relative(raiz, ruta));
+}
+
+describe("despliegue · en Astro, ninguna página prerenderizada lee la base", () => {
+  it("las prerenderizadas de src/pages no tocan la base", () => {
+    const rutas = rutasDeAstro();
+    expect(rutas.filter((r) => /prerender\s*=\s*true/.test(readFileSync(r, "utf8"))).length).toBeGreaterThanOrEqual(4);
+    expect(prerenderizadasQueLeenLaBase(rutas)).toEqual([]);
+  });
+
+  it("las rutas de Astro que sí leen la base son por petición (y el rastreo las ve)", () => {
+    const queLeen = rutasDeAstro().filter((ruta) => leeLaBase(ruta)).map((r) => path.relative(raiz, r));
+    expect(queLeen).toContain(path.join("src", "pages", "index.astro"));
+    expect(queLeen).toContain(path.join("src", "pages", "sitemap.xml.ts"));
+  });
+
+  it("una prerenderizada que importa el acceso a datos reprueba (guardián del guardián)", () => {
+    const fixture = path.join(raiz, "tests/fixtures/prerender-lee-base.astro");
+    expect(prerenderizadasQueLeenLaBase([fixture])).toEqual([path.join("tests", "fixtures", "prerender-lee-base.astro")]);
   });
 });
 

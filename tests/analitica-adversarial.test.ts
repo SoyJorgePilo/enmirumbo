@@ -530,6 +530,11 @@ describe("analitica adversarial · el grupo (publico) es la frontera de la medic
     expect(readFileSync(join(raiz, "src/app/not-found.tsx"), "utf8")).not.toContain(
       "Analitica",
     );
+    // En Astro (change `migrar-lectura-publica-astro`): la 404 usa el
+    // documento base, no el tronco que mide.
+    const astro404 = readFileSync(join(raiz, "src/pages/404.astro"), "utf8");
+    expect(astro404).toMatch(/<DocumentoBase\b/);
+    expect(astro404).not.toMatch(/<TroncoPublico\b|Analitica/);
   });
 
   it("sin configuración el tronco público no deja ni rastro del proveedor", async () => {

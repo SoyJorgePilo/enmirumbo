@@ -127,6 +127,55 @@ describe("directorio-publico · la ruta dinámica no tapa rutas propias (tasks #
     }
   });
 
+  // ── Astro (change `migrar-lectura-publica-astro`, design.md §2; spec
+  // `plataforma-astro`, scenario "un slug no queda tapado por una ruta de
+  // Astro"). `src/pages/` publica segmentos de la raíz por carpeta y por
+  // archivo (`terminos.astro` → `/terminos`, `robots.txt.ts` → `/robots.txt`).
+  // La lista reservada vive en `src/lib/rutas-reservadas.ts` y vale para los
+  // dos marcos; aquí se exige que cubra también lo que publica Astro.
+
+  /**
+   * Páginas de Astro que no son un segmento de contenido: la raíz, la 404
+   * (Astro también la sirve en `/404`, como página de error) y la 500
+   * (`/500`, hallazgo M1 de T-023). "404" no puede
+   * reservarse sin tocar `src/lib/` en este change; se vigila aparte que
+   * ningún slug del catálogo lo use.
+   */
+  const PAGINAS_DE_ASTRO_QUE_NO_SON_SEGMENTO = ["index.astro", "404.astro", "500.astro"];
+  const SEGMENTOS_PROPIOS_DE_ASTRO = ["404", "500"];
+
+  it("las rutas propias de src/pages están declaradas como reservadas", () => {
+    const segmentos = segmentosDeAstro(join(raiz, "src/pages"));
+    for (const esperado of ["terminos", "aviso-de-privacidad", "robots.txt", "sitemap.xml", "opengraph-image"]) {
+      expect(segmentos, esperado).toContain(esperado);
+    }
+    for (const segmento of segmentos) {
+      expect(SEGMENTOS_RESERVADOS, `src/pages publica /${segmento} y no está reservado`).toContain(segmento);
+    }
+  });
+
+  it("un giro o categoría con el slug de una ruta de Astro haría fallar la verificación", async () => {
+    // Lo que comprueba el primer caso de este bloque contra el catálogo real:
+    // cualquiera de estos slugs lo pondría en rojo.
+    for (const slug of ["robots.txt", "sitemap.xml", "opengraph-image", "terminos", "aviso-de-privacidad"]) {
+      expect(esSegmentoReservado(slug), slug).toBe(true);
+    }
+    const giros = await prisma.giro.findMany({ select: { slug: true } });
+    const categorias = await listarCategorias();
+    expect(giros.length).toBeGreaterThan(0);
+    for (const { slug } of [...giros, ...categorias]) {
+      expect(esSegmentoReservado(slug), `el slug "${slug}" quedaría tapado`).toBe(false);
+      expect(SEGMENTOS_PROPIOS_DE_ASTRO, `el slug "${slug}" quedaría tapado por la 404 o la 500`).not.toContain(slug);
+    }
+  });
+
+  /** Segmentos de la raíz que publica `src/pages/` (carpetas y archivos). */
+  function segmentosDeAstro(dir: string): string[] {
+    return readdirSync(dir, { withFileTypes: true })
+      .filter((e) => !e.name.startsWith("[") && !PAGINAS_DE_ASTRO_QUE_NO_SON_SEGMENTO.includes(e.name))
+      .map((e) => (e.isDirectory() ? e.name : e.name.replace(/\.(astro|ts|js|mjs|md)$/, "")));
+  }
+
   it("reconoce un segmento reservado sin importar mayúsculas ni espacios", () => {
     expect(esSegmentoReservado("registro")).toBe(true);
     expect(esSegmentoReservado("Registro")).toBe(true);

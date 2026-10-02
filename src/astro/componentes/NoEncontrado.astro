@@ -1,0 +1,21 @@
+---
+/**
+ * La página de "no encontrado" (spec `layout-base`, requirement "Página 404 en
+ * español dentro del layout"; spec `plataforma-astro`, "La 404 responde igual
+ * que en Next"). El mismo marcado que `src/app/not-found.tsx`. Un solo
+ * componente para que la 404 global y las que resuelvan las rutas dinámicas
+ * en la Fase 2b no puedan divergir.
+ *
+ * El enlace de regreso usa el estilo de texto subrayado (no el verde de
+ * acción): el verde se reserva para contactar por WhatsApp (PRD §11).
+ */
+---
+
+<section class="flex flex-1 flex-col items-center justify-center gap-6 py-12 text-center">
+  <h1 class="max-w-md text-2xl font-bold tracking-tight sm:text-3xl">No encontramos esta página</h1>
+  <p class="max-w-md text-tinta-suave">A lo mejor el negocio ya no está publicado o la dirección quedó mal escrita.</p>
+  <a
+    class="inline-flex min-h-11 items-center justify-center px-4 text-base font-semibold text-accion-fuerte underline underline-offset-4"
+    href="/">Ir al inicio</a
+  >
+</section>

@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
@@ -6,7 +8,6 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest
 import { seedCatalogos } from "../prisma/seed";
 import { sembrarNegociosDemo } from "../prisma/seed-demo";
 import DestinoPage, { generateMetadata as metadataDestino } from "../src/app/(publico)/[destino]/page";
-import { metadata as metadataDeLa404 } from "../src/app/not-found";
 import FichaNegocioPage, {
   generateMetadata as metadataFicha,
 } from "../src/app/(publico)/negocio/[ficha]/page";
@@ -19,6 +20,10 @@ import {
 } from "../src/lib/directorio";
 import { construirSegmentoFicha } from "../src/lib/ficha-url";
 import { imagenesDeMarca, metadataDelSitio } from "../src/lib/seo/metadata";
+// La 404 ya se sirve con Astro (change `migrar-lectura-publica-astro`,
+// tasks.md #15): se revisa lo que declara y el <head> que sirve.
+import NoExiste from "../src/pages/404.astro";
+import { cabezaDe, pintarPagina } from "./astro-paginas";
 import {
   MARCA_DE_NUMERO_OCULTO,
   ocultarNumerosDeContacto,
@@ -134,7 +139,7 @@ afterEach(() => {
 
 describe("iteración 2 · M1 · sin URL pública no se publica ninguna imagen local", () => {
   // Scenario (layout-base): producción sin URL pública declarada
-  it("los DOS niveles raíz de metadata declaran sus imágenes, no las heredan", () => {
+  it("los DOS niveles raíz de metadata declaran sus imágenes, no las heredan", async () => {
     // El layout, para todas las páginas del sitio…
     const sitio = metadataDelSitio({ NODE_ENV: "production" });
     expect(sitio.openGraph?.images).toEqual([]);
@@ -143,8 +148,17 @@ describe("iteración 2 · M1 · sin URL pública no se publica ninguna imagen lo
     // …y la 404, que es el nivel que se escapaba (su ruta interna no hereda
     // las `images` del layout y recibía la imagen de la convención de archivo
     // resuelta contra http://localhost:3000).
-    expect(metadataDeLa404.openGraph).toBeDefined();
-    expect(metadataDeLa404.openGraph).toHaveProperty("images");
+    const fuente404 = readFileSync(join(__dirname, "../src/pages/404.astro"), "utf8");
+    expect(fuente404).toContain("openGraph: { images: imagenesDeMarca() }");
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv(VARIABLE_URL_SITIO, "");
+    try {
+      const head = cabezaDe(await pintarPagina(NoExiste, { ruta: "/no-existe" }));
+      expect(head).not.toContain('property="og:image"');
+      expect(head).not.toContain("localhost");
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 
   it("con URL pública, la imagen de marca es absoluta; sin ella, no hay imagen", () => {

@@ -299,16 +299,25 @@ describe("directorio-publico · la página de resultados no es indexable (tasks 
       join(raiz, "src/app/(publico)/negocio/[ficha]/reportar/gracias/page.tsx"),
       join(raiz, "src/app/api/tareas/purgar-rechazados/route.ts"),
       join(raiz, "src/app/api/tareas/barrer-fotos-huerfanas/route.ts"),
+      // La página de error del servidor de Astro (hallazgo M1 de T-023): sale
+      // cuando algo falla, no es contenido.
+      join(raiz, "src/pages/500.astro"),
     ];
-    const paginas = archivosDe(join(raiz, "src/app")).filter(
-      (ruta) =>
-        !noIndexables.includes(ruta) && !ruta.startsWith(join(raiz, "src/app/admin/")),
-    );
+    const paginas = archivosDe(join(raiz, "src/app"))
+      .filter(
+        (ruta) =>
+          !noIndexables.includes(ruta) && !ruta.startsWith(join(raiz, "src/app/admin/")),
+      )
+      // Las páginas de Astro (change `migrar-lectura-publica-astro`): todas
+      // indexables; la instrucción de no indexar de la 404 la agrega el
+      // documento base, no la página.
+      .concat(archivosDe(join(raiz, "src/pages")).filter((ruta) => !noIndexables.includes(ruta)));
     expect(paginas.length).toBeGreaterThanOrEqual(4);
+    expect(paginas.filter((ruta) => ruta.endsWith(".astro")).length).toBeGreaterThanOrEqual(4);
     for (const ruta of paginas) {
       expect(readFileSync(ruta, "utf8"), ruta).not.toMatch(/noindex|index:\s*false/);
     }
-    // Y las tres excepciones sí lo declaran: la lista blanca no es un permiso
+    // Y las excepciones sí lo declaran: la lista blanca no es un permiso
     // en blanco, es la constancia de que cada una lo pide a propósito.
     for (const ruta of noIndexables) {
       expect(readFileSync(ruta, "utf8"), ruta).toMatch(/noindex|index:\s*false/);
@@ -321,7 +330,7 @@ function archivosDe(dir: string): string[] {
   for (const entrada of readdirSync(dir, { withFileTypes: true })) {
     const ruta = join(dir, entrada.name);
     if (entrada.isDirectory()) rutas.push(...archivosDe(ruta));
-    else if (/\.tsx?$/.test(entrada.name)) rutas.push(ruta);
+    else if (/\.(tsx?|astro)$/.test(entrada.name)) rutas.push(ruta);
   }
   return rutas;
 }

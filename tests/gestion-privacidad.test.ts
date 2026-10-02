@@ -6,12 +6,14 @@ import { seedCatalogos } from "../prisma/seed";
 import ListadoCategoriaPage from "../src/app/(publico)/[destino]/page";
 import BuscarPage from "../src/app/(publico)/buscar/page";
 import FichaNegocioPage from "../src/app/(publico)/negocio/[ficha]/page";
-import Home from "../src/app/(publico)/page";
 import type { PrismaClient } from "../src/generated/prisma/client";
 import { obtenerNegocioPublicado } from "../src/lib/directorio";
 import { construirSegmentoFicha } from "../src/lib/ficha-url";
 import { slugify } from "../src/lib/slug";
 import { huellaDeToken } from "../src/lib/gestion/token";
+// La home ya se sirve con Astro (change `migrar-lectura-publica-astro`).
+import Home from "../src/pages/index.astro";
+import { pintarPagina } from "./astro-paginas";
 import { crearClientePrueba } from "./db";
 
 /**
@@ -58,8 +60,7 @@ let categoriaSlug = "";
 let coloniaSlug = "";
 
 async function renderHome(): Promise<string> {
-  const elemento = await Home();
-  return renderToStaticMarkup(createElement(() => elemento));
+  return pintarPagina(Home, { ruta: "/" });
 }
 
 async function renderListado(destino: string, colonia?: string): Promise<string> {

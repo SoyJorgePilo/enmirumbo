@@ -272,6 +272,9 @@ describe("privacidad · los reportes solo se leen desde el panel", () => {
       ...archivosDe(join(raiz, "src/components")).filter(
         (ruta) => !ruta.startsWith(join(raiz, "src/components/admin")),
       ),
+      // Las superficies públicas de Astro (change `migrar-lectura-publica-astro`).
+      ...archivosDe(join(raiz, "src/pages")),
+      ...archivosDe(join(raiz, "src/layouts")),
     ];
     expect(publicas.length).toBeGreaterThanOrEqual(10);
 
@@ -298,7 +301,7 @@ function archivosDe(dir: string): string[] {
   for (const entrada of readdirSync(dir, { withFileTypes: true })) {
     const ruta = join(dir, entrada.name);
     if (entrada.isDirectory()) rutas.push(...archivosDe(ruta));
-    else if (/\.tsx?$/.test(entrada.name)) rutas.push(ruta);
+    else if (/\.(tsx?|astro)$/.test(entrada.name)) rutas.push(ruta);
   }
   return rutas;
 }

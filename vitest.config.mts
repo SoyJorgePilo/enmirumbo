@@ -18,23 +18,29 @@ try {
 // `astro.config.mjs`, con sus integraciones) para que las pruebas puedan
 // renderizar `.astro` con la Container API (change `agregar-andamio-astro`,
 // design.md §4). Lo de abajo se fusiona encima, sin cambios respecto a antes.
-export default getViteConfig({
-  resolve: {
-    // Mismo alias que tsconfig.json ("@/*" → "./src/*").
-    alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },
-  },
-  test: {
-    environment: "node",
-    include: ["tests/**/*.test.ts"],
-    // Los tests comparten la base PostgreSQL de prueba: sin paralelismo entre
-    // archivos (change `preparar-deploy-produccion`, design.md §5).
-    fileParallelism: false,
-    env: {
-      // Las fotos de las pruebas caen en su propio directorio, fuera del
-      // repositorio versionado y separado del `.fotos/` de desarrollo
-      // (`tests/global-setup.ts` lo borra antes de cada corrida).
-      FOTOS_DIR: "./.fotos-test",
+export default getViteConfig(
+  {
+    resolve: {
+      // Mismo alias que tsconfig.json ("@/*" → "./src/*").
+      alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },
     },
-    globalSetup: "./tests/global-setup.ts",
+    test: {
+      environment: "node",
+      include: ["tests/**/*.test.ts"],
+      // Los tests comparten la base PostgreSQL de prueba: sin paralelismo entre
+      // archivos (change `preparar-deploy-produccion`, design.md §5).
+      fileParallelism: false,
+      env: {
+        // Las fotos de las pruebas caen en su propio directorio, fuera del
+        // repositorio versionado y separado del `.fotos/` de desarrollo
+        // (`tests/global-setup.ts` lo borra antes de cada corrida).
+        FOTOS_DIR: "./.fotos-test",
+      },
+      globalSetup: "./tests/global-setup.ts",
+    },
   },
-});
+  // Sin la barra de desarrollo, Astro no anota cada etiqueta con
+  // `data-astro-source-*` al pintar en Vitest: el HTML de las pruebas queda
+  // como el del build (change `migrar-lectura-publica-astro`).
+  { devToolbar: { enabled: false } },
+);

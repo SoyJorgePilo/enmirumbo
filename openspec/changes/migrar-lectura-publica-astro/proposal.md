@@ -28,6 +28,8 @@ Este change especifica **solo 2a**. Las decisiones técnicas de 2b se dejan resu
 - **Pruebas**: las que hoy importan `src/app/` para estas rutas pasan a apuntar a las páginas de Astro con las mismas aserciones. Se agregan guardianes de cabeceras, de cero JS propio y de la exclusión de la medición.
 - **Ningún texto de UI, ruta, consulta, cabecera ni dato público cambia.** `src/lib/` y `src/components/` no se tocan. `src/app/` sigue inerte hasta el corte (T-027).
 
+> **Nota (hallazgo M1 de `reports/c-seguridad.md`):** se agrega `src/pages/500.astro`, página de error del servidor en español, dinámica y `noindex`. Sin ella, el 500 de una página que lanza (p. ej. con la base caída) salía vacío y sin las cuatro cabeceras, porque Astro lo arma fuera del middleware. No cambia la spec: ya pide las cuatro en toda respuesta.
+
 ## Capacidades afectadas
 
 - **`plataforma-astro`**. ADDED: paridad del armazón y de las rutas de 2a. MODIFIED: requirement "Los componentes no dependen de Next para enlaces e imágenes" (letra de `fetchpriority`, ver abajo).

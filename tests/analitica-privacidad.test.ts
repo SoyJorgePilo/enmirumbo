@@ -4,17 +4,21 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { seedCatalogos } from "../prisma/seed";
 import ListadoCategoriaPage from "../src/app/(publico)/[destino]/page";
-import AvisoDePrivacidadPage from "../src/app/(publico)/aviso-de-privacidad/page";
 import BuscarPage from "../src/app/(publico)/buscar/page";
 import FichaNegocioPage from "../src/app/(publico)/negocio/[ficha]/page";
-import Home from "../src/app/(publico)/page";
 import RegistroPage from "../src/app/(publico)/registro/page";
 import RegistroGraciasPage from "../src/app/(publico)/registro/gracias/page";
-import TerminosPage from "../src/app/(publico)/terminos/page";
 import type { PrismaClient } from "../src/generated/prisma/client";
 import { VARIABLE_SRC, VARIABLE_WEBSITE_ID } from "../src/lib/analitica/config";
 import { datosDeBusqueda } from "../src/lib/busqueda";
 import { construirSegmentoFicha } from "../src/lib/ficha-url";
+// Rutas de la Fase 2a: ya se sirven con Astro (change
+// `migrar-lectura-publica-astro`, tasks.md #15). Se revisa el documento
+// completo, con su layout.
+import AvisoDePrivacidadPage from "../src/pages/aviso-de-privacidad.astro";
+import Home from "../src/pages/index.astro";
+import TerminosPage from "../src/pages/terminos.astro";
+import { pintarPagina } from "./astro-paginas";
 import { crearClientePrueba } from "./db";
 
 /**
@@ -145,11 +149,11 @@ beforeAll(async () => {
       searchParams: Promise.resolve({}),
     }),
   );
-  htmlHome = await render(Home());
+  htmlHome = await pintarPagina(Home, { ruta: "/" });
   htmlRegistro = await render(RegistroPage());
   htmlGracias = renderToStaticMarkup(createElement(RegistroGraciasPage));
-  htmlAviso = renderToStaticMarkup(createElement(AvisoDePrivacidadPage));
-  htmlTerminos = renderToStaticMarkup(createElement(TerminosPage));
+  htmlAviso = await pintarPagina(AvisoDePrivacidadPage, { ruta: "/aviso-de-privacidad" });
+  htmlTerminos = await pintarPagina(TerminosPage, { ruta: "/terminos" });
 });
 
 afterAll(async () => {

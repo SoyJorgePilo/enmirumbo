@@ -1,6 +1,6 @@
 # T-023 · Superficie pública de lectura en Astro (Fase 2)
 
-**Estado:** en-spec <!-- pendiente | en-spec | en-desarrollo | en-review | hecho -->
+**Estado:** en-review <!-- pendiente | en-spec | en-desarrollo | en-review | hecho --> — mitad 2a en review; la 2b (`/[destino]`, `/negocio/[ficha]`, `/buscar`, fotos) sigue pendiente, así que el ticket NO pasa a hecho con este PR
 **Prioridad:** P1
 **Épica:** E9 (docs/backlog.md)
 **Referencias PRD:** v2 §10 (técnica reemplazable); ADR-013

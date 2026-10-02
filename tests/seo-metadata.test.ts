@@ -4,7 +4,6 @@ import { seedCatalogos } from "../prisma/seed";
 import { sembrarNegociosDemo } from "../prisma/seed-demo";
 import { generateMetadata as metadataDestino } from "../src/app/(publico)/[destino]/page";
 import { generateMetadata as metadataFicha } from "../src/app/(publico)/negocio/[ficha]/page";
-import { metadata as metadataLayout } from "../src/app/layout";
 import type { PrismaClient } from "../src/generated/prisma/client";
 import { construirSegmentoFicha } from "../src/lib/ficha-url";
 import {
@@ -60,6 +59,10 @@ afterAll(async () => {
   await prisma.negocio.deleteMany({ where: { whatsapp: { startsWith: "7719995" } } });
   await prisma.$disconnect();
 });
+
+// La metadata del layout raíz es la que el documento base de Astro le pasa a
+// los metadatos (change `migrar-lectura-publica-astro`, tasks.md #15).
+const metadataLayout = metadataDelSitio();
 
 describe("layout-base · metadata base del sitio (tasks #13)", () => {
   // Scenario: la home conserva el título del sitio + una página con título

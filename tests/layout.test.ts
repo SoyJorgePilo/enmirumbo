@@ -27,14 +27,9 @@ import ColaAdminPage from "../src/app/admin/cola/page";
 import AccesoAdminPage from "../src/app/admin/page";
 import DetalleRegistroAdminPage from "../src/app/admin/registros/[id]/page";
 import RegistroAprobadoPage from "../src/app/admin/registros/[id]/aprobado/page";
-import AvisoDePrivacidadPage from "../src/app/(publico)/aviso-de-privacidad/page";
-import { metadata } from "../src/app/layout";
 import FichaNegocioPage from "../src/app/(publico)/negocio/[ficha]/page";
 import ReportarGraciasPage from "../src/app/(publico)/negocio/[ficha]/reportar/gracias/page";
 import ReportarNegocioPage from "../src/app/(publico)/negocio/[ficha]/reportar/page";
-import NotFoundPage from "../src/app/not-found";
-import Home from "../src/app/(publico)/page";
-import TerminosPage from "../src/app/(publico)/terminos/page";
 import { Footer } from "../src/components/footer";
 import { Header } from "../src/components/header";
 import {
@@ -49,7 +44,17 @@ import {
   type CatalogosDeLaRaiz,
   resolverSlugDeLaRaiz,
 } from "../src/lib/seo/rutas";
+import { metadataDelSitio } from "../src/lib/seo/metadata";
+// Home, legales, 404 y el documento base ya se sirven con Astro (change
+// `migrar-lectura-publica-astro`, tasks.md #15). Lo que pintaba cada página es
+// el contenido de <main>; los metadatos del documento salen de
+// `metadataDelSitio()`, que es lo que usa `src/layouts/DocumentoBase.astro`.
+import NotFoundPage from "../src/pages/404.astro";
+import AvisoDePrivacidadPage from "../src/pages/aviso-de-privacidad.astro";
+import Home from "../src/pages/index.astro";
+import TerminosPage from "../src/pages/terminos.astro";
 import { peticion, reiniciarPeticion } from "./admin-mocks";
+import { contenidoDelMain, pintarPagina } from "./astro-paginas";
 import { crearClientePrueba } from "./db";
 
 // Deuda registrada en el change agregar-layout-base (reports/b-dev.md):
@@ -74,7 +79,7 @@ function archivosDe(dir: string, extensiones: string[]): string[] {
   return rutas;
 }
 
-const fuentesTsx = archivosDe(join(raiz, "src"), [".tsx"]);
+const fuentesTsx = archivosDe(join(raiz, "src"), [".tsx", ".astro"]);
 const fuentesTodas = archivosDe(join(raiz, "src"), [".ts", ".tsx", ".css"]);
 
 /** ¿Es una carpeta de GRUPO de rutas, `(publico)`? No aparece en la URL. */
@@ -107,22 +112,37 @@ export function rutaDePagina(rutaArchivo: string): string {
  * `/negocio/[ficha]`) se validan aparte, resolviendo el destino contra el
  * catálogo y contra los negocios publicados.
  */
-const rutasExistentes = new Set(
-  archivosDe(join(raiz, "src/app"), ["page.tsx"])
+const rutasExistentes = new Set([
+  ...archivosDe(join(raiz, "src/app"), ["page.tsx"])
     .map(rutaDePagina)
     .filter((ruta) => !ruta.includes("[")),
-);
+  // Las rutas de Astro (change `migrar-lectura-publica-astro`): cada página o
+  // endpoint de `src/pages/` sin segmentos dinámicos. La 404 no es un destino.
+  ...archivosDe(join(raiz, "src/pages"), [".astro", ".ts"])
+    .map(rutaDePaginaAstro)
+    .filter((ruta) => !ruta.includes("[") && ruta !== "/404"),
+]);
+
+/** URL de una página o endpoint de `src/pages/` a partir de su archivo. */
+function rutaDePaginaAstro(rutaArchivo: string): string {
+  const relativa = rutaArchivo.slice(join(raiz, "src/pages").length + 1).replace(/\.(astro|ts)$/, "");
+  const sinIndice = relativa === "index" ? "" : relativa.replace(/\/index$/, "");
+  return `/${sinIndice}`;
+}
 const globalsCss = readFileSync(join(raiz, "src/app/globals.css"), "utf8");
-const layoutTsx = readFileSync(join(raiz, "src/app/layout.tsx"), "utf8");
+// El documento base del sitio (antes `src/app/layout.tsx`).
+const layoutTsx = readFileSync(join(raiz, "src/layouts/DocumentoBase.astro"), "utf8");
 const headerTsx = readFileSync(join(raiz, "src/components/header.tsx"), "utf8");
 
 const htmlHeader = renderToStaticMarkup(createElement(Header));
 const htmlFooter = renderToStaticMarkup(createElement(Footer));
-const html404 = renderToStaticMarkup(createElement(NotFoundPage));
+const html404 = contenidoDelMain(await pintarPagina(NotFoundPage, { ruta: "/no-existe" }));
 // Páginas legales (change `agregar-paginas-legales`): sus enlaces cruzados
 // entran a la misma revisión que los del resto del sitio.
-const htmlAvisoPrivacidad = renderToStaticMarkup(createElement(AvisoDePrivacidadPage));
-const htmlTerminos = renderToStaticMarkup(createElement(TerminosPage));
+const htmlAvisoPrivacidad = contenidoDelMain(
+  await pintarPagina(AvisoDePrivacidadPage, { ruta: "/aviso-de-privacidad" }),
+);
+const htmlTerminos = contenidoDelMain(await pintarPagina(TerminosPage, { ruta: "/terminos" }));
 const normalizado = (html: string) => html.replace(/\s+/g, " ");
 
 // La home y las páginas del directorio leen la base (Server Components
@@ -190,8 +210,7 @@ beforeAll(async () => {
   ).map((n) => n.id);
   await prisma.$disconnect();
 
-  const home = await Home();
-  htmlHome = renderToStaticMarkup(createElement(() => home));
+  htmlHome = contenidoDelMain(await pintarPagina(Home, { ruta: "/" }));
 
   // El segmento dinámico de la raíz se llama `destino` desde el change
   // `agregar-seo-local`: la misma carpeta resuelve categoría, giro y
@@ -716,7 +735,7 @@ describe("layout-base · enlaces internos y externos de las páginas servidas", 
       expect(html).not.toContain("/admin");
     }
     // Tampoco en el código de las superficies públicas (header, footer, home).
-    for (const ruta of ["src/components/header.tsx", "src/components/footer.tsx", "src/app/(publico)/page.tsx"]) {
+    for (const ruta of ["src/components/header.tsx", "src/components/footer.tsx", "src/pages/index.astro"]) {
       expect(readFileSync(join(raiz, ruta), "utf8")).not.toContain("/admin");
     }
   });
@@ -915,6 +934,8 @@ describe("layout-base · documento es-MX con metadata (scenario 10)", () => {
   // no cambió. Los demás campos nuevos (metadataBase, Open Graph) los cubre
   // `tests/seo-metadata.test.ts`.
   it("título y descripción son los literales aprobados en la spec", () => {
+    const metadata = metadataDelSitio();
+    expect(layoutTsx).toContain("metadataDelSitio()");
     expect(metadata.title).toEqual({
       default: "EnMiRumbo — Encuentra negocios y servicios en Tizayuca",
       template: "%s — EnMiRumbo",
@@ -948,6 +969,16 @@ describe("layout-base · sin JS de cliente (scenario 11)", () => {
     expect(fuentesLayoutBase.length).toBeGreaterThanOrEqual(6);
     for (const ruta of fuentesLayoutBase) {
       expect(readFileSync(ruta, "utf8"), ruta).not.toMatch(/["']use client["']/);
+    }
+  });
+
+  // MODIFIED (change `migrar-lectura-publica-astro`): ni directiva `client:`
+  // en el documento base, el tronco ni las páginas de Astro.
+  it("ningún layout ni página de Astro se hidrata con una directiva client:", () => {
+    const astro = archivosDe(join(raiz, "src"), [".astro"]);
+    expect(astro.length).toBeGreaterThanOrEqual(7);
+    for (const ruta of astro) {
+      expect(readFileSync(ruta, "utf8"), ruta).not.toMatch(/\sclient:[a-z]+/i);
     }
   });
 });
@@ -996,7 +1027,7 @@ describe("layout-base · página 404 en español", () => {
 
 // layout-base MODIFIED por el change agregar-formulario-registro.
 describe("layout-base · entrada al registro desde la home", () => {
-  const homeTsx = readFileSync(join(raiz, "src/app/(publico)/page.tsx"), "utf8");
+  const homeTsx = readFileSync(join(raiz, "src/pages/index.astro"), "utf8");
   const botonPrimario = readFileSync(join(raiz, "src/lib/estilos-boton.ts"), "utf8");
 
   // Scenario: entrada al registro desde la home
@@ -1021,10 +1052,18 @@ describe("layout-base · sin rastros de la plantilla (scenario 13)", () => {
   // entorno legítima que el panel mira para no abrirse mal configurado en
   // producción, igual que ya hacía `prisma/seed-demo.ts`.
   it("no queda nada de create-next-app en src/", () => {
+    // Única excepción, y solo para "geist": la imagen de marca se dibuja con
+    // Geist Regular, la tipografía que traía `next/og`, copiada con su
+    // licencia (change `migrar-lectura-publica-astro`, design.md §6). No es la
+    // fuente de la plantilla: el sitio sigue con la pila de sistema.
+    const imagenDeMarca = join(raiz, "src/astro/imagen-de-marca");
     for (const ruta of fuentesTodas) {
-      expect(readFileSync(ruta, "utf8"), ruta).not.toMatch(
-        /next\.svg|vercel\.svg|vercel\.(com|app)|create next app|Get started|geist|prefers-color-scheme/i,
-      );
+      const patron = ruta.startsWith(imagenDeMarca)
+        ? /next\.svg|vercel\.svg|vercel\.(com|app)|create next app|Get started|prefers-color-scheme/i
+        : /next\.svg|vercel\.svg|vercel\.(com|app)|create next app|Get started|geist|prefers-color-scheme/i;
+      expect(readFileSync(ruta, "utf8"), ruta).not.toMatch(patron);
     }
+    expect(globalsCss).not.toMatch(/geist/i);
+    expect(layoutTsx).not.toMatch(/geist/i);
   });
 });

@@ -1,12 +1,10 @@
-import { createElement } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { seedCatalogos } from "../prisma/seed";
 import { sembrarNegociosDemo } from "../prisma/seed-demo";
-import ListadoCategoriaPage from "../src/app/(publico)/[destino]/page";
-import BuscarPage from "../src/app/(publico)/buscar/page";
-import FichaNegocioPage from "../src/app/(publico)/negocio/[ficha]/page";
+// Las páginas del directorio ya se sirven con Astro (change
+// `migrar-directorio-publico-astro`, tasks.md #15).
+import { mainDeBuscar, mainDeDestino, mainDeFicha } from "./paginas-directorio";
 import { construirSegmentoFicha } from "../src/lib/ficha-url";
 import { crearClientePrueba } from "./db";
 
@@ -58,10 +56,6 @@ function atributos(etiqueta: string): Record<string, string> {
   );
 }
 
-async function render(pagina: unknown): Promise<string> {
-  const resuelta = (await pagina) as React.ReactElement;
-  return renderToStaticMarkup(createElement(() => resuelta));
-}
 
 beforeAll(async () => {
   const prisma = crearClientePrueba();
@@ -85,41 +79,11 @@ beforeAll(async () => {
   });
   await prisma.$disconnect();
 
-  htmlListado = await render(
-    ListadoCategoriaPage({
-      params: Promise.resolve({ destino: "servicios-del-hogar" }),
-      searchParams: Promise.resolve({}),
-    }),
-  );
-  htmlBuscar = await render(
-    BuscarPage({
-      searchParams: Promise.resolve({ q: "mentiras" }),
-    } as unknown as Parameters<typeof BuscarPage>[0]),
-  );
-  htmlFicha = await render(
-    FichaNegocioPage({
-      params: Promise.resolve({
-        ficha: construirSegmentoFicha(veterinaria.nombre, veterinaria.id),
-      }),
-      searchParams: Promise.resolve({}),
-    }),
-  );
-  htmlFichaAbarrotes = await render(
-    FichaNegocioPage({
-      params: Promise.resolve({
-        ficha: construirSegmentoFicha(abarrotes.nombre, abarrotes.id),
-      }),
-      searchParams: Promise.resolve({}),
-    }),
-  );
-  htmlFichaMinima = await render(
-    FichaNegocioPage({
-      params: Promise.resolve({
-        ficha: construirSegmentoFicha(fonda.nombre, fonda.id),
-      }),
-      searchParams: Promise.resolve({}),
-    }),
-  );
+  htmlListado = await mainDeDestino("servicios-del-hogar", {});
+  htmlBuscar = await mainDeBuscar({ q: "mentiras" });
+  htmlFicha = await mainDeFicha(construirSegmentoFicha(veterinaria.nombre, veterinaria.id));
+  htmlFichaAbarrotes = await mainDeFicha(construirSegmentoFicha(abarrotes.nombre, abarrotes.id));
+  htmlFichaMinima = await mainDeFicha(construirSegmentoFicha(fonda.nombre, fonda.id));
 });
 
 afterAll(async () => {

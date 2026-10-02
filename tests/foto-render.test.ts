@@ -13,9 +13,7 @@ vi.mock("next/navigation", async () => {
 
 import { seedCatalogos } from "../prisma/seed";
 import { sembrarNegociosDemo } from "../prisma/seed-demo";
-import ListadoCategoriaPage from "../src/app/(publico)/[destino]/page";
 import DetalleRegistroAdminPage from "../src/app/admin/registros/[id]/page";
-import FichaNegocioPage from "../src/app/(publico)/negocio/[ficha]/page";
 import { MarcadorFoto } from "../src/components/directorio/marcador-foto";
 import type { PrismaClient } from "../src/generated/prisma/client";
 import { iconoDeCategoria } from "../src/lib/ui/iconos-categorias";
@@ -24,6 +22,9 @@ import { construirSegmentoFicha } from "../src/lib/ficha-url";
 import { generarClaveFoto } from "../src/lib/fotos/clave";
 import { peticion, reiniciarPeticion } from "./admin-mocks";
 import { crearClientePrueba } from "./db";
+// Las páginas del directorio ya se sirven con Astro (change
+// `migrar-directorio-publico-astro`, tasks.md #15).
+import { mainDeDestino, mainDeFicha } from "./paginas-directorio";
 
 // Spec: directorio-publico (tarjeta con foto real, ficha con foto, "Solo se
 // pinta la foto que generó el servidor", presupuesto de 4G) y revision-admin
@@ -42,22 +43,15 @@ let idConFoto: string;
 let idSinFoto: string;
 let htmlListado = "";
 
+/** Lo que pinta la página dentro de `<main>` (lanza si no responde 200). */
 async function renderListado(categoria: string): Promise<string> {
-  const elemento = await ListadoCategoriaPage({
-    // `destino` desde T-009: el mismo segmento dinámico resuelve
-    // categoría, giro y giro+colonia; la URL de la categoría no cambió.
-    params: Promise.resolve({ destino: categoria }),
-    searchParams: Promise.resolve({}),
-  });
-  return renderToStaticMarkup(createElement(() => elemento));
+  // `destino` desde T-009: el mismo segmento dinámico resuelve categoría,
+  // giro y giro+colonia; la URL de la categoría no cambió.
+  return mainDeDestino(categoria);
 }
 
 async function renderFicha(segmento: string): Promise<string> {
-  const elemento = await FichaNegocioPage({
-    params: Promise.resolve({ ficha: segmento }),
-    searchParams: Promise.resolve({}),
-  });
-  return renderToStaticMarkup(createElement(() => elemento));
+  return mainDeFicha(segmento);
 }
 
 async function renderDetalleAdmin(id: string): Promise<string> {

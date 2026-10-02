@@ -1,0 +1,76 @@
+---
+/**
+ * Resultados del buscador (lo que era `src/app/(publico)/buscar/page.tsx`;
+ * change `migrar-directorio-publico-astro`). Spec `directorio-publico`,
+ * requirements "Página de resultados con las mismas tarjetas del listado",
+ * "Sin resultados, la página ofrece las categorías como alternativa",
+ * "Consulta vacía y términos hostiles acotados, sin error" y "La página de
+ * resultados no es indexable".
+ *
+ * La búsqueda la resuelve `buscarNegociosPublicados`, que aplica `estado:
+ * publicado` por construcción. El título es ESTÁTICO y la página pide no
+ * indexarse (`src/astro/buscar.ts`): el texto del vecino solo sale en el `h1`
+ * y en el campo, saneado y recortado.
+ */
+import { METADATOS_BUSCAR } from "@/astro/buscar";
+import { cargarBusqueda } from "@/astro/directorio";
+import { Buscador } from "@/components/directorio/buscador";
+import { CategoriasGrid } from "@/components/directorio/categorias-grid";
+import { TarjetaNegocio } from "@/components/directorio/tarjeta-negocio";
+import TroncoPublico from "@/layouts/TroncoPublico.astro";
+import { construirEnlaceWhatsapp } from "@/lib/enlaces";
+import { construirSegmentoFicha } from "@/lib/ficha-url";
+
+export const prerender = false;
+
+const carga = await cargarBusqueda(Astro.url.searchParams);
+---
+
+<TroncoPublico metadatos={METADATOS_BUSCAR} precargaImagen={carga.tipo === "resultados" ? carga.precargaImagen : null}>
+  {
+    carga.tipo === "sin-consulta" ? (
+      <section class="flex flex-col gap-6 py-4">
+        <div class="flex flex-col gap-2 text-center">
+          <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">¿Qué estás buscando?</h1>
+          <p class="text-tinta-suave">Escribe qué necesitas y te decimos quién lo hace en Tizayuca.</p>
+        </div>
+        <Buscador valorInicial="" />
+        <CategoriasGrid categorias={carga.categorias} />
+      </section>
+    ) : carga.tipo === "sin-resultados" ? (
+      <section class="flex flex-col gap-6 py-4">
+        <h1 class="text-2xl font-bold tracking-tight break-words sm:text-3xl">{`Resultados para "${carga.consulta.enElTitulo}"`}</h1>
+        <Buscador valorInicial={carga.consulta.enElCampo} />
+        <div class="flex flex-col gap-4 rounded-xl border border-borde bg-superficie p-6">
+          <p class="break-words text-tinta-suave">{`No encontramos negocios para "${carga.consulta.enElTitulo}".`}</p>
+          <p class="text-tinta-suave">Prueba con otra palabra o elige una categoría:</p>
+          <CategoriasGrid categorias={carga.categorias} />
+        </div>
+      </section>
+    ) : (
+      <section class="flex flex-col gap-6 py-4">
+        <h1 class="text-2xl font-bold tracking-tight break-words sm:text-3xl">{`Resultados para "${carga.consulta.enElTitulo}"`}</h1>
+        <Buscador valorInicial={carga.consulta.enElCampo} />
+        <ul class="flex flex-col gap-4">
+          {
+            carga.resultados.map((negocio, indice) => (
+              <li>
+                <TarjetaNegocio
+                  nombre={negocio.nombre}
+                  coloniaNombre={negocio.coloniaNombre}
+                  categoriaSlug={negocio.categoriaSlug}
+                  coloniaSlug={negocio.coloniaSlug}
+                  entregaADomicilio={negocio.entregaADomicilio}
+                  fotoClave={negocio.fotoClave}
+                  prioridad={indice === 0}
+                  hrefFicha={`/negocio/${construirSegmentoFicha(negocio.nombre, negocio.id)}`}
+                  hrefWhatsapp={construirEnlaceWhatsapp(negocio.whatsapp)}
+                />
+              </li>
+            ))
+          }
+        </ul>
+      </section>
+    )
+  }
+</TroncoPublico>

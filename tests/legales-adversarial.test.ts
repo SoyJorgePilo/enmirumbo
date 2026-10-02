@@ -7,7 +7,6 @@ import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { seedCatalogos } from "../prisma/seed";
-import FichaNegocioPage from "../src/app/(publico)/negocio/[ficha]/page";
 import { Footer } from "../src/components/footer";
 import { DocumentoLegalView } from "../src/components/legales/documento-legal";
 import { AvisoConsentimiento } from "../src/components/registro/aviso-consentimiento";
@@ -27,6 +26,9 @@ import AvisoDePrivacidadPage from "../src/pages/aviso-de-privacidad.astro";
 import TerminosPage from "../src/pages/terminos.astro";
 import { contenidoDelMain, pintarPagina } from "./astro-paginas";
 import { crearClientePrueba } from "./db";
+// Las páginas del directorio ya se sirven con Astro (change
+// `migrar-directorio-publico-astro`, tasks.md #15).
+import { pintarFicha } from "./paginas-directorio";
 
 /**
  * Etapa C (seguridad y test) del change `agregar-paginas-legales`.
@@ -396,11 +398,8 @@ describe("adversarial · lo que el aviso promete vs. lo que la ficha publica", (
     });
     id = creado.id;
 
-    const elemento = await FichaNegocioPage({
-      params: Promise.resolve({ ficha: construirSegmentoFicha(NEGOCIO_PRUEBA.nombre, id) }),
-      searchParams: Promise.resolve({}),
-    });
-    htmlFicha = renderToStaticMarkup(createElement(() => elemento));
+    // El documento completo: el `<head>` también es pantalla pública.
+    htmlFicha = (await pintarFicha(construirSegmentoFicha(NEGOCIO_PRUEBA.nombre, id))).documento;
   });
 
   afterAll(async () => {

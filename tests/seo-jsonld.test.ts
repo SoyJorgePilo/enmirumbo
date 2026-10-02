@@ -1,12 +1,11 @@
-import { createElement } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
 
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { seedCatalogos } from "../prisma/seed";
 import { sembrarNegociosDemo } from "../prisma/seed-demo";
-import DestinoPage from "../src/app/(publico)/[destino]/page";
-import FichaNegocioPage from "../src/app/(publico)/negocio/[ficha]/page";
+// Las páginas del directorio ya se sirven con Astro (change
+// `migrar-directorio-publico-astro`, tasks.md #15).
+import { mainDeDestino, mainDeFicha, pintarFicha } from "./paginas-directorio";
 import type { PrismaClient } from "../src/generated/prisma/client";
 import { datosDeBusqueda } from "../src/lib/busqueda";
 import { construirSegmentoFicha } from "../src/lib/ficha-url";
@@ -24,14 +23,9 @@ const NOMBRE_HOSTIL = "Tacos </script><script>alert(1)</script>";
 let prisma: PrismaClient;
 let idPorWhatsapp: Record<string, string> = {};
 
+/** Lo que pinta la ficha dentro de `<main>` (lanza si no responde 200). */
 async function renderFicha(whatsapp: string, nombre: string): Promise<string> {
-  const elemento = await FichaNegocioPage({
-    params: Promise.resolve({
-      ficha: construirSegmentoFicha(nombre, idPorWhatsapp[whatsapp]),
-    }),
-    searchParams: Promise.resolve({}),
-  });
-  return renderToStaticMarkup(createElement(() => elemento));
+  return mainDeFicha(construirSegmentoFicha(nombre, idPorWhatsapp[whatsapp]));
 }
 
 /** Bloques `application/ld+json` del HTML, ya interpretados. */
@@ -204,18 +198,16 @@ describe("directorio-publico · JSON-LD de la ficha publicada (tasks #18)", () =
   // Scenario: solo en las fichas publicadas
   it("los listados y las páginas de giro no emiten datos estructurados", async () => {
     for (const destino of ["servicios-del-hogar", "plomeria", "plomeria-huicalco"]) {
-      const elemento = await DestinoPage({
-        params: Promise.resolve({ destino }),
-        searchParams: Promise.resolve({}),
-      });
-      const html = renderToStaticMarkup(createElement(() => elemento));
+      const html = await mainDeDestino(destino);
       expect(bloquesJsonLd(html), destino).toEqual([]);
     }
   });
 
   it("una ficha en revisión no llega a emitir nada (responde 404)", async () => {
-    await expect(
-      renderFicha("7719995011", "Barbería El Buen Corte Imaginario"),
-    ).rejects.toMatchObject({ digest: "NEXT_HTTP_ERROR_FALLBACK;404" });
+    const respuesta = await pintarFicha(
+      construirSegmentoFicha("Barbería El Buen Corte Imaginario", idPorWhatsapp["7719995011"]),
+    );
+    expect(respuesta.status).toBe(404);
+    expect(respuesta.documento).not.toContain("application/ld+json");
   });
 });

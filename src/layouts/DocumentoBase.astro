@@ -31,9 +31,18 @@ interface Props {
   metadatos?: MetadatosDePagina;
   /** Respuesta 404: pide no indexarse, como hace Next. */
   noEncontrado?: boolean;
+  /**
+   * URL de la foto prioritaria de la página (la de la ficha, o la de la
+   * primera tarjeta de un listado), o `null`. Next la precargaba en el
+   * `<head>` porque React 19 emite `<link rel="preload" as="image">` al pintar
+   * un `<img>` no diferido; pintado desde Astro, React no la emite (medido,
+   * tasks.md #6 del change `migrar-directorio-publico-astro`), así que la pone
+   * el documento, en el mismo lugar que Next: después del `viewport`.
+   */
+  precargaImagen?: string | null;
 }
 
-const { metadatos, noEncontrado = false } = Astro.props;
+const { metadatos, noEncontrado = false, precargaImagen = null } = Astro.props;
 // En el <body>, `min-h-dvh` y no `min-h-full`: en Android la barra del
 // navegador se colapsa al hacer scroll y con `100%` quedaba una franja blanca
 // bajo el pie (bug reportado por un vecino en producción, 2026-09-04).
@@ -50,7 +59,11 @@ const etiquetas = resolverMetadatos({
 <html lang="es-MX" class="h-full antialiased">
   <head>
     {
-      etiquetas.map((e) =>
+      etiquetas.slice(0, 2).map((e) => (e.etiqueta === "meta" ? <meta {...e.atributos} /> : null))
+    }
+    {precargaImagen && <link rel="preload" as="image" href={precargaImagen} />}
+    {
+      etiquetas.slice(2).map((e) =>
         e.etiqueta === "title" ? (
           <title>{e.texto}</title>
         ) : e.etiqueta === "meta" ? (

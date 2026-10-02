@@ -20,7 +20,6 @@ import GraciasEdicionPage from "../src/app/(gestion)/editar/[token]/gracias/page
 import LayoutGestion, {
   metadata as metadataGestion,
 } from "../src/app/(gestion)/layout";
-import FichaNegocioPage from "../src/app/(publico)/negocio/[ficha]/page";
 import DetalleEdicionPage from "../src/app/admin/ediciones/[id]/page";
 import type { PrismaClient } from "../src/generated/prisma/client";
 import {
@@ -63,6 +62,9 @@ import { MENSAJES_ERROR_REGISTRO } from "../src/lib/registro/textos";
 import TroncoPublico from "../src/layouts/TroncoPublico.astro";
 import { pintarPagina } from "./astro-paginas";
 import { crearClientePrueba } from "./db";
+// Las páginas del directorio ya se sirven con Astro (change
+// `migrar-directorio-publico-astro`, tasks.md #15).
+import { mainDeFicha } from "./paginas-directorio";
 import {
   NoEncontradoSimulado,
   peticion,
@@ -573,14 +575,7 @@ describe("adversarial · texto hostil que entra por la edición y sale por la fi
     });
 
     const negocio = await prisma.negocio.findUniqueOrThrow({ where: { id } });
-    const html = await render(
-      FichaNegocioPage({
-        params: Promise.resolve({
-          ficha: construirSegmentoFicha(negocio.nombre, negocio.id),
-        }),
-        searchParams: Promise.resolve({}),
-      } as Parameters<typeof FichaNegocioPage>[0]),
-    );
+    const html = await mainDeFicha(construirSegmentoFicha(negocio.nombre, negocio.id));
 
     // Ni una etiqueta viva: React escapa el texto…
     expect(html).not.toContain("<img src=x");
@@ -608,14 +603,7 @@ describe("adversarial · texto hostil que entra por la edición y sale por la fi
 
     const negocio = await prisma.negocio.findUniqueOrThrow({ where: { id } });
     const html = normalizado(
-      await render(
-        FichaNegocioPage({
-          params: Promise.resolve({
-            ficha: construirSegmentoFicha(negocio.nombre, negocio.id),
-          }),
-          searchParams: Promise.resolve({}),
-        } as Parameters<typeof FichaNegocioPage>[0]),
-      ),
+      await mainDeFicha(construirSegmentoFicha(negocio.nombre, negocio.id)),
     );
 
     expect(html).toContain("m.facebook.example");

@@ -21,12 +21,14 @@ import type { MetadatosDePagina } from "@/astro/metadatos";
 
 interface Props {
   metadatos?: MetadatosDePagina;
+  /** La foto prioritaria que se precarga en el `<head>` (ver `DocumentoBase`). */
+  precargaImagen?: string | null;
 }
 
-const { metadatos } = Astro.props;
+const { metadatos, precargaImagen = null } = Astro.props;
 ---
 
-<DocumentoBase metadatos={metadatos}>
+<DocumentoBase metadatos={metadatos} precargaImagen={precargaImagen}>
   <slot />
   <ScriptAnalitica />
 </DocumentoBase>

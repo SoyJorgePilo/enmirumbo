@@ -25,18 +25,41 @@ function contenedorAstro(): Promise<AstroContainer> {
   return contenedor;
 }
 
-/** El documento HTML completo de una página de `src/pages/` o de un layout. */
-export async function pintarPagina(
-  pagina: ComponenteAstro,
-  opciones: { ruta?: string; slots?: Record<string, string>; props?: Record<string, unknown> } = {},
-): Promise<string> {
-  const c = await contenedorAstro();
-  return c.renderToString(pagina, {
+type OpcionesDePintado = {
+  ruta?: string;
+  slots?: Record<string, string>;
+  props?: Record<string, unknown>;
+  /** Parámetros de una ruta dinámica (`[destino]`, `[ficha]`), ya decodificados. */
+  params?: Record<string, string>;
+};
+
+function opcionesDelContenedor(opciones: OpcionesDePintado) {
+  return {
     partial: false,
     request: new Request(`${URL_DE_PRUEBA}${opciones.ruta ?? "/"}`),
     ...(opciones.slots ? { slots: opciones.slots } : {}),
     ...(opciones.props ? { props: opciones.props } : {}),
-  });
+    ...(opciones.params ? { params: opciones.params } : {}),
+  };
+}
+
+/** El documento HTML completo de una página de `src/pages/` o de un layout. */
+export async function pintarPagina(pagina: ComponenteAstro, opciones: OpcionesDePintado = {}): Promise<string> {
+  const c = await contenedorAstro();
+  return c.renderToString(pagina, opcionesDelContenedor(opciones));
+}
+
+/**
+ * La respuesta completa (estado y documento) de una página: lo que necesitan
+ * las rutas que responden 404 pintando la página de no encontrado (2b).
+ */
+export async function pintarRespuesta(
+  pagina: ComponenteAstro,
+  opciones: OpcionesDePintado = {},
+): Promise<{ status: number; html: string }> {
+  const c = await contenedorAstro();
+  const respuesta = await c.renderToResponse(pagina, opcionesDelContenedor(opciones));
+  return { status: respuesta.status, html: await respuesta.text() };
 }
 
 /** Lo que hay DENTRO de `<main …>…</main>` (lo que pintaba la página en Next). */
@@ -57,7 +80,8 @@ export function cabezaDe(documento: string): string {
 export async function pedirEndpoint(
   modulo: { GET: (contexto: never) => Response | Promise<Response> },
   ruta: string,
+  params: Record<string, string> = {},
 ): Promise<Response> {
   const request = new Request(`${URL_DE_PRUEBA}${ruta}`);
-  return modulo.GET({ request, url: new URL(request.url), params: {} } as never);
+  return modulo.GET({ request, url: new URL(request.url), params } as never);
 }

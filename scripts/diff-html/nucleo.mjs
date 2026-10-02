@@ -17,6 +17,8 @@
  * landmark, los enlaces y la secuencia de elementos con sus atributos dentro
  * de `<body>`.
  */
+import { createHash } from "node:crypto";
+
 import { parse } from "node-html-parser";
 
 export const CABECERAS_DE_SEGURIDAD = [
@@ -42,12 +44,17 @@ function esJsonLd(nodo) {
   return (nodo.getAttribute("type") ?? "").toLowerCase() === "application/ld+json";
 }
 
-/** Atributos en minúsculas, sin los que solo usa el runtime de Next. */
+/**
+ * Atributos en minúsculas, sin los que solo usa el runtime de Next:
+ * `data-precedence` y el `id="__next_error__"` con el que Next marca su
+ * documento de error (ruido del marco desde 2a, design.md §1 punto 6 de
+ * `migrar-directorio-publico-astro`).
+ */
 function atributos(nodo) {
   return Object.fromEntries(
     Object.entries(nodo.attributes)
       .map(([clave, valor]) => [clave.toLowerCase(), valor])
-      .filter(([clave]) => clave !== "data-precedence"),
+      .filter(([clave, valor]) => clave !== "data-precedence" && !(clave === "id" && valor === "__next_error__")),
   );
 }
 
@@ -95,9 +102,14 @@ export function limpiarHtml(html) {
 const espacios = (texto) => texto.replace(/\s+/g, " ").trim();
 
 function firmaDeAtributos(nodo) {
+  return firmaSinAtributos(nodo, []);
+}
+
+/** La firma de atributos sin los nombrados (solo la usa la 404 dinámica). */
+function firmaSinAtributos(nodo, sinEstos) {
   const attrs = atributos(nodo);
-  // `id="__next_error__"` solo lo pone Next en su envoltorio de error.
   return Object.keys(attrs)
+    .filter((clave) => !sinEstos.includes(clave))
     .sort()
     .map((clave) => {
       let valor = clave === "class" ? attrs[clave].split(/\s+/).filter(Boolean).sort().join(" ") : attrs[clave];
@@ -151,6 +163,7 @@ export function extraerPagina(html) {
   return {
     lang: htmlNodo ? (atributos(htmlNodo).lang ?? null) : null,
     atributosHtml: htmlNodo ? firmaDeAtributos(htmlNodo) : null,
+    atributosHtmlSinIdioma: htmlNodo ? firmaSinAtributos(htmlNodo, ["lang", "class"]) : null,
     atributosBody: body ? firmaDeAtributos(body) : null,
     titulo: textoDe(raiz, "title"),
     metas,
@@ -214,6 +227,54 @@ function compararPaginas(next, astro) {
   return d;
 }
 
+/**
+ * Las ÚNICAS diferencias aceptadas entre el documento de error de Next y la
+ * 404 dinámica de Astro (alternativa B; design.md §1, punto 6 del change
+ * `migrar-directorio-publico-astro`). Se aplican solo si quien llama marca la
+ * ruta como 404 dinámica (pasando `referencia404`) y las DOS versiones
+ * responden 404. Cualquier otra diferencia se reporta. No se agregan
+ * entradas: una cuarta diferencia se reporta, no se normaliza.
+ */
+export const NORMALIZACIONES_404_DINAMICA = Object.freeze([
+  {
+    id: "cuerpo-contra-a-b-c",
+    descripcion: "el <body> de Astro se compara contra el que Next pinta en /a/b/c, no contra el vacío del documento de error",
+  },
+  {
+    id: "hoja-de-estilos",
+    descripcion: "se ignora el <link rel=\"stylesheet\"> del <head> de Astro (el documento de error de Next no lo trae)",
+  },
+  {
+    id: "lang-y-class-del-html",
+    descripcion: "se ignoran lang y class del <html> (el documento de error de Next no trae los del layout)",
+  },
+]);
+
+/** Aplica las tres normalizaciones; devuelve las páginas ya ajustadas. */
+function normalizar404Dinamica(next, astro, referencia, aplicadas) {
+  const cuerpo = extraerPagina(referencia);
+  const n = {
+    ...next,
+    atributosBody: cuerpo.atributosBody,
+    texto: cuerpo.texto,
+    enlaces: cuerpo.enlaces,
+    secuencia: cuerpo.secuencia,
+  };
+  aplicadas.push(NORMALIZACIONES_404_DINAMICA[0].id);
+  const a = { ...astro, enlacesDelHead: astro.enlacesDelHead.filter((e) => !/(^| )rel=stylesheet( |$)/.test(e)) };
+  if (a.enlacesDelHead.length !== astro.enlacesDelHead.length) aplicadas.push(NORMALIZACIONES_404_DINAMICA[1].id);
+  if (n.lang !== a.lang || n.atributosHtml !== a.atributosHtml) {
+    aplicadas.push(NORMALIZACIONES_404_DINAMICA[2].id);
+    n.lang = null;
+    a.lang = null;
+    n.atributosHtml = n.atributosHtmlSinIdioma;
+    a.atributosHtml = a.atributosHtmlSinIdioma;
+  }
+  return [n, a];
+}
+
+const sha256 = (bytes) => createHash("sha256").update(bytes).digest("hex");
+
 function minusculas(cabeceras) {
   return Object.fromEntries(Object.entries(cabeceras).map(([k, v]) => [k.toLowerCase(), v]));
 }
@@ -232,7 +293,11 @@ export function medidasPng(bytes) {
  * @param {string} ruta
  * @param {{status: number, headers: Record<string,string>, cuerpo: string|Uint8Array}} next
  * @param {{status: number, headers: Record<string,string>, cuerpo: string|Uint8Array}} astro
- * @param {{dinamica?: boolean}} [opciones] `dinamica`: también se exige el mismo `Cache-Control`.
+ * @param {{dinamica?: boolean, referencia404?: string, aplicadas?: string[]}} [opciones]
+ *   `dinamica`: también se exige el mismo `Cache-Control`. `referencia404`: la
+ *   ruta es una 404 dinámica; el HTML de Next en `/a/b/c` contra el que se
+ *   compara el `<body>`. `aplicadas`: aquí se anotan las normalizaciones de
+ *   `NORMALIZACIONES_404_DINAMICA` que se aplicaron.
  */
 export function compararRespuestas(ruta, next, astro, opciones = {}) {
   const d = [];
@@ -247,6 +312,8 @@ export function compararRespuestas(ruta, next, astro, opciones = {}) {
   for (const nombre of Object.keys(ha)) {
     if (CABECERA_DEL_MARCO.test(nombre)) d.push(`cabecera ${nombre}: anuncia el marco en Astro`);
   }
+  // Una redirección (p. ej. al almacén de fotos) nunca es paridad.
+  if (hn.location !== ha.location) d.push(`cabecera location: «${hn.location}» ≠ «${ha.location}»`);
   const tipoNext = (hn["content-type"] ?? "").toLowerCase();
   const tipoAstro = (ha["content-type"] ?? "").toLowerCase();
   if (tipoNext !== tipoAstro) d.push(`content-type: «${tipoNext}» ≠ «${tipoAstro}»`);
@@ -255,7 +322,18 @@ export function compararRespuestas(ruta, next, astro, opciones = {}) {
   }
 
   if (tipoNext.startsWith("text/html")) {
-    d.push(...compararPaginas(extraerPagina(String(next.cuerpo)), extraerPagina(String(astro.cuerpo))));
+    let pn = extraerPagina(String(next.cuerpo));
+    let pa = extraerPagina(String(astro.cuerpo));
+    if (opciones.referencia404 && next.status === 404 && astro.status === 404) {
+      [pn, pa] = normalizar404Dinamica(pn, pa, opciones.referencia404, opciones.aplicadas ?? []);
+    }
+    d.push(...compararPaginas(pn, pa));
+  } else if (tipoNext.startsWith("image/") && !tipoNext.startsWith("image/png")) {
+    // Fotos: los mismos bytes (hash) y el mismo tamaño declarado.
+    if (hn["content-length"] !== ha["content-length"]) {
+      d.push(`content-length: «${hn["content-length"]}» ≠ «${ha["content-length"]}»`);
+    }
+    if (sha256(next.cuerpo) !== sha256(astro.cuerpo)) d.push(`hash del cuerpo: ${sha256(next.cuerpo)} ≠ ${sha256(astro.cuerpo)}`);
   } else if (tipoNext.startsWith("image/png")) {
     const a = medidasPng(next.cuerpo);
     const b = medidasPng(astro.cuerpo);

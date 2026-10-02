@@ -16,6 +16,7 @@ import {
   obtenerNegociosPublicados,
 } from "../src/lib/directorio";
 import { SEGMENTOS_RESERVADOS, esSegmentoReservado } from "../src/lib/rutas-reservadas";
+import { problemasDeAmbiguedadDeCatalogos } from "../src/lib/seo/invariante-catalogos";
 import { crearClientePrueba } from "./db";
 
 // Spec: directorio-publico · requirements "Listado por categoría en URL limpia
@@ -135,14 +136,37 @@ describe("directorio-publico · la ruta dinámica no tapa rutas propias (tasks #
   // dos marcos; aquí se exige que cubra también lo que publica Astro.
 
   /**
-   * Páginas de Astro que no son un segmento de contenido: la raíz, la 404
-   * (Astro también la sirve en `/404`, como página de error) y la 500
-   * (`/500`, hallazgo M1 de T-023). "404" no puede
-   * reservarse sin tocar `src/lib/` en este change; se vigila aparte que
-   * ningún slug del catálogo lo use.
+   * Páginas de Astro que no son un segmento de contenido: solo la raíz.
+   *
+   * La 404 y la 500 SÍ publican un segmento (Astro las sirve en `/404` y
+   * `/500`). En 2a no se podían reservar sin tocar `src/lib/` y se vigilaba
+   * aparte que ningún slug del catálogo las usara; desde el change
+   * `migrar-directorio-publico-astro` (design.md §5) están en
+   * `SEGMENTOS_RESERVADOS` y se revisan como cualquier otro segmento. La
+   * vigilancia sobre el catálogo se conserva.
    */
-  const PAGINAS_DE_ASTRO_QUE_NO_SON_SEGMENTO = ["index.astro", "404.astro", "500.astro"];
+  const PAGINAS_DE_ASTRO_QUE_NO_SON_SEGMENTO = ["index.astro"];
   const SEGMENTOS_PROPIOS_DE_ASTRO = ["404", "500"];
+
+  it('"404" y "500" están reservados (Astro publica /404 y /500)', () => {
+    for (const segmento of SEGMENTOS_PROPIOS_DE_ASTRO) {
+      expect(SEGMENTOS_RESERVADOS, segmento).toContain(segmento);
+      expect(esSegmentoReservado(segmento), segmento).toBe(true);
+      expect(esSegmentoReservado(` ${segmento} `), segmento).toBe(true);
+    }
+    expect(segmentosDeAstro(join(raiz, "src/pages"))).toEqual(expect.arrayContaining(SEGMENTOS_PROPIOS_DE_ASTRO));
+  });
+
+  // Scenario "un slug '404' reprueba" (spec `plataforma-astro`, 2b).
+  it('un catálogo de prueba con una categoría o un giro de slug "404" o "500" reprueba', () => {
+    for (const slug of SEGMENTOS_PROPIOS_DE_ASTRO) {
+      for (const catalogo of ["categorias", "giros"] as const) {
+        const vacios = { categorias: [], giros: [], colonias: [] };
+        const problemas = problemasDeAmbiguedadDeCatalogos({ ...vacios, [catalogo]: [{ nombre: "Inventado", slug }] });
+        expect(problemas.join(" "), `${catalogo} · ${slug}`).toContain(slug);
+      }
+    }
+  });
 
   it("las rutas propias de src/pages están declaradas como reservadas", () => {
     const segmentos = segmentosDeAstro(join(raiz, "src/pages"));
@@ -157,7 +181,7 @@ describe("directorio-publico · la ruta dinámica no tapa rutas propias (tasks #
   it("un giro o categoría con el slug de una ruta de Astro haría fallar la verificación", async () => {
     // Lo que comprueba el primer caso de este bloque contra el catálogo real:
     // cualquiera de estos slugs lo pondría en rojo.
-    for (const slug of ["robots.txt", "sitemap.xml", "opengraph-image", "terminos", "aviso-de-privacidad"]) {
+    for (const slug of ["robots.txt", "sitemap.xml", "opengraph-image", "terminos", "aviso-de-privacidad", "404", "500"]) {
       expect(esSegmentoReservado(slug), slug).toBe(true);
     }
     const giros = await prisma.giro.findMany({ select: { slug: true } });

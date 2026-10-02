@@ -1,0 +1,12 @@
+---
+// Componentes React de la app, renderizados en servidor y SIN directiva
+// `client:` (ADR-013 clave 2): HTML sin JavaScript.
+import { EtiquetaADomicilio } from "../../../../src/components/directorio/etiqueta-domicilio";
+import { SelloVerificado } from "../../../../src/components/directorio/sello-verificado";
+import Base from "../layouts/Base.astro";
+---
+<Base titulo="Componente React">
+  <h1>Componentes React de la app</h1>
+  <p><SelloVerificado /></p>
+  <p><EtiquetaADomicilio /></p>
+</Base>

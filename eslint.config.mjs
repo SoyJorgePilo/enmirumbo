@@ -19,6 +19,9 @@ const eslintConfig = defineConfig([
     // es código del producto; el ignore de `.next/**` de arriba solo alcanza
     // al de la raíz.
     ".claude/**",
+    // Spikes desechables con su propio marco y su propio package.json (T-021,
+    // ADR-013): no son código de la app ni deben entrar a su lint.
+    "spikes/**",
   ]),
 ]);
 

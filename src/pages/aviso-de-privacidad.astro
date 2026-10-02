@@ -1,0 +1,30 @@
+---
+/**
+ * Aviso de privacidad integral (spec `paginas-legales`, requirement "Página
+ * del aviso de privacidad integral en /aviso-de-privacidad"). Lo que era
+ * `src/app/(publico)/aviso-de-privacidad/page.tsx`: dentro del tronco público,
+ * pintada en el servidor y sin JavaScript de cliente. Indexable: metadatos
+ * propios y ninguna directiva que pida a los buscadores no indexarla (el
+ * literal no se escribe ni en los comentarios: `tests/buscador-pagina.test.ts`
+ * hace un regex crudo sobre el archivo).
+ *
+ * Prerenderizada, como en Next: no lee nada por petición. La versión del
+ * aviso se lee del módulo que la declara, nunca se escribe a mano aquí.
+ */
+import { DocumentoLegalView } from "@/components/legales/documento-legal";
+import TroncoPublico from "@/layouts/TroncoPublico.astro";
+import {
+  AVISO_PRIVACIDAD,
+  DESCRIPCION_AVISO_PRIVACIDAD,
+  TITULO_AVISO_PRIVACIDAD,
+} from "@/lib/legales/textos";
+import { VERSION_AVISO } from "@/lib/legales/version";
+
+export const prerender = true;
+
+const metadatos = { title: TITULO_AVISO_PRIVACIDAD, description: DESCRIPCION_AVISO_PRIVACIDAD };
+---
+
+<TroncoPublico metadatos={metadatos}>
+  <DocumentoLegalView documento={AVISO_PRIVACIDAD} version={VERSION_AVISO} />
+</TroncoPublico>

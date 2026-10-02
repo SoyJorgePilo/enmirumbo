@@ -1,14 +1,13 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import { createElement } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
 
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { seedCatalogos } from "../prisma/seed";
 import { sembrarNegociosDemo } from "../prisma/seed-demo";
-import DestinoPage from "../src/app/(publico)/[destino]/page";
-import FichaNegocioPage from "../src/app/(publico)/negocio/[ficha]/page";
+// Las páginas del directorio ya se sirven con Astro (change
+// `migrar-directorio-publico-astro`, tasks.md #15).
+import { mainDeDestino, mainDeFicha, pintarDestino } from "./paginas-directorio";
 import type { PrismaClient } from "../src/generated/prisma/client";
 import { construirSegmentoFicha } from "../src/lib/ficha-url";
 import { crearClientePrueba } from "./db";
@@ -26,33 +25,13 @@ const normalizado = (html: string) => html.replace(/\s+/g, " ");
 let prisma: PrismaClient;
 let idPorWhatsapp: Record<string, string> = {};
 
+/** Lo que pinta la página dentro de `<main>` (lanza si no responde 200). */
 async function renderDestino(destino: string, colonia?: string): Promise<string> {
-  const elemento = await DestinoPage({
-    params: Promise.resolve({ destino }),
-    searchParams: Promise.resolve(colonia === undefined ? {} : { colonia }),
-  });
-  return renderToStaticMarkup(createElement(() => elemento));
+  return mainDeDestino(destino, colonia === undefined ? {} : { colonia });
 }
 
 async function renderFicha(whatsapp: string, nombre: string): Promise<string> {
-  const elemento = await FichaNegocioPage({
-    params: Promise.resolve({
-      ficha: construirSegmentoFicha(nombre, idPorWhatsapp[whatsapp]),
-    }),
-    searchParams: Promise.resolve({}),
-  });
-  return renderToStaticMarkup(createElement(() => elemento));
-}
-
-/** Digest del 404 de Next (`NEXT_HTTP_ERROR_FALLBACK;404`) o `null`. */
-async function digestDe(promesa: Promise<unknown>): Promise<string | null> {
-  try {
-    await promesa;
-    return null;
-  } catch (error) {
-    const digest = (error as { digest?: unknown }).digest;
-    return typeof digest === "string" ? digest : null;
-  }
+  return mainDeFicha(construirSegmentoFicha(nombre, idPorWhatsapp[whatsapp]));
 }
 
 const nombresDeTarjeta = (html: string) =>
@@ -211,7 +190,8 @@ describe("directorio-publico · página de giro y colonia (tasks #10)", () => {
     "loquesea-huicalco",
     "plomeria-huicalco-otra-cosa",
   ])("%s responde 404", async (slug) => {
-    expect(await digestDe(renderDestino(slug))).toBe("NEXT_HTTP_ERROR_FALLBACK;404");
+    // La 404 dinámica de Astro (antes, el `notFound()` de Next).
+    expect((await pintarDestino(slug)).status).toBe(404);
   });
 });
 
@@ -285,8 +265,9 @@ describe("directorio-publico · Server Components sin JS de cliente (tasks #9 a 
   // Scenario: sin JS de cliente nuevo
   it('ningún archivo nuevo del directorio declara "use client"', () => {
     const archivos = [
-      join(raiz, "src/app/(publico)/[destino]/page.tsx"),
-      join(raiz, "src/app/(publico)/negocio/[ficha]/page.tsx"),
+      join(raiz, "src/pages/[destino].astro"),
+      join(raiz, "src/pages/negocio/[ficha].astro"),
+      join(raiz, "src/astro/directorio.ts"),
       ...readdirSync(join(raiz, "src/components/directorio")).map((nombre) =>
         join(raiz, "src/components/directorio", nombre),
       ),
@@ -309,7 +290,7 @@ describe("directorio-publico · Server Components sin JS de cliente (tasks #9 a 
       join(raiz, "src/components/directorio/listado-giro.tsx"),
       "utf8",
     );
-    const ficha = readFileSync(join(raiz, "src/app/(publico)/negocio/[ficha]/page.tsx"), "utf8");
+    const ficha = readFileSync(join(raiz, "src/pages/negocio/[ficha].astro"), "utf8");
     expect(navegacion).toMatch(/\bmin-h-11\b/);
     expect(giro).toMatch(/\bmin-h-11\b|CLASE_BOTON_PRIMARIO/);
     expect(ficha).toMatch(/\bmin-h-11\b/);

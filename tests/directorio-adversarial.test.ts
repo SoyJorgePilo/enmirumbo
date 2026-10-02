@@ -1,5 +1,3 @@
-import { createElement } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
 
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
@@ -9,10 +7,20 @@ import {
   motivoParaNoSembrar,
   sembrarNegociosDemo,
 } from "../prisma/seed-demo";
-import ListadoCategoriaPage from "../src/app/(publico)/[destino]/page";
-import FichaNegocioPage from "../src/app/(publico)/negocio/[ficha]/page";
-import Home from "../src/app/(publico)/page";
+// Las páginas del directorio ya se sirven con Astro (change
+// `migrar-directorio-publico-astro`, tasks.md #15).
+import {
+  type PaginaPintada,
+  type ParametrosDeConsulta,
+  mainDeDestino,
+  mainDeFicha,
+  pintarDestino,
+  pintarFicha,
+} from "./paginas-directorio";
+// La home ya se sirve con Astro (change `migrar-lectura-publica-astro`).
+import Home from "../src/pages/index.astro";
 import type { PrismaClient } from "../src/generated/prisma/client";
+import { pintarPagina } from "./astro-paginas";
 import {
   listarCategorias,
   obtenerNegocioPublicado,
@@ -73,26 +81,15 @@ let slugsCategorias: string[] = [];
 const normalizado = (html: string) => html.replace(/\s+/g, " ");
 
 async function renderListado(categoria: string, colonia?: unknown): Promise<string> {
-  const elemento = await ListadoCategoriaPage({
-    // El segmento dinámico de la raíz se llama `destino` desde el change
-    // `agregar-seo-local` (design.md §1): la MISMA carpeta resuelve categoría,
-    // giro y giro+colonia. La URL no cambió, solo el nombre del parámetro.
-    params: Promise.resolve({ destino: categoria }),
-    // El tipo de `searchParams` promete strings; aquí se prueba a propósito lo
-    // que un cliente hostil puede mandar de verdad (repetido, vacío, ausente).
-    searchParams: Promise.resolve(
-      (colonia === undefined ? {} : { colonia }) as unknown as Record<string, string>,
-    ),
-  });
-  return renderToStaticMarkup(createElement(() => elemento));
+  // El segmento dinámico de la raíz se llama `destino` desde el change
+  // `agregar-seo-local`: la MISMA página resuelve categoría, giro y
+  // giro+colonia. Aquí se prueba a propósito lo que un cliente hostil puede
+  // mandar de verdad en `?colonia` (repetido, vacío, larguísimo).
+  return mainDeDestino(categoria, (colonia === undefined ? {} : { colonia }) as ParametrosDeConsulta);
 }
 
 async function renderFicha(segmento: string): Promise<string> {
-  const elemento = await FichaNegocioPage({
-    params: Promise.resolve({ ficha: segmento }),
-    searchParams: Promise.resolve({}),
-  });
-  return renderToStaticMarkup(createElement(() => elemento));
+  return mainDeFicha(segmento);
 }
 
 /**
@@ -115,18 +112,20 @@ function sinDatosEstructurados(html: string): string {
   );
 }
 
-/** Digest del 404 de Next (`NEXT_HTTP_ERROR_FALLBACK;404`), o `null` si no hubo. */
-async function digestDe(promesa: Promise<unknown>): Promise<string | null> {
-  try {
-    await promesa;
-    return null;
-  } catch (error) {
-    const digest = (error as { digest?: unknown }).digest;
-    return typeof digest === "string" ? digest : String(error);
-  }
+/**
+ * El documento de la 404 dinámica si la página respondió 404; si no, su
+ * estado (antes: el digest del `notFound()` de Next).
+ */
+async function noEncontradoDe(pintada: Promise<PaginaPintada>): Promise<string> {
+  const { status, documento } = await pintada;
+  return status === 404 ? documento : `estado ${status}`;
 }
 
-const DIGEST_404 = "NEXT_HTTP_ERROR_FALLBACK;404";
+/**
+ * LA 404 dinámica, la de un slug inventado cualquiera: todo lo que no se
+ * puede ver tiene que responder exactamente este documento.
+ */
+let DOCUMENTO_404 = "";
 
 async function crear(datos: {
   nombre: string;
@@ -185,6 +184,7 @@ beforeAll(async () => {
   await prisma.negocio.deleteMany();
   await seedCatalogos(prisma);
   idPorWhatsapp = {};
+  DOCUMENTO_404 = await noEncontradoDe(pintarDestino("slug-inventado-para-la-referencia"));
 
   // 1. Publicado hostil: HTML/script en cada campo de texto libre, teléfono
   //    que no es un número y una "página" con esquema ejecutable (una fila
@@ -475,13 +475,13 @@ describe("adversarial · un negocio sin publicar es indistinguible de uno inexis
   it("las cuatro maneras de pedir una ficha que no se puede ver dan el mismo 404", async () => {
     const idOculto = idPorWhatsapp[OCULTO.whatsapp];
     const idRechazado = idPorWhatsapp[RECHAZADO.whatsapp];
-    const digests = await Promise.all([
-      digestDe(renderFicha("negocio-que-no-existe-cmzzzzzzzzzzzzzzzzzzzzzzzz")),
-      digestDe(renderFicha(construirSegmentoFicha(OCULTO.nombre, idOculto))),
-      digestDe(renderFicha(idOculto)), // sin parte legible: mismo resultado
-      digestDe(renderFicha(construirSegmentoFicha(RECHAZADO.nombre, idRechazado))),
+    const documentos = await Promise.all([
+      noEncontradoDe(pintarFicha("negocio-que-no-existe-cmzzzzzzzzzzzzzzzzzzzzzzzz")),
+      noEncontradoDe(pintarFicha(construirSegmentoFicha(OCULTO.nombre, idOculto))),
+      noEncontradoDe(pintarFicha(idOculto)), // sin parte legible: mismo resultado
+      noEncontradoDe(pintarFicha(construirSegmentoFicha(RECHAZADO.nombre, idRechazado))),
     ]);
-    expect(new Set(digests)).toEqual(new Set([DIGEST_404]));
+    expect(new Set(documentos)).toEqual(new Set([DOCUMENTO_404]));
   });
 
   // Change `versionar-aviso-privacidad`: la versión aceptada es un dato
@@ -618,7 +618,7 @@ describe("adversarial · slugs hostiles en la ruta de categoría", () => {
   ];
 
   it.each(hostiles)("%s responde 404 y no filtra nada", async (_caso, slug) => {
-    expect(await digestDe(renderListado(slug))).toBe(DIGEST_404);
+    expect(await noEncontradoDe(pintarDestino(slug))).toBe(DOCUMENTO_404);
   });
 
   it("un comodín SQL no arrastra los negocios de todas las categorías", async () => {
@@ -708,7 +708,7 @@ describe("adversarial · segmentos hostiles en la URL de la ficha", () => {
           : segmento === "LARGO"
             ? `${id}${"0".repeat(4000)}`
             : segmento;
-    expect(await digestDe(renderFicha(real))).toBe(DIGEST_404);
+    expect(await noEncontradoDe(pintarFicha(real))).toBe(DOCUMENTO_404);
   });
 });
 
@@ -717,9 +717,9 @@ describe("adversarial · el recorrido completo funciona sin JavaScript de client
   // ahora solo estaba verificado a mano con `curl` (reports/b-dev.md). Cada
   // paso tiene que ser un enlace del servidor tomado del HTML del paso previo.
   it("ninguna página del directorio necesita un control con JavaScript", async () => {
-    const home = await Home();
     const paginas = [
-      renderToStaticMarkup(createElement(() => home)),
+      // El documento completo de Astro: el header y el footer entran también.
+      await pintarPagina(Home, { ruta: "/" }),
       await renderListado("otro"),
       await renderListado("otro", "huicalco"),
       await renderFicha(

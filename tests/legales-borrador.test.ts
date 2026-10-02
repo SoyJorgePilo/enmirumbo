@@ -1,5 +1,3 @@
-import { createElement } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
 // Spec: paginas-legales · requirement "Placeholders visibles y marca de
@@ -20,14 +18,17 @@ vi.mock("@/lib/legales/textos", async () => {
   return { ...real, PLACEHOLDERS_LEGALES: [], HAY_PLACEHOLDERS_PENDIENTES: false };
 });
 
-import AvisoDePrivacidadPage from "../src/app/(publico)/aviso-de-privacidad/page";
-import TerminosPage from "../src/app/(publico)/terminos/page";
+// Las legales ya se sirven con Astro (change `migrar-lectura-publica-astro`,
+// tasks.md #15): se mira lo que pintaba la página, el contenido de <main>.
 import { TEXTO_MARCA_BORRADOR } from "../src/lib/legales/textos";
+import AvisoDePrivacidadPage from "../src/pages/aviso-de-privacidad.astro";
+import TerminosPage from "../src/pages/terminos.astro";
+import { contenidoDelMain, pintarPagina } from "./astro-paginas";
 
 describe("paginas-legales · la marca de borrador se apaga sola", () => {
-  it("sin placeholders pendientes, ninguna de las dos páginas la muestra", () => {
+  it("sin placeholders pendientes, ninguna de las dos páginas la muestra", async () => {
     for (const pagina of [AvisoDePrivacidadPage, TerminosPage]) {
-      const html = renderToStaticMarkup(createElement(pagina));
+      const html = contenidoDelMain(await pintarPagina(pagina));
       expect(html).not.toContain(TEXTO_MARCA_BORRADOR);
       expect(html).not.toContain("todavía es un borrador");
       // Y el documento sigue completo: lo único que se va es la marca.

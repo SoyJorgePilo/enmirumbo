@@ -13,12 +13,33 @@
  *
  * El build de Astro tarda un par de segundos, así que la prueba lo corre ella
  * misma (sin base alcanzable, como el CI) en vez de fiarse de una salida vieja.
+ *
+ * Desde el change `migrar-lectura-publica-astro` (T-023, tasks.md #9, #10 y
+ * #14), además, sobre la salida servida por `scripts/servir-salida-vercel.mjs`
+ * (el emulador del Build Output API):
+ *
+ * - "cero JS propio": el HTML de `/`, legales y 404, sin `<script>` (salvo
+ *   datos), `modulepreload` ni `astro-island`;
+ * - "las cuatro en todas partes": las cuatro cabeceras de seguridad en cada
+ *   ruta del alcance, y ninguna que anuncie el marco;
+ * - "nada se renderiza por petición": `/opengraph-image` es un estático y la
+ *   función no lleva el generador de imágenes;
+ * - las cabeceras de la CDN están en el `config.json` construido.
  */
-import { execFileSync } from "node:child_process";
+import { type ChildProcess, execFileSync, spawn } from "node:child_process";
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 
-import { beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+
+import { seedCatalogos } from "../prisma/seed";
+import { sembrarNegociosDemo } from "../prisma/seed-demo";
+import { medidasPng } from "../scripts/diff-html/nucleo.mjs";
+import { construirSegmentoFicha } from "../src/lib/ficha-url";
+import { cabecerasDeSeguridad } from "../src/lib/seguridad/csp";
+import { crearClientePrueba } from "./db";
+import { borrarNegociosSembrados, WHATSAPP_DEMO } from "./limpieza";
+import { levantarEmulador as levantarEmuladorDeSalida } from "./salida-astro";
 
 const raiz = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
 const salida = path.join(raiz, ".vercel/output");
@@ -163,7 +184,12 @@ describe("plataforma-astro · /_image no existe (Medio 1 de seguridad)", () => {
   });
 
   it("responde igual que una ruta que no existe", () => {
-    const inexistente = pedirAlHandler("/ruta-que-no-existe");
+    // Desde la Fase 2b un solo segmento (`/ruta-que-no-existe`) ya no es "una
+    // ruta que no existe": lo resuelve `[destino]` contra la base, y este
+    // handler corre sin base (500). La ruta que no existe se pide con varios
+    // segmentos, que ninguna página casa (change `migrar-directorio-publico-astro`).
+    const inexistente = pedirAlHandler("/ruta/que/no-existe");
+    expect(inexistente.status).toBe(404);
     const imagen = pedirAlHandler("/_image?href=/admin/negocios&w=10&f=webp");
     expect(imagen.status).toBe(inexistente.status);
     expect(imagen.relevos).toEqual([]);
@@ -182,5 +208,255 @@ describe("plataforma-astro · ningún componente importa Next", () => {
   it("no aparece next/link ni next/image en src/components/", () => {
     const culpables = archivos.filter((f) => /["']next\/(link|image)["']/.test(readFileSync(f, "utf8")));
     expect(culpables.map((f) => path.relative(raiz, f))).toEqual([]);
+  });
+});
+
+// ── Fase 2a (change `migrar-lectura-publica-astro`) ─────────────────────────
+
+const URL_PUBLICA = "https://enmirumbo.example";
+const PUERTO = 46_000 + Math.floor(Math.random() * 1000);
+const BASE = `http://127.0.0.1:${PUERTO}`;
+let emulador: ChildProcess | undefined;
+
+// Los negocios demo (y sus fotos) que siembra el `beforeAll` de abajo viven en
+// la base compartida: se borran al terminar el ARCHIVO, no el `describe`,
+// porque el de 2b también los usa (hallazgo A1 de d-validacion.md).
+afterAll(async () => {
+  const prisma = crearClientePrueba();
+  try {
+    await borrarNegociosSembrados(prisma, WHATSAPP_DEMO);
+  } finally {
+    await prisma.$disconnect();
+  }
+});
+
+describe("plataforma-astro · la salida construida, servida como en Vercel", () => {
+  beforeAll(async () => {
+    const prisma = crearClientePrueba();
+    await seedCatalogos(prisma);
+    // Fase 2b: el directorio necesita negocios (ficticios) para el sitemap y
+    // para las cabeceras de un listado, una ficha y una foto.
+    await sembrarNegociosDemo(prisma, { NODE_ENV: "test" });
+    await prisma.$disconnect();
+
+    emulador = spawn(process.execPath, [path.join(raiz, "scripts/servir-salida-vercel.mjs")], {
+      cwd: raiz,
+      env: {
+        ...entornoDeBuild(),
+        // La base de la suite (la home la lee por petición) y la URL pública.
+        DATABASE_URL: process.env.DATABASE_URL ?? "",
+        SITIO_URL: URL_PUBLICA,
+        PORT: String(PUERTO),
+      },
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    await new Promise<void>((listo, falla) => {
+      const tiempo = setTimeout(() => falla(new Error("el emulador no arrancó")), 30_000);
+      emulador!.stdout!.on("data", (d: Buffer) => {
+        if (d.toString().includes("[emulador]")) {
+          clearTimeout(tiempo);
+          listo();
+        }
+      });
+      emulador!.on("exit", (codigo) => falla(new Error(`el emulador terminó (${codigo})`)));
+    });
+  }, 60_000);
+
+  afterAll(() => {
+    emulador?.kill();
+  });
+
+  const pedir = (ruta: string) => fetch(`${BASE}${ruta}`, { redirect: "manual" });
+
+  function hojaDeEstilos(): string {
+    const archivo = listar(path.join(salida, "static/_astro")).find((f) => f.endsWith(".css"));
+    expect(archivo, "la build no dejó hoja de estilos en /_astro/").toBeDefined();
+    return `/_astro/${archivo}`;
+  }
+
+  // Scenario "las cuatro en todas partes" (emulado; el preview de Vercel es
+  // la palabra final, tasks.md #19).
+  it("las cuatro cabeceras, con sus valores, en cada ruta del alcance, y ninguna del marco", async () => {
+    const rutas = ["/", "/aviso-de-privacidad", "/terminos", "/no-existe", "/a/b/c", "/robots.txt", "/sitemap.xml", "/opengraph-image", hojaDeEstilos()];
+    for (const ruta of rutas) {
+      const respuesta = await pedir(ruta);
+      for (const { key, value } of cabecerasDeSeguridad()) {
+        expect(respuesta.headers.get(key), `${ruta} · ${key}`).toBe(value);
+      }
+      for (const nombre of respuesta.headers.keys()) {
+        expect(nombre, ruta).not.toMatch(/^x-(powered-by|astro|nextjs)/);
+      }
+    }
+  });
+
+  it("las URLs desconocidas responden 404 con la página en español", async () => {
+    for (const ruta of ["/no-existe", "/a/b/c"]) {
+      const respuesta = await pedir(ruta);
+      expect(respuesta.status, ruta).toBe(404);
+      expect(await respuesta.text(), ruta).toContain("No encontramos esta página");
+    }
+  });
+
+  it("la home dinámica manda el Cache-Control de Next y su juego de caracteres", async () => {
+    const respuesta = await pedir("/");
+    expect(respuesta.status).toBe(200);
+    expect(respuesta.headers.get("cache-control")).toBe("private, no-cache, no-store, max-age=0, must-revalidate");
+    expect(respuesta.headers.get("content-type")).toBe("text/html; charset=utf-8");
+  });
+
+  // Scenario "cero JS propio" sobre el HTML servido.
+  it("/, legales y 404: sin <script> (salvo datos), sin modulepreload ni islas", async () => {
+    for (const ruta of ["/", "/aviso-de-privacidad", "/terminos", "/no-existe"]) {
+      const html = await (await pedir(ruta)).text();
+      const scripts = [...html.matchAll(/<script\b[^>]*>/g)].map((m) => m[0]);
+      expect(scripts.filter((s) => !s.includes('type="application/ld+json"')), ruta).toEqual([]);
+      expect(html, ruta).not.toContain("modulepreload");
+      expect(html, ruta).not.toContain("astro-island");
+    }
+  });
+
+  // Scenario "la imagen responde en su dirección de siempre".
+  it("/opengraph-image: 200, image/png y 1200×630", async () => {
+    const respuesta = await pedir("/opengraph-image");
+    expect(respuesta.status).toBe(200);
+    expect(respuesta.headers.get("content-type")).toBe("image/png");
+    expect(medidasPng(new Uint8Array(await respuesta.arrayBuffer()))).toEqual({ ancho: 1200, alto: 630 });
+  });
+});
+
+describe("plataforma-astro · nada se renderiza por petición", () => {
+  it("/opengraph-image es un archivo estático y no una ruta de la función", () => {
+    expect(existsSync(path.join(salida, "static/opengraph-image"))).toBe(true);
+    const fuentes = rutasDeVercel().filter((r) => r.dest === "_render").map((r) => r.src ?? "");
+    expect(fuentes.filter((src) => src.includes("opengraph"))).toEqual([]);
+  });
+
+  it("la función no incluye el generador de imágenes", () => {
+    const archivos = listar(funcion);
+    expect(archivos.filter((f) => /satori|resvg|yoga|harfbuzz/i.test(f))).toEqual([]);
+    const codigo = archivos
+      .filter((f) => /\.(m?js|cjs)$/.test(f) && f.startsWith("dist"))
+      .map((f) => readFileSync(path.join(funcion, f), "utf8"))
+      .join("\n");
+    expect(codigo).not.toMatch(/satori|resvg/i);
+  });
+});
+
+describe("plataforma-astro · cabeceras de la CDN en el config.json construido", () => {
+  type RutaConCabeceras = { src?: string; dest?: string; status?: number; headers?: Record<string, string>; handle?: string };
+  const tabla = () =>
+    (JSON.parse(readFileSync(path.join(salida, "config.json"), "utf8")) as { routes: RutaConCabeceras[] }).routes;
+
+  it("cada estático y la 404 llevan las cuatro; la imagen, además, su tipo", () => {
+    const rutas = tabla();
+    const filesystem = rutas.findIndex((r) => r.handle === "filesystem");
+    const antes = rutas.slice(0, filesystem);
+    const seguridad = Object.fromEntries(cabecerasDeSeguridad().map(({ key, value }) => [key, value]));
+    for (const ruta of ["/aviso-de-privacidad", "/terminos", "/opengraph-image", "/404.html", "/favicon.ico", hojaDeLaBuild()]) {
+      const cabeceras = Object.assign({}, ...antes.filter((r) => r.headers && new RegExp(r.src!).test(ruta)).map((r) => r.headers));
+      expect(cabeceras, ruta).toMatchObject(seguridad);
+    }
+    const imagen = antes.find((r) => r.src && new RegExp(r.src).test("/opengraph-image") && r.headers?.["Content-Type"]);
+    expect(imagen?.headers?.["Content-Type"]).toBe("image/png");
+    const comodin = rutas.find((r) => r.dest === "/404.html" && r.status === 404);
+    expect(comodin?.headers).toMatchObject(seguridad);
+  });
+
+  it("ninguna ruta de la función recibe cabeceras de la CDN", () => {
+    for (const r of tabla().filter((r) => r.dest === "_render")) expect(r.headers, r.src).toBeUndefined();
+  });
+
+  function hojaDeLaBuild(): string {
+    const archivo = listar(path.join(salida, "static/_astro")).find((f) => f.endsWith(".css"));
+    return `/_astro/${archivo}`;
+  }
+});
+
+
+// ── Fase 2b (change `migrar-directorio-publico-astro`, tasks.md #13 y #14) ──
+
+describe("plataforma-astro · 2b sobre la salida construida", () => {
+  // Las fotos de la suite viven en disco; en modo producción el sitio exige
+  // Supabase y no cae al disco, así que este emulador corre en desarrollo
+  // (ver `tests/fotos-ruta-salida.test.ts`).
+  let conFotos: Awaited<ReturnType<typeof levantarEmuladorDeSalida>>;
+  let produccion: Awaited<ReturnType<typeof levantarEmuladorDeSalida>>;
+  let fichaConFoto = "";
+  let fichaNoPublicada = "";
+  let fotoPublicada = "";
+
+  beforeAll(async () => {
+    const prisma = crearClientePrueba();
+    const academia = await prisma.negocio.findFirstOrThrow({ where: { nombre: { startsWith: "Academia de Futbol Halcones" } } });
+    const barberia = await prisma.negocio.findFirstOrThrow({ where: { estado: "en_revision", nombre: { startsWith: "Barbería" } } });
+    await prisma.$disconnect();
+    fichaConFoto = `/negocio/${construirSegmentoFicha(academia.nombre, academia.id)}`;
+    fichaNoPublicada = `/negocio/${construirSegmentoFicha(barberia.nombre, barberia.id)}`;
+    fotoPublicada = `/api/foto/${academia.fotoClave}/ficha`;
+    conFotos = await levantarEmuladorDeSalida({
+      NODE_ENV: "development",
+      SITIO_URL: URL_PUBLICA,
+      FOTOS_DIR: path.resolve(raiz, process.env.FOTOS_DIR ?? ".fotos-test"),
+    });
+    produccion = await levantarEmuladorDeSalida({ SITIO_URL: URL_PUBLICA });
+  }, 60_000);
+
+  afterAll(() => {
+    conFotos?.detener();
+    produccion?.detener();
+  });
+
+  const pedir = (ruta: string) => produccion.pedir(ruta);
+
+  // Scenario "el sitemap no lleva a un 404" (spec `plataforma-astro`, 2b).
+  it("toda URL del sitemap.xml responde 200, salvo /registro (Fase 3)", async () => {
+    const sitemap = await (await pedir("/sitemap.xml")).text();
+    const rutas = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => new URL(m[1]).pathname);
+    expect(rutas.filter((r) => r.startsWith("/negocio/")).length).toBeGreaterThanOrEqual(10);
+    expect(rutas).toContain("/registro");
+    for (const ruta of rutas) {
+      const r = await pedir(ruta);
+      expect(r.status, ruta).toBe(ruta === "/registro" ? 404 : 200);
+    }
+  });
+
+  // Scenario "las cuatro en todas partes" (2b).
+  it("listado, giro, ficha, /buscar, /loquesea, ficha no publicada, foto y foto inexistente: las cuatro, sin marco", async () => {
+    const casos: Array<[string, number, string, string]> = [
+      ["/servicios-del-hogar", 200, "text/html; charset=utf-8", "private, no-cache, no-store, max-age=0, must-revalidate"],
+      ["/plomeria", 200, "text/html; charset=utf-8", "private, no-cache, no-store, max-age=0, must-revalidate"],
+      [fichaConFoto, 200, "text/html; charset=utf-8", "private, no-cache, no-store, max-age=0, must-revalidate"],
+      ["/buscar?q=plomero", 200, "text/html; charset=utf-8", "private, no-cache, no-store, max-age=0, must-revalidate"],
+      ["/loquesea", 404, "text/html; charset=utf-8", "private, no-cache, no-store, max-age=0, must-revalidate"],
+      [fichaNoPublicada, 404, "text/html; charset=utf-8", "private, no-cache, no-store, max-age=0, must-revalidate"],
+      [fotoPublicada, 200, "image/webp", "private, max-age=3600"],
+      ["/api/foto/0123456789abcdef0123456789abcdef/ficha", 404, "", "no-store"],
+    ];
+    for (const [ruta, status, tipo, cache] of casos) {
+      const r = await conFotos.pedir(ruta);
+      expect(r.status, ruta).toBe(status);
+      expect(r.headers.get("content-type") ?? "", ruta).toBe(tipo);
+      expect(r.headers.get("cache-control"), ruta).toBe(cache);
+      for (const { key, value } of cabecerasDeSeguridad()) expect(r.headers.get(key), `${ruta} · ${key}`).toBe(value);
+      for (const nombre of r.headers.keys()) expect(nombre, ruta).not.toMatch(/^x-(powered-by|astro|nextjs)/);
+    }
+  });
+
+  // Scenario "cero JS propio" (2b), sobre el HTML servido sin la medición.
+  it("listado, ficha y /buscar: sin <script> salvo el JSON-LD, sin modulepreload ni islas", async () => {
+    for (const ruta of ["/servicios-del-hogar", fichaConFoto, "/buscar?q=plomero"]) {
+      const html = await (await pedir(ruta)).text();
+      const scripts = [...html.matchAll(/<script\b[^>]*>/g)].map((m) => m[0]);
+      expect(scripts.filter((s) => !s.includes('type="application/ld+json"')), ruta).toEqual([]);
+      expect(html, ruta).not.toContain("modulepreload");
+      expect(html, ruta).not.toContain("astro-island");
+    }
+  });
+
+  it("la 404 dinámica sale de la función (Cache-Control dinámico), no de la 404 prerenderizada", async () => {
+    const r = await pedir("/loquesea");
+    expect(r.status).toBe(404);
+    expect(r.headers.get("cache-control")).toBe("private, no-cache, no-store, max-age=0, must-revalidate");
+    expect(await r.text()).toContain("No encontramos esta página");
   });
 });

@@ -7,13 +7,15 @@ vi.mock("next/headers", async () => {
 
 import { seedCatalogos } from "../prisma/seed";
 import { GET as fotoDelPanel } from "../src/app/admin/foto/[clave]/[variante]/route";
-import { GET as fotoPublica } from "../src/app/api/foto/[clave]/[variante]/route";
 import type { PrismaClient } from "../src/generated/prisma/client";
 import { NOMBRE_COOKIE_SESION, crearValorDeSesion } from "../src/lib/admin/sesion";
 import { almacenDeFotos } from "../src/lib/fotos/almacen";
 import { generarClaveFoto } from "../src/lib/fotos/clave";
 import { peticion, reiniciarPeticion } from "./admin-mocks";
 import { crearClientePrueba } from "./db";
+// La ruta pública de fotos ya se sirve con Astro (change
+// `migrar-directorio-publico-astro`, tasks.md #15); la del panel sigue en Next.
+import { fotoPublica } from "./paginas-directorio";
 
 // Spec: directorio-publico, requirement "La foto de un negocio no publicado no
 // es accesible públicamente"; revision-admin, scenario "la foto del registro en

@@ -1,0 +1,35 @@
+---
+// fuera de la medición: una falla del servidor no es una visita que contar, y esta página también sale cuando la base está caída.
+/**
+ * Página de error del servidor (hallazgo M1 de
+ * `openspec/changes/migrar-lectura-publica-astro/reports/c-seguridad.md`).
+ *
+ * POR QUÉ EXISTE: cuando una página o endpoint LANZA (p. ej. con la base
+ * caída), Astro arma el 500 por su cuenta. Sin esta página lo armaba fuera
+ * del middleware (`new Response(null, { status: 500 })`) y salía sin las
+ * cuatro cabeceras de seguridad. Con ella, Astro la pinta pasando por
+ * `src/middleware.ts`, que pone las cuatro y el `Cache-Control` del HTML
+ * dinámico.
+ *
+ * Es DINÁMICA a propósito: si se prerenderizara, Astro la pediría a la CDN
+ * desde la función (`prerenderedErrorPageFetch`) y la respuesta volvería a
+ * salir sin pasar por el middleware.
+ *
+ * No toca la base ni pinta `Astro.props.error`: ni mensaje, ni traza, ni
+ * datos de conexión. Mismo estilo que `NoEncontrado.astro`; `noindex`.
+ */
+import DocumentoBase from "@/layouts/DocumentoBase.astro";
+
+export const prerender = false;
+---
+
+<DocumentoBase metadatos={{ robots: { index: false } }}>
+  <section class="flex flex-1 flex-col items-center justify-center gap-6 py-12 text-center">
+    <h1 class="max-w-md text-2xl font-bold tracking-tight sm:text-3xl">Algo falló de nuestro lado</h1>
+    <p class="max-w-md text-tinta-suave">No es tu culpa. Espera un ratito y vuelve a intentarlo.</p>
+    <a
+      class="inline-flex min-h-11 items-center justify-center px-4 text-base font-semibold text-accion-fuerte underline underline-offset-4"
+      href="/">Ir al inicio</a
+    >
+  </section>
+</DocumentoBase>

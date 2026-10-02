@@ -2,9 +2,6 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { seedCatalogos } from "../prisma/seed";
 import { sembrarNegociosDemo } from "../prisma/seed-demo";
-import { generateMetadata as metadataDestino } from "../src/app/(publico)/[destino]/page";
-import { generateMetadata as metadataFicha } from "../src/app/(publico)/negocio/[ficha]/page";
-import { metadata as metadataLayout } from "../src/app/layout";
 import type { PrismaClient } from "../src/generated/prisma/client";
 import { construirSegmentoFicha } from "../src/lib/ficha-url";
 import {
@@ -17,6 +14,10 @@ import {
 } from "../src/lib/seo/metadata";
 import { URL_SITIO_LOCAL, VARIABLE_URL_SITIO } from "../src/lib/sitio";
 import { crearClientePrueba } from "./db";
+// Las páginas del directorio ya se sirven con Astro (change
+// `migrar-directorio-publico-astro`, tasks.md #15): sus metadatos son los que
+// la página le pasa al documento, con la misma forma que `generateMetadata`.
+import { metadataDestino, metadataFicha } from "./paginas-directorio";
 import { CLAVE_FOTO_SEO, sembrarNegociosSeo } from "./seo-fixtures";
 
 // Spec: layout-base · requirement "Server Component con documento en es-MX y
@@ -60,6 +61,10 @@ afterAll(async () => {
   await prisma.negocio.deleteMany({ where: { whatsapp: { startsWith: "7719995" } } });
   await prisma.$disconnect();
 });
+
+// La metadata del layout raíz es la que el documento base de Astro le pasa a
+// los metadatos (change `migrar-lectura-publica-astro`, tasks.md #15).
+const metadataLayout = metadataDelSitio();
 
 describe("layout-base · metadata base del sitio (tasks #13)", () => {
   // Scenario: la home conserva el título del sitio + una página con título

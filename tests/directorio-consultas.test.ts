@@ -16,6 +16,7 @@ import {
   obtenerNegociosPublicados,
 } from "../src/lib/directorio";
 import { SEGMENTOS_RESERVADOS, esSegmentoReservado } from "../src/lib/rutas-reservadas";
+import { problemasDeAmbiguedadDeCatalogos } from "../src/lib/seo/invariante-catalogos";
 import { crearClientePrueba } from "./db";
 
 // Spec: directorio-publico · requirements "Listado por categoría en URL limpia
@@ -126,6 +127,78 @@ describe("directorio-publico · la ruta dinámica no tapa rutas propias (tasks #
       expect(segmento, segmento).not.toMatch(/^\(/);
     }
   });
+
+  // ── Astro (change `migrar-lectura-publica-astro`, design.md §2; spec
+  // `plataforma-astro`, scenario "un slug no queda tapado por una ruta de
+  // Astro"). `src/pages/` publica segmentos de la raíz por carpeta y por
+  // archivo (`terminos.astro` → `/terminos`, `robots.txt.ts` → `/robots.txt`).
+  // La lista reservada vive en `src/lib/rutas-reservadas.ts` y vale para los
+  // dos marcos; aquí se exige que cubra también lo que publica Astro.
+
+  /**
+   * Páginas de Astro que no son un segmento de contenido: solo la raíz.
+   *
+   * La 404 y la 500 SÍ publican un segmento (Astro las sirve en `/404` y
+   * `/500`). En 2a no se podían reservar sin tocar `src/lib/` y se vigilaba
+   * aparte que ningún slug del catálogo las usara; desde el change
+   * `migrar-directorio-publico-astro` (design.md §5) están en
+   * `SEGMENTOS_RESERVADOS` y se revisan como cualquier otro segmento. La
+   * vigilancia sobre el catálogo se conserva.
+   */
+  const PAGINAS_DE_ASTRO_QUE_NO_SON_SEGMENTO = ["index.astro"];
+  const SEGMENTOS_PROPIOS_DE_ASTRO = ["404", "500"];
+
+  it('"404" y "500" están reservados (Astro publica /404 y /500)', () => {
+    for (const segmento of SEGMENTOS_PROPIOS_DE_ASTRO) {
+      expect(SEGMENTOS_RESERVADOS, segmento).toContain(segmento);
+      expect(esSegmentoReservado(segmento), segmento).toBe(true);
+      expect(esSegmentoReservado(` ${segmento} `), segmento).toBe(true);
+    }
+    expect(segmentosDeAstro(join(raiz, "src/pages"))).toEqual(expect.arrayContaining(SEGMENTOS_PROPIOS_DE_ASTRO));
+  });
+
+  // Scenario "un slug '404' reprueba" (spec `plataforma-astro`, 2b).
+  it('un catálogo de prueba con una categoría o un giro de slug "404" o "500" reprueba', () => {
+    for (const slug of SEGMENTOS_PROPIOS_DE_ASTRO) {
+      for (const catalogo of ["categorias", "giros"] as const) {
+        const vacios = { categorias: [], giros: [], colonias: [] };
+        const problemas = problemasDeAmbiguedadDeCatalogos({ ...vacios, [catalogo]: [{ nombre: "Inventado", slug }] });
+        expect(problemas.join(" "), `${catalogo} · ${slug}`).toContain(slug);
+      }
+    }
+  });
+
+  it("las rutas propias de src/pages están declaradas como reservadas", () => {
+    const segmentos = segmentosDeAstro(join(raiz, "src/pages"));
+    for (const esperado of ["terminos", "aviso-de-privacidad", "robots.txt", "sitemap.xml", "opengraph-image"]) {
+      expect(segmentos, esperado).toContain(esperado);
+    }
+    for (const segmento of segmentos) {
+      expect(SEGMENTOS_RESERVADOS, `src/pages publica /${segmento} y no está reservado`).toContain(segmento);
+    }
+  });
+
+  it("un giro o categoría con el slug de una ruta de Astro haría fallar la verificación", async () => {
+    // Lo que comprueba el primer caso de este bloque contra el catálogo real:
+    // cualquiera de estos slugs lo pondría en rojo.
+    for (const slug of ["robots.txt", "sitemap.xml", "opengraph-image", "terminos", "aviso-de-privacidad", "404", "500"]) {
+      expect(esSegmentoReservado(slug), slug).toBe(true);
+    }
+    const giros = await prisma.giro.findMany({ select: { slug: true } });
+    const categorias = await listarCategorias();
+    expect(giros.length).toBeGreaterThan(0);
+    for (const { slug } of [...giros, ...categorias]) {
+      expect(esSegmentoReservado(slug), `el slug "${slug}" quedaría tapado`).toBe(false);
+      expect(SEGMENTOS_PROPIOS_DE_ASTRO, `el slug "${slug}" quedaría tapado por la 404 o la 500`).not.toContain(slug);
+    }
+  });
+
+  /** Segmentos de la raíz que publica `src/pages/` (carpetas y archivos). */
+  function segmentosDeAstro(dir: string): string[] {
+    return readdirSync(dir, { withFileTypes: true })
+      .filter((e) => !e.name.startsWith("[") && !PAGINAS_DE_ASTRO_QUE_NO_SON_SEGMENTO.includes(e.name))
+      .map((e) => (e.isDirectory() ? e.name : e.name.replace(/\.(astro|ts|js|mjs|md)$/, "")));
+  }
 
   it("reconoce un segmento reservado sin importar mayúsculas ni espacios", () => {
     expect(esSegmentoReservado("registro")).toBe(true);

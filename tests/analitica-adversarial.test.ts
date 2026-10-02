@@ -5,13 +5,11 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { seedCatalogos } from "../prisma/seed";
-import ListadoCategoriaPage from "../src/app/(publico)/[destino]/page";
-import BuscarPage, {
-  TITULO_BUSCAR,
-  metadata as metadataBuscar,
-} from "../src/app/(publico)/buscar/page";
-import LayoutPublico from "../src/app/(publico)/layout";
-import FichaNegocioPage from "../src/app/(publico)/negocio/[ficha]/page";
+// Las páginas del directorio ya se sirven con Astro (change
+// `migrar-directorio-publico-astro`, tasks.md #15): `main…` es lo que pintaba
+// la página; `pintar…().documento`, la página dentro del tronco público (lo
+// que el vecino recibe de verdad).
+import { METADATOS_BUSCAR as metadataBuscar, TITULO_BUSCAR } from "../src/astro/buscar";
 import { ScriptAnalitica } from "../src/components/analitica/script-analitica";
 import { TarjetaNegocio } from "../src/components/directorio/tarjeta-negocio";
 import type { PrismaClient } from "../src/generated/prisma/client";
@@ -25,6 +23,7 @@ import {
 import { datosDeBusqueda } from "../src/lib/busqueda";
 import { construirSegmentoFicha } from "../src/lib/ficha-url";
 import { crearClientePrueba } from "./db";
+import { mainDeBuscar, mainDeDestino, mainDeFicha, pintarBuscar, pintarDestino, pintarFicha } from "./paginas-directorio";
 
 /**
  * Etapa C (seguridad y pruebas) del change `agregar-analitica-cookieless`.
@@ -81,19 +80,6 @@ function conMedicion(): void {
 function sinMedicion(): void {
   delete process.env[VARIABLE_SRC];
   delete process.env[VARIABLE_WEBSITE_ID];
-}
-
-async function render(pagina: unknown): Promise<string> {
-  const resuelta = (await pagina) as React.ReactElement;
-  return renderToStaticMarkup(createElement(() => resuelta));
-}
-
-/** La página dentro del tronco público: lo que el vecino recibe de verdad. */
-async function renderEnElTroncoPublico(pagina: unknown): Promise<string> {
-  const resuelta = (await pagina) as React.ReactElement;
-  return renderToStaticMarkup(
-    createElement(LayoutPublico, { children: resuelta } as never),
-  );
 }
 
 /** Cada atributo `data-umami-event*` del HTML, como pares nombre/valor. */
@@ -272,12 +258,7 @@ describe("analitica adversarial · un valor hostil no puede romper la etiqueta",
 
   it("no hay una segunda forma de inyectar scripts: el tronco público pinta uno solo", async () => {
     conMedicion();
-    const html = await renderEnElTroncoPublico(
-      ListadoCategoriaPage({
-        params: Promise.resolve({ destino: "servicios-del-hogar" }),
-        searchParams: Promise.resolve({}),
-      }),
-    );
+    const html = (await pintarDestino("servicios-del-hogar")).documento;
     const externos = [...html.matchAll(/<script\b[^>]*\bsrc="([^"]*)"/g)].map((m) => m[1]);
     expect(externos).toEqual([SRC_VALIDO]);
   });
@@ -291,14 +272,7 @@ describe("analitica adversarial · texto libre que YA parece un slug", () => {
   // Scenario: negocio con colonia "Otra" sin normalizar — versión hostil: el
   // texto libre pasaría cualquier saneado "por forma".
   it("una colonia libre escrita como slug del catálogo sigue viajando como 'otra'", async () => {
-    const html = await render(
-      FichaNegocioPage({
-        params: Promise.resolve({
-          ficha: construirSegmentoFicha(NEGOCIO_TRAMPA.nombre, idTrampa),
-        }),
-        searchParams: Promise.resolve({}),
-      }),
-    );
+    const html = await mainDeFicha(construirSegmentoFicha(NEGOCIO_TRAMPA.nombre, idTrampa));
 
     const colonias = atributosDeMedicion(html)
       .filter(([nombre]) => nombre === "data-umami-event-colonia")
@@ -319,26 +293,10 @@ describe("analitica adversarial · texto libre que YA parece un slug", () => {
     async (pagina) => {
       const html =
         pagina === "listado"
-          ? await render(
-              ListadoCategoriaPage({
-                params: Promise.resolve({ destino: "servicios-del-hogar" }),
-                searchParams: Promise.resolve({}),
-              }),
-            )
+          ? await mainDeDestino("servicios-del-hogar", {})
           : pagina === "resultados"
-            ? await render(
-                BuscarPage({
-                  searchParams: Promise.resolve({ q: "cerrajeria" }),
-                } as unknown as Parameters<typeof BuscarPage>[0]),
-              )
-            : await render(
-                FichaNegocioPage({
-                  params: Promise.resolve({
-                    ficha: construirSegmentoFicha(NEGOCIO_TRAMPA.nombre, idTrampa),
-                  }),
-                  searchParams: Promise.resolve({}),
-                }),
-              );
+            ? await mainDeBuscar({ q: "cerrajeria" })
+            : await mainDeFicha(construirSegmentoFicha(NEGOCIO_TRAMPA.nombre, idTrampa));
 
       const atributos = atributosDeMedicion(html);
       expect(atributos.length).toBeGreaterThan(0);
@@ -360,17 +318,8 @@ describe("analitica adversarial · texto libre que YA parece un slug", () => {
   );
 
   it("un negocio sin publicar no aporta ni un atributo de medición", async () => {
-    const listado = await render(
-      ListadoCategoriaPage({
-        params: Promise.resolve({ destino: "servicios-del-hogar" }),
-        searchParams: Promise.resolve({}),
-      }),
-    );
-    const resultados = await render(
-      BuscarPage({
-        searchParams: Promise.resolve({ q: "cerrajeria" }),
-      } as unknown as Parameters<typeof BuscarPage>[0]),
-    );
+    const listado = await mainDeDestino("servicios-del-hogar", {});
+    const resultados = await mainDeBuscar({ q: "cerrajeria" });
     for (const html of [listado, resultados]) {
       expect(html).not.toContain("Taller sin publicar");
       expect(html).not.toContain("colonia-inventada-del-borrador");
@@ -419,11 +368,7 @@ describe("analitica adversarial · lo que escribe el vecino en /buscar", () => {
   // el texto no puede aparecer en ningún atributo de medición.
   it("el HTML servido pide excluir la cadena de consulta y no mide el texto", async () => {
     conMedicion();
-    const html = await renderEnElTroncoPublico(
-      BuscarPage({
-        searchParams: Promise.resolve({ q: CONSULTA_HOSTIL }),
-      } as unknown as Parameters<typeof BuscarPage>[0]),
-    );
+    const html = (await pintarBuscar({ q: CONSULTA_HOSTIL })).documento;
 
     const etiquetas = [...html.matchAll(/<script\b[^>]*>/g)].map((m) => m[0]);
     expect(etiquetas).toHaveLength(1);
@@ -448,9 +393,12 @@ describe("analitica adversarial · lo que escribe el vecino en /buscar", () => {
     // título propio, hereda el del layout" —lo que T-009 rompería sin
     // enterarse— sino que declara un título ESTÁTICO explícito, con el porqué
     // escrito al lado. Este caso vigila que siga siendo estático.
-    const fuente = readFileSync(join(raiz, "src/app/(publico)/buscar/page.tsx"), "utf8");
-    expect(fuente).not.toContain("generateMetadata");
-    expect(fuente).toMatch(/export const metadata: Metadata = \{\s*title: TITULO_BUSCAR,\s*robots:/);
+    // En Astro (2b) la metadata vive en `src/astro/buscar.ts` y la página la usa tal cual.
+    const fuente = readFileSync(join(raiz, "src/astro/buscar.ts"), "utf8");
+    const pagina = readFileSync(join(raiz, "src/pages/buscar.astro"), "utf8");
+    expect(fuente + pagina).not.toContain("generateMetadata");
+    expect(fuente).toMatch(/export const METADATOS_BUSCAR: MetadatosDePagina = \{\s*title: TITULO_BUSCAR,\s*robots:/);
+    expect(pagina).toMatch(/<TroncoPublico metadatos=\{METADATOS_BUSCAR\}/);
     expect(TITULO_BUSCAR).toBe("Buscar — EnMiRumbo");
     // El título no depende de nada que escriba el vecino.
     expect(metadataBuscar.title).toBe(TITULO_BUSCAR);
@@ -530,18 +478,16 @@ describe("analitica adversarial · el grupo (publico) es la frontera de la medic
     expect(readFileSync(join(raiz, "src/app/not-found.tsx"), "utf8")).not.toContain(
       "Analitica",
     );
+    // En Astro (change `migrar-lectura-publica-astro`): la 404 usa el
+    // documento base, no el tronco que mide.
+    const astro404 = readFileSync(join(raiz, "src/pages/404.astro"), "utf8");
+    expect(astro404).toMatch(/<DocumentoBase\b/);
+    expect(astro404).not.toMatch(/<TroncoPublico\b|Analitica/);
   });
 
   it("sin configuración el tronco público no deja ni rastro del proveedor", async () => {
     sinMedicion();
-    const html = await renderEnElTroncoPublico(
-      FichaNegocioPage({
-        params: Promise.resolve({
-          ficha: construirSegmentoFicha(NEGOCIO_TRAMPA.nombre, idTrampa),
-        }),
-        searchParams: Promise.resolve({}),
-      }),
-    );
+    const html = (await pintarFicha(construirSegmentoFicha(NEGOCIO_TRAMPA.nombre, idTrampa))).documento;
     // Lo que la spec prohíbe sin configuración es el script HACIA UN DOMINIO
     // EXTERNO ("el navegador no pide nada fuera del sitio"): cero `<script>`
     // con `src`. La ficha sí trae un `<script type="application/ld+json">`

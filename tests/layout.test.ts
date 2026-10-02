@@ -21,20 +21,12 @@ vi.mock("next/navigation", async () => {
 
 import { seedCatalogos } from "../prisma/seed";
 import { sembrarNegociosDemo } from "../prisma/seed-demo";
-import ListadoCategoriaPage from "../src/app/(publico)/[destino]/page";
-import BuscarPage from "../src/app/(publico)/buscar/page";
 import ColaAdminPage from "../src/app/admin/cola/page";
 import AccesoAdminPage from "../src/app/admin/page";
 import DetalleRegistroAdminPage from "../src/app/admin/registros/[id]/page";
 import RegistroAprobadoPage from "../src/app/admin/registros/[id]/aprobado/page";
-import AvisoDePrivacidadPage from "../src/app/(publico)/aviso-de-privacidad/page";
-import { metadata } from "../src/app/layout";
-import FichaNegocioPage from "../src/app/(publico)/negocio/[ficha]/page";
 import ReportarGraciasPage from "../src/app/(publico)/negocio/[ficha]/reportar/gracias/page";
 import ReportarNegocioPage from "../src/app/(publico)/negocio/[ficha]/reportar/page";
-import NotFoundPage from "../src/app/not-found";
-import Home from "../src/app/(publico)/page";
-import TerminosPage from "../src/app/(publico)/terminos/page";
 import { Footer } from "../src/components/footer";
 import { Header } from "../src/components/header";
 import {
@@ -49,8 +41,22 @@ import {
   type CatalogosDeLaRaiz,
   resolverSlugDeLaRaiz,
 } from "../src/lib/seo/rutas";
+import { metadataDelSitio } from "../src/lib/seo/metadata";
+// Home, legales, 404 y el documento base ya se sirven con Astro (change
+// `migrar-lectura-publica-astro`, tasks.md #15). Lo que pintaba cada página es
+// el contenido de <main>; los metadatos del documento salen de
+// `metadataDelSitio()`, que es lo que usa `src/layouts/DocumentoBase.astro`.
+import NotFoundPage from "../src/pages/404.astro";
+import AvisoDePrivacidadPage from "../src/pages/aviso-de-privacidad.astro";
+import Home from "../src/pages/index.astro";
+import TerminosPage from "../src/pages/terminos.astro";
 import { peticion, reiniciarPeticion } from "./admin-mocks";
+import { contenidoDelMain, pintarPagina } from "./astro-paginas";
 import { crearClientePrueba } from "./db";
+// Las páginas del directorio ya se sirven con Astro (change
+// `migrar-directorio-publico-astro`, tasks.md #15): lo que pintaban es el
+// contenido de <main>.
+import { mainDeBuscar, mainDeDestino, mainDeFicha } from "./paginas-directorio";
 
 // Deuda registrada en el change agregar-layout-base (reports/b-dev.md):
 // port a Vitest de los scenarios automatizables 2, 4, 7, 9, 10, 11, 12 y 13
@@ -74,7 +80,7 @@ function archivosDe(dir: string, extensiones: string[]): string[] {
   return rutas;
 }
 
-const fuentesTsx = archivosDe(join(raiz, "src"), [".tsx"]);
+const fuentesTsx = archivosDe(join(raiz, "src"), [".tsx", ".astro"]);
 const fuentesTodas = archivosDe(join(raiz, "src"), [".ts", ".tsx", ".css"]);
 
 /** ¿Es una carpeta de GRUPO de rutas, `(publico)`? No aparece en la URL. */
@@ -107,22 +113,37 @@ export function rutaDePagina(rutaArchivo: string): string {
  * `/negocio/[ficha]`) se validan aparte, resolviendo el destino contra el
  * catálogo y contra los negocios publicados.
  */
-const rutasExistentes = new Set(
-  archivosDe(join(raiz, "src/app"), ["page.tsx"])
+const rutasExistentes = new Set([
+  ...archivosDe(join(raiz, "src/app"), ["page.tsx"])
     .map(rutaDePagina)
     .filter((ruta) => !ruta.includes("[")),
-);
+  // Las rutas de Astro (change `migrar-lectura-publica-astro`): cada página o
+  // endpoint de `src/pages/` sin segmentos dinámicos. La 404 no es un destino.
+  ...archivosDe(join(raiz, "src/pages"), [".astro", ".ts"])
+    .map(rutaDePaginaAstro)
+    .filter((ruta) => !ruta.includes("[") && ruta !== "/404"),
+]);
+
+/** URL de una página o endpoint de `src/pages/` a partir de su archivo. */
+function rutaDePaginaAstro(rutaArchivo: string): string {
+  const relativa = rutaArchivo.slice(join(raiz, "src/pages").length + 1).replace(/\.(astro|ts)$/, "");
+  const sinIndice = relativa === "index" ? "" : relativa.replace(/\/index$/, "");
+  return `/${sinIndice}`;
+}
 const globalsCss = readFileSync(join(raiz, "src/app/globals.css"), "utf8");
-const layoutTsx = readFileSync(join(raiz, "src/app/layout.tsx"), "utf8");
+// El documento base del sitio (antes `src/app/layout.tsx`).
+const layoutTsx = readFileSync(join(raiz, "src/layouts/DocumentoBase.astro"), "utf8");
 const headerTsx = readFileSync(join(raiz, "src/components/header.tsx"), "utf8");
 
 const htmlHeader = renderToStaticMarkup(createElement(Header));
 const htmlFooter = renderToStaticMarkup(createElement(Footer));
-const html404 = renderToStaticMarkup(createElement(NotFoundPage));
+const html404 = contenidoDelMain(await pintarPagina(NotFoundPage, { ruta: "/no-existe" }));
 // Páginas legales (change `agregar-paginas-legales`): sus enlaces cruzados
 // entran a la misma revisión que los del resto del sitio.
-const htmlAvisoPrivacidad = renderToStaticMarkup(createElement(AvisoDePrivacidadPage));
-const htmlTerminos = renderToStaticMarkup(createElement(TerminosPage));
+const htmlAvisoPrivacidad = contenidoDelMain(
+  await pintarPagina(AvisoDePrivacidadPage, { ruta: "/aviso-de-privacidad" }),
+);
+const htmlTerminos = contenidoDelMain(await pintarPagina(TerminosPage, { ruta: "/terminos" }));
 const normalizado = (html: string) => html.replace(/\s+/g, " ");
 
 // La home y las páginas del directorio leen la base (Server Components
@@ -190,43 +211,16 @@ beforeAll(async () => {
   ).map((n) => n.id);
   await prisma.$disconnect();
 
-  const home = await Home();
-  htmlHome = renderToStaticMarkup(createElement(() => home));
+  htmlHome = contenidoDelMain(await pintarPagina(Home, { ruta: "/" }));
 
   // El segmento dinámico de la raíz se llama `destino` desde el change
   // `agregar-seo-local`: la misma carpeta resuelve categoría, giro y
   // giro+colonia (design.md §1). Las URLs no cambiaron.
-  const listado = await ListadoCategoriaPage({
-    params: Promise.resolve({ destino: "servicios-del-hogar" }),
-    searchParams: Promise.resolve({}),
-  });
-  htmlListado = renderToStaticMarkup(createElement(() => listado));
-
-  const filtrado = await ListadoCategoriaPage({
-    params: Promise.resolve({ destino: "servicios-del-hogar" }),
-    searchParams: Promise.resolve({ colonia: "atempa" }),
-  });
-  htmlListadoFiltrado = renderToStaticMarkup(createElement(() => filtrado));
-
-  const giro = await ListadoCategoriaPage({
-    params: Promise.resolve({ destino: "plomeria" }),
-    searchParams: Promise.resolve({}),
-  });
-  htmlGiro = renderToStaticMarkup(createElement(() => giro));
-
-  const giroColonia = await ListadoCategoriaPage({
-    params: Promise.resolve({ destino: "plomeria-huicalco" }),
-    searchParams: Promise.resolve({}),
-  });
-  htmlGiroColonia = renderToStaticMarkup(createElement(() => giroColonia));
-
-  const ficha = await FichaNegocioPage({
-    params: Promise.resolve({
-      ficha: construirSegmentoFicha(publicados[0].nombre, publicados[0].id),
-    }),
-    searchParams: Promise.resolve({}),
-  });
-  htmlFicha = renderToStaticMarkup(createElement(() => ficha));
+  htmlListado = await mainDeDestino("servicios-del-hogar");
+  htmlListadoFiltrado = await mainDeDestino("servicios-del-hogar", { colonia: "atempa" });
+  htmlGiro = await mainDeDestino("plomeria");
+  htmlGiroColonia = await mainDeDestino("plomeria-huicalco");
+  htmlFicha = await mainDeFicha(construirSegmentoFicha(publicados[0].nombre, publicados[0].id));
 
   // Página de reporte y su confirmación (change `agregar-boton-reportar`):
   // sus enlaces —el "Volver a la ficha" de las dos— entran a la misma
@@ -246,15 +240,8 @@ beforeAll(async () => {
 
   // Página de resultados (change `agregar-buscador`): sus enlaces y el
   // destino de su buscador entran a la misma revisión.
-  const buscar = await BuscarPage({
-    searchParams: Promise.resolve({ q: "plomeria" }),
-  } as unknown as Parameters<typeof BuscarPage>[0]);
-  htmlBuscar = renderToStaticMarkup(createElement(() => buscar));
-
-  const buscarVacio = await BuscarPage({
-    searchParams: Promise.resolve({}),
-  } as unknown as Parameters<typeof BuscarPage>[0]);
-  htmlBuscarVacio = renderToStaticMarkup(createElement(() => buscarVacio));
+  htmlBuscar = await mainDeBuscar({ q: "plomeria" });
+  htmlBuscarVacio = await mainDeBuscar({});
   // Panel: la pantalla de acceso se ve sin sesión; el resto, con una cookie
   // firmada de verdad por el mismo módulo que usa producción.
   reiniciarPeticion();
@@ -716,7 +703,7 @@ describe("layout-base · enlaces internos y externos de las páginas servidas", 
       expect(html).not.toContain("/admin");
     }
     // Tampoco en el código de las superficies públicas (header, footer, home).
-    for (const ruta of ["src/components/header.tsx", "src/components/footer.tsx", "src/app/(publico)/page.tsx"]) {
+    for (const ruta of ["src/components/header.tsx", "src/components/footer.tsx", "src/pages/index.astro"]) {
       expect(readFileSync(join(raiz, ruta), "utf8")).not.toContain("/admin");
     }
   });
@@ -915,6 +902,8 @@ describe("layout-base · documento es-MX con metadata (scenario 10)", () => {
   // no cambió. Los demás campos nuevos (metadataBase, Open Graph) los cubre
   // `tests/seo-metadata.test.ts`.
   it("título y descripción son los literales aprobados en la spec", () => {
+    const metadata = metadataDelSitio();
+    expect(layoutTsx).toContain("metadataDelSitio()");
     expect(metadata.title).toEqual({
       default: "EnMiRumbo — Encuentra negocios y servicios en Tizayuca",
       template: "%s — EnMiRumbo",
@@ -948,6 +937,16 @@ describe("layout-base · sin JS de cliente (scenario 11)", () => {
     expect(fuentesLayoutBase.length).toBeGreaterThanOrEqual(6);
     for (const ruta of fuentesLayoutBase) {
       expect(readFileSync(ruta, "utf8"), ruta).not.toMatch(/["']use client["']/);
+    }
+  });
+
+  // MODIFIED (change `migrar-lectura-publica-astro`): ni directiva `client:`
+  // en el documento base, el tronco ni las páginas de Astro.
+  it("ningún layout ni página de Astro se hidrata con una directiva client:", () => {
+    const astro = archivosDe(join(raiz, "src"), [".astro"]);
+    expect(astro.length).toBeGreaterThanOrEqual(7);
+    for (const ruta of astro) {
+      expect(readFileSync(ruta, "utf8"), ruta).not.toMatch(/\sclient:[a-z]+/i);
     }
   });
 });
@@ -996,7 +995,7 @@ describe("layout-base · página 404 en español", () => {
 
 // layout-base MODIFIED por el change agregar-formulario-registro.
 describe("layout-base · entrada al registro desde la home", () => {
-  const homeTsx = readFileSync(join(raiz, "src/app/(publico)/page.tsx"), "utf8");
+  const homeTsx = readFileSync(join(raiz, "src/pages/index.astro"), "utf8");
   const botonPrimario = readFileSync(join(raiz, "src/lib/estilos-boton.ts"), "utf8");
 
   // Scenario: entrada al registro desde la home
@@ -1021,10 +1020,125 @@ describe("layout-base · sin rastros de la plantilla (scenario 13)", () => {
   // entorno legítima que el panel mira para no abrirse mal configurado en
   // producción, igual que ya hacía `prisma/seed-demo.ts`.
   it("no queda nada de create-next-app en src/", () => {
+    // Única excepción, y solo para "geist": la imagen de marca se dibuja con
+    // Geist Regular, la tipografía que traía `next/og`, copiada con su
+    // licencia (change `migrar-lectura-publica-astro`, design.md §6). No es la
+    // fuente de la plantilla: el sitio sigue con la pila de sistema.
+    const imagenDeMarca = join(raiz, "src/astro/imagen-de-marca");
     for (const ruta of fuentesTodas) {
-      expect(readFileSync(ruta, "utf8"), ruta).not.toMatch(
-        /next\.svg|vercel\.svg|vercel\.(com|app)|create next app|Get started|geist|prefers-color-scheme/i,
-      );
+      const patron = ruta.startsWith(imagenDeMarca)
+        ? /next\.svg|vercel\.svg|vercel\.(com|app)|create next app|Get started|prefers-color-scheme/i
+        : /next\.svg|vercel\.svg|vercel\.(com|app)|create next app|Get started|geist|prefers-color-scheme/i;
+      expect(readFileSync(ruta, "utf8"), ruta).not.toMatch(patron);
     }
+    expect(globalsCss).not.toMatch(/geist/i);
+    expect(layoutTsx).not.toMatch(/geist/i);
+  });
+});
+
+// ───────────────────────────────────────────────────────────────────────────
+// Fase 2b (change `migrar-directorio-publico-astro`, tasks.md #13; spec
+// `plataforma-astro`, requirement "El sitemap, los enlaces y las rutas
+// reservadas resuelven en Astro").
+//
+// La revisión de arriba acepta lo que exista en `src/app` O en `src/pages`,
+// porque el panel (Fase 5) y el reporte (Fase 3) siguen en Next. Esta es más
+// estricta: lo que pintan las páginas públicas YA migradas tiene que resolver
+// en Astro, salvo los enlaces que esperan a la Fase 3, que son una lista
+// explícita (design.md §8). No se crean páginas provisionales.
+// ───────────────────────────────────────────────────────────────────────────
+
+/** Enlaces que esperan a la Fase 3 (T-024): en 2b responden la 404 global. */
+const EXCEPCIONES_FASE_3: Array<[RegExp, string]> = [
+  [/^\/registro$/, "formulario de registro (Fase 3)"],
+  [/^\/negocio\/[^/]+\/reportar$/, "reporte de un negocio (Fase 3, T-024)"],
+];
+
+/** Rutas dinámicas de `src/pages/`, en forma de URL (`/[destino]`, …). */
+const rutasDinamicasDeAstro = archivosDe(join(raiz, "src/pages"), [".astro", ".ts"])
+  .map(rutaDePaginaAstro)
+  .filter((ruta) => ruta.includes("["))
+  .sort();
+
+/** Rutas estáticas de `src/pages/` (sin la 404 ni la 500, que no son destinos). */
+const rutasEstaticasDeAstro = new Set(
+  archivosDe(join(raiz, "src/pages"), [".astro", ".ts"])
+    .map(rutaDePaginaAstro)
+    .filter((ruta) => !ruta.includes("[") && ruta !== "/404" && ruta !== "/500"),
+);
+
+/** ¿Esta ruta interna la sirve Astro (estática, o dinámica que resuelve)? */
+function rutaDeAstroExiste(href: string): boolean {
+  const ruta = href.split("?")[0];
+  if (rutasEstaticasDeAstro.has(ruta)) return true;
+  const segmentos = ruta.split("/").slice(1);
+  // `src/pages/[destino].astro`: categoría, giro o giro+colonia del catálogo.
+  if (segmentos.length === 1 && resolverSlugDeLaRaiz(segmentos[0], catalogos).tipo !== "desconocido") {
+    return true;
+  }
+  // `src/pages/negocio/[ficha].astro`: la ficha de un negocio publicado.
+  return segmentos.length === 2 && segmentos[0] === "negocio" && idsPublicados.some((id) => segmentos[1].endsWith(id));
+}
+
+/** Enlaces y destinos de formulario internos que Astro no sirve y no son excepción de la Fase 3. */
+function problemasDeEnlacesEnAstro(html: string): string[] {
+  const destinos = [
+    ...[...html.matchAll(/<a\s[^>]*href="([^"]*)"/g)].map((m) => m[1]),
+    ...[...html.matchAll(/<form\s[^>]*action="([^"]*)"/g)].map((m) => m[1]),
+  ].filter((destino) => destino.startsWith("/"));
+  return destinos
+    .filter((destino) => !EXCEPCIONES_FASE_3.some(([patron]) => patron.test(destino.split("?")[0])))
+    .filter((destino) => !rutaDeAstroExiste(destino))
+    .map((destino) => `destino que Astro no sirve: ${destino}`);
+}
+
+/** Los enlaces de la página que caen en la lista de la Fase 3. */
+const enlacesDeFase3 = (html: string) =>
+  [...html.matchAll(/<a\s[^>]*href="([^"]*)"/g)]
+    .map((m) => m[1])
+    .filter((href) => EXCEPCIONES_FASE_3.some(([patron]) => patron.test(href)));
+
+describe("plataforma-astro · los enlaces de las páginas migradas resuelven en Astro (2b)", () => {
+  it("reconoce las rutas dinámicas de src/pages: [destino], negocio/[ficha] y la de fotos", () => {
+    expect(rutasDinamicasDeAstro).toEqual(["/[destino]", "/api/foto/[clave]/[variante]", "/negocio/[ficha]"]);
+    expect(rutasEstaticasDeAstro).toContain("/buscar");
+    expect(rutasEstaticasDeAstro).not.toContain("/registro");
+  });
+
+  it("home, listados, giro, ficha, /buscar, 404, legales y footer solo enlazan a lo que Astro sirve", () => {
+    const paginas: Array<[string, string]> = [
+      ["home", htmlHome],
+      ["listado", htmlListado],
+      ["listado filtrado", htmlListadoFiltrado],
+      ["giro", htmlGiro],
+      ["giro+colonia", htmlGiroColonia],
+      ["ficha", htmlFicha],
+      ["resultados", htmlBuscar],
+      ["consulta vacía", htmlBuscarVacio],
+      ["404", html404],
+      ["aviso de privacidad", htmlAvisoPrivacidad],
+      ["términos", htmlTerminos],
+      ["footer", htmlFooter],
+      ["header", htmlHeader],
+    ];
+    for (const [nombre, html] of paginas) expect(problemasDeEnlacesEnAstro(html), nombre).toEqual([]);
+  });
+
+  // Scenario "los enlaces de la Fase 3 son la única excepción".
+  it("acepta /registro y /negocio/<…>/reportar solo por estar en la lista de la Fase 3", () => {
+    expect(enlacesDeFase3(htmlFicha)).toEqual([`/negocio/${segmentoFichaPublicada}/reportar`]);
+    expect(enlacesDeFase3(htmlHome)).toEqual(["/registro"]);
+    // Sin la excepción, las dos serían destinos que Astro no sirve.
+    expect(rutaDeAstroExiste("/registro")).toBe(false);
+    expect(rutaDeAstroExiste(`/negocio/${segmentoFichaPublicada}/reportar`)).toBe(false);
+  });
+
+  it("falla con cualquier otro destino que no existe", () => {
+    expect(problemasDeEnlacesEnAstro('<a href="/ruta-inventada-xyz">x</a>')).toHaveLength(1);
+    expect(problemasDeEnlacesEnAstro(`<a href="/negocio/${segmentoFichaPublicada}/reportar/gracias">x</a>`)).toHaveLength(1);
+    expect(problemasDeEnlacesEnAstro('<a href="/registro/gracias">x</a>')).toHaveLength(1);
+    expect(problemasDeEnlacesEnAstro('<a href="/negocio/negocio-que-no-existe-xyz">x</a>')).toHaveLength(1);
+    expect(problemasDeEnlacesEnAstro('<form action="/buscador-inventado"></form>')).toHaveLength(1);
+    expect(problemasDeEnlacesEnAstro('<form action="/buscar"></form>')).toEqual([]);
   });
 });

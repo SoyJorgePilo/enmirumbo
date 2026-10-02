@@ -1,0 +1,28 @@
+---
+// fuera de la medición: las URLs de fichas no publicadas llevan el nombre del negocio y no deben llegarle al proveedor; hoy (Next) estas 404 tampoco se miden (M-1; design.md §1 del change `migrar-directorio-publico-astro`).
+/**
+ * La 404 de las rutas dinámicas (spec `plataforma-astro`, requirement "Las 404
+ * de las rutas dinámicas muestran la página de no encontrado sin medirse";
+ * alternativa B, decisión del fundador).
+ *
+ * `/[destino]` y `/negocio/[ficha]` la pintan EN LUGAR de su contenido cuando
+ * el destino no existe o la ficha no está publicada, con estado 404. La página
+ * la manda el servidor, así que el vecino la ve también sin JavaScript.
+ *
+ * SIN PROPS Y SIN LEER LA PETICIÓN, a propósito: no recibe el negocio, ni el
+ * slug, ni el identificador. Así no puede filtrar nada y responde idéntico,
+ * byte a byte, para una ficha no publicada y para una que no existe.
+ *
+ * Usa `DocumentoBase` directo (no `TroncoPublico`), así que no puede traer el
+ * script de la medición. Los metadatos son los de la 404 global
+ * (`src/pages/404.astro`), que son los que Next manda en este caso (fixture
+ * `tests/fixtures/next-2b/*\/404-dinamica-slug.html`).
+ */
+import NoEncontrado from "@/astro/componentes/NoEncontrado.astro";
+import DocumentoBase from "@/layouts/DocumentoBase.astro";
+import { imagenesDeMarca } from "@/lib/seo/metadata";
+---
+
+<DocumentoBase metadatos={{ openGraph: { images: imagenesDeMarca() } }} noEncontrado>
+  <NoEncontrado />
+</DocumentoBase>

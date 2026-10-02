@@ -1,19 +1,17 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { createElement } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { seedCatalogos } from "../prisma/seed";
-import DestinoPage, {
-  generateMetadata as metadataDestino,
-} from "../src/app/(publico)/[destino]/page";
-import FichaNegocioPage, {
-  generateMetadata as metadataFicha,
-} from "../src/app/(publico)/negocio/[ficha]/page";
-import robots from "../src/app/robots";
-import sitemap from "../src/app/sitemap";
+// Las páginas del directorio ya se sirven con Astro (change
+// `migrar-directorio-publico-astro`, tasks.md #15). Lo desconocido y lo no
+// publicado responden la 404 dinámica (estado 404), sin lanzar.
+import { metadataDestino, metadataFicha, pintarDestino, pintarFicha } from "./paginas-directorio";
+// `robots.txt` y `sitemap.xml` ya se sirven con Astro (change
+// `migrar-lectura-publica-astro`, tasks.md #15): mismos objetos que antes.
+import { reglasDeRobots as robots } from "../src/pages/robots.txt";
+import { entradasDelSitemap as sitemap } from "../src/pages/sitemap.xml";
 import type { PrismaClient } from "../src/generated/prisma/client";
 import { datosDeBusqueda } from "../src/lib/busqueda";
 import { reiniciarMemoriaDeCatalogos } from "../src/lib/directorio";
@@ -114,28 +112,18 @@ function clienteQueCuenta(real: PrismaClient): PrismaClient {
   }) as PrismaClient;
 }
 
-type Respuesta = { html: string } | { digest: string };
+/** 200: lo que pinta la página dentro de `<main>`; 404: la 404 dinámica. */
+type Respuesta = { html: string } | { noEncontrado: true };
 
 async function pedirDestino(destino: string): Promise<Respuesta> {
-  try {
-    const elemento = await DestinoPage({
-      params: Promise.resolve({ destino }),
-      searchParams: Promise.resolve({}),
-    });
-    return { html: renderToStaticMarkup(createElement(() => elemento)) };
-  } catch (error) {
-    const digest = (error as { digest?: unknown }).digest;
-    if (typeof digest === "string") return { digest };
-    throw error;
-  }
+  const { status, main } = await pintarDestino(destino);
+  if (status === 404) return { noEncontrado: true };
+  if (status !== 200) throw new Error(`/${destino} respondió ${status}`);
+  return { html: main };
 }
 
 async function htmlDeFicha(nombre: string, id: string): Promise<string> {
-  const elemento = await FichaNegocioPage({
-    params: Promise.resolve({ ficha: construirSegmentoFicha(nombre, id) }),
-    searchParams: Promise.resolve({}),
-  });
-  return renderToStaticMarkup(createElement(() => elemento));
+  return (await pintarFicha(construirSegmentoFicha(nombre, id))).main;
 }
 
 /** Bloques `application/ld+json` crudos, tal como salen en el HTML. */
@@ -627,10 +615,8 @@ describe("seo/seguridad · lo no publicado no reaparece por ninguna ruta nueva",
   it("su ficha responde 404 y su metadata no declara nada", async () => {
     for (const whatsapp of [`${PREFIJO}002`, `${PREFIJO}003`]) {
       const id = idPorWhatsapp[whatsapp];
-      await expect(
-        htmlDeFicha("Herrería Revocada Imaginaria", id),
-        whatsapp,
-      ).rejects.toMatchObject({ digest: "NEXT_HTTP_ERROR_FALLBACK;404" });
+      const respuesta = await pintarFicha(construirSegmentoFicha("Herrería Revocada Imaginaria", id));
+      expect(respuesta.status, whatsapp).toBe(404);
       const metadata = await metadataFicha({
         params: Promise.resolve({
           ficha: construirSegmentoFicha("Herrería Revocada Imaginaria", id),
@@ -1027,7 +1013,11 @@ describe("seo/seguridad · SITIO_URL hostil o mal escrita", () => {
 
 describe("seo/seguridad · la imagen para compartir", () => {
   it("la imagen de marca no recibe nada de un negocio: no hay superficie que inyectar", () => {
-    const fuente = readFileSync(join(raiz, "src/app/opengraph-image.tsx"), "utf8");
+    // El árbol de la imagen (Astro, change `migrar-lectura-publica-astro`) y
+    // su generador, que solo corre al construir.
+    const fuente = ["src/astro/imagen-de-marca/arbol.tsx", "src/astro/imagen-de-marca/generar.ts", "src/pages/opengraph-image.ts"]
+      .map((archivo) => readFileSync(join(raiz, archivo), "utf8"))
+      .join("\n");
     // Ni parámetros de ruta, ni consulta, ni base de datos: el PNG se pinta
     // con literales de la marca, así que un nombre hostil no puede entrar.
     for (const prohibido of [
@@ -1088,10 +1078,8 @@ describe("seo/seguridad · lo que cuesta una petición hostil", () => {
     // petición que recibe un proceso recién arrancado (iteración 2, M4).
     reiniciarMemoriaDeCatalogos();
     contador.consultas = 0;
-    await metadataDestino({
-      params: Promise.resolve({ destino }),
-      searchParams: Promise.resolve({}),
-    });
+    // Una petición = un pintado: en Astro la página arma sus metadatos y su
+    // contenido juntos (en Next eran `generateMetadata` + la página).
     await pedirDestino(destino);
     return contador.consultas;
   }
@@ -1140,10 +1128,6 @@ describe("seo/seguridad · lo que cuesta una petición hostil", () => {
     // Con la memoria caliente (lo normal en producción), la segunda petición
     // del mismo tipo no le pregunta nada a la base.
     contador.consultas = 0;
-    await metadataDestino({
-      params: Promise.resolve({ destino: "aaaa-bbbb" }),
-      searchParams: Promise.resolve({}),
-    });
     await pedirDestino("aaaa-bbbb");
     expect(contador.consultas).toBe(0);
   });
@@ -1433,7 +1417,7 @@ describe("seo/seguridad · iteración 2 · la memoria de catálogos (M4)", () =>
       // Con la memoria caliente todavía no existe: 404, que es lo peor que
       // puede pasar (nunca datos de más).
       const conMemoria = await pedirDestino("giro-reciente-ficticio");
-      expect(conMemoria).toEqual({ digest: "NEXT_HTTP_ERROR_FALLBACK;404" });
+      expect(conMemoria).toEqual({ noEncontrado: true });
 
       // Al caducar (aquí, al reiniciarla a mano) ya resuelve.
       reiniciarMemoriaDeCatalogos();
@@ -1484,11 +1468,12 @@ describe("seo/seguridad · iteración 2 · la memoria de catálogos (M4)", () =>
 
 describe("seo/seguridad · iteración 2 · M1 y O1", () => {
   it("los dos niveles raíz de metadata declaran su imagen, no la heredan", () => {
-    for (const archivo of ["src/app/layout.tsx", "src/app/not-found.tsx"]) {
+    // En Astro (change `migrar-lectura-publica-astro`): el documento base y la 404.
+    for (const archivo of ["src/layouts/DocumentoBase.astro", "src/pages/404.astro"]) {
       const fuente = readFileSync(join(raiz, archivo), "utf8");
       expect(fuente, archivo).toMatch(/images|metadataDelSitio/);
     }
-    const notFound = readFileSync(join(raiz, "src/app/not-found.tsx"), "utf8");
+    const notFound = readFileSync(join(raiz, "src/pages/404.astro"), "utf8");
     expect(notFound).toContain("imagenesDeMarca()");
   });
 

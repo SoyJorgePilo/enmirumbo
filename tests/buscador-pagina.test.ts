@@ -7,10 +7,13 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { seedCatalogos } from "../prisma/seed";
 import { sembrarNegociosDemo } from "../prisma/seed-demo";
-import BuscarPage, { metadata } from "../src/app/(publico)/buscar/page";
+import { METADATOS_BUSCAR as metadata } from "../src/astro/buscar";
 import { Buscador } from "../src/components/directorio/buscador";
 import type { PrismaClient } from "../src/generated/prisma/client";
 import { crearClientePrueba } from "./db";
+// Las páginas del directorio ya se sirven con Astro (change
+// `migrar-directorio-publico-astro`, tasks.md #15).
+import { mainDeBuscar } from "./paginas-directorio";
 
 /**
  * Change `agregar-buscador`, tasks.md #9 y #11 a #14.
@@ -39,14 +42,9 @@ const comoSeLee = (html: string) =>
 let prisma: PrismaClient;
 
 /** Render de `/buscar` con lo que trae la URL (o sin parámetro). */
+/** Lo que pinta `/buscar?q=…` dentro de `<main>`; un cliente hostil manda lo que quiera en `q`. */
 async function renderBuscar(q?: string | string[]): Promise<string> {
-  const elemento = await BuscarPage({
-    // El tipo promete strings; en la URL real `q` puede faltar o repetirse.
-    searchParams: Promise.resolve(
-      (q === undefined ? {} : { q }) as unknown as Record<string, string>,
-    ),
-  } as unknown as Parameters<typeof BuscarPage>[0]);
-  return renderToStaticMarkup(createElement(() => elemento));
+  return mainDeBuscar(q === undefined ? {} : { q });
 }
 
 const CATEGORIAS = [
@@ -299,16 +297,29 @@ describe("directorio-publico · la página de resultados no es indexable (tasks 
       join(raiz, "src/app/(publico)/negocio/[ficha]/reportar/gracias/page.tsx"),
       join(raiz, "src/app/api/tareas/purgar-rechazados/route.ts"),
       join(raiz, "src/app/api/tareas/barrer-fotos-huerfanas/route.ts"),
+      // La página de error del servidor de Astro (hallazgo M1 de T-023): sale
+      // cuando algo falla, no es contenido.
+      join(raiz, "src/pages/500.astro"),
+      // `/buscar` en Astro (change `migrar-directorio-publico-astro`): su
+      // metadata, con la instrucción de no indexar, vive en este módulo y la
+      // página `src/pages/buscar.astro` la usa tal cual.
+      join(raiz, "src/astro/buscar.ts"),
     ];
-    const paginas = archivosDe(join(raiz, "src/app")).filter(
-      (ruta) =>
-        !noIndexables.includes(ruta) && !ruta.startsWith(join(raiz, "src/app/admin/")),
-    );
+    const paginas = archivosDe(join(raiz, "src/app"))
+      .filter(
+        (ruta) =>
+          !noIndexables.includes(ruta) && !ruta.startsWith(join(raiz, "src/app/admin/")),
+      )
+      // Las páginas de Astro (change `migrar-lectura-publica-astro`): todas
+      // indexables; la instrucción de no indexar de la 404 la agrega el
+      // documento base, no la página.
+      .concat(archivosDe(join(raiz, "src/pages")).filter((ruta) => !noIndexables.includes(ruta)));
     expect(paginas.length).toBeGreaterThanOrEqual(4);
+    expect(paginas.filter((ruta) => ruta.endsWith(".astro")).length).toBeGreaterThanOrEqual(4);
     for (const ruta of paginas) {
       expect(readFileSync(ruta, "utf8"), ruta).not.toMatch(/noindex|index:\s*false/);
     }
-    // Y las tres excepciones sí lo declaran: la lista blanca no es un permiso
+    // Y las excepciones sí lo declaran: la lista blanca no es un permiso
     // en blanco, es la constancia de que cada una lo pide a propósito.
     for (const ruta of noIndexables) {
       expect(readFileSync(ruta, "utf8"), ruta).toMatch(/noindex|index:\s*false/);
@@ -321,7 +332,7 @@ function archivosDe(dir: string): string[] {
   for (const entrada of readdirSync(dir, { withFileTypes: true })) {
     const ruta = join(dir, entrada.name);
     if (entrada.isDirectory()) rutas.push(...archivosDe(ruta));
-    else if (/\.tsx?$/.test(entrada.name)) rutas.push(ruta);
+    else if (/\.(tsx?|astro)$/.test(entrada.name)) rutas.push(ruta);
   }
   return rutas;
 }

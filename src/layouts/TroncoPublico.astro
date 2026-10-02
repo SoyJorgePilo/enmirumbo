@@ -1,0 +1,34 @@
+---
+/**
+ * Tronco de las páginas PÚBLICAS en Astro (change
+ * `migrar-lectura-publica-astro`, design.md §1): lo que era
+ * `src/app/(publico)/layout.tsx`.
+ *
+ * Este tronco —y solo este— pinta el script de la medición, en la misma
+ * posición que en Next: dentro de `<main>`, después del contenido de la
+ * página. Así `/admin` y la 404 quedan fuera POR CONSTRUCCIÓN y no por una
+ * lista de rutas (spec `layout-base`, "El panel del admin queda fuera de la
+ * medición"). Toda página pública nueva lo usa y queda medida sola.
+ *
+ * `ScriptAnalitica` se pinta en el servidor (sin directiva de cliente) y lee
+ * su configuración del entorno al renderizar: al construir en las
+ * prerenderizadas, por petición en las dinámicas, como en Next.
+ */
+import { ScriptAnalitica } from "@/components/analitica/script-analitica";
+
+import DocumentoBase from "./DocumentoBase.astro";
+import type { MetadatosDePagina } from "@/astro/metadatos";
+
+interface Props {
+  metadatos?: MetadatosDePagina;
+  /** La foto prioritaria que se precarga en el `<head>` (ver `DocumentoBase`). */
+  precargaImagen?: string | null;
+}
+
+const { metadatos, precargaImagen = null } = Astro.props;
+---
+
+<DocumentoBase metadatos={metadatos} precargaImagen={precargaImagen}>
+  <slot />
+  <ScriptAnalitica />
+</DocumentoBase>

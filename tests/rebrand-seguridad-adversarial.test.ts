@@ -2,13 +2,9 @@ import { createHash } from "node:crypto";
 import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 
-import { createElement } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { seedCatalogos } from "../prisma/seed";
-import AvisoDePrivacidadPage from "../src/app/(publico)/aviso-de-privacidad/page";
-import TerminosPage from "../src/app/(publico)/terminos/page";
 import type { PrismaClient } from "../src/generated/prisma/client";
 import {
   mensajeAvisoDespublicacion,
@@ -38,7 +34,16 @@ import {
   TEXTO_AVISO_PRIVACIDAD,
 } from "../src/lib/registro/textos";
 import { NOMBRE_DEL_SITIO } from "../src/lib/seo/metadata";
+// Las legales ya se sirven con Astro (change `migrar-lectura-publica-astro`,
+// tasks.md #15).
+import AvisoDePrivacidadPage from "../src/pages/aviso-de-privacidad.astro";
+import TerminosPage from "../src/pages/terminos.astro";
+import { contenidoDelMain, pintarPagina } from "./astro-paginas";
 import { crearClientePrueba } from "./db";
+
+/** El documento que recibe el visitante, con su layout. */
+const DOCUMENTO_AVISO = await pintarPagina(AvisoDePrivacidadPage, { ruta: "/aviso-de-privacidad" });
+const DOCUMENTO_TERMINOS = await pintarPagina(TerminosPage, { ruta: "/terminos" });
 
 /**
  * Etapa C (seguridad y pruebas adversariales) del change
@@ -486,8 +491,8 @@ describe("adversarial · las rendijas del guardián de marca", () => {
 
   // Lo servido, no el código fuente: el HTML que de verdad recibe el visitante.
   it.each([
-    ["/aviso-de-privacidad", renderToStaticMarkup(createElement(AvisoDePrivacidadPage))],
-    ["/terminos", renderToStaticMarkup(createElement(TerminosPage))],
+    ["/aviso-de-privacidad", DOCUMENTO_AVISO],
+    ["/terminos", DOCUMENTO_TERMINOS],
   ])("el HTML servido de %s no trae la marca anterior ni la compuesta", (_ruta, html) => {
     expect(html).toContain(NOMBRE_DEL_SITIO);
     expect(html).not.toMatch(/necesitouno/i);
@@ -500,8 +505,9 @@ describe("adversarial · las rendijas del guardián de marca", () => {
 // ── 6. Publicar el correo no arrastró datos del fundador ────────────────────
 
 describe("adversarial · el texto público no filtra datos personales del responsable", () => {
-  const htmlAviso = renderToStaticMarkup(createElement(AvisoDePrivacidadPage));
-  const htmlTerminos = renderToStaticMarkup(createElement(TerminosPage));
+  // Lo que pinta cada página (el contenido de <main>), como antes.
+  const htmlAviso = contenidoDelMain(DOCUMENTO_AVISO);
+  const htmlTerminos = contenidoDelMain(DOCUMENTO_TERMINOS);
   const publicado = `${htmlAviso}\n${htmlTerminos}`;
 
   it("el único correo publicado es el del directorio, en sus tres apariciones", () => {

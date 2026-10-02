@@ -1,0 +1,44 @@
+---
+/**
+ * Las TRES páginas de la raíz en un solo segmento dinámico (lo que era
+ * `src/app/(publico)/[destino]/page.tsx`; change `migrar-directorio-publico-astro`):
+ *
+ * - `/servicios-del-hogar` → listado por categoría;
+ * - `/plomeria` → página del giro;
+ * - `/plomeria-huicalco` → página de giro y colonia;
+ * - cualquier otra cosa → la 404 dinámica (`NoEncontradoDinamico`), sin
+ *   sugerir parecidos y sin medirse.
+ *
+ * El orden de resolución es parte de la spec: la categoría gana siempre
+ * (`resolverDestinoDeLaRaiz`). Las rutas propias del sitio le ganan a este
+ * segmento por regla de Astro (las estáticas primero), y
+ * `src/lib/rutas-reservadas.ts` impide que un slug del catálogo quede tapado.
+ *
+ * Por petición: el contenido depende de lo que el admin publique, así que
+ * despublicar no espera a ninguna caché (`private, no-cache…` del middleware).
+ */
+import NoEncontradoDinamico from "@/astro/componentes/NoEncontradoDinamico.astro";
+import { cargarDestino } from "@/astro/directorio";
+import { ListadoCategoria } from "@/components/directorio/listado-categoria";
+import { ListadoGiro } from "@/components/directorio/listado-giro";
+import TroncoPublico from "@/layouts/TroncoPublico.astro";
+
+export const prerender = false;
+
+const carga = await cargarDestino(Astro.params.destino ?? "", Astro.url.searchParams);
+
+// Desconocido: 404 con la página de no encontrado, sin ninguna otra consulta
+// (design.md §1, punto 3: sin `return new Response(…)`, la página trae cuerpo
+// y Astro no la reencamina a la 404 prerenderizada).
+if (carga.tipo === "no-encontrado") Astro.response.status = 404;
+---
+
+{
+  carga.tipo === "no-encontrado" ? (
+    <NoEncontradoDinamico />
+  ) : (
+    <TroncoPublico metadatos={carga.metadatos} precargaImagen={carga.precargaImagen}>
+      {carga.tipo === "categoria" ? <ListadoCategoria {...carga.listado} /> : <ListadoGiro {...carga.giro} />}
+    </TroncoPublico>
+  )
+}

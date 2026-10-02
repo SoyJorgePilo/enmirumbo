@@ -12,7 +12,6 @@ vi.mock("next/headers", async () => {
 
 import { seedCatalogos } from "../prisma/seed";
 import { GET as fotoDelPanel } from "../src/app/admin/foto/[clave]/[variante]/route";
-import { GET as fotoPublica } from "../src/app/api/foto/[clave]/[variante]/route";
 import type { PrismaClient } from "../src/generated/prisma/client";
 import { NOMBRE_COOKIE_SESION, crearValorDeSesion } from "../src/lib/admin/sesion";
 import { almacenDeFotos, crearAlmacenLocal, directorioDeFotos } from "../src/lib/fotos/almacen";
@@ -24,6 +23,9 @@ import { procesarRegistro } from "../src/lib/registro/procesar";
 import { MENSAJES_ERROR_FOTO, MENSAJES_ERROR_REGISTRO } from "../src/lib/registro/textos";
 import { peticion, reiniciarPeticion } from "./admin-mocks";
 import { crearClientePrueba } from "./db";
+// La ruta pública de fotos ya se sirve con Astro (change
+// `migrar-directorio-publico-astro`, tasks.md #15); la del panel sigue en Next.
+import { fotoPublica } from "./paginas-directorio";
 import { almacenDeMentiras } from "./fotos-fixtures";
 import { archivoDeFormulario, jpegConExifYGps, jpegDePrueba } from "./fotos-fixtures";
 import { VERSION_AVISO } from "../src/lib/legales/version";

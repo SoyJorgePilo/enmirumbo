@@ -37,6 +37,7 @@ export const SEGMENTOS_RESERVADOS = [
   "sitemap.xml", // src/app/sitemap.ts
   "opengraph-image", // src/app/opengraph-image.tsx
   "favicon.ico", // src/app/favicon.ico
+  "404", "500", // páginas de error que Astro publica como /404 y /500 (T-023, Fase 2b)
 ] as const;
 
 /** ¿Este slug taparía (o quedaría tapado por) una ruta propia del sitio? */

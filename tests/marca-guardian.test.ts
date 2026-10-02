@@ -11,7 +11,8 @@ import {
   TITULO_TERMINOS,
 } from "../src/lib/legales/textos";
 import { NOMBRE_DEL_SITIO, TITULO_DEL_SITIO } from "../src/lib/seo/metadata";
-import { TITULO_BUSCAR } from "../src/app/(publico)/buscar/page";
+// `/buscar` ya se sirve con Astro (change `migrar-directorio-publico-astro`).
+import { TITULO_BUSCAR } from "../src/astro/buscar";
 import { TITULO_PANEL } from "../src/app/admin/page";
 
 /**
@@ -149,6 +150,31 @@ describe("layout-base · el guardián de verdad salta (prueba por mutación)", (
     } finally {
       rmSync(raiz, { force: true, recursive: true });
     }
+  });
+
+  // Spec `plataforma-astro` (change `migrar-lectura-publica-astro`), scenario
+  // "la marca anterior tampoco entra por Astro".
+  it.each([
+    ["pages/inicio.astro", "<h1>Bienvenido a NecesitoUno</h1>", "la marca anterior"],
+    ["layouts/Base.astro", "<title>EnMiRumbo Tizayuca</title>", 'la forma compuesta "EnMiRumbo Tizayuca"'],
+  ])("una página o un layout de Astro con la marca prohibida también reprueba: %s", (relativo, contenido, que) => {
+    const raiz = mkdtempSync(join(tmpdir(), "marca-guardian-astro-"));
+    const archivo = join(raiz, relativo);
+    mkdirSync(join(archivo, ".."), { recursive: true });
+    writeFileSync(archivo, `---\n---\n${contenido}\n`, "utf8");
+    try {
+      const hallazgos = marcasProhibidasEn([raiz]);
+      expect(hallazgos.map((h) => [h.archivo, h.que])).toEqual([[archivo, que]]);
+      expect(comoSeLee(hallazgos)).toContain(archivo);
+    } finally {
+      rmSync(raiz, { force: true, recursive: true });
+    }
+  });
+
+  it("las raíces vigiladas incluyen las páginas y los layouts de Astro", () => {
+    const archivos = RAICES_VIGILADAS.flatMap((raiz) => archivosDe(raiz));
+    expect(archivos.filter((a) => a.startsWith(join("src", "pages")) && a.endsWith(".astro")).length).toBeGreaterThanOrEqual(4);
+    expect(archivos.filter((a) => a.startsWith(join("src", "layouts")) && a.endsWith(".astro")).length).toBeGreaterThanOrEqual(2);
   });
 
   it("un literal con la marca vigente pasa", () => {

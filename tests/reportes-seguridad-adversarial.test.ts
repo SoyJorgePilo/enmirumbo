@@ -14,7 +14,6 @@ vi.mock("next/navigation", async () => {
 import { seedCatalogos } from "../prisma/seed";
 import DetalleRegistroAdminPage from "../src/app/admin/registros/[id]/page";
 import { marcarReporteAtendidoAccion } from "../src/app/admin/registros/[id]/accion-marcar-reporte-atendido";
-import FichaNegocioPage from "../src/app/(publico)/negocio/[ficha]/page";
 import { reportarNegocio } from "../src/app/(publico)/negocio/[ficha]/reportar/accion";
 import ReportarGraciasPage from "../src/app/(publico)/negocio/[ficha]/reportar/gracias/page";
 import ReportarNegocioPage from "../src/app/(publico)/negocio/[ficha]/reportar/page";
@@ -46,6 +45,9 @@ import {
   reiniciarPeticion,
 } from "./admin-mocks";
 import { crearClientePrueba } from "./db";
+// Las páginas del directorio ya se sirven con Astro (change
+// `migrar-directorio-publico-astro`, tasks.md #15).
+import { pintarFicha } from "./paginas-directorio";
 
 /**
  * ETAPA C · pruebas adversariales de seguridad del botón "Reportar"
@@ -801,12 +803,8 @@ describe("adversarial · el directorio público no sabe nada de los reportes", (
       ),
     );
 
-    const html = await render(
-      FichaNegocioPage({
-        params: Promise.resolve({ ficha: segmento }),
-        searchParams: Promise.resolve({}),
-      } as never),
-    );
+    // El documento completo: el `<head>` también es pantalla pública.
+    const html = (await pintarFicha(segmento)).documento;
 
     expect(html).not.toContain(CANARIO);
     for (const reporte of creados) expect(html).not.toContain(reporte.id);

@@ -1,18 +1,18 @@
-import { createElement } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { seedCatalogos } from "../prisma/seed";
-import ListadoCategoriaPage from "../src/app/(publico)/[destino]/page";
-import BuscarPage from "../src/app/(publico)/buscar/page";
-import FichaNegocioPage from "../src/app/(publico)/negocio/[ficha]/page";
-import Home from "../src/app/(publico)/page";
 import type { PrismaClient } from "../src/generated/prisma/client";
 import { obtenerNegocioPublicado } from "../src/lib/directorio";
 import { construirSegmentoFicha } from "../src/lib/ficha-url";
 import { slugify } from "../src/lib/slug";
 import { huellaDeToken } from "../src/lib/gestion/token";
+// La home ya se sirve con Astro (change `migrar-lectura-publica-astro`).
+import Home from "../src/pages/index.astro";
+import { pintarPagina } from "./astro-paginas";
 import { crearClientePrueba } from "./db";
+// Las páginas del directorio ya se sirven con Astro (change
+// `migrar-directorio-publico-astro`, tasks.md #15).
+import { pintarBuscar, pintarDestino, pintarFicha } from "./paginas-directorio";
 
 /**
  * Spec `directorio-publico` (delta del change `agregar-enlace-de-gestion`) ·
@@ -58,31 +58,20 @@ let categoriaSlug = "";
 let coloniaSlug = "";
 
 async function renderHome(): Promise<string> {
-  const elemento = await Home();
-  return renderToStaticMarkup(createElement(() => elemento));
+  return pintarPagina(Home, { ruta: "/" });
 }
 
+// El DOCUMENTO completo (como la home): el `<head>` también es pantalla pública.
 async function renderListado(destino: string, colonia?: string): Promise<string> {
-  const elemento = await ListadoCategoriaPage({
-    params: Promise.resolve({ destino }),
-    searchParams: Promise.resolve(colonia === undefined ? {} : { colonia }),
-  } as Parameters<typeof ListadoCategoriaPage>[0]);
-  return renderToStaticMarkup(createElement(() => elemento));
+  return (await pintarDestino(destino, colonia === undefined ? {} : { colonia })).documento;
 }
 
 async function renderFicha(segmento: string): Promise<string> {
-  const elemento = await FichaNegocioPage({
-    params: Promise.resolve({ ficha: segmento }),
-    searchParams: Promise.resolve({}),
-  } as Parameters<typeof FichaNegocioPage>[0]);
-  return renderToStaticMarkup(createElement(() => elemento));
+  return (await pintarFicha(segmento)).documento;
 }
 
 async function renderBuscar(q: string): Promise<string> {
-  const elemento = await BuscarPage({
-    searchParams: Promise.resolve({ q }),
-  } as unknown as Parameters<typeof BuscarPage>[0]);
-  return renderToStaticMarkup(createElement(() => elemento));
+  return (await pintarBuscar({ q })).documento;
 }
 
 beforeAll(async () => {

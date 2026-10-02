@@ -1,13 +1,8 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import { createElement } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { seedCatalogos } from "../prisma/seed";
-import ListadoCategoriaPage from "../src/app/(publico)/[destino]/page";
-import BuscarPage from "../src/app/(publico)/buscar/page";
-import FichaNegocioPage from "../src/app/(publico)/negocio/[ficha]/page";
 import type { PrismaClient } from "../src/generated/prisma/client";
 import { datosDeBusqueda } from "../src/lib/busqueda";
 import { construirSegmentoFicha } from "../src/lib/ficha-url";
@@ -16,6 +11,9 @@ import { reiniciarCupoDeReportes } from "../src/lib/reportes/limite";
 import { ETIQUETA_MOTIVO_REPORTE, MOTIVOS_REPORTE } from "../src/lib/reportes/motivos";
 import { columnasDeTabla, consultarConPrisma } from "./catalogo-db";
 import { crearClientePrueba } from "./db";
+// Las páginas del directorio ya se sirven con Astro (change
+// `migrar-directorio-publico-astro`, tasks.md #15).
+import { pintarBuscar, pintarDestino, pintarFicha } from "./paginas-directorio";
 
 // Spec: directorio-publico · Requirements "Del reportante no se pide ni se
 // guarda ningún dato" y "Un reporte no cambia nada de lo público", y
@@ -56,28 +54,12 @@ async function alta(nombre: string, whatsapp: string, publicadoEn: string): Prom
   return creado.id;
 }
 
-const renderFicha = async (seg: string) => {
-  const elemento = await FichaNegocioPage({
-    params: Promise.resolve({ ficha: seg }),
-    searchParams: Promise.resolve({}),
-  });
-  return renderToStaticMarkup(createElement(() => elemento));
-};
+// El DOCUMENTO completo: el `<head>` también es pantalla pública.
+const renderFicha = async (seg: string) => (await pintarFicha(seg)).documento;
 
-const renderListado = async () => {
-  const elemento = await ListadoCategoriaPage({
-    params: Promise.resolve({ destino: "servicios-del-hogar" }),
-    searchParams: Promise.resolve({}),
-  });
-  return renderToStaticMarkup(createElement(() => elemento));
-};
+const renderListado = async () => (await pintarDestino("servicios-del-hogar")).documento;
 
-const renderBuscar = async (q: string) => {
-  const elemento = await BuscarPage({
-    searchParams: Promise.resolve({ q }),
-  } as unknown as Parameters<typeof BuscarPage>[0]);
-  return renderToStaticMarkup(createElement(() => elemento));
-};
+const renderBuscar = async (q: string) => (await pintarBuscar({ q })).documento;
 
 beforeAll(async () => {
   prisma = crearClientePrueba();
@@ -272,6 +254,9 @@ describe("privacidad · los reportes solo se leen desde el panel", () => {
       ...archivosDe(join(raiz, "src/components")).filter(
         (ruta) => !ruta.startsWith(join(raiz, "src/components/admin")),
       ),
+      // Las superficies públicas de Astro (change `migrar-lectura-publica-astro`).
+      ...archivosDe(join(raiz, "src/pages")),
+      ...archivosDe(join(raiz, "src/layouts")),
     ];
     expect(publicas.length).toBeGreaterThanOrEqual(10);
 
@@ -298,7 +283,7 @@ function archivosDe(dir: string): string[] {
   for (const entrada of readdirSync(dir, { withFileTypes: true })) {
     const ruta = join(dir, entrada.name);
     if (entrada.isDirectory()) rutas.push(...archivosDe(ruta));
-    else if (/\.tsx?$/.test(entrada.name)) rutas.push(ruta);
+    else if (/\.(tsx?|astro)$/.test(entrada.name)) rutas.push(ruta);
   }
   return rutas;
 }

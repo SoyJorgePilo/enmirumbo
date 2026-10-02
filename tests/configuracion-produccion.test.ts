@@ -192,14 +192,13 @@ describe("despliegue · sin SITIO_URL en producción el sitio lo dice al arranca
   });
 
   it("el aviso se dispara al ARRANCAR el servidor, no en cada petición", () => {
-    // `src/app/layout.tsx` lo llama en el tronco del módulo: se ejecuta una
-    // vez, al cargar la aplicación. Si alguien lo mueve dentro del componente,
-    // volvería a ser por petición y este test lo dice.
-    const layout = readFileSync(
-      new URL("../src/app/layout.tsx", import.meta.url),
-      "utf8",
-    );
-    const cuerpo = layout.slice(0, layout.search(/export\s+default\s+function/));
+    // El middleware lo llama en el tronco del módulo: se ejecuta una vez, al
+    // cargar la aplicación. Si alguien lo mueve dentro del manejador, volvería
+    // a ser por petición y este test lo dice.
+    // En Astro viven en el tronco de `src/middleware.ts` (change
+    // `migrar-lectura-publica-astro`): se cargan una vez con la función.
+    const layout = readFileSync(new URL("../src/middleware.ts", import.meta.url), "utf8");
+    const cuerpo = layout.slice(0, layout.search(/export\s+const\s+onRequest/));
     expect(cuerpo).toContain("avisarSinUrlSitioUnaVez()");
   });
 
@@ -352,8 +351,10 @@ describe("despliegue · sin CRON_SECRET en producción las tareas no corren", ()
 
   it("los tres avisos de arranque se disparan al cargar la aplicación", () => {
     // Si alguien los mueve dentro del componente, vuelven a ser por petición.
-    const layout = readFileSync(new URL("../src/app/layout.tsx", import.meta.url), "utf8");
-    const cuerpo = layout.slice(0, layout.search(/export\s+default\s+function/));
+    // En Astro viven en el tronco de `src/middleware.ts` (change
+    // `migrar-lectura-publica-astro`): se cargan una vez con la función.
+    const layout = readFileSync(new URL("../src/middleware.ts", import.meta.url), "utf8");
+    const cuerpo = layout.slice(0, layout.search(/export\s+const\s+onRequest/));
     expect(cuerpo).toContain("avisarSinUrlSitioUnaVez()");
     expect(cuerpo).toContain("avisarSinBaseDeDatosUnaVez()");
     expect(cuerpo).toContain("avisarSinSecretoDeTareasUnaVez()");

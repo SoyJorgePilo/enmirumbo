@@ -1,0 +1,17 @@
+---
+// Fixture de la tarea 6 (change `migrar-directorio-publico-astro`): una foto
+// prioritaria pintada por React dentro de un documento de Astro, para medir
+// dónde queda la precarga que emite React 19.
+import { MarcadorFoto } from "@/components/directorio/marcador-foto";
+---
+
+<html lang="es-MX">
+  <head><title>precarga</title></head>
+  <body>
+    <main>
+      <p>antes</p>
+      <MarcadorFoto fotoClave="0123456789abcdef0123456789abcdef" variante="ficha" alt="Foto de prueba" prioridad />
+      <MarcadorFoto fotoClave="fedcba9876543210fedcba9876543210" variante="tarjeta" alt="Otra" />
+    </main>
+  </body>
+</html>

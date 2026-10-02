@@ -7,9 +7,6 @@ import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { seedCatalogos } from "../prisma/seed";
-import AvisoDePrivacidadPage from "../src/app/(publico)/aviso-de-privacidad/page";
-import FichaNegocioPage from "../src/app/(publico)/negocio/[ficha]/page";
-import TerminosPage from "../src/app/(publico)/terminos/page";
 import { Footer } from "../src/components/footer";
 import { DocumentoLegalView } from "../src/components/legales/documento-legal";
 import { AvisoConsentimiento } from "../src/components/registro/aviso-consentimiento";
@@ -23,7 +20,15 @@ import {
   TEXTO_MARCA_BORRADOR,
   type DocumentoLegal,
 } from "../src/lib/legales/textos";
+// Las legales ya se sirven con Astro (change `migrar-lectura-publica-astro`,
+// tasks.md #15): se revisa lo que pinta la página, el contenido de <main>.
+import AvisoDePrivacidadPage from "../src/pages/aviso-de-privacidad.astro";
+import TerminosPage from "../src/pages/terminos.astro";
+import { contenidoDelMain, pintarPagina } from "./astro-paginas";
 import { crearClientePrueba } from "./db";
+// Las páginas del directorio ya se sirven con Astro (change
+// `migrar-directorio-publico-astro`, tasks.md #15).
+import { pintarFicha } from "./paginas-directorio";
 
 /**
  * Etapa C (seguridad y test) del change `agregar-paginas-legales`.
@@ -51,8 +56,10 @@ import { crearClientePrueba } from "./db";
 const raiz = process.cwd();
 const PREFIJO = "7719994";
 
-const htmlAvisoPrivacidad = renderToStaticMarkup(createElement(AvisoDePrivacidadPage));
-const htmlTerminos = renderToStaticMarkup(createElement(TerminosPage));
+const htmlAvisoPrivacidad = contenidoDelMain(
+  await pintarPagina(AvisoDePrivacidadPage, { ruta: "/aviso-de-privacidad" }),
+);
+const htmlTerminos = contenidoDelMain(await pintarPagina(TerminosPage, { ruta: "/terminos" }));
 const htmlFooter = renderToStaticMarkup(createElement(Footer));
 const htmlConsentimiento = renderToStaticMarkup(createElement(AvisoConsentimiento));
 
@@ -219,14 +226,16 @@ describe("adversarial · enlaces y markup de las superficies legales", () => {
   it("ninguna superficie legal pinta HTML sin escapar", () => {
     for (const archivo of [
       "src/components/legales/documento-legal.tsx",
-      "src/app/(publico)/aviso-de-privacidad/page.tsx",
-      "src/app/(publico)/terminos/page.tsx",
+      "src/pages/aviso-de-privacidad.astro",
+      "src/pages/terminos.astro",
       "src/components/footer.tsx",
       "src/components/registro/aviso-consentimiento.tsx",
       "src/lib/legales/textos.ts",
     ]) {
       const fuente = readFileSync(join(raiz, archivo), "utf8");
       expect(fuente, archivo).not.toContain("dangerouslySetInnerHTML");
+      // Su equivalente en Astro.
+      expect(fuente, archivo).not.toContain("set:html");
     }
   });
 
@@ -389,11 +398,8 @@ describe("adversarial · lo que el aviso promete vs. lo que la ficha publica", (
     });
     id = creado.id;
 
-    const elemento = await FichaNegocioPage({
-      params: Promise.resolve({ ficha: construirSegmentoFicha(NEGOCIO_PRUEBA.nombre, id) }),
-      searchParams: Promise.resolve({}),
-    });
-    htmlFicha = renderToStaticMarkup(createElement(() => elemento));
+    // El documento completo: el `<head>` también es pantalla pública.
+    htmlFicha = (await pintarFicha(construirSegmentoFicha(NEGOCIO_PRUEBA.nombre, id))).documento;
   });
 
   afterAll(async () => {

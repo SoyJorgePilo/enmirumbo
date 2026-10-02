@@ -197,13 +197,21 @@ describe("layout-base · el panel del admin queda fuera de la medición (tasks #
     const conElScript = archivosDe(join(raiz, "src")).filter((ruta) =>
       /<ScriptAnalitica\s*\/>/.test(sinComentarios(readFileSync(ruta, "utf8"))),
     );
-    expect(conElScript).toEqual([join(raiz, "src/app/(publico)/layout.tsx")]);
+    // Uno por marco mientras conviven (ADR-013): el layout del grupo en Next
+    // y el tronco público en Astro (change `migrar-lectura-publica-astro`).
+    expect(conElScript.sort()).toEqual(
+      [join(raiz, "src/app/(publico)/layout.tsx"), join(raiz, "src/layouts/TroncoPublico.astro")].sort(),
+    );
   });
 
   it("el layout raíz —que también envuelve al panel— no sabe nada de la medición", () => {
     const layoutRaiz = readFileSync(join(raiz, "src/app/layout.tsx"), "utf8");
     expect(layoutRaiz).not.toContain("ScriptAnalitica");
     expect(layoutRaiz).not.toContain("analitica");
+    // Su equivalente en Astro (change `migrar-lectura-publica-astro`).
+    const documentoBase = readFileSync(join(raiz, "src/layouts/DocumentoBase.astro"), "utf8");
+    expect(documentoBase).not.toContain("ScriptAnalitica");
+    expect(documentoBase).not.toContain("analitica");
   });
 
   // El panel SÍ tiene layout propio desde el hallazgo A-1 (corta el
@@ -393,6 +401,9 @@ describe("layout-base · el panel no filtra sus URLs por el referente (A-1/A-2)"
     const layoutRaiz = readFileSync(join(raiz, "src/app/layout.tsx"), "utf8");
     expect(layoutPublico).not.toContain("referrer");
     expect(layoutRaiz).not.toContain("referrer");
+    for (const layout of ["src/layouts/TroncoPublico.astro", "src/layouts/DocumentoBase.astro"]) {
+      expect(readFileSync(join(raiz, layout), "utf8"), layout).not.toContain("referrer");
+    }
   });
 });
 
@@ -456,9 +467,130 @@ function archivosDe(dir: string): string[] {
     if (entrada.isDirectory()) {
       if (entrada.name === "generated") continue;
       rutas.push(...archivosDe(ruta));
-    } else if (/\.tsx?$/.test(entrada.name)) {
+    } else if (/\.(tsx?|astro)$/.test(entrada.name)) {
+      // `.astro` desde el change `migrar-lectura-publica-astro`: las páginas
+      // y los layouts de Astro entran a los mismos guardianes.
       rutas.push(ruta);
     }
   }
   return rutas;
 }
+
+// ───────────────────────────────────────────────────────────────────────────
+// Astro (change `migrar-lectura-publica-astro`, design.md §1; spec
+// `plataforma-astro`, requirement "Las páginas públicas se arman con un
+// documento base y un tronco medido…", scenario "una exclusión sin motivo
+// reprueba"). La exclusión sigue siendo estructural: toda página de
+// `src/pages/` usa `TroncoPublico`, y la que use `DocumentoBase` directo queda
+// fuera de la medición SOLO si lo dice por escrito arriba del archivo.
+// ───────────────────────────────────────────────────────────────────────────
+
+/** Comentario obligatorio de una página que usa el documento base sin el tronco. */
+const MOTIVO_DE_EXCLUSION = /^\s*\/\/\s*fuera de la medición:\s*\S.{10,}$/m;
+
+/**
+ * Exclusiones que existen hoy, con su porqué. Si una deja de tener página, la
+ * lista deja de ser una excepción viva y hay que revisarla.
+ */
+const EXCLUSIONES_DE_ASTRO: Array<[string, string]> = [
+  ["src/pages/404.astro", "la 404 de las URLs que no casan con ninguna ruta (spec layout-base)"],
+  ["src/pages/500.astro", "la página de error del servidor, que sale también con la base caída (hallazgo M1 de T-023)"],
+  // Change `migrar-directorio-publico-astro` (2b, design.md §1): la 404 de
+  // `/[destino]` y `/negocio/[ficha]`. Las URLs de fichas no publicadas llevan
+  // el nombre del negocio; hoy tampoco se miden.
+  ["src/astro/componentes/NoEncontradoDinamico.astro", "la 404 de las rutas dinámicas (alternativa B, M-1)"],
+];
+
+/**
+ * Componentes `.astro` de `rutaAstro` que pintan un DOCUMENTO (usan
+ * `DocumentoBase` o abren `<html>`) sin el tronco y sin decir por qué (2b:
+ * la 404 dinámica vive en `src/astro/componentes/`, no en `src/pages/`). Un
+ * fragmento como `NoEncontrado.astro` no es una respuesta y no entra.
+ */
+export function componentesAstroSinMotivo(rutaAstro: string): string[] {
+  return archivosDe(rutaAstro)
+    .filter((ruta) => ruta.endsWith(".astro"))
+    .filter((ruta) => {
+      const fuente = readFileSync(ruta, "utf8");
+      if (!/<DocumentoBase\b|<html\b/.test(fuente)) return false;
+      if (/<TroncoPublico\b/.test(fuente)) return false;
+      const frontmatter = fuente.split("---")[1] ?? "";
+      return !(/<DocumentoBase\b/.test(fuente) && MOTIVO_DE_EXCLUSION.test(frontmatter));
+    })
+    .map((ruta) => ruta.slice(raiz.length + 1));
+}
+
+/** Componentes `.astro` de `src/astro/` que pintan un documento fuera del tronco. */
+function documentosDeSrcAstro(): string[] {
+  return archivosDe(join(raiz, "src/astro"))
+    .filter((ruta) => ruta.endsWith(".astro"))
+    .filter((ruta) => {
+      const fuente = readFileSync(ruta, "utf8");
+      return /<DocumentoBase\b|<html\b/.test(fuente) && !/<TroncoPublico\b/.test(fuente);
+    });
+}
+
+/** Páginas `.astro` de `rutaPages` que no usan el tronco y no dicen por qué. */
+export function paginasAstroSinMotivo(rutaPages: string): string[] {
+  return archivosDe(rutaPages)
+    .filter((ruta) => ruta.endsWith(".astro"))
+    .filter((ruta) => {
+      const fuente = readFileSync(ruta, "utf8");
+      const frontmatter = fuente.split("---")[1] ?? "";
+      if (/<TroncoPublico\b/.test(fuente)) return false;
+      return !(/<DocumentoBase\b/.test(fuente) && MOTIVO_DE_EXCLUSION.test(frontmatter));
+    })
+    .map((ruta) => ruta.slice(raiz.length + 1));
+}
+
+describe("plataforma-astro · la medición sigue siendo una propiedad de la estructura", () => {
+  const paginas = archivosDe(join(raiz, "src/pages")).filter((ruta) => ruta.endsWith(".astro"));
+
+  it("toda página .astro usa el tronco público o dice por escrito por qué queda fuera", () => {
+    expect(paginas.length).toBeGreaterThanOrEqual(4);
+    expect(paginasAstroSinMotivo(join(raiz, "src/pages"))).toEqual([]);
+  });
+
+  it("las páginas fuera del tronco son exactamente las exclusiones declaradas, y existen", () => {
+    const fuera = [
+      ...paginas.filter((ruta) => !/<TroncoPublico\b/.test(readFileSync(ruta, "utf8"))),
+      ...documentosDeSrcAstro(),
+    ].map((ruta) => ruta.slice(raiz.length + 1));
+    expect(fuera).toEqual(EXCLUSIONES_DE_ASTRO.map(([ruta]) => ruta));
+    for (const [ruta, porque] of EXCLUSIONES_DE_ASTRO) {
+      expect(existsSync(join(raiz, ruta)), `${ruta} ya no existe (${porque})`).toBe(true);
+      const fuente = readFileSync(join(raiz, ruta), "utf8");
+      expect(fuente, ruta).toMatch(MOTIVO_DE_EXCLUSION);
+      expect(fuente, ruta).not.toContain("ScriptAnalitica");
+    }
+  });
+
+  it("todo componente de src/astro que pinta un documento fuera del tronco dice por escrito por qué", () => {
+    expect(documentosDeSrcAstro().length).toBeGreaterThanOrEqual(1);
+    expect(componentesAstroSinMotivo(join(raiz, "src/astro"))).toEqual([]);
+  });
+
+  it("un componente de src/astro con el documento base y sin motivo reprueba, y se nombra", () => {
+    const ejemplo = join(raiz, "tests/fixtures/paginas-sin-motivo");
+    // `sin-layout.astro` es un fragmento (no pinta documento): en `src/astro/` eso es un componente normal.
+    expect(componentesAstroSinMotivo(ejemplo)).toEqual(["tests/fixtures/paginas-sin-motivo/sin-motivo.astro"]);
+  });
+
+  it("una página con el documento base y sin motivo reprueba, y se nombra", () => {
+    // El guardián, aplicado a una carpeta de páginas de ejemplo.
+    const ejemplo = join(raiz, "tests/fixtures/paginas-sin-motivo");
+    expect(paginasAstroSinMotivo(ejemplo)).toEqual([
+      "tests/fixtures/paginas-sin-motivo/sin-motivo.astro",
+      "tests/fixtures/paginas-sin-motivo/sin-layout.astro",
+    ].sort());
+  });
+
+  it("el tronco público envuelve al documento base: un solo documento", () => {
+    const tronco = readFileSync(join(raiz, "src/layouts/TroncoPublico.astro"), "utf8")
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/^\s*\/\/.*$/gm, "");
+    expect(tronco).toMatch(/<DocumentoBase\b/);
+    expect(tronco).not.toMatch(/<html|<body|<header|<footer|<main/);
+  });
+});
+

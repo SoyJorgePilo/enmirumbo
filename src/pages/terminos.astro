@@ -1,0 +1,20 @@
+---
+/**
+ * Términos y condiciones (spec `paginas-legales`, requirement "Página de
+ * términos y condiciones en /terminos"). Lo que era
+ * `src/app/(publico)/terminos/page.tsx`: dentro del tronco público, pintada en
+ * el servidor, sin JavaScript de cliente e indexable (ver la nota de
+ * `src/pages/aviso-de-privacidad.astro`). Prerenderizada, como en Next.
+ */
+import { DocumentoLegalView } from "@/components/legales/documento-legal";
+import TroncoPublico from "@/layouts/TroncoPublico.astro";
+import { DESCRIPCION_TERMINOS, TERMINOS, TITULO_TERMINOS } from "@/lib/legales/textos";
+
+export const prerender = true;
+
+const metadatos = { title: TITULO_TERMINOS, description: DESCRIPCION_TERMINOS };
+---
+
+<TroncoPublico metadatos={metadatos}>
+  <DocumentoLegalView documento={TERMINOS} />
+</TroncoPublico>

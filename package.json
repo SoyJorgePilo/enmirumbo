@@ -31,6 +31,7 @@
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.10",
+    "@resvg/resvg-js": "2.6.2",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^24.13.3",
     "@types/pg": "^8.23.1",
@@ -43,7 +44,9 @@
     "eslint-plugin-jsx-a11y": "^6.10.2",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.1.1",
+    "node-html-parser": "9.0.4",
     "prisma": "7.10.0",
+    "satori": "0.33.5",
     "tailwindcss": "^4",
     "tsx": "^4.23.13",
     "typescript": "^5",
@@ -53,6 +56,9 @@
   "overrides": {
     "@vercel/routing-utils": {
       "path-to-regexp": "^6.3.0"
+    },
+    "satori": {
+      "fflate": "0.7.5"
     }
   }
 }

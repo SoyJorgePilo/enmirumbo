@@ -25,8 +25,6 @@ import ConfirmarBorradoPage from "../src/app/admin/registros/[id]/borrar/page";
 import RegistroDespublicadoPage from "../src/app/admin/registros/[id]/despublicado/page";
 import DetalleRegistroAdminPage from "../src/app/admin/registros/[id]/page";
 import RegistroRechazadoPage from "../src/app/admin/registros/[id]/rechazado/page";
-import ListadoCategoriaPage from "../src/app/(publico)/[destino]/page";
-import FichaNegocioPage from "../src/app/(publico)/negocio/[ficha]/page";
 import type { PrismaClient } from "../src/generated/prisma/client";
 import {
   LONGITUD_MINIMA_SECRETO,
@@ -57,6 +55,9 @@ import { procesarRegistro } from "../src/lib/registro/procesar";
 import { MENSAJES_ERROR_REGISTRO } from "../src/lib/registro/textos";
 import { peticion, reiniciarPeticion, urlDeRedireccion } from "./admin-mocks";
 import { crearClientePrueba } from "./db";
+// Las páginas del directorio ya se sirven con Astro (change
+// `migrar-directorio-publico-astro`, tasks.md #15).
+import { mainDeDestino, mainDeFicha } from "./paginas-directorio";
 import { VERSION_AVISO } from "../src/lib/legales/version";
 import { CAMPO_VERSION_AVISO } from "../src/lib/registro/textos";
 
@@ -869,12 +870,7 @@ describe("adversarial · el rastro del rechazo no llega a ninguna página públi
       },
     });
 
-    const html = await render(
-      ListadoCategoriaPage({
-        params: Promise.resolve({ destino: categoriaSlug }),
-        searchParams: Promise.resolve({}),
-      }) as Promise<React.ReactElement>,
-    );
+    const html = await mainDeDestino(categoriaSlug, {});
 
     expect(html).not.toContain(MOTIVO);
     expect(html).not.toContain("Préstamos Ficticios Rechazados");
@@ -898,14 +894,7 @@ describe("adversarial · el rastro del rechazo no llega a ninguna página públi
       },
     });
 
-    const html = await render(
-      FichaNegocioPage({
-        params: Promise.resolve({
-          ficha: construirSegmentoFicha(fila.nombre, fila.id),
-        }),
-        searchParams: Promise.resolve({}),
-      }) as Promise<React.ReactElement>,
-    );
+    const html = await mainDeFicha(construirSegmentoFicha(fila.nombre, fila.id));
 
     expect(html).toContain("Estética Ficticia Publicada");
     expect(html).not.toContain(MOTIVO);

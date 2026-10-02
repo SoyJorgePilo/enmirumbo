@@ -1,0 +1,119 @@
+---
+/**
+ * Ficha de negocio en `/negocio/<slug>-<id>` (lo que era
+ * `src/app/(publico)/negocio/[ficha]/page.tsx`; change
+ * `migrar-directorio-publico-astro`). Spec `directorio-publico`, requirements
+ * "Ficha de negocio…" y "Botones de contacto…".
+ *
+ * El identificador es lo que sigue al ÚLTIMO guion del segmento: la parte
+ * legible es decorativa, así que un enlace viejo con el nombre anterior sigue
+ * abriendo la ficha (y su canónica apunta al nombre actual).
+ *
+ * `obtenerNegocioPublicado` devuelve `null` tanto si el negocio no existe como
+ * si no está publicado (en revisión, rechazado, despublicado o borrado). En
+ * los dos casos, ANTES de cualquier otra consulta, la página responde 404 con
+ * `NoEncontradoDinamico`, que no recibe nada del negocio: nada delata que hay
+ * una ficha en revisión, y la URL (que lleva el nombre) no se mide.
+ */
+import NoEncontradoDinamico from "@/astro/componentes/NoEncontradoDinamico.astro";
+import { cargarFicha } from "@/astro/directorio";
+import { BotonReportar } from "@/components/directorio/boton-reportar";
+import { BotonesContacto } from "@/components/directorio/botones-contacto";
+import { ControlPerdiMiEnlace } from "@/components/directorio/control-perdi-mi-enlace";
+import { EtiquetaADomicilio } from "@/components/directorio/etiqueta-domicilio";
+import { MarcadorFoto } from "@/components/directorio/marcador-foto";
+import { SelloVerificado } from "@/components/directorio/sello-verificado";
+import TroncoPublico from "@/layouts/TroncoPublico.astro";
+import {
+  construirEnlaceComoLlegar,
+  construirEnlaceTelefono,
+  construirEnlaceWhatsapp,
+  obtenerPaginaRegistrada,
+} from "@/lib/enlaces";
+import { leerWhatsappAdmin } from "@/lib/gestion/config";
+import { construirEnlacePerdiMiEnlace } from "@/lib/gestion/enlaces";
+import { datosEstructuradosDeFicha, serializarJsonLd } from "@/lib/seo/datos-estructurados";
+import { fraseDeGiro } from "@/lib/seo/frases-giro";
+
+export const prerender = false;
+
+const carga = await cargarFicha(Astro.params.ficha ?? "");
+if (carga.tipo === "no-encontrado") Astro.response.status = 404;
+
+const ficha = carga.tipo === "ficha" ? carga : null;
+const negocio = ficha?.negocio ?? null;
+const hrefLlamar = negocio ? construirEnlaceTelefono(negocio.telefonoFijo) : null;
+// Registró algo en "teléfono fijo" que no es marcable (hallazgo M2): se
+// muestra tal cual, sin botón "Llamar".
+const telefonoNoMarcable = negocio?.telefonoFijo && !hrefLlamar ? negocio.telefonoFijo : null;
+// Datos estructurados: un bloque de DATOS, no código ejecutable.
+const jsonLd = ficha ? serializarJsonLd(datosEstructuradosDeFicha(ficha.negocio, ficha.giros, ficha.ruta)) : "";
+---
+
+{
+  !ficha || !negocio ? (
+    <NoEncontradoDinamico />
+  ) : (
+    <TroncoPublico metadatos={ficha.metadatos} precargaImagen={ficha.precargaImagen}>
+      <article class="flex flex-col gap-6 py-4">
+        <script is:inline type="application/ld+json" set:html={jsonLd} />
+        {/* Sin foto no hay bloque: ni hueco ni marco vacío (scenario "ficha sin foto"). */}
+        {
+          ficha.precargaImagen && (
+            <div class="relative aspect-video w-full overflow-hidden rounded-xl">
+              <MarcadorFoto fotoClave={negocio.fotoClave} variante="ficha" alt={`Foto de ${negocio.nombre}`} prioridad />
+            </div>
+          )
+        }
+        <div class="flex flex-col gap-2">
+          <h1 class="text-2xl font-bold break-words tracking-tight sm:text-3xl">{negocio.nombre}</h1>
+          <div class="flex flex-wrap items-center gap-2">
+            <SelloVerificado />
+            {negocio.entregaADomicilio && <EtiquetaADomicilio />}
+          </div>
+          {negocio.coloniaNombre && <p class="break-words text-tinta-suave">{negocio.coloniaNombre}</p>}
+        </div>
+        {negocio.queOfreces && <p class="break-words text-tinta">{negocio.queOfreces}</p>}
+        {negocio.direccion && <p class="break-words text-tinta-suave">{negocio.direccion}</p>}
+        {
+          negocio.horario && (
+            <p class="break-words text-tinta-suave"><span class="font-semibold text-tinta">Horario: </span>{negocio.horario}</p>
+          )
+        }
+        {
+          telefonoNoMarcable && (
+            <p class="break-words text-tinta-suave"><span class="font-semibold text-tinta">Teléfono: </span>{telefonoNoMarcable}</p>
+          )
+        }
+        {
+          ficha.giros.length > 0 && (
+            <nav aria-label="Lo que hace este negocio" class="flex flex-wrap gap-2">
+              {
+                ficha.giros.map((g) => (
+                  <a
+                    href={`/${g.slug}`}
+                    class="inline-flex min-h-11 items-center rounded-full border border-borde px-4 text-sm font-semibold text-tinta-suave transition-colors hover:bg-superficie"
+                  >{fraseDeGiro(g)}</a>
+                ))
+              }
+            </nav>
+          )
+        }
+        <BotonesContacto
+          nombre={negocio.nombre}
+          categoriaSlug={negocio.categoriaSlug}
+          coloniaSlug={negocio.coloniaSlug}
+          hrefWhatsapp={construirEnlaceWhatsapp(negocio.whatsapp)}
+          hrefLlamar={hrefLlamar}
+          hrefComoLlegar={construirEnlaceComoLlegar(negocio.direccion, negocio.coloniaNombre)}
+          pagina={obtenerPaginaRegistrada(negocio.facebookUrl)}
+        />
+        {/* Controles discretos del pie, con jerarquía menor que "Enviar WhatsApp". */}
+        <div class="flex flex-col gap-3">
+          <BotonReportar nombre={negocio.nombre} href={`${ficha.ruta}/reportar`} />
+          <ControlPerdiMiEnlace href={construirEnlacePerdiMiEnlace(negocio.nombre, leerWhatsappAdmin())} />
+        </div>
+      </article>
+    </TroncoPublico>
+  )
+}

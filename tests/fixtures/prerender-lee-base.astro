@@ -1,0 +1,10 @@
+---
+// Ejemplo para `tests/despliegue.test.ts`: una página prerenderizada que lee
+// la base. Nunca se construye (no vive en `src/pages/`).
+import { listarCategorias } from "@/lib/directorio";
+
+export const prerender = true;
+const categorias = await listarCategorias();
+---
+
+<p>{categorias.length}</p>

@@ -1,0 +1,20 @@
+// Esquema mínimo del spike (T-021): UNA tabla propia, `spike_negocio`, con
+// negocios ficticios. No hay migraciones: la tabla la crea `semilla.sql`
+// para no tocar ninguna otra tabla de la base a la que se apunte.
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model NegocioSpike {
+  id      Int    @id @default(autoincrement())
+  nombre  String
+  giro    String
+  colonia String
+
+  @@map("spike_negocio")
+}

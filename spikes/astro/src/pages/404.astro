@@ -1,0 +1,10 @@
+---
+// Por petición (no prerenderizada) para que el middleware le ponga las
+// cabeceras de seguridad, como al resto.
+export const prerender = false;
+import Base from "../layouts/Base.astro";
+---
+<Base titulo="No encontramos esa página">
+  <h1>No encontramos esa página</h1>
+  <p><a href="/">Volver al inicio</a></p>
+</Base>

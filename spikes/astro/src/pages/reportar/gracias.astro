@@ -1,0 +1,10 @@
+---
+import { MENSAJE_REPORTE_ENVIADO } from "../../../../../src/lib/reportes/textos";
+import { cuantosReportes } from "../../actions";
+import Base from "../../layouts/Base.astro";
+---
+<Base titulo="Reporte enviado">
+  <h1>{MENSAJE_REPORTE_ENVIADO}</h1>
+  <p><small>Reportes procesados por esta instancia del spike: {cuantosReportes()}</small></p>
+  <p><a href="/">Volver al inicio</a></p>
+</Base>

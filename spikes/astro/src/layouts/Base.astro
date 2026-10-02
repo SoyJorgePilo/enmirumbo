@@ -1,0 +1,23 @@
+---
+import "../estilos.css";
+
+interface Props {
+  titulo: string;
+}
+const { titulo } = Astro.props;
+---
+<!doctype html>
+<html lang="es-MX" class="h-full antialiased">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Spike desechable de EnMiRumbo (ADR-013). Datos ficticios." />
+    <meta name="robots" content="noindex" />
+    <title>{titulo} · Spike EnMiRumbo</title>
+  </head>
+  <body class="flex min-h-dvh flex-col bg-fondo font-sans text-tinta">
+    <main class="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-4 px-4 py-8 sm:px-6">
+      <slot />
+    </main>
+  </body>
+</html>

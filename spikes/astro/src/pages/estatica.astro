@@ -1,0 +1,10 @@
+---
+// Sale de la CDN, como hoy las páginas legales.
+export const prerender = true;
+import Base from "../layouts/Base.astro";
+---
+<Base titulo="Página estática">
+  <h1>Página prerenderizada</h1>
+  <p>Esta página se genera al construir y no pasa por el servidor en cada visita.</p>
+  <p><a href="/">Volver al inicio</a></p>
+</Base>

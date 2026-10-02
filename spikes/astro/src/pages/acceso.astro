@@ -1,0 +1,20 @@
+---
+import { actions } from "astro:actions";
+
+import Base from "../layouts/Base.astro";
+
+const COOKIE_AVISO_ACCESO = "spike_aviso_acceso";
+const sinSecreto = Astro.cookies.get(COOKIE_AVISO_ACCESO)?.value === "sin-secreto";
+if (sinSecreto) {
+  Astro.cookies.delete(COOKIE_AVISO_ACCESO, { path: "/acceso" });
+  // Falla a la vista: el acceso no está disponible y se dice con un 503.
+  Astro.response.status = 503;
+}
+---
+<Base titulo="Acceso">
+  <h1>Acceso al spike</h1>
+  {sinSecreto && <p role="alert">⚠ El acceso no está disponible por ahora.</p>}
+  <form method="POST" action={actions.entrar}>
+    <button type="submit">Entrar</button>
+  </form>
+</Base>

@@ -1,0 +1,55 @@
+/* Copia de los tokens de src/app/globals.css (sin su @import, que en Vercel
+   se resolvería contra node_modules de la raíz, que ahí no existe). El spike
+   es desechable: la Fase 1 de ADR-013 usará el archivo original. */
+@import "tailwindcss";
+@source "../../../src/components";
+
+/*
+ * Tokens de diseño de EnMiRumbo (Tailwind v4, config CSS-first).
+ * Las pantallas consumen estos tokens por nombre (bg-fondo, text-tinta,
+ * bg-accion, …); nunca valores hexadecimales sueltos en componentes.
+ *
+ * Paleta de una sola vía: neutrales para todo, verde solo para la acción.
+ * Contraste AA (WCAG 2.1, ≥4.5:1) verificado en cada combinación texto/fondo;
+ * los ratios están anotados junto a cada token.
+ */
+@theme {
+  /* Tipografía: pila de sistema. Cero bytes de fuente descargada, cero layout
+     shift; se ve nativa en cada dispositivo (presupuesto <2s en 4G, PRD §8). */
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  /* --- Neutrales ------------------------------------------------------- */
+  /* Fondo base de las páginas. */
+  --color-fondo: #ffffff;
+  /* Superficies destacadas (footer, tarjetas futuras). */
+  --color-superficie: #f4f4f5;
+  /* Bordes y separadores (decorativo, no lleva texto: tarjetas, encabezado,
+     pie, separadores, pastillas de navegación). Contra fondo/superficie da
+     ~1.1:1 — a propósito, es de adorno, nunca delimita un control. */
+  --color-borde: #e4e4e7;
+  /* Contorno de CONTROLES de formulario (input/select/textarea/checkbox):
+     WCAG 2.1 1.4.11 (contraste no-textual) exige ≥3:1 contra el fondo sobre
+     el que se recorta el control. 4.83:1 sobre fondo, 4.40:1 sobre
+     superficie — el mismo tono que `tinta-suave` un paso más claro (zinc-500),
+     para que se note el límite del campo sin competir con el texto. */
+  --color-borde-control: #71717a;
+  /* Texto principal. 17.9:1 sobre fondo, 16.3:1 sobre superficie,
+     9.0:1 sobre accion. */
+  --color-tinta: #171717;
+  /* Texto secundario. 7.7:1 sobre fondo, 7.0:1 sobre superficie. */
+  --color-tinta-suave: #52525b;
+
+  /* --- Verde de acción -------------------------------------------------- */
+  /* COLOR DE ACCIÓN PRINCIPAL del sitio: el verde de WhatsApp. Se reserva
+     para la acción de contactar/actuar; ningún otro color de esta paleta
+     compite con él (PRD §11). Dos tokens para cumplir AA:
+
+     - `accion` (#25D366, verde marca WhatsApp): SOLO superficies y acentos
+       (fondos de botón con texto en tinta, sellos, detalles). NUNCA como
+       color de texto sobre fondo claro: apenas da 1.9:1.
+     - `accion-fuerte`: la variante oscura accesible. Para texto/enlaces
+       verdes y botones de fondo verde con texto blanco. 5.4:1 sobre fondo,
+       4.9:1 sobre superficie; blanco sobre él: 5.4:1. */
+  --color-accion: #25d366;
+  --color-accion-fuerte: #0f7a41;
+}

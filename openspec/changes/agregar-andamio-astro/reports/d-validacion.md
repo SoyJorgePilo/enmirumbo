@@ -2,6 +2,8 @@
 
 **Veredicto: aprobado** (revalidación). En la primera validación hubo un rechazo: el change creaba `src/lib/astro/imagen-cerrada.ts`. Eso ya está corregido. El manejador vive ahora en `src/astro/imagen-cerrada.ts` y `src/lib/` no tiene diff ni archivos nuevos. Volví a correr todas las compuertas desde limpio.
 
+PR: https://github.com/SoyJorgePilo/enmirumbo/pull/31 (base `migracion-astro`).
+
 Ruta completa. Etapa A saltada (no hay pantallas). Rama `feature/agregar-andamio-astro` sobre `migracion-astro` (`20e6460`). El PR va hacia `migracion-astro`, nunca hacia `main`.
 
 ## Hallazgos

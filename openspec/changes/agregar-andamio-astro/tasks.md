@@ -39,4 +39,5 @@ Rama base: `migracion-astro`. Orden por dependencia; cada tarea se comprueba sol
 ## Cierre
 
 - [x] 14. **Suite completa y diff.** `npm run lint`, `npm run typecheck`, `npm run build` y `npm test` en verde; `npm test` con los mismos archivos que la línea base más los nuevos. `git diff --stat` y `git status --untracked-files=all` sin cambios en `src/lib/` (el manejador de `/_image` vive en `src/astro/imagen-cerrada.ts`), `src/app/`, `openspec/specs/`, `vercel.json`, `prisma/` ni `spikes/`.
-- [ ] 15. **PR hacia `migracion-astro`** (nunca `main`), enlazado en el ticket T-022.
+- [x] 15. **PR hacia `migracion-astro`** (nunca `main`), enlazado en el ticket T-022.
+   - PR #31.

@@ -6,7 +6,7 @@
 **Referencias PRD:** v2 §10 (técnica reemplazable); ADR-013
 **Depende de:** T-021 (go del spike)
 **OpenSpec change:** `agregar-andamio-astro`
-**PR:** —
+**PR:** [#31](https://github.com/SoyJorgePilo/enmirumbo/pull/31)
 
 ## Contexto
 

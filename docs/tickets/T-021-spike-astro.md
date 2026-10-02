@@ -6,7 +6,7 @@
 **Referencias PRD:** v2 §10 (técnica reemplazable); §2.1, §2.5, §2.7
 **Depende de:** — (ADR-013)
 **OpenSpec change:** `explorar-migracion-astro`
-**PR:** —
+**PR:** [#29](https://github.com/SoyJorgePilo/enmirumbo/pull/29)
 
 ## Contexto
 

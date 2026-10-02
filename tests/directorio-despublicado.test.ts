@@ -1,11 +1,6 @@
-import { createElement } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { seedCatalogos } from "../prisma/seed";
-import DestinoPage from "../src/app/(publico)/[destino]/page";
-import BuscarPage from "../src/app/(publico)/buscar/page";
-import FichaNegocioPage from "../src/app/(publico)/negocio/[ficha]/page";
 import type { PrismaClient } from "../src/generated/prisma/client";
 import { borrarNegocio, despublicarFicha } from "../src/lib/admin/transiciones";
 import { datosDeBusqueda } from "../src/lib/busqueda";
@@ -25,6 +20,9 @@ import Home from "../src/pages/index.astro";
 import { entradasDelSitemap as sitemap } from "../src/pages/sitemap.xml";
 import { contenidoDelMain, pintarPagina } from "./astro-paginas";
 import { crearClientePrueba } from "./db";
+// Las páginas del directorio ya se sirven con Astro (change
+// `migrar-directorio-publico-astro`, tasks.md #15).
+import { type PaginaPintada, mainDeBuscar, mainDeDestino, mainDeFicha, pintarFicha } from "./paginas-directorio";
 
 // Spec: directorio-publico (delta `agregar-despublicar-y-borrado-arco`) ·
 // Requirement "Solo se muestra lo que está publicado", scenarios de la ficha
@@ -67,51 +65,27 @@ let urlSitioPrevia: string | undefined;
 let id = "";
 let segmento = "";
 
-async function render(pagina: Promise<React.ReactElement>): Promise<string> {
-  const elemento = await pagina;
-  return renderToStaticMarkup(createElement(() => elemento));
-}
-
 // Lo que pintaba la página en Next: el contenido de <main> (el <head> lleva la
 // URL pública de esta prueba, `despublicar.example`).
 const abrirHome = async () => contenidoDelMain(await pintarPagina(Home, { ruta: "/" }));
 
 /** Cualquiera de las tres páginas del segmento de la raíz (T-009). */
 const abrirDestino = (destino: string, colonia?: string) =>
-  render(
-    DestinoPage({
-      params: Promise.resolve({ destino }),
-      searchParams: Promise.resolve(colonia === undefined ? {} : { colonia }),
-    }) as Promise<React.ReactElement>,
-  );
+  mainDeDestino(destino, colonia === undefined ? {} : { colonia });
 
 const abrirListado = (colonia?: string) => abrirDestino(CATEGORIA, colonia);
 
-const abrirBuscador = (q: string) =>
-  render(
-    BuscarPage({
-      params: Promise.resolve({}),
-      searchParams: Promise.resolve({ q }),
-    }) as Promise<React.ReactElement>,
-  );
+const abrirBuscador = (q: string) => mainDeBuscar({ q });
 
-const abrirFicha = (segmentoFicha: string) =>
-  render(
-    FichaNegocioPage({
-      params: Promise.resolve({ ficha: segmentoFicha }),
-      searchParams: Promise.resolve({}),
-    }) as Promise<React.ReactElement>,
-  );
+const abrirFicha = (segmentoFicha: string) => mainDeFicha(segmentoFicha);
 
-/** Digest del 404 de Next (`NEXT_HTTP_ERROR_FALLBACK;404`) o `null`. */
-async function digestDe(promesa: Promise<unknown>): Promise<string | null> {
-  try {
-    await promesa;
-    return null;
-  } catch (error) {
-    const digest = (error as { digest?: unknown }).digest;
-    return typeof digest === "string" ? digest : null;
-  }
+/**
+ * El documento de la 404 dinámica si la ficha respondió 404, o `null` (antes:
+ * el digest del `notFound()` de Next). Dos iguales = indistinguibles.
+ */
+async function noEncontradoDe(pintada: Promise<PaginaPintada>): Promise<string | null> {
+  const { status, documento } = await pintada;
+  return status === 404 ? documento : null;
 }
 
 /**
@@ -243,12 +217,12 @@ describe("directorio-publico · la ficha despublicada sale del directorio en la 
   it("su URL responde el mismo 404 que un identificador que nunca existió", async () => {
     await despublicarFicha(prisma, id, MOTIVO);
 
-    const despublicada = await digestDe(abrirFicha(segmento));
-    const inexistente = await digestDe(
-      abrirFicha(construirSegmentoFicha("Negocio Que No Existe", "id-inventado-xyz")),
+    const despublicada = await noEncontradoDe(pintarFicha(segmento));
+    const inexistente = await noEncontradoDe(
+      pintarFicha(construirSegmentoFicha("Negocio Que No Existe", "id-inventado-xyz")),
     );
 
-    expect(despublicada).toBe("NEXT_HTTP_ERROR_FALLBACK;404");
+    expect(despublicada).toContain("No encontramos esta página");
     expect(despublicada).toBe(inexistente);
   });
 
@@ -299,11 +273,11 @@ describe("directorio-publico · la ficha borrada tampoco deja rastro", () => {
     expect(urls).not.toContain(`${URL_SITIO}/${GIRO}-${COLONIA}`);
     expect(JSON.stringify(await sitemap())).not.toContain(id);
 
-    const borrada = await digestDe(abrirFicha(segmento));
-    const inexistente = await digestDe(
-      abrirFicha(construirSegmentoFicha("Negocio Que No Existe", "id-inventado-xyz")),
+    const borrada = await noEncontradoDe(pintarFicha(segmento));
+    const inexistente = await noEncontradoDe(
+      pintarFicha(construirSegmentoFicha("Negocio Que No Existe", "id-inventado-xyz")),
     );
-    expect(borrada).toBe("NEXT_HTTP_ERROR_FALLBACK;404");
+    expect(borrada).toContain("No encontramos esta página");
     expect(borrada).toBe(inexistente);
   });
 
@@ -338,6 +312,8 @@ describe("directorio-publico · ninguna superficie pública despublica ni borra"
       // Las rutas de Astro (change `migrar-lectura-publica-astro`).
       .concat(archivosDe(join(raiz, "src/pages")))
       .concat(archivosDe(join(raiz, "src/layouts")))
+      // Lo que leen las páginas del directorio en Astro (2b).
+      .concat(archivosDe(join(raiz, "src/astro")))
       .concat(archivosDe(join(raiz, "src/components/directorio")))
       .concat(archivosDe(join(raiz, "src/components/registro")));
 

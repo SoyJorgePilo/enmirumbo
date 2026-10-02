@@ -1,14 +1,13 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import { createElement } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
 
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { seedCatalogos } from "../prisma/seed";
 import { sembrarNegociosDemo } from "../prisma/seed-demo";
-import ListadoCategoriaPage from "../src/app/(publico)/[destino]/page";
-import FichaNegocioPage from "../src/app/(publico)/negocio/[ficha]/page";
+// Las páginas del directorio ya se sirven con Astro (change
+// `migrar-directorio-publico-astro`, tasks.md #15).
+import { type PaginaPintada, mainDeDestino, mainDeFicha, pintarDestino, pintarFicha } from "./paginas-directorio";
 import type { PrismaClient } from "../src/generated/prisma/client";
 import { construirSegmentoFicha } from "../src/lib/ficha-url";
 // Home y 404 ya se sirven con Astro (change `migrar-lectura-publica-astro`,
@@ -29,38 +28,28 @@ let prisma: PrismaClient;
 let htmlHome = "";
 let idPorWhatsapp: Record<string, string> = {};
 
+/** Lo que pinta el listado dentro de `<main>` (lanza si no responde 200). */
 async function renderListado(
   categoria: string,
   colonia?: string,
 ): Promise<string> {
-  const elemento = await ListadoCategoriaPage({
-    // Renombrado a `destino` por el change `agregar-seo-local` (design.md §1):
-    // el mismo segmento dinámico resuelve categoría, giro y giro+colonia. Los
-    // casos de esta suite no cambian: la URL `/servicios-del-hogar` es la
-    // misma y responde lo mismo.
-    params: Promise.resolve({ destino: categoria }),
-    searchParams: Promise.resolve(colonia === undefined ? {} : { colonia }),
-  });
-  return renderToStaticMarkup(createElement(() => elemento));
+  // El segmento dinámico se llama `destino` desde el change `agregar-seo-local`
+  // y resuelve categoría, giro y giro+colonia; `/servicios-del-hogar` es la
+  // misma URL y responde lo mismo.
+  return mainDeDestino(categoria, colonia === undefined ? {} : { colonia });
 }
 
 async function renderFicha(segmento: string): Promise<string> {
-  const elemento = await FichaNegocioPage({
-    params: Promise.resolve({ ficha: segmento }),
-    searchParams: Promise.resolve({}),
-  });
-  return renderToStaticMarkup(createElement(() => elemento));
+  return mainDeFicha(segmento);
 }
 
-/** Digest del 404 de Next (`NEXT_HTTP_ERROR_FALLBACK;404`) o `null`. */
-async function digestDe(promesa: Promise<unknown>): Promise<string | null> {
-  try {
-    await promesa;
-    return null;
-  } catch (error) {
-    const digest = (error as { digest?: unknown }).digest;
-    return typeof digest === "string" ? digest : null;
-  }
+/**
+ * El documento de la 404 dinámica si la página respondió 404, o `null` (antes:
+ * el digest del `notFound()` de Next). Compararlos exige que sean idénticos.
+ */
+async function noEncontradoDe(pintada: Promise<PaginaPintada>): Promise<string | null> {
+  const { status, documento } = await pintada;
+  return status === 404 ? documento : null;
 }
 
 /** Segmento canónico de la ficha del negocio sembrado con ese WhatsApp. */
@@ -241,9 +230,7 @@ describe("directorio-publico · listado por categoría", () => {
 
   // Scenario: categoría inexistente
   it("un slug que no está en el catálogo responde 404", async () => {
-    expect(await digestDe(renderListado("plomeros-baratos"))).toBe(
-      "NEXT_HTTP_ERROR_FALLBACK;404",
-    );
+    expect(await noEncontradoDe(pintarDestino("plomeros-baratos"))).toContain("No encontramos esta página");
   });
 
   // Scenario: categoría sin negocios publicados todavía
@@ -430,20 +417,20 @@ describe("directorio-publico · ficha de negocio", () => {
 
   // Scenario: ficha inexistente + Scenario: ficha de un negocio no publicado
   it("un negocio inexistente y uno sin publicar dan exactamente el mismo 404", async () => {
-    const inexistente = await digestDe(renderFicha("negocio-inventado-noexiste123"));
-    const enRevision = await digestDe(
-      renderFicha(segmentoDe("7719995011", "Barbería El Buen Corte Imaginario")),
+    const inexistente = await noEncontradoDe(pintarFicha("negocio-inventado-noexiste123"));
+    const enRevision = await noEncontradoDe(
+      pintarFicha(segmentoDe("7719995011", "Barbería El Buen Corte Imaginario")),
     );
-    const rechazado = await digestDe(
-      renderFicha(segmentoDe("7719995012", "Taller Fantasma Rechazado")),
+    const rechazado = await noEncontradoDe(
+      pintarFicha(segmentoDe("7719995012", "Taller Fantasma Rechazado")),
     );
-    expect(inexistente).toBe("NEXT_HTTP_ERROR_FALLBACK;404");
+    expect(inexistente).toContain("No encontramos esta página");
     expect(enRevision).toBe(inexistente);
     expect(rechazado).toBe(inexistente);
   });
 
   it("un segmento sin identificador tampoco filtra nada", async () => {
-    expect(await digestDe(renderFicha("-"))).toBe("NEXT_HTTP_ERROR_FALLBACK;404");
+    expect(await noEncontradoDe(pintarFicha("-"))).toBe(await noEncontradoDe(pintarFicha("negocio-inventado-noexiste123")));
   });
 });
 
@@ -529,8 +516,11 @@ describe("directorio-publico · Server Components sin JS de cliente", () => {
       join(raiz, "src/pages/index.astro"),
       join(raiz, "src/pages/404.astro"),
       join(raiz, "src/astro/componentes/NoEncontrado.astro"),
-      join(raiz, "src/app/(publico)/[destino]/page.tsx"),
-      join(raiz, "src/app/(publico)/negocio/[ficha]/page.tsx"),
+      // Fase 2b (change `migrar-directorio-publico-astro`).
+      join(raiz, "src/pages/[destino].astro"),
+      join(raiz, "src/pages/negocio/[ficha].astro"),
+      join(raiz, "src/pages/buscar.astro"),
+      join(raiz, "src/astro/componentes/NoEncontradoDinamico.astro"),
       ...readdirSync(join(raiz, "src/components/directorio")).map((nombre) =>
         join(raiz, "src/components/directorio", nombre),
       ),
@@ -549,7 +539,7 @@ describe("directorio-publico · Server Components sin JS de cliente", () => {
       join(raiz, "src/components/directorio/tarjeta-negocio.tsx"),
       "utf8",
     );
-    const ficha = readFileSync(join(raiz, "src/app/(publico)/negocio/[ficha]/page.tsx"), "utf8");
+    const ficha = readFileSync(join(raiz, "src/pages/negocio/[ficha].astro"), "utf8");
     const botones = readFileSync(
       join(raiz, "src/components/directorio/botones-contacto.tsx"),
       "utf8",

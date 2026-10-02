@@ -21,13 +21,10 @@ vi.mock("next/navigation", async () => {
 
 import { seedCatalogos } from "../prisma/seed";
 import { sembrarNegociosDemo } from "../prisma/seed-demo";
-import ListadoCategoriaPage from "../src/app/(publico)/[destino]/page";
-import BuscarPage from "../src/app/(publico)/buscar/page";
 import ColaAdminPage from "../src/app/admin/cola/page";
 import AccesoAdminPage from "../src/app/admin/page";
 import DetalleRegistroAdminPage from "../src/app/admin/registros/[id]/page";
 import RegistroAprobadoPage from "../src/app/admin/registros/[id]/aprobado/page";
-import FichaNegocioPage from "../src/app/(publico)/negocio/[ficha]/page";
 import ReportarGraciasPage from "../src/app/(publico)/negocio/[ficha]/reportar/gracias/page";
 import ReportarNegocioPage from "../src/app/(publico)/negocio/[ficha]/reportar/page";
 import { Footer } from "../src/components/footer";
@@ -56,6 +53,10 @@ import TerminosPage from "../src/pages/terminos.astro";
 import { peticion, reiniciarPeticion } from "./admin-mocks";
 import { contenidoDelMain, pintarPagina } from "./astro-paginas";
 import { crearClientePrueba } from "./db";
+// Las páginas del directorio ya se sirven con Astro (change
+// `migrar-directorio-publico-astro`, tasks.md #15): lo que pintaban es el
+// contenido de <main>.
+import { mainDeBuscar, mainDeDestino, mainDeFicha } from "./paginas-directorio";
 
 // Deuda registrada en el change agregar-layout-base (reports/b-dev.md):
 // port a Vitest de los scenarios automatizables 2, 4, 7, 9, 10, 11, 12 y 13
@@ -215,37 +216,11 @@ beforeAll(async () => {
   // El segmento dinámico de la raíz se llama `destino` desde el change
   // `agregar-seo-local`: la misma carpeta resuelve categoría, giro y
   // giro+colonia (design.md §1). Las URLs no cambiaron.
-  const listado = await ListadoCategoriaPage({
-    params: Promise.resolve({ destino: "servicios-del-hogar" }),
-    searchParams: Promise.resolve({}),
-  });
-  htmlListado = renderToStaticMarkup(createElement(() => listado));
-
-  const filtrado = await ListadoCategoriaPage({
-    params: Promise.resolve({ destino: "servicios-del-hogar" }),
-    searchParams: Promise.resolve({ colonia: "atempa" }),
-  });
-  htmlListadoFiltrado = renderToStaticMarkup(createElement(() => filtrado));
-
-  const giro = await ListadoCategoriaPage({
-    params: Promise.resolve({ destino: "plomeria" }),
-    searchParams: Promise.resolve({}),
-  });
-  htmlGiro = renderToStaticMarkup(createElement(() => giro));
-
-  const giroColonia = await ListadoCategoriaPage({
-    params: Promise.resolve({ destino: "plomeria-huicalco" }),
-    searchParams: Promise.resolve({}),
-  });
-  htmlGiroColonia = renderToStaticMarkup(createElement(() => giroColonia));
-
-  const ficha = await FichaNegocioPage({
-    params: Promise.resolve({
-      ficha: construirSegmentoFicha(publicados[0].nombre, publicados[0].id),
-    }),
-    searchParams: Promise.resolve({}),
-  });
-  htmlFicha = renderToStaticMarkup(createElement(() => ficha));
+  htmlListado = await mainDeDestino("servicios-del-hogar");
+  htmlListadoFiltrado = await mainDeDestino("servicios-del-hogar", { colonia: "atempa" });
+  htmlGiro = await mainDeDestino("plomeria");
+  htmlGiroColonia = await mainDeDestino("plomeria-huicalco");
+  htmlFicha = await mainDeFicha(construirSegmentoFicha(publicados[0].nombre, publicados[0].id));
 
   // Página de reporte y su confirmación (change `agregar-boton-reportar`):
   // sus enlaces —el "Volver a la ficha" de las dos— entran a la misma
@@ -265,15 +240,8 @@ beforeAll(async () => {
 
   // Página de resultados (change `agregar-buscador`): sus enlaces y el
   // destino de su buscador entran a la misma revisión.
-  const buscar = await BuscarPage({
-    searchParams: Promise.resolve({ q: "plomeria" }),
-  } as unknown as Parameters<typeof BuscarPage>[0]);
-  htmlBuscar = renderToStaticMarkup(createElement(() => buscar));
-
-  const buscarVacio = await BuscarPage({
-    searchParams: Promise.resolve({}),
-  } as unknown as Parameters<typeof BuscarPage>[0]);
-  htmlBuscarVacio = renderToStaticMarkup(createElement(() => buscarVacio));
+  htmlBuscar = await mainDeBuscar({ q: "plomeria" });
+  htmlBuscarVacio = await mainDeBuscar({});
   // Panel: la pantalla de acceso se ve sin sesión; el resto, con una cookie
   // firmada de verdad por el mismo módulo que usa producción.
   reiniciarPeticion();
@@ -1065,5 +1033,112 @@ describe("layout-base · sin rastros de la plantilla (scenario 13)", () => {
     }
     expect(globalsCss).not.toMatch(/geist/i);
     expect(layoutTsx).not.toMatch(/geist/i);
+  });
+});
+
+// ───────────────────────────────────────────────────────────────────────────
+// Fase 2b (change `migrar-directorio-publico-astro`, tasks.md #13; spec
+// `plataforma-astro`, requirement "El sitemap, los enlaces y las rutas
+// reservadas resuelven en Astro").
+//
+// La revisión de arriba acepta lo que exista en `src/app` O en `src/pages`,
+// porque el panel (Fase 5) y el reporte (Fase 3) siguen en Next. Esta es más
+// estricta: lo que pintan las páginas públicas YA migradas tiene que resolver
+// en Astro, salvo los enlaces que esperan a la Fase 3, que son una lista
+// explícita (design.md §8). No se crean páginas provisionales.
+// ───────────────────────────────────────────────────────────────────────────
+
+/** Enlaces que esperan a la Fase 3 (T-024): en 2b responden la 404 global. */
+const EXCEPCIONES_FASE_3: Array<[RegExp, string]> = [
+  [/^\/registro$/, "formulario de registro (Fase 3)"],
+  [/^\/negocio\/[^/]+\/reportar$/, "reporte de un negocio (Fase 3, T-024)"],
+];
+
+/** Rutas dinámicas de `src/pages/`, en forma de URL (`/[destino]`, …). */
+const rutasDinamicasDeAstro = archivosDe(join(raiz, "src/pages"), [".astro", ".ts"])
+  .map(rutaDePaginaAstro)
+  .filter((ruta) => ruta.includes("["))
+  .sort();
+
+/** Rutas estáticas de `src/pages/` (sin la 404 ni la 500, que no son destinos). */
+const rutasEstaticasDeAstro = new Set(
+  archivosDe(join(raiz, "src/pages"), [".astro", ".ts"])
+    .map(rutaDePaginaAstro)
+    .filter((ruta) => !ruta.includes("[") && ruta !== "/404" && ruta !== "/500"),
+);
+
+/** ¿Esta ruta interna la sirve Astro (estática, o dinámica que resuelve)? */
+function rutaDeAstroExiste(href: string): boolean {
+  const ruta = href.split("?")[0];
+  if (rutasEstaticasDeAstro.has(ruta)) return true;
+  const segmentos = ruta.split("/").slice(1);
+  // `src/pages/[destino].astro`: categoría, giro o giro+colonia del catálogo.
+  if (segmentos.length === 1 && resolverSlugDeLaRaiz(segmentos[0], catalogos).tipo !== "desconocido") {
+    return true;
+  }
+  // `src/pages/negocio/[ficha].astro`: la ficha de un negocio publicado.
+  return segmentos.length === 2 && segmentos[0] === "negocio" && idsPublicados.some((id) => segmentos[1].endsWith(id));
+}
+
+/** Enlaces y destinos de formulario internos que Astro no sirve y no son excepción de la Fase 3. */
+function problemasDeEnlacesEnAstro(html: string): string[] {
+  const destinos = [
+    ...[...html.matchAll(/<a\s[^>]*href="([^"]*)"/g)].map((m) => m[1]),
+    ...[...html.matchAll(/<form\s[^>]*action="([^"]*)"/g)].map((m) => m[1]),
+  ].filter((destino) => destino.startsWith("/"));
+  return destinos
+    .filter((destino) => !EXCEPCIONES_FASE_3.some(([patron]) => patron.test(destino.split("?")[0])))
+    .filter((destino) => !rutaDeAstroExiste(destino))
+    .map((destino) => `destino que Astro no sirve: ${destino}`);
+}
+
+/** Los enlaces de la página que caen en la lista de la Fase 3. */
+const enlacesDeFase3 = (html: string) =>
+  [...html.matchAll(/<a\s[^>]*href="([^"]*)"/g)]
+    .map((m) => m[1])
+    .filter((href) => EXCEPCIONES_FASE_3.some(([patron]) => patron.test(href)));
+
+describe("plataforma-astro · los enlaces de las páginas migradas resuelven en Astro (2b)", () => {
+  it("reconoce las rutas dinámicas de src/pages: [destino], negocio/[ficha] y la de fotos", () => {
+    expect(rutasDinamicasDeAstro).toEqual(["/[destino]", "/api/foto/[clave]/[variante]", "/negocio/[ficha]"]);
+    expect(rutasEstaticasDeAstro).toContain("/buscar");
+    expect(rutasEstaticasDeAstro).not.toContain("/registro");
+  });
+
+  it("home, listados, giro, ficha, /buscar, 404, legales y footer solo enlazan a lo que Astro sirve", () => {
+    const paginas: Array<[string, string]> = [
+      ["home", htmlHome],
+      ["listado", htmlListado],
+      ["listado filtrado", htmlListadoFiltrado],
+      ["giro", htmlGiro],
+      ["giro+colonia", htmlGiroColonia],
+      ["ficha", htmlFicha],
+      ["resultados", htmlBuscar],
+      ["consulta vacía", htmlBuscarVacio],
+      ["404", html404],
+      ["aviso de privacidad", htmlAvisoPrivacidad],
+      ["términos", htmlTerminos],
+      ["footer", htmlFooter],
+      ["header", htmlHeader],
+    ];
+    for (const [nombre, html] of paginas) expect(problemasDeEnlacesEnAstro(html), nombre).toEqual([]);
+  });
+
+  // Scenario "los enlaces de la Fase 3 son la única excepción".
+  it("acepta /registro y /negocio/<…>/reportar solo por estar en la lista de la Fase 3", () => {
+    expect(enlacesDeFase3(htmlFicha)).toEqual([`/negocio/${segmentoFichaPublicada}/reportar`]);
+    expect(enlacesDeFase3(htmlHome)).toEqual(["/registro"]);
+    // Sin la excepción, las dos serían destinos que Astro no sirve.
+    expect(rutaDeAstroExiste("/registro")).toBe(false);
+    expect(rutaDeAstroExiste(`/negocio/${segmentoFichaPublicada}/reportar`)).toBe(false);
+  });
+
+  it("falla con cualquier otro destino que no existe", () => {
+    expect(problemasDeEnlacesEnAstro('<a href="/ruta-inventada-xyz">x</a>')).toHaveLength(1);
+    expect(problemasDeEnlacesEnAstro(`<a href="/negocio/${segmentoFichaPublicada}/reportar/gracias">x</a>`)).toHaveLength(1);
+    expect(problemasDeEnlacesEnAstro('<a href="/registro/gracias">x</a>')).toHaveLength(1);
+    expect(problemasDeEnlacesEnAstro('<a href="/negocio/negocio-que-no-existe-xyz">x</a>')).toHaveLength(1);
+    expect(problemasDeEnlacesEnAstro('<form action="/buscador-inventado"></form>')).toHaveLength(1);
+    expect(problemasDeEnlacesEnAstro('<form action="/buscar"></form>')).toEqual([]);
   });
 });

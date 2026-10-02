@@ -1,16 +1,10 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { createElement } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
 
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { seedCatalogos } from "../prisma/seed";
 import { sembrarNegociosDemo } from "../prisma/seed-demo";
-import DestinoPage, { generateMetadata as metadataDestino } from "../src/app/(publico)/[destino]/page";
-import FichaNegocioPage, {
-  generateMetadata as metadataFicha,
-} from "../src/app/(publico)/negocio/[ficha]/page";
 import type { PrismaClient } from "../src/generated/prisma/client";
 import { datosDeBusqueda } from "../src/lib/busqueda";
 import {
@@ -24,6 +18,9 @@ import { imagenesDeMarca, metadataDelSitio } from "../src/lib/seo/metadata";
 // tasks.md #15): se revisa lo que declara y el <head> que sirve.
 import NoExiste from "../src/pages/404.astro";
 import { cabezaDe, pintarPagina } from "./astro-paginas";
+// Las páginas del directorio ya se sirven con Astro (change
+// `migrar-directorio-publico-astro`, tasks.md #15).
+import { metadataFicha, pintarDestino, pintarFicha } from "./paginas-directorio";
 import {
   MARCA_DE_NUMERO_OCULTO,
   ocultarNumerosDeContacto,
@@ -258,8 +255,7 @@ describe("iteración 2 · M2 · saneo de números de contacto", () => {
     expect(metadata.description).toContain(MARCA_DE_NUMERO_OCULTO);
     expect(metadata.openGraph?.description).toBe(metadata.description);
 
-    const elemento = await FichaNegocioPage(props);
-    const html = renderToStaticMarkup(createElement(() => elemento));
+    const html = (await pintarFicha((await props.params).ficha)).main;
     const bloque = JSON.parse(
       html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)![1],
     ) as { description?: string };
@@ -282,19 +278,10 @@ describe("iteración 2 · M4 · memoria de catálogos", () => {
   async function consultasDe(destino: string): Promise<string[]> {
     reiniciarMemoriaDeCatalogos();
     consultas.length = 0;
-    await metadataDestino({
-      params: Promise.resolve({ destino }),
-      searchParams: Promise.resolve({}),
-    });
-    try {
-      const elemento = await DestinoPage({
-        params: Promise.resolve({ destino }),
-        searchParams: Promise.resolve({}),
-      });
-      renderToStaticMarkup(createElement(() => elemento));
-    } catch (error) {
-      if (typeof (error as { digest?: unknown }).digest !== "string") throw error;
-    }
+    // Una petición: en Astro la página arma sus metadatos y su contenido en
+    // un solo pintado (en Next eran `generateMetadata` + la página). Lo
+    // desconocido responde la 404 dinámica sin lanzar.
+    await pintarDestino(destino);
     return [...consultas];
   }
 
@@ -373,11 +360,7 @@ describe("iteración 2 · M4 · memoria de catálogos", () => {
       },
     });
 
-    const elemento = await DestinoPage({
-      params: Promise.resolve({ destino: "dentista" }),
-      searchParams: Promise.resolve({}),
-    });
-    const html = renderToStaticMarkup(createElement(() => elemento));
+    const html = (await pintarDestino("dentista")).main;
     expect(html).toContain("Dentista Recién Publicada (ficticia)");
 
     await prisma.negocio.delete({ where: { whatsapp: `${PREFIJO}002` } });

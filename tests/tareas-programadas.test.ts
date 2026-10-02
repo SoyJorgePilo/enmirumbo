@@ -184,13 +184,14 @@ describe("tareas · el 404 de una tarea no se distingue del de las demás rutas"
 
     // Y la ruta pública de fotos, con una clave que no existe, hace lo mismo:
     // es el 404 "normal" de este sistema, y es al que hay que parecerse.
-    const { GET: servirFotoPublica } = await import(
-      "../src/app/api/foto/[clave]/[variante]/route"
-    );
-    const respuestaFoto = await servirFotoPublica(
-      new Request("https://enmirumbo.example/api/foto/x/ficha"),
-      { params: Promise.resolve({ clave: "0".repeat(32), variante: "ficha" }) } as never,
-    );
+    // (Ya en Astro: change `migrar-directorio-publico-astro`.)
+    const { GET: servirFotoPublica } = await import("../src/pages/api/foto/[clave]/[variante]");
+    const peticionFoto = new Request("https://enmirumbo.example/api/foto/x/ficha");
+    const respuestaFoto = await servirFotoPublica({
+      request: peticionFoto,
+      url: new URL(peticionFoto.url),
+      params: { clave: "0".repeat(32), variante: "ficha" },
+    } as never);
     expect(respuestaFoto.status).toBe(404);
     expect(await respuestaFoto.text()).toBe("");
     expect(respuestaFoto.headers.get("content-type")).toBeNull();

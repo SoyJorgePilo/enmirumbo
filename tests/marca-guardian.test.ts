@@ -11,7 +11,8 @@ import {
   TITULO_TERMINOS,
 } from "../src/lib/legales/textos";
 import { NOMBRE_DEL_SITIO, TITULO_DEL_SITIO } from "../src/lib/seo/metadata";
-import { TITULO_BUSCAR } from "../src/app/(publico)/buscar/page";
+// `/buscar` ya se sirve con Astro (change `migrar-directorio-publico-astro`).
+import { TITULO_BUSCAR } from "../src/astro/buscar";
 import { TITULO_PANEL } from "../src/app/admin/page";
 
 /**

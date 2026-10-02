@@ -18,9 +18,6 @@ vi.mock("next/navigation", async () => {
 
 import { seedCatalogos } from "../prisma/seed";
 import { sembrarNegociosDemo } from "../prisma/seed-demo";
-import ListadoCategoriaPage from "../src/app/(publico)/[destino]/page";
-import BuscarPage from "../src/app/(publico)/buscar/page";
-import FichaNegocioPage from "../src/app/(publico)/negocio/[ficha]/page";
 import ReportarNegocioPage from "../src/app/(publico)/negocio/[ficha]/reportar/page";
 import EditarPage from "../src/app/(gestion)/editar/[token]/page";
 import EditarGraciasPage from "../src/app/(gestion)/editar/[token]/gracias/page";
@@ -39,6 +36,9 @@ import Home from "../src/pages/index.astro";
 import TerminosPage from "../src/pages/terminos.astro";
 import { pintarPagina } from "./astro-paginas";
 import { crearClientePrueba } from "./db";
+// Las páginas del directorio ya se sirven con Astro (change
+// `migrar-directorio-publico-astro`, tasks.md #15).
+import { pintarBuscar, pintarDestino, pintarFicha } from "./paginas-directorio";
 
 /**
  * GUARDIÁN DEL COLAPSO RESPONSIVO — spec `layout-base`, requirement "Diseño
@@ -161,24 +161,8 @@ beforeAll(async () => {
     renderToStaticMarkup(createElement(() => elemento as never));
 
   pantallas.set("home", await pintarPagina(Home, { ruta: "/" }));
-  pantallas.set(
-    "listado",
-    await render(
-      await ListadoCategoriaPage({
-        params: Promise.resolve({ destino: "servicios-del-hogar" }),
-        searchParams: Promise.resolve({}),
-      }),
-    ),
-  );
-  pantallas.set(
-    "ficha",
-    await render(
-      await FichaNegocioPage({
-        params: Promise.resolve({ ficha: segmento }),
-        searchParams: Promise.resolve({}),
-      }),
-    ),
-  );
+  pantallas.set("listado", (await pintarDestino("servicios-del-hogar")).documento);
+  pantallas.set("ficha", (await pintarFicha(segmento)).documento);
   pantallas.set(
     "reportar",
     await render(
@@ -188,14 +172,7 @@ beforeAll(async () => {
       }),
     ),
   );
-  pantallas.set(
-    "buscar",
-    await render(
-      await BuscarPage({
-        searchParams: Promise.resolve({ q: "plomero" }),
-      } as unknown as Parameters<typeof BuscarPage>[0]),
-    ),
-  );
+  pantallas.set("buscar", (await pintarBuscar({ q: "plomero" })).documento);
   pantallas.set("registro", await render(await RegistroPage()));
   pantallas.set(
     "editar",

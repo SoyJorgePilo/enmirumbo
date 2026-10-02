@@ -1,12 +1,9 @@
 import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
-import { createElement } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { seedCatalogos } from "../prisma/seed";
-import BuscarPage from "../src/app/(publico)/buscar/page";
 import type { PrismaClient } from "../src/generated/prisma/client";
 import {
   LONGITUD_MAXIMA_CONSULTA,
@@ -21,6 +18,9 @@ import { reiniciarLimitePorIp } from "../src/lib/registro/limite-ip";
 import { procesarRegistro } from "../src/lib/registro/procesar";
 import { slugify } from "../src/lib/slug";
 import { crearClientePrueba } from "./db";
+// Las páginas del directorio ya se sirven con Astro (change
+// `migrar-directorio-publico-astro`, tasks.md #15).
+import { mainDeBuscar } from "./paginas-directorio";
 import { VERSION_AVISO } from "../src/lib/legales/version";
 import { CAMPO_VERSION_AVISO } from "../src/lib/registro/textos";
 
@@ -116,14 +116,9 @@ let coloniaId: number;
 
 const compacto = (html: string) => html.replace(/\s+/g, " ");
 
+/** Lo que pinta `/buscar?q=…` dentro de `<main>`; un cliente hostil manda lo que quiera en `q`. */
 async function renderBuscar(q?: string | string[]): Promise<string> {
-  const elemento = await BuscarPage({
-    // El tipo promete strings; un cliente hostil manda lo que se le ocurra.
-    searchParams: Promise.resolve(
-      (q === undefined ? {} : { q }) as unknown as Record<string, string>,
-    ),
-  } as unknown as Parameters<typeof BuscarPage>[0]);
-  return renderToStaticMarkup(createElement(() => elemento));
+  return mainDeBuscar(q === undefined ? {} : { q });
 }
 
 /** FormData igual al que manda el navegador en el registro público. */
@@ -617,7 +612,7 @@ describe("adversarial C · lo que llega a la base está acotado pase lo que pase
 });
 
 describe("adversarial C · el eco de ?q está acotado y sigue siendo texto", () => {
-  const CORTE = 80; // LONGITUD_MAXIMA_CONSULTA_MOSTRADA de src/app/(publico)/buscar/page.tsx
+  const CORTE = 80; // LONGITUD_MAXIMA_CONSULTA_MOSTRADA de src/astro/buscar.ts
 
   const valorDelCampo = (html: string) =>
     html.match(/<input[^>]*\bvalue="([^"]*)"/)?.[1] ?? "";

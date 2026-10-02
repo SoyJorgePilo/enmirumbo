@@ -1,14 +1,14 @@
-import { createElement } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
 
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { seedCatalogos } from "../prisma/seed";
-import BuscarPage from "../src/app/(publico)/buscar/page";
 import type { PrismaClient } from "../src/generated/prisma/client";
 import { datosDeBusqueda } from "../src/lib/busqueda";
 import { buscarNegociosPublicados } from "../src/lib/directorio";
 import { crearClientePrueba } from "./db";
+// Las páginas del directorio ya se sirven con Astro (change
+// `migrar-directorio-publico-astro`, tasks.md #15).
+import { mainDeBuscar } from "./paginas-directorio";
 
 /**
  * Change `agregar-buscador`, tasks.md #15.
@@ -60,14 +60,9 @@ const PUBLICADOS = [
 let prisma: PrismaClient;
 let categoriaId = 0;
 
+/** Lo que pinta `/buscar?q=…` dentro de `<main>`; un cliente hostil manda lo que quiera en `q`. */
 async function renderBuscar(q?: string | string[]): Promise<string> {
-  const elemento = await BuscarPage({
-    // El tipo promete strings; un cliente hostil manda lo que quiera.
-    searchParams: Promise.resolve(
-      (q === undefined ? {} : { q }) as unknown as Record<string, string>,
-    ),
-  } as unknown as Parameters<typeof BuscarPage>[0]);
-  return renderToStaticMarkup(createElement(() => elemento));
+  return mainDeBuscar(q === undefined ? {} : { q });
 }
 
 /** Consultas hostiles que ninguna respuesta debe convertir en un error 500. */

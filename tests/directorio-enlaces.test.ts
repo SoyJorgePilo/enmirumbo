@@ -68,8 +68,9 @@ describe("directorio-publico · enlace de WhatsApp (tasks #4)", () => {
     const { readFileSync } = await import("node:fs");
     const superficies = [
       "src/components/directorio/lista-negocios.tsx",
-      "src/app/(publico)/negocio/[ficha]/page.tsx",
-      "src/app/(publico)/buscar/page.tsx",
+      // Ya en Astro (change `migrar-directorio-publico-astro`).
+      "src/pages/negocio/[ficha].astro",
+      "src/pages/buscar.astro",
     ];
     for (const ruta of superficies) {
       const fuente = readFileSync(ruta, "utf8");

@@ -13,6 +13,7 @@ import {
   compararRespuestas,
   extraerPagina,
   limpiarHtml,
+  NORMALIZACIONES_404_DINAMICA,
 } from "../scripts/diff-html/nucleo.mjs";
 
 const CSP = "default-src 'self'";
@@ -156,5 +157,126 @@ describe("diff-html · el script sí ve una diferencia", () => {
     });
     expect(compararRespuestas("/robots.txt", texto("User-Agent: *\n"), texto("User-Agent: *\n"))).toEqual([]);
     expect(compararRespuestas("/robots.txt", texto("User-Agent: *\n"), texto("User-Agent: x\n"))).not.toEqual([]);
+  });
+});
+
+// ── Fase 2b (change `migrar-directorio-publico-astro`, design.md §1, punto 6) ──
+//
+// La 404 de las rutas dinámicas: Next manda un documento de error con el
+// `<body>` vacío (lo pinta su JS) y Astro pinta la página de no encontrado
+// desde el servidor (alternativa B). El diff acepta SOLO tres diferencias, en
+// una lista explícita, y solo cuando las dos versiones responden 404 en una
+// URL de la lista de 404 dinámicas.
+
+/** El documento de error de Next (`notFound()` dentro de una ruta dinámica). */
+const ERROR_NEXT = `<!DOCTYPE html><html id="__next_error__"><head><meta charSet="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="preload" as="script" fetchPriority="low" href="/_next/static/chunks/0ncih.js"/><meta name="robots" content="noindex"/><title>EnMiRumbo</title><link rel="icon" href="/favicon.ico?favicon.2vob68tjqpejf.ico" sizes="256x256" type="image/x-icon"/></head><body><script src="/_next/static/chunks/0ncih.js" async=""></script><script>(self.__next_f=self.__next_f||[]).push([0])</script></body></html>`;
+
+/** Lo que Next pinta como 404 en `/a/b/c` (la referencia del `<body>`). */
+const GLOBAL_NEXT = `<!DOCTYPE html><html lang="es-MX" class="h-full antialiased"><head><meta charSet="utf-8"/><link rel="stylesheet" href="/_next/static/chunks/3f5b5-78t_xnc.css" data-precedence="next"/><meta name="robots" content="noindex"/><title>EnMiRumbo</title></head><body class="flex"><header class="h"><a class="l" href="/">EnMiRumbo</a></header><main class="m"><section class="s"><h1 class="t">No encontramos esta página</h1><a class="i" href="/">Ir al inicio</a></section></main><footer class="f"><p>Pie</p></footer></body></html>`;
+
+/** La 404 dinámica de Astro: la página de no encontrado dentro del documento base. */
+const DINAMICA_ASTRO = `<!DOCTYPE html><html lang="es-MX" class="h-full antialiased"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex"><title>EnMiRumbo</title><link rel="icon" href="/favicon.ico?f00ba4" sizes="256x256" type="image/x-icon"><link rel="stylesheet" href="/_astro/index.Bx1y2z.css"></head><body class="flex"><header class="h"><a href="/" class="l">EnMiRumbo</a></header><main class="m"><section class="s"><h1 class="t">No encontramos esta página</h1><a href="/" class="i">Ir al inicio</a></section></main><footer class="f"><p>Pie</p></footer></body></html>`;
+
+const r404 = (cuerpo: string, extra: Record<string, string> = {}) => ({
+  ...respuesta(cuerpo, { "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate", ...extra }),
+  status: 404,
+});
+
+function comparar404(astro = DINAMICA_ASTRO, extraAstro: Record<string, string> = {}, opciones: { es404Dinamica?: boolean } = { es404Dinamica: true }) {
+  const aplicadas: string[] = [];
+  const diferencias = compararRespuestas("/loquesea", r404(ERROR_NEXT), r404(astro, extraAstro), {
+    dinamica: true,
+    ...(opciones.es404Dinamica ? { referencia404: GLOBAL_NEXT, aplicadas } : {}),
+  });
+  return { diferencias, aplicadas };
+}
+
+describe("diff-html · normalizaciones de la 404 dinámica (lista explícita)", () => {
+  it("la lista tiene exactamente las tres entradas del design", () => {
+    expect(NORMALIZACIONES_404_DINAMICA.map((n: { id: string }) => n.id)).toEqual([
+      "cuerpo-contra-a-b-c",
+      "hoja-de-estilos",
+      "lang-y-class-del-html",
+    ]);
+  });
+
+  it("con las tres normalizaciones, la 404 dinámica de Astro sale igual y dice cuáles aplicó", () => {
+    const { diferencias, aplicadas } = comparar404();
+    expect(diferencias).toEqual([]);
+    expect(aplicadas).toEqual(["cuerpo-contra-a-b-c", "hoja-de-estilos", "lang-y-class-del-html"]);
+  });
+
+  it("sin marcarla como 404 dinámica, las mismas respuestas sí difieren", () => {
+    expect(comparar404(DINAMICA_ASTRO, {}, { es404Dinamica: false }).diferencias).not.toEqual([]);
+  });
+
+  it("no se aplica si alguna de las dos no responde 404", () => {
+    const aplicadas: string[] = [];
+    const diferencias = compararRespuestas("/loquesea", r404(ERROR_NEXT), { ...r404(DINAMICA_ASTRO), status: 200 }, {
+      dinamica: true,
+      referencia404: GLOBAL_NEXT,
+      aplicadas,
+    });
+    expect(diferencias.join("\n")).toContain("estado");
+    expect(aplicadas).toEqual([]);
+  });
+
+  it("el <body> se compara contra el de /a/b/c: otro texto reprueba", () => {
+    const { diferencias } = comparar404(DINAMICA_ASTRO.replace("No encontramos esta página", "Página no encontrada"));
+    expect(diferencias.join("\n")).toContain("texto de <main>");
+  });
+
+  it("un <meta> de más reprueba", () => {
+    const { diferencias } = comparar404(DINAMICA_ASTRO.replace("<title>", '<meta name="description" content="x"><title>'));
+    expect(diferencias.join("\n")).toContain("description");
+  });
+
+  it("otro Cache-Control reprueba", () => {
+    const { diferencias } = comparar404(DINAMICA_ASTRO, { "cache-control": "public, max-age=3600" });
+    expect(diferencias.join("\n")).toContain("cache-control");
+  });
+
+  it("el script de la medición reprueba", () => {
+    const conMedicion = DINAMICA_ASTRO.replace(
+      "</section>",
+      '</section><script defer src="https://cloud.umami.is/script.js" data-website-id="x"></script>',
+    );
+    expect(comparar404(conMedicion).diferencias.join("\n")).toContain("secuencia");
+  });
+
+  it("solo se ignora la hoja de estilos: otro <link> en el head reprueba", () => {
+    const { diferencias } = comparar404(DINAMICA_ASTRO.replace("<title>", '<link rel="canonical" href="https://sitio.example/loquesea"><title>'));
+    expect(diferencias.join("\n")).toContain("canonical");
+  });
+
+  it("solo se ignoran lang y class del <html>: otro atributo reprueba", () => {
+    const { diferencias } = comparar404(DINAMICA_ASTRO.replace('<html lang="es-MX"', '<html data-x="1" lang="es-MX"'));
+    expect(diferencias.join("\n")).toContain("<html>");
+  });
+});
+
+describe("diff-html · respuestas binarias (fotos)", () => {
+  const foto = (bytes: number[], extra: Record<string, string> = {}) => ({
+    status: 200,
+    headers: { ...SEGURIDAD, "content-type": "image/webp", "content-length": String(bytes.length), "cache-control": "private, max-age=3600", ...extra },
+    cuerpo: new Uint8Array(bytes),
+  });
+
+  it("los mismos bytes no tienen diferencias", () => {
+    expect(compararRespuestas("/api/foto/x/ficha", foto([1, 2, 3]), foto([1, 2, 3]), { dinamica: true })).toEqual([]);
+  });
+
+  it("otros bytes, otro tamaño u otra caché reprueban", () => {
+    const d = compararRespuestas("/api/foto/x/ficha", foto([1, 2, 3]), foto([1, 2, 4]), { dinamica: true });
+    expect(d.join("\n")).toContain("hash");
+    const t = compararRespuestas("/api/foto/x/ficha", foto([1, 2, 3]), foto([1, 2, 3], { "content-length": "4" }), { dinamica: true });
+    expect(t.join("\n")).toContain("content-length");
+    const c = compararRespuestas("/api/foto/x/ficha", foto([1, 2, 3]), foto([1, 2, 3], { "cache-control": "public" }), { dinamica: true });
+    expect(c.join("\n")).toContain("cache-control");
+  });
+
+  it("una cabecera Location en Astro reprueba", () => {
+    const d = compararRespuestas("/api/foto/x/ficha", foto([1]), foto([1], { location: "https://bucket.example/x" }), { dinamica: true });
+    expect(d.join("\n")).toContain("location");
   });
 });

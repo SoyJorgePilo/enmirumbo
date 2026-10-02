@@ -3,10 +3,11 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { seedCatalogos } from "../prisma/seed";
-import ListadoCategoriaPage from "../src/app/(publico)/[destino]/page";
-import BuscarPage from "../src/app/(publico)/buscar/page";
-import FichaNegocioPage from "../src/app/(publico)/negocio/[ficha]/page";
 import RegistroPage from "../src/app/(publico)/registro/page";
+// Las páginas del directorio ya se sirven con Astro (change
+// `migrar-directorio-publico-astro`, tasks.md #15): lo que pintaban es el
+// contenido de <main> (sin la medición, que aquí no está configurada).
+import { mainDeBuscar, mainDeDestino, mainDeFicha } from "./paginas-directorio";
 import RegistroGraciasPage from "../src/app/(publico)/registro/gracias/page";
 import type { PrismaClient } from "../src/generated/prisma/client";
 import { VARIABLE_SRC, VARIABLE_WEBSITE_ID } from "../src/lib/analitica/config";
@@ -132,23 +133,9 @@ beforeAll(async () => {
   });
   id = creado.id;
 
-  htmlListado = await render(
-    ListadoCategoriaPage({
-      params: Promise.resolve({ destino: "servicios-del-hogar" }),
-      searchParams: Promise.resolve({}),
-    }),
-  );
-  htmlBuscar = await render(
-    BuscarPage({
-      searchParams: Promise.resolve({ q: "cerrajeria adversarial" }),
-    } as unknown as Parameters<typeof BuscarPage>[0]),
-  );
-  htmlFicha = await render(
-    FichaNegocioPage({
-      params: Promise.resolve({ ficha: construirSegmentoFicha(NEGOCIO.nombre, id) }),
-      searchParams: Promise.resolve({}),
-    }),
-  );
+  htmlListado = await mainDeDestino("servicios-del-hogar", {});
+  htmlBuscar = await mainDeBuscar({ q: "cerrajeria adversarial" });
+  htmlFicha = await mainDeFicha(construirSegmentoFicha(NEGOCIO.nombre, id));
   htmlHome = await pintarPagina(Home, { ruta: "/" });
   htmlRegistro = await render(RegistroPage());
   htmlGracias = renderToStaticMarkup(createElement(RegistroGraciasPage));
@@ -286,12 +273,7 @@ describe("analitica · el servidor no lleva contadores (tasks #17)", () => {
       where: { id },
       select: { publicadoEn: true, registradoEn: true },
     });
-    await render(
-      FichaNegocioPage({
-        params: Promise.resolve({ ficha: construirSegmentoFicha(NEGOCIO.nombre, id) }),
-        searchParams: Promise.resolve({}),
-      }),
-    );
+    await mainDeFicha(construirSegmentoFicha(NEGOCIO.nombre, id));
     const despues = await prisma.negocio.findUniqueOrThrow({
       where: { id },
       select: { publicadoEn: true, registradoEn: true },

@@ -74,6 +74,19 @@ describe("plataforma-astro · cabeceras en la CDN", () => {
     for (const r of funcion) expect(r.headers).toBeUndefined();
   });
 
+  // Fase 2b (change `migrar-directorio-publico-astro`): con `/[destino]` en
+  // la función, su ruta `^/([^/]+?)/?$` también atrapa `/opengraph-image/` y
+  // `/404`. Astro las reconoce como rutas PRERENDERIZADAS y responde sin pasar
+  // por el middleware, así que salían sin las cuatro (lo vio
+  // `astro-seguridad-adversarial`). Esas variantes llevan las cuatro desde la
+  // CDN, sin el tipo de la imagen (lo que salga ahí no es la imagen).
+  it("la barra final de un estático sin extensión, y /404, llevan las cuatro (sin el tipo de la imagen)", () => {
+    for (const ruta of ["/opengraph-image/", "/404", "/404/"]) {
+      expect(cabecerasPara(ruta), ruta).toEqual(SEGURIDAD);
+    }
+    expect(cabecerasPara("/favicon.ico/")).toEqual({});
+  });
+
   it("los patrones no se escapan de su archivo", () => {
     expect(cabecerasPara("/terminosx")).toEqual({});
     expect(cabecerasPara("/opengraph-imageX")).toEqual({});

@@ -14,7 +14,14 @@
  * - las cabeceras en la propia ruta comodín que manda las URLs desconocidas a
  *   `/404.html` (las rutas de cabeceras se evalúan contra la URL pedida, no
  *   contra el destino, así que la 404 necesita las suyas);
- * - `Content-Type: image/png` para `/opengraph-image`, que no tiene extensión.
+ * - `Content-Type: image/png` para `/opengraph-image`, que no tiene extensión;
+ * - las cuatro (sin tipo) en las URLs de una ruta PRERENDERIZADA que la CDN no
+ *   sirve y que acaban en la función: la barra final de un estático sin
+ *   extensión (`/opengraph-image/`) y la página suelta de la raíz sin `.html`
+ *   (`/404`). Desde la Fase 2b la ruta `^/([^/]+?)/?$` de `/[destino]` las
+ *   manda a la función, y Astro, al reconocerlas como prerenderizadas,
+ *   responde SIN pasar por el middleware (change
+ *   `migrar-directorio-publico-astro`, `reports/b-dev.md`).
  *
  * No toca ninguna ruta de la función: así una ruta que ponga una política de
  * referente más estricta (fases 4 y 5) no queda pisada por esta.
@@ -48,6 +55,19 @@ function patronDe(archivo: string): string {
   return `^/${escapar(archivo)}$`;
 }
 
+/**
+ * Variantes de la URL de un archivo de la raíz que la CDN no sirve y que la
+ * función atiende sin middleware: `/<archivo>/` si no tiene extensión, y
+ * `/404` o `/404/` para la 404 (el único `.html` suelto que publica Astro).
+ * Nada más: una variante más amplia podría alcanzar una ruta de la función y
+ * pisarle una política más estricta (`astro-seguridad-adversarial`).
+ */
+function patronDeVariante(archivo: string): string | null {
+  if (archivo === "404.html") return "^/404/?$";
+  if (archivo.includes("/") || archivo.includes(".")) return null;
+  return `^/${escapar(archivo)}/$`;
+}
+
 /** La tabla de rutas del adaptador, con las cabeceras de la CDN agregadas. */
 export function rutasConCabecerasEnLaCdn(rutas: RutaVercel[], archivos: string[]): RutaVercel[] {
   const indice = rutas.findIndex((r) => r.handle === "filesystem");
@@ -66,10 +86,14 @@ export function rutasConCabecerasEnLaCdn(rutas: RutaVercel[], archivos: string[]
     },
     continue: true,
   }));
+  const porVariante = archivos.flatMap((archivo) => {
+    const src = patronDeVariante(archivo);
+    return src ? [{ src, headers: { ...seguridad }, continue: true }] : [];
+  });
   const conCabeceras = rutas.map((ruta, i) =>
     i === indice404 ? { ...ruta, headers: { ...((ruta.headers as Record<string, string>) ?? {}), ...seguridad } } : ruta,
   );
-  return [...conCabeceras.slice(0, indice), ...porArchivo, ...conCabeceras.slice(indice)];
+  return [...conCabeceras.slice(0, indice), ...porArchivo, ...porVariante, ...conCabeceras.slice(indice)];
 }
 
 export function cabecerasEnLaCdn(): AstroIntegration {

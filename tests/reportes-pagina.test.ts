@@ -18,7 +18,6 @@ vi.mock("next/navigation", async () => {
 });
 
 import { seedCatalogos } from "../prisma/seed";
-import FichaNegocioPage from "../src/app/(publico)/negocio/[ficha]/page";
 import { reportarNegocio } from "../src/app/(publico)/negocio/[ficha]/reportar/accion";
 import ReportarGraciasPage, {
   metadata as metadataGracias,
@@ -58,6 +57,9 @@ import {
   urlDeRedireccion,
 } from "./admin-mocks";
 import { crearClientePrueba } from "./db";
+// Las páginas del directorio ya se sirven con Astro (change
+// `migrar-directorio-publico-astro`, tasks.md #15).
+import { mainDeFicha } from "./paginas-directorio";
 
 // Spec: directorio-publico (delta del change `agregar-boton-reportar`) ·
 // Requirements del control de la ficha, del mini-formulario, de la validación
@@ -508,13 +510,8 @@ describe("directorio-publico · la confirmación", () => {
 });
 
 describe("directorio-publico · el control de la ficha", () => {
-  const renderFicha = async (segmento: string) => {
-    const elemento = await FichaNegocioPage({
-      params: Promise.resolve({ ficha: segmento }),
-      searchParams: Promise.resolve({}),
-    });
-    return renderToStaticMarkup(createElement(() => elemento));
-  };
+  // Lo que pinta la ficha dentro de `<main>` (lanza si no responde 200).
+  const renderFicha = (segmento: string) => mainDeFicha(segmento);
 
   // Scenario: la ficha ofrece reportar sin robarle el lugar a WhatsApp
   // + Scenario: tocar el control abre el formulario de reporte

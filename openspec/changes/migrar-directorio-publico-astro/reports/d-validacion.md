@@ -1,8 +1,18 @@
 # Etapa D · validación — migrar-directorio-publico-astro (T-023, Fase 2b)
 
-**Veredicto: APROBADO.** Crítico 0 · Alto 0 · Medio 1 (preexistente en `main`, fuera de alcance) · Bajo 5.
-Lo verifiqué todo yo desde cero, sin fiarme de b-dev ni de c-seguridad: bases propias `prisma dev` (`compuerta023b` para la suite y `espejo023b` para la paridad), un worktree de `main` con su propio `npm ci` y tres builds de Next y tres de Astro (A, B y C).
-Etapa A saltada: no hay pantallas nuevas y se reutilizan los componentes.
+**Veredicto (re-validación): APROBADO.** A1 está resuelto; el PR #33 sale de borrador solo con el CI de GitHub Actions en verde.
+Crítico 0 · Alto 0 (A1 resuelto) · Medio 1 (preexistente en `main`, fuera de alcance) · Bajo 5.
+
+**A1 (resuelto).** `plataforma-astro-build` y `-directorio` dejaban los 12 demo en la base compartida y rompían `admin-reportes-paginas:235` e `iteracion2-seguridad-adversarial:425` en el CI.
+- **Arreglo:** `tests/limpieza.ts` (`borrarNegociosSembrados`, `WHATSAPP_DEMO`) en los `afterAll` de `-build`, `-directorio`, `-despublicado` y `directorio-astro-seguridad-adversarial`.
+- **`git diff d138f78`:** solo esos 4 tests + `limpieza.ts` + b-dev/d-validacion/ticket. Ninguna aserción tocada: solo cambian imports y `afterAll`.
+- **Seguro:** borra por `whatsapp IN (...)` con números ficticios (`7719995001-012` del seed demo, `77199963xx`, `77199968xx`, `7719996401`) en el esquema de pruebas, y las fotos en `FOTOS_DIR=./.fotos-test`. No alcanza datos que no sean de las pruebas.
+- **Repro propia** (base nueva `reval023c`, sequencer fijo en una config temporal, ya borrada):
+  - `-build` → `admin-reportes-paginas` → `iteracion2…`: 3/3 archivos, 91/91; quedan 0 negocios y 0 fotos.
+  - `-directorio` → los mismos dos: 3/3, 83/83; 0 negocios y 0 fotos.
+  - **Control** con `-build` y `-directorio` sin el arreglo (`git stash`): fallan :235 y :425 en las dos variantes. La repro sí detecta el hallazgo.
+
+Lo verifiqué todo yo desde cero, sin fiarme de b-dev ni de c-seguridad: bases propias `prisma dev` (`compuerta023b` para la suite y `espejo023b` para la paridad), un worktree de `main` con su propio `npm ci` y tres builds de Next y tres de Astro (A, B y C). Etapa A saltada: no hay pantallas nuevas.
 
 ## Compuertas (corridas por mí)
 
@@ -11,11 +21,11 @@ Etapa A saltada: no hay pantallas nuevas y se reutilizan los componentes.
 | `npm run lint` | exit 0 |
 | `npm run typecheck` | 0 errores, 0 warnings (9 hints) |
 | `npm run build` con `DATABASE_URL` a `127.0.0.1:1` y sin `SITIO_URL` | Complete |
-| `npm test` (base `compuerta023b`, recién creada) | **126/126 archivos; 3497 pasan, 3 expected fail, 2 saltadas** |
+| `npm test` (re-validación, base `reval023c`) | 1ª: 125/126, falla solo `reportes-seguridad-adversarial` [A2]; 2ª: **126/126; 3497 pasan, 3 expected fail, 2 saltadas**, y quedan 0 negocios y 0 fotos |
 
-- Los 3 `it.fails` son los declarados: `[brecha conocida T-024]` (2a), `[T-024] POST sin Origin` y `[M1]`.
-- No hay `skip` nuevos.
-- [A1] y [A2] no fallaron en esta corrida.
+- Re-validación: lint exit 0, typecheck 0 errores, build sin `DATABASE_URL` exit 0.
+- [A2] es la carrera de cupo conocida contra PGlite: sola falló 1 de 4 corridas. El diff de 2b en ese archivo solo cambia el render de la ficha y no toca la carrera. En el CI corre contra `postgres:17`.
+- Los 3 `it.fails` son los declarados: `[brecha conocida T-024]` (2a), `[T-024] POST sin Origin` y `[M1]`. No hay `skip` nuevos.
 
 ## Diff de HTML contra Next de `main` (worktree propio, base sembrada)
 
@@ -85,9 +95,7 @@ Lo probé con mutaciones sobre la 404 de una ficha en revisión servida por Astr
 **Conclusión: no bloquea.** La fuga queda cerrada por estructura y por pruebas que no dependen del diff:
 - `NoEncontradoDinamico` no tiene props ni lee `Astro.params`, `Astro.url` ni `Astro.request`, y la prueba lo fija;
 - `plataforma-astro-404-dinamica` exige cuerpos idénticos byte a byte y una lista de datos prohibidos;
-- mi verificación (b) confirma lo mismo sobre la salida real.
-
-Ver el bajo B1.
+- mi verificación (b) confirma lo mismo sobre la salida real (ver el bajo B1).
 
 ## Desviaciones decididas
 
@@ -137,4 +145,5 @@ Ver el bajo B1.
   - revisar con `curl` las cuatro cabeceras y el `Cache-Control` en un listado, una ficha, `/loquesea` (que se vea con JS apagado), una ficha no publicada, una foto 200 y una foto 404;
   - revisar `/opengraph-image/`, `/404` y `/500`;
   - correr Lighthouse móvil en el listado y en la ficha.
-- **CI:** el de GitHub Actions tiene que quedar en verde en el PR, porque esta validación local no lo sustituye. El merge lo hace un humano.
+- **CI:** el de GitHub Actions tiene que quedar en verde en el PR, porque esta validación local no lo sustituye. El PR sale de borrador solo con el CI en verde. El merge lo hace un humano.
+- **Vercel:** el check falla también en #31 y #32, y no lo causa este PR. El preview de la tarea 19 está bloqueado hasta resolverlo.

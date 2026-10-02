@@ -25,6 +25,7 @@ import { almacenDeFotos } from "../src/lib/fotos/almacen";
 import { generarClaveFoto } from "../src/lib/fotos/clave";
 import { procesarFoto } from "../src/lib/fotos/procesar";
 import { crearClientePrueba } from "./db";
+import { borrarNegociosSembrados } from "./limpieza";
 import { jpegDePrueba } from "./fotos-fixtures";
 import { type Emulador, construirSiHaceFalta, levantarEmulador } from "./salida-astro";
 
@@ -76,7 +77,8 @@ beforeAll(async () => {
 
 afterAll(async () => {
   emulador?.detener();
-  await prisma?.negocio.deleteMany({ where: { whatsapp: WHATSAPP } });
+  // El negocio y su foto: la base y el almacén son compartidos (hallazgo A1).
+  if (prisma) await borrarNegociosSembrados(prisma, [WHATSAPP], [clave]);
   await prisma?.$disconnect();
 });
 

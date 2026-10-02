@@ -32,6 +32,7 @@ import { construirSegmentoFicha } from "../src/lib/ficha-url";
 import { generarClaveFoto } from "../src/lib/fotos/clave";
 import { cabezaDe, pintarPagina, pintarRespuesta } from "./astro-paginas";
 import { crearClientePrueba } from "./db";
+import { borrarNegociosSembrados, WHATSAPP_DEMO } from "./limpieza";
 import PrecargaFoto from "./fixtures/precarga-foto.astro";
 
 const raiz = join(__dirname, "..");
@@ -74,7 +75,8 @@ beforeAll(async () => {
 afterEach(() => vi.unstubAllEnvs());
 afterAll(async () => {
   vi.unstubAllEnvs();
-  await prisma?.negocio.deleteMany({ where: { whatsapp: { in: WHATSAPP_DOCE } } });
+  // También los demo y sus fotos: la base es compartida (hallazgo A1).
+  if (prisma) await borrarNegociosSembrados(prisma, [...WHATSAPP_DOCE, ...WHATSAPP_DEMO]);
   await prisma?.$disconnect();
 });
 

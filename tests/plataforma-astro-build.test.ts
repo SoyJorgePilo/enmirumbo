@@ -38,6 +38,7 @@ import { medidasPng } from "../scripts/diff-html/nucleo.mjs";
 import { construirSegmentoFicha } from "../src/lib/ficha-url";
 import { cabecerasDeSeguridad } from "../src/lib/seguridad/csp";
 import { crearClientePrueba } from "./db";
+import { borrarNegociosSembrados, WHATSAPP_DEMO } from "./limpieza";
 import { levantarEmulador as levantarEmuladorDeSalida } from "./salida-astro";
 
 const raiz = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
@@ -216,6 +217,18 @@ const URL_PUBLICA = "https://enmirumbo.example";
 const PUERTO = 46_000 + Math.floor(Math.random() * 1000);
 const BASE = `http://127.0.0.1:${PUERTO}`;
 let emulador: ChildProcess | undefined;
+
+// Los negocios demo (y sus fotos) que siembra el `beforeAll` de abajo viven en
+// la base compartida: se borran al terminar el ARCHIVO, no el `describe`,
+// porque el de 2b también los usa (hallazgo A1 de d-validacion.md).
+afterAll(async () => {
+  const prisma = crearClientePrueba();
+  try {
+    await borrarNegociosSembrados(prisma, WHATSAPP_DEMO);
+  } finally {
+    await prisma.$disconnect();
+  }
+});
 
 describe("plataforma-astro · la salida construida, servida como en Vercel", () => {
   beforeAll(async () => {

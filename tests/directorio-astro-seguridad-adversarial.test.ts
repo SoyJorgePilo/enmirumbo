@@ -41,6 +41,7 @@ import { generarClaveFoto } from "../src/lib/fotos/clave";
 import { procesarFoto } from "../src/lib/fotos/procesar";
 import { cabecerasDeSeguridad } from "../src/lib/seguridad/csp";
 import { crearClientePrueba } from "./db";
+import { borrarNegociosSembrados } from "./limpieza";
 import { jpegDePrueba } from "./fotos-fixtures";
 import { type Emulador, construirSiHaceFalta, levantarEmulador } from "./salida-astro";
 
@@ -158,7 +159,9 @@ beforeAll(async () => {
 afterAll(async () => {
   emulador?.detener();
   baseCaida?.detener();
-  await prisma?.negocio.deleteMany({ where: { whatsapp: { in: Object.values(W) } } });
+  // Los negocios y TODAS sus fotos (también las del borrado, que ya no tiene
+  // registro): la base y el almacén son compartidos (hallazgo A1).
+  if (prisma) await borrarNegociosSembrados(prisma, Object.values(W), Object.values(claves));
   await prisma?.$disconnect();
 });
 

@@ -138,3 +138,8 @@ En B, el script del proveedor sale en las páginas 200 en la misma posición que
   - comprobar `/opengraph-image/` y `/404`, que llevan las cuatro por la ruta de la CDN nueva;
   - repetir Lighthouse.
 - Decidir las desviaciones 1 y 2 (colonia repetida; normalizaciones medidas en `/negocio` y `/api`).
+
+**Fix A1 (d-validacion).** `plataforma-astro-build` y también `plataforma-astro-directorio` dejaban los 12 demo y sus fotos en la base compartida. Ahora un `afterAll` los borra por WhatsApp, junto con sus fotos, con `tests/limpieza.ts` (`borrarNegociosSembrados`, `WHATSAPP_DEMO`). `despublicado` y `directorio-astro-seguridad-adversarial` borraban sus negocios pero dejaban las fotos en `.fotos-test`; ahora también las borran. `404-dinamica` ya limpiaba bien, y los `astro-*` no escriben en la base.
+- Repro en el orden del CI (base `limpia023b`, sequencer fijo): antes fallaban `admin-reportes-paginas:235` e `iteracion2…:425`, tanto detrás de `-build` como de `-directorio`. Después pasan 3/3 archivos en las dos variantes, y quedan 0 negocios y 0 fotos.
+- Suite completa: 126/126 y 3497 pasan (lint, typecheck y build con exit 0). En dos corridas falló `reportes-seguridad-adversarial` [A1]/[A2], que también falla solo, 1 de cada 3 veces: es la carrera conocida contra PGlite y no depende de este fix.
+- Sin prueba guardián: un hook por archivo abriría conexión a la base en ~126 archivos, incluidos los unitarios, y sería frágil. Pendiente: `layout`, `seo-artefactos` y `fotos-ruta-salida` (2a) borran las filas pero no las fotos del disco.

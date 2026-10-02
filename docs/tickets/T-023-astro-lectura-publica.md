@@ -1,6 +1,6 @@
 # T-023 · Superficie pública de lectura en Astro (Fase 2)
 
-**Estado:** en-review <!-- pendiente | en-spec | en-desarrollo | en-review | hecho --> — mitad 2a en review (PR #32); mitad 2b (`/[destino]`, `/negocio/[ficha]`, `/buscar`, fotos) en review (PR #33, apilado sobre #32). Pendiente humano: preview de Vercel y Lighthouse (tarea 19 de 2b). El ticket no pasa a hecho hasta mergear las dos
+**Estado:** en-review <!-- pendiente | en-spec | en-desarrollo | en-review | hecho --> — mitad 2a en review (PR #32); mitad 2b (`/[destino]`, `/negocio/[ficha]`, `/buscar`, fotos) en review (PR #33, apilado sobre #32): A1 de d-validacion resuelto y re-validado. Pendiente humano: preview de Vercel y Lighthouse (tarea 19 de 2b) y el merge (tarea 20). El ticket no pasa a hecho hasta mergear las dos
 **Prioridad:** P1
 **Épica:** E9 (docs/backlog.md)
 **Referencias PRD:** v2 §10 (técnica reemplazable); ADR-013

@@ -1,0 +1,8 @@
+---
+import Base from "../layouts/Base.astro";
+// El middleware ya verificó la cookie firmada; si no, aquí no se llega.
+---
+<Base titulo="Ruta protegida">
+  <h1>Contenido protegido</h1>
+  <p>Entraste con una sesión firmada.</p>
+</Base>

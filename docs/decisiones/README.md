@@ -25,6 +25,7 @@ Este proyecto documenta cada decisión técnica relevante como un **Architecture
 | [ADR-008](ADR-008-modelo-por-agente.md) | Modelo de IA por agente del pipeline | aceptada |
 | [ADR-009](ADR-009-revision-pipeline-13-corridas.md) | Revisión del pipeline tras las primeras corridas (cierre del experimento UI-first, mandatos de integración) | aceptada (aplicada en proceso v0.5) |
 | [ADR-012](ADR-012-aligerar-harness.md) | Aligerar el harness: reportes cortos, etapa C condicional, `/rapido` de docs sin validador | aceptada (proceso v0.6) |
+| [ADR-013](ADR-013-migracion-astro.md) | Migración de Next.js a Astro (plan por fases con spike de go/no-go) | propuesta — se decide en la Fase 0 |
 
 ## Tecnologías descartadas de plano en el MVP (el porqué no, en corto)
 

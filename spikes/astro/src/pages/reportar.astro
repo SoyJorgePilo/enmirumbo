@@ -1,0 +1,44 @@
+---
+import { actions } from "astro:actions";
+
+import { ETIQUETA_MOTIVO_REPORTE, MOTIVOS_REPORTE } from "../../../../src/lib/reportes/motivos";
+import {
+  AYUDA_COMENTARIO_REPORTE,
+  BOTON_ENVIAR_REPORTE,
+  CONTROL_REPORTAR,
+  ETIQUETA_COMENTARIO_REPORTE,
+  ETIQUETA_QUE_PASA,
+  FRASE_REPORTAR,
+  LIMITE_COMENTARIO_REPORTE,
+} from "../../../../src/lib/reportes/textos";
+import Base from "../layouts/Base.astro";
+import { avisoDesdeCookie, COOKIE_AVISO_REPORTE, textoDeAviso } from "../lib/reporte";
+
+// El aviso llega por una cookie de un solo uso con un CÓDIGO cerrado: ni el
+// motivo ni el comentario del vecino pasan por la URL ni por la cookie.
+const aviso = avisoDesdeCookie(Astro.cookies.get(COOKIE_AVISO_REPORTE)?.value);
+if (aviso) Astro.cookies.delete(COOKIE_AVISO_REPORTE, { path: "/reportar" });
+---
+<Base titulo={CONTROL_REPORTAR}>
+  <h1>{CONTROL_REPORTAR}</h1>
+  <p>Negocio de prueba: <strong>Tlapalería La Ficticia</strong></p>
+  <p>{FRASE_REPORTAR}</p>
+  <form method="POST" action={actions.reportar}>
+    <fieldset>
+      <legend>{ETIQUETA_QUE_PASA}</legend>
+      {aviso === "motivo" && <p id="motivo-error" role="alert">⚠ {textoDeAviso("motivo")}</p>}
+      {MOTIVOS_REPORTE.map((motivo) => (
+        <label style="display:block">
+          <input type="radio" name="motivo" value={motivo} /> {ETIQUETA_MOTIVO_REPORTE[motivo]}
+        </label>
+      ))}
+    </fieldset>
+    <p>
+      <label for="comentario">{ETIQUETA_COMENTARIO_REPORTE}</label><br />
+      <textarea id="comentario" name="comentario" rows="3" maxlength={LIMITE_COMENTARIO_REPORTE}></textarea><br />
+      <small>{AYUDA_COMENTARIO_REPORTE}</small>
+    </p>
+    {aviso === "comentario" && <p id="comentario-error" role="alert">⚠ {textoDeAviso("comentario")}</p>}
+    <button type="submit">{BOTON_ENVIAR_REPORTE}</button>
+  </form>
+</Base>

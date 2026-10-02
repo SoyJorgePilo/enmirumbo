@@ -2,6 +2,8 @@
 
 > El pipeline se mide por retrabajo, no por volumen (ver `docs/proceso.md` §Medición). Una fila por corrida de `/implementar` o `/rapido`. "1a pasada" = veredicto del validador sin necesidad de regresar a etapas previas. "Post-merge" = commits de corrección sobre esa feature en las 2 semanas siguientes (se rellena después, normalmente en el `/checkpoint`).
 >
+> **Desde 2026-10-01 (proceso v0.6, ADR-012)** las filas son de una línea (≤25 palabras por celda; la narrativa va en `d-validacion.md`) y la etapa C puede saltarse con motivo. Las filas anteriores no se promedian con las posteriores en iteraciones C ni en costo. Las celdas "Post-merge" vacías de ≥2 semanas se rellenan en el próximo `/checkpoint`.
+>
 > Las filas solo son comparables entre sí mientras el reparto de modelos por agente no cambie (ADR-008). Si se toca, se anota aquí la fecha del cambio y las corridas anteriores no se promedian con las posteriores.
 
 | Fecha | Change/fix | Ruta | Iter. C (dev↔seg) | Hallazgos validador | 1a pasada | PR | Post-merge |

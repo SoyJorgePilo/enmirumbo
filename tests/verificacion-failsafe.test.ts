@@ -16,8 +16,6 @@ vi.mock("next/navigation", async () => {
 
 import { seedCatalogos } from "../prisma/seed";
 import type { PrismaClient } from "../src/generated/prisma/client";
-import RegistroGraciasPage from "../src/app/(publico)/registro/gracias/page";
-import RegistroPage from "../src/app/(publico)/registro/page";
 import RegistroVerificarPage from "../src/app/(publico)/registro/verificar/page";
 import { DetalleRegistro } from "../src/components/admin/detalle-registro";
 import { TarjetaCola } from "../src/components/admin/tarjeta-cola";
@@ -30,9 +28,10 @@ import { CAMPO_VERSION_AVISO } from "../src/lib/registro/textos";
 import { VERSION_AVISO } from "../src/lib/legales/version";
 import { reiniciarLimitePorIp } from "../src/lib/registro/limite-ip";
 import {
-  dependenciasDeVerificacion,
-  ejecutarConfirmacion,
-  ejecutarReenvio,
+  dependenciasDeVerificacion as dependenciasDe,
+  ejecutarConfirmacion as confirmar,
+  ejecutarReenvio as reenviar,
+  type DependenciasVerificacion,
 } from "../src/lib/verificacion/acciones";
 import {
   VARIABLE_BANDERA,
@@ -47,7 +46,10 @@ import { reiniciarTopesPorRegistro } from "../src/lib/verificacion/limites";
 import { pedirCodigoParaFicha } from "../src/lib/verificacion/flujo";
 import { COOKIE_PASO, crearPasoInicial, firmarPaso } from "../src/lib/verificacion/paso";
 import { proveedorDeVerificacion } from "../src/lib/verificacion/proveedor";
-import { NoEncontradoSimulado, peticion, reiniciarPeticion } from "./admin-mocks";
+import RegistroGracias from "../src/pages/registro/gracias.astro";
+import Registro from "../src/pages/registro.astro";
+import { NoEncontradoSimulado, cookies, obedecerDestino, peticion, reiniciarPeticion } from "./admin-mocks";
+import { contenidoDelMain, pintarPagina } from "./astro-paginas";
 import { crearClientePrueba } from "./db";
 
 /**
@@ -104,9 +106,23 @@ function envio(campos: Record<string, string> = {}): FormData {
 
 const pintar = (elemento: React.ReactElement) => renderToStaticMarkup(elemento);
 
-async function renderAsincrono(pagina: unknown): Promise<string> {
-  const resuelta = (await pagina) as React.ReactElement;
-  return renderToStaticMarkup(createElement(() => resuelta));
+/**
+ * Las acciones de verificación sin Next (change `migrar-registro-astro`,
+ * design.md §4): las dependencias se arman con las cabeceras de la petición
+ * simulada, las acciones reciben su almacén de cookies y el destino se obedece
+ * como lo hacían `redirect()`/`notFound()`.
+ */
+const dependenciasDeVerificacion = () => dependenciasDe(new Headers(peticion.encabezados));
+async function ejecutarConfirmacion(formData: FormData, deps: DependenciasVerificacion | null) {
+  return obedecerDestino(await confirmar(formData, deps, await cookies()));
+}
+async function ejecutarReenvio(deps: DependenciasVerificacion | null) {
+  return obedecerDestino(await reenviar(deps, await cookies()));
+}
+
+/** `/registro` y gracias son de Astro desde 3b-1: lo que hay en `<main>`. */
+async function pintarAstro(pagina: Parameters<typeof pintarPagina>[0], ruta: string): Promise<string> {
+  return contenidoDelMain(await pintarPagina(pagina, { ruta }));
 }
 
 beforeAll(async () => {
@@ -246,11 +262,7 @@ describe("registro-negocio · con la capacidad apagada, el registro es el de hoy
 
   // Scenario: nada nuevo en el HTML con la capacidad apagada
   it("la pantalla de gracias es la de siempre, sin una palabra nueva", async () => {
-    const html = await renderAsincrono(
-      RegistroGraciasPage({ searchParams: Promise.resolve({}) } as unknown as Parameters<
-        typeof RegistroGraciasPage
-      >[0]),
-    );
+    const html = await pintarAstro(RegistroGracias, "/registro/gracias");
     expect(html).toContain(
       "¡Gracias! Tu negocio está en revisión. Te contactaremos por WhatsApp para confirmar tus datos antes de publicarlo.",
     );
@@ -261,7 +273,7 @@ describe("registro-negocio · con la capacidad apagada, el registro es el de hoy
   });
 
   it("el formulario de registro no gana ni un campo, ni un texto, ni un script", async () => {
-    const html = await renderAsincrono(RegistroPage());
+    const html = await pintarAstro(Registro, "/registro");
     expect(html.toLowerCase()).not.toContain("sms");
     expect(html.toLowerCase()).not.toContain("código de 6 dígitos");
     expect(html).not.toContain("/registro/verificar");
@@ -270,8 +282,11 @@ describe("registro-negocio · con la capacidad apagada, el registro es el de hoy
     // cargue ningún script externo lo vigila `tests/registro-pagina.test.ts`,
     // desde antes de T-016.)
     for (const ruta of [
-      "src/app/(publico)/registro/page.tsx",
+      "src/pages/registro.astro",
       "src/components/registro/formulario-registro.tsx",
+      "src/components/registro/formulario-registro-nativo.tsx",
+      "src/components/registro/cuerpo-formulario-registro.tsx",
+      "src/astro/registro-cliente.ts",
     ]) {
       expect(readFileSync(join(raiz, ruta), "utf8"), ruta).not.toContain("verificacion/");
     }
@@ -366,7 +381,7 @@ describe("registro-negocio · el fail-safe está escrito en un solo lugar", () =
     for (const ruta of [
       "src/app/(publico)/registro/verificar/page.tsx",
       "src/components/registro/formulario-verificar-codigo.tsx",
-      "src/app/(publico)/registro/gracias/page.tsx",
+      "src/pages/registro/gracias.astro",
     ]) {
       expect(readFileSync(join(raiz, ruta), "utf8"), ruta).not.toContain('"use client"');
     }

@@ -2,16 +2,15 @@
 
 import { useFormStatus } from "react-dom";
 
-import { CLASE_BOTON_PRIMARIO } from "@/lib/estilos-boton";
+import { BotonEnviarVista } from "@/components/registro/boton-enviar-vista";
 
 export type BotonEnviarProps = {
   /**
    * Texto del botón en reposo. Por defecto "Registrar mi negocio" (spec
    * `registro-negocio`); el modo edición del enlace de gestión (change
    * `agregar-enlace-de-gestion`) pasa el literal "Enviar cambios". El texto
-   * de "enviando" NO se parametriza a propósito: ninguna spec pide uno
-   * distinto de "Enviando..." y `tests/registro-pagina.test.ts` ancla ese
-   * literal en el código fuente de este componente.
+   * de "enviando" NO se parametriza a propósito: vive, literal, en
+   * `boton-enviar-vista.tsx`.
    */
   texto?: string;
 };
@@ -21,7 +20,8 @@ export type BotonEnviarProps = {
  * dedicado solo al estado "enviando" (design.md §1). Usa `useFormStatus`,
  * así que debe renderizarse dentro del `<form>` que llama a la Server
  * Action — de ahí que sea un componente aparte y no reciba `pending` por
- * prop.
+ * prop. El marcado es el de `BotonEnviarVista` (sin hooks, change
+ * `migrar-registro-astro`, design.md §2).
  *
  * Deshabilitar el botón mientras `pending` es cierto evita el doble envío
  * (scenario "estado enviando" de la spec). Sin JavaScript, `pending` nunca
@@ -29,14 +29,5 @@ export type BotonEnviarProps = {
  */
 export function BotonEnviar({ texto = "Registrar mi negocio" }: BotonEnviarProps = {}) {
   const { pending } = useFormStatus();
-
-  return (
-    <button
-      type="submit"
-      disabled={pending}
-      className={`${CLASE_BOTON_PRIMARIO} w-full disabled:cursor-not-allowed disabled:opacity-70`}
-    >
-      {pending ? "Enviando..." : texto}
-    </button>
-  );
+  return <BotonEnviarVista texto={texto} enviando={pending} />;
 }

@@ -20,8 +20,6 @@ import { seedCatalogos } from "../prisma/seed";
 import { sembrarNegociosDemo } from "../prisma/seed-demo";
 import EditarPage from "../src/app/(gestion)/editar/[token]/page";
 import EditarGraciasPage from "../src/app/(gestion)/editar/[token]/gracias/page";
-import RegistroPage from "../src/app/(publico)/registro/page";
-import RegistroGraciasPage from "../src/app/(publico)/registro/gracias/page";
 import RegistroVerificarPage from "../src/app/(publico)/registro/verificar/page";
 import { Footer } from "../src/components/footer";
 import { Header } from "../src/components/header";
@@ -34,6 +32,9 @@ import { huellaDeToken } from "../src/lib/gestion/token";
 import NotFoundPage from "../src/pages/404.astro";
 import AvisoDePrivacidadPage from "../src/pages/aviso-de-privacidad.astro";
 import Home from "../src/pages/index.astro";
+// `/registro` y su gracias, de Astro desde 3b-1 (change `migrar-registro-astro`).
+import RegistroGracias from "../src/pages/registro/gracias.astro";
+import Registro from "../src/pages/registro.astro";
 import TerminosPage from "../src/pages/terminos.astro";
 import { pintarPagina } from "./astro-paginas";
 import {
@@ -179,7 +180,7 @@ beforeAll(async () => {
   pantallas.set("reportar", (await respuestaDeReportar(segmento)).html);
   pantallas.set("reportar-gracias", await pintarGracias(segmento));
   pantallas.set("buscar", (await pintarBuscar({ q: "plomero" })).documento);
-  pantallas.set("registro", await render(await RegistroPage()));
+  pantallas.set("registro", await pintarPagina(Registro, { ruta: "/registro" }));
 
   // Las tres formas de la pantalla de gracias y la pantalla del código
   // (T-016). La del código solo se puede servir con la capacidad ENCENDIDA y
@@ -189,14 +190,8 @@ beforeAll(async () => {
     ["gracias-verificado", { verificado: "1" }],
     ["gracias-agotado", { agotado: "1" }],
   ] as const) {
-    pantallas.set(
-      nombre,
-      await render(
-        await RegistroGraciasPage({
-          searchParams: Promise.resolve(parametros),
-        } as unknown as Parameters<typeof RegistroGraciasPage>[0]),
-      ),
-    );
+    const consulta = new URLSearchParams(parametros).toString();
+    pantallas.set(nombre, await pintarPagina(RegistroGracias, { ruta: `/registro/gracias${consulta ? `?${consulta}` : ""}` }));
   }
 
   const SECRETO_VERIFICACION = "secreto-de-pruebas-de-32-caracteres-o-mas";

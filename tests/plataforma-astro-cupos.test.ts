@@ -203,5 +203,9 @@ describe("cupos · nadie usa clientAddress", () => {
   it("las Actions leen la IP con ipDeEncabezados", () => {
     const pegamento = readFileSync(path.join(raiz, "src/astro/reportar.ts"), "utf8");
     expect(pegamento).toMatch(/ipDeEncabezados\(\s*contexto\.request\.headers\s*\)/);
+    // 3b-1 (change `migrar-registro-astro`): el registro, con las cabeceras de la petición.
+    const registro = readFileSync(path.join(raiz, "src/astro/registro.ts"), "utf8");
+    expect(registro).toMatch(/const encabezados = contexto\.request\.headers;[\s\S]*ipDeEncabezados\(encabezados\)/);
+    expect(archivosConClientAddress(raiz, ["src/astro/registro.ts", "src/astro/registro-cliente.ts", "src/pages/registro.astro", "src/pages/registro", "src/components/registro"])).toEqual([]);
   });
 });

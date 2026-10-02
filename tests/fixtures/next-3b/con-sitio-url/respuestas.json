@@ -1,0 +1,1047 @@
+{
+  "pantallas": {
+    "registro.html": {
+      "status": 200,
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8"
+    },
+    "gracias.html": {
+      "status": 200,
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8"
+    },
+    "gracias-verificado.html": {
+      "status": 200,
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8"
+    },
+    "gracias-agotado.html": {
+      "status": 200,
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8"
+    },
+    "gracias-ambos.html": {
+      "status": 200,
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8"
+    },
+    "gracias-verificado-x.html": {
+      "status": 200,
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8"
+    },
+    "gracias-verificado-1-0.html": {
+      "status": 200,
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8"
+    }
+  },
+  "desenlaces": {
+    "exito-sin-foto": {
+      "cadena": [
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        },
+        {
+          "metodo": "POST",
+          "status": 303,
+          "location": "/registro/gracias",
+          "cookies": []
+        },
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        }
+      ],
+      "post": {
+        "status": 303,
+        "cache-control": "no-cache, no-store, max-age=0, must-revalidate",
+        "content-type": null,
+        "seguridad": true,
+        "cookies": []
+      },
+      "errores": null,
+      "valores": null,
+      "base": {
+        "nombre": "Fonda Ficticia Del Arnés",
+        "estado": "en_revision",
+        "origen": "organico",
+        "conFoto": false,
+        "consintioAvisoVersion": "2",
+        "reconsintioAvisoVersion": null,
+        "verificado": false,
+        "publicado": false
+      }
+    },
+    "exito-con-foto": {
+      "cadena": [
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        },
+        {
+          "metodo": "POST",
+          "status": 303,
+          "location": "/registro/gracias",
+          "cookies": []
+        },
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        }
+      ],
+      "post": {
+        "status": 303,
+        "cache-control": "no-cache, no-store, max-age=0, must-revalidate",
+        "content-type": null,
+        "seguridad": true,
+        "cookies": []
+      },
+      "errores": null,
+      "valores": null,
+      "base": {
+        "nombre": "Fonda Ficticia Del Arnés",
+        "estado": "en_revision",
+        "origen": "organico",
+        "conFoto": true,
+        "consintioAvisoVersion": "2",
+        "reconsintioAvisoVersion": null,
+        "verificado": false,
+        "publicado": false
+      }
+    },
+    "vacio": {
+      "cadena": [
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        },
+        {
+          "metodo": "POST",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        }
+      ],
+      "post": {
+        "status": 200,
+        "cache-control": "no-cache, no-store, max-age=0, must-revalidate",
+        "content-type": "text/html; charset=utf-8",
+        "seguridad": true,
+        "cookies": []
+      },
+      "errores": {
+        "nombre": "Escribe el nombre de tu negocio",
+        "categoriaId": "Elige una categoría",
+        "whatsapp": "Revisa tu número de WhatsApp: deben ser 10 dígitos",
+        "coloniaId": "Elige tu colonia",
+        "consentimiento": "Marca la casilla para poder registrar tu negocio"
+      },
+      "valores": {
+        "sitio_web": "",
+        "nombre": "",
+        "categoriaId": "",
+        "whatsapp": "",
+        "coloniaId": "",
+        "coloniaOtra": "",
+        "queOfreces": "",
+        "entregaADomicilio": false,
+        "telefonoFijo": "",
+        "direccion": "",
+        "horario": "",
+        "facebookUrl": "",
+        "quitarFoto": false,
+        "avisoVersion": "2",
+        "consentimiento": false
+      },
+      "base": null
+    },
+    "errores-con-lo-capturado": {
+      "cadena": [
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        },
+        {
+          "metodo": "POST",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        }
+      ],
+      "post": {
+        "status": 200,
+        "cache-control": "no-cache, no-store, max-age=0, must-revalidate",
+        "content-type": "text/html; charset=utf-8",
+        "seguridad": true,
+        "cookies": []
+      },
+      "errores": {
+        "whatsapp": "Revisa tu número de WhatsApp: deben ser 10 dígitos",
+        "queOfreces": "Deja esto en 200 caracteres o menos",
+        "foto": "Tu foto no se quedó guardada: vuelve a elegirla antes de enviar."
+      },
+      "valores": {
+        "sitio_web": "",
+        "nombre": "Fonda Ficticia Del Arnés",
+        "categoriaId": "cat:Talleres",
+        "whatsapp": "77199981",
+        "coloniaId": "cat:Tizayuca Centro",
+        "coloniaOtra": "",
+        "queOfreces": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "entregaADomicilio": true,
+        "telefonoFijo": "",
+        "direccion": "a un lado de la primaria (ficticia)",
+        "horario": "",
+        "facebookUrl": "",
+        "quitarFoto": false,
+        "avisoVersion": "2",
+        "consentimiento": false
+      },
+      "base": null
+    },
+    "facebook-javascript": {
+      "cadena": [
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        },
+        {
+          "metodo": "POST",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        }
+      ],
+      "post": {
+        "status": 200,
+        "cache-control": "no-cache, no-store, max-age=0, must-revalidate",
+        "content-type": "text/html; charset=utf-8",
+        "seguridad": true,
+        "cookies": []
+      },
+      "errores": {
+        "facebookUrl": "El link de Facebook debe empezar con http:// o https://"
+      },
+      "valores": {
+        "sitio_web": "",
+        "nombre": "Fonda Ficticia Del Arnés",
+        "categoriaId": "cat:Talleres",
+        "whatsapp": "7719998115",
+        "coloniaId": "cat:Tizayuca Centro",
+        "coloniaOtra": "",
+        "queOfreces": "",
+        "entregaADomicilio": false,
+        "telefonoFijo": "",
+        "direccion": "",
+        "horario": "",
+        "facebookUrl": "javascript:alert(1)",
+        "quitarFoto": false,
+        "avisoVersion": "2",
+        "consentimiento": false
+      },
+      "base": null
+    },
+    "fijo-con-letras": {
+      "cadena": [
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        },
+        {
+          "metodo": "POST",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        }
+      ],
+      "post": {
+        "status": 200,
+        "cache-control": "no-cache, no-store, max-age=0, must-revalidate",
+        "content-type": "text/html; charset=utf-8",
+        "seguridad": true,
+        "cookies": []
+      },
+      "errores": {
+        "telefonoFijo": "Revisa el teléfono fijo: escribe solo números (puedes usar espacios, guiones o paréntesis)"
+      },
+      "valores": {
+        "sitio_web": "",
+        "nombre": "Fonda Ficticia Del Arnés",
+        "categoriaId": "cat:Talleres",
+        "whatsapp": "7719998116",
+        "coloniaId": "cat:Tizayuca Centro",
+        "coloniaOtra": "",
+        "queOfreces": "",
+        "entregaADomicilio": false,
+        "telefonoFijo": "771abc",
+        "direccion": "",
+        "horario": "",
+        "facebookUrl": "",
+        "quitarFoto": false,
+        "avisoVersion": "2",
+        "consentimiento": false
+      },
+      "base": null
+    },
+    "categoria-fuera": {
+      "cadena": [
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        },
+        {
+          "metodo": "POST",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        }
+      ],
+      "post": {
+        "status": 200,
+        "cache-control": "no-cache, no-store, max-age=0, must-revalidate",
+        "content-type": "text/html; charset=utf-8",
+        "seguridad": true,
+        "cookies": []
+      },
+      "errores": {
+        "categoriaId": "Elige una categoría"
+      },
+      "valores": {
+        "sitio_web": "",
+        "nombre": "Fonda Ficticia Del Arnés",
+        "categoriaId": "",
+        "whatsapp": "7719998117",
+        "coloniaId": "cat:Tizayuca Centro",
+        "coloniaOtra": "",
+        "queOfreces": "",
+        "entregaADomicilio": false,
+        "telefonoFijo": "",
+        "direccion": "",
+        "horario": "",
+        "facebookUrl": "",
+        "quitarFoto": false,
+        "avisoVersion": "2",
+        "consentimiento": false
+      },
+      "base": null
+    },
+    "honeypot": {
+      "cadena": [
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        },
+        {
+          "metodo": "POST",
+          "status": 303,
+          "location": "/registro/gracias",
+          "cookies": []
+        },
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        }
+      ],
+      "post": {
+        "status": 303,
+        "cache-control": "no-cache, no-store, max-age=0, must-revalidate",
+        "content-type": null,
+        "seguridad": true,
+        "cookies": []
+      },
+      "errores": null,
+      "valores": null,
+      "base": null
+    },
+    "cupo-1": {
+      "cadena": [
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        },
+        {
+          "metodo": "POST",
+          "status": 303,
+          "location": "/registro/gracias",
+          "cookies": []
+        },
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        }
+      ],
+      "post": {
+        "status": 303,
+        "cache-control": "no-cache, no-store, max-age=0, must-revalidate",
+        "content-type": null,
+        "seguridad": true,
+        "cookies": []
+      },
+      "errores": null,
+      "valores": null,
+      "base": {
+        "nombre": "Fonda Ficticia Del Arnés",
+        "estado": "en_revision",
+        "origen": "organico",
+        "conFoto": false,
+        "consintioAvisoVersion": "2",
+        "reconsintioAvisoVersion": null,
+        "verificado": false,
+        "publicado": false
+      }
+    },
+    "cupo-2": {
+      "cadena": [
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        },
+        {
+          "metodo": "POST",
+          "status": 303,
+          "location": "/registro/gracias",
+          "cookies": []
+        },
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        }
+      ],
+      "post": {
+        "status": 303,
+        "cache-control": "no-cache, no-store, max-age=0, must-revalidate",
+        "content-type": null,
+        "seguridad": true,
+        "cookies": []
+      },
+      "errores": null,
+      "valores": null,
+      "base": {
+        "nombre": "Fonda Ficticia Del Arnés",
+        "estado": "en_revision",
+        "origen": "organico",
+        "conFoto": false,
+        "consintioAvisoVersion": "2",
+        "reconsintioAvisoVersion": null,
+        "verificado": false,
+        "publicado": false
+      }
+    },
+    "cupo-3": {
+      "cadena": [
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        },
+        {
+          "metodo": "POST",
+          "status": 303,
+          "location": "/registro/gracias",
+          "cookies": []
+        },
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        }
+      ],
+      "post": {
+        "status": 303,
+        "cache-control": "no-cache, no-store, max-age=0, must-revalidate",
+        "content-type": null,
+        "seguridad": true,
+        "cookies": []
+      },
+      "errores": null,
+      "valores": null,
+      "base": {
+        "nombre": "Fonda Ficticia Del Arnés",
+        "estado": "en_revision",
+        "origen": "organico",
+        "conFoto": false,
+        "consintioAvisoVersion": "2",
+        "reconsintioAvisoVersion": null,
+        "verificado": false,
+        "publicado": false
+      }
+    },
+    "cupo-4": {
+      "cadena": [
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        },
+        {
+          "metodo": "POST",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        }
+      ],
+      "post": {
+        "status": 200,
+        "cache-control": "no-cache, no-store, max-age=0, must-revalidate",
+        "content-type": "text/html; charset=utf-8",
+        "seguridad": true,
+        "cookies": []
+      },
+      "errores": {
+        "general": "Ya recibimos varios registros desde aquí. Espera un rato y vuelve a intentar."
+      },
+      "valores": {
+        "sitio_web": "",
+        "nombre": "Fonda Ficticia Del Arnés",
+        "categoriaId": "cat:Talleres",
+        "whatsapp": "7719998124",
+        "coloniaId": "cat:Tizayuca Centro",
+        "coloniaOtra": "",
+        "queOfreces": "",
+        "entregaADomicilio": false,
+        "telefonoFijo": "",
+        "direccion": "",
+        "horario": "",
+        "facebookUrl": "",
+        "quitarFoto": false,
+        "avisoVersion": "2",
+        "consentimiento": false
+      },
+      "base": null
+    },
+    "duplicado-publicado": {
+      "cadena": [
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        },
+        {
+          "metodo": "POST",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        }
+      ],
+      "post": {
+        "status": 200,
+        "cache-control": "no-cache, no-store, max-age=0, must-revalidate",
+        "content-type": "text/html; charset=utf-8",
+        "seguridad": true,
+        "cookies": []
+      },
+      "errores": {
+        "whatsapp": "Este número ya tiene una ficha registrada. Si es tu negocio, no hace falta registrarlo otra vez: te vamos a pasar por WhatsApp el enlace para editarlo."
+      },
+      "valores": {
+        "sitio_web": "",
+        "nombre": "Fonda Ficticia Del Arnés",
+        "categoriaId": "cat:Talleres",
+        "whatsapp": "7719998101",
+        "coloniaId": "cat:Tizayuca Centro",
+        "coloniaOtra": "",
+        "queOfreces": "",
+        "entregaADomicilio": false,
+        "telefonoFijo": "",
+        "direccion": "",
+        "horario": "",
+        "facebookUrl": "",
+        "quitarFoto": false,
+        "avisoVersion": "2",
+        "consentimiento": false
+      },
+      "base": {
+        "nombre": "Taller Ficticio Publicado 3b",
+        "estado": "publicado",
+        "origen": "organico",
+        "conFoto": false,
+        "consintioAvisoVersion": null,
+        "reconsintioAvisoVersion": null,
+        "verificado": false,
+        "publicado": true
+      }
+    },
+    "duplicado-revision": {
+      "cadena": [
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        },
+        {
+          "metodo": "POST",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        }
+      ],
+      "post": {
+        "status": 200,
+        "cache-control": "no-cache, no-store, max-age=0, must-revalidate",
+        "content-type": "text/html; charset=utf-8",
+        "seguridad": true,
+        "cookies": []
+      },
+      "errores": {
+        "whatsapp": "Este número ya tiene una ficha registrada. Si es tu negocio, no hace falta registrarlo otra vez: te vamos a pasar por WhatsApp el enlace para editarlo.",
+        "foto": "Tu foto no se quedó guardada: vuelve a elegirla antes de enviar."
+      },
+      "valores": {
+        "sitio_web": "",
+        "nombre": "Fonda Ficticia Del Arnés",
+        "categoriaId": "cat:Talleres",
+        "whatsapp": "7719998102",
+        "coloniaId": "cat:Tizayuca Centro",
+        "coloniaOtra": "",
+        "queOfreces": "",
+        "entregaADomicilio": false,
+        "telefonoFijo": "",
+        "direccion": "",
+        "horario": "",
+        "facebookUrl": "",
+        "quitarFoto": false,
+        "avisoVersion": "2",
+        "consentimiento": false
+      },
+      "base": {
+        "nombre": "Taller Ficticio En Revisión 3b",
+        "estado": "en_revision",
+        "origen": "organico",
+        "conFoto": false,
+        "consintioAvisoVersion": null,
+        "reconsintioAvisoVersion": null,
+        "verificado": false,
+        "publicado": false
+      }
+    },
+    "reenvio-rechazado": {
+      "cadena": [
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        },
+        {
+          "metodo": "POST",
+          "status": 303,
+          "location": "/registro/gracias",
+          "cookies": []
+        },
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        }
+      ],
+      "post": {
+        "status": 303,
+        "cache-control": "no-cache, no-store, max-age=0, must-revalidate",
+        "content-type": null,
+        "seguridad": true,
+        "cookies": []
+      },
+      "errores": null,
+      "valores": null,
+      "base": {
+        "nombre": "Fonda Ficticia Corregida",
+        "estado": "en_revision",
+        "origen": "organico",
+        "conFoto": true,
+        "consintioAvisoVersion": "1",
+        "reconsintioAvisoVersion": "2",
+        "verificado": false,
+        "publicado": false
+      }
+    },
+    "reenvio-verificado": {
+      "cadena": [
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        },
+        {
+          "metodo": "POST",
+          "status": 303,
+          "location": "/registro/gracias",
+          "cookies": []
+        },
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        }
+      ],
+      "post": {
+        "status": 303,
+        "cache-control": "no-cache, no-store, max-age=0, must-revalidate",
+        "content-type": null,
+        "seguridad": true,
+        "cookies": []
+      },
+      "errores": null,
+      "valores": null,
+      "base": {
+        "nombre": "Fonda Ficticia Del Arnés",
+        "estado": "en_revision",
+        "origen": "organico",
+        "conFoto": false,
+        "consintioAvisoVersion": "2",
+        "reconsintioAvisoVersion": null,
+        "verificado": true,
+        "publicado": false
+      }
+    },
+    "aviso-desfasado": {
+      "cadena": [
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        },
+        {
+          "metodo": "POST",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        }
+      ],
+      "post": {
+        "status": 200,
+        "cache-control": "no-cache, no-store, max-age=0, must-revalidate",
+        "content-type": "text/html; charset=utf-8",
+        "seguridad": true,
+        "cookies": []
+      },
+      "errores": {
+        "consentimiento": "El aviso de privacidad cambió mientras llenabas esto. Léelo otra vez y vuelve a marcar la casilla."
+      },
+      "valores": {
+        "sitio_web": "",
+        "nombre": "Fonda Ficticia Del Arnés",
+        "categoriaId": "cat:Talleres",
+        "whatsapp": "7719998118",
+        "coloniaId": "cat:Tizayuca Centro",
+        "coloniaOtra": "",
+        "queOfreces": "",
+        "entregaADomicilio": false,
+        "telefonoFijo": "",
+        "direccion": "",
+        "horario": "",
+        "facebookUrl": "",
+        "quitarFoto": false,
+        "avisoVersion": "2",
+        "consentimiento": false
+      },
+      "base": null
+    },
+    "campos-extra": {
+      "cadena": [
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        },
+        {
+          "metodo": "POST",
+          "status": 303,
+          "location": "/registro/gracias",
+          "cookies": []
+        },
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        }
+      ],
+      "post": {
+        "status": 303,
+        "cache-control": "no-cache, no-store, max-age=0, must-revalidate",
+        "content-type": null,
+        "seguridad": true,
+        "cookies": []
+      },
+      "errores": null,
+      "valores": null,
+      "base": {
+        "nombre": "Fonda Ficticia Del Arnés",
+        "estado": "en_revision",
+        "origen": "organico",
+        "conFoto": false,
+        "consintioAvisoVersion": "2",
+        "reconsintioAvisoVersion": null,
+        "verificado": false,
+        "publicado": false
+      }
+    },
+    "foto-5-5-mb": {
+      "cadena": [
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        },
+        {
+          "metodo": "POST",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        }
+      ],
+      "post": {
+        "status": 200,
+        "cache-control": "no-cache, no-store, max-age=0, must-revalidate",
+        "content-type": "text/html; charset=utf-8",
+        "seguridad": true,
+        "cookies": []
+      },
+      "errores": {
+        "foto": "Esa foto pesa más de 5 MB. Sube una más ligera."
+      },
+      "valores": {
+        "sitio_web": "",
+        "nombre": "Fonda Ficticia Del Arnés",
+        "categoriaId": "cat:Talleres",
+        "whatsapp": "7719998131",
+        "coloniaId": "cat:Tizayuca Centro",
+        "coloniaOtra": "",
+        "queOfreces": "",
+        "entregaADomicilio": false,
+        "telefonoFijo": "",
+        "direccion": "",
+        "horario": "",
+        "facebookUrl": "",
+        "quitarFoto": false,
+        "avisoVersion": "2",
+        "consentimiento": false
+      },
+      "base": null
+    },
+    "foto-html": {
+      "cadena": [
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        },
+        {
+          "metodo": "POST",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        }
+      ],
+      "post": {
+        "status": 200,
+        "cache-control": "no-cache, no-store, max-age=0, must-revalidate",
+        "content-type": "text/html; charset=utf-8",
+        "seguridad": true,
+        "cookies": []
+      },
+      "errores": {
+        "foto": "No pudimos leer esa foto. Sube una imagen JPG, PNG o WebP."
+      },
+      "valores": {
+        "sitio_web": "",
+        "nombre": "Fonda Ficticia Del Arnés",
+        "categoriaId": "cat:Talleres",
+        "whatsapp": "7719998132",
+        "coloniaId": "cat:Tizayuca Centro",
+        "coloniaOtra": "",
+        "queOfreces": "",
+        "entregaADomicilio": false,
+        "telefonoFijo": "",
+        "direccion": "",
+        "horario": "",
+        "facebookUrl": "",
+        "quitarFoto": false,
+        "avisoVersion": "2",
+        "consentimiento": false
+      },
+      "base": null
+    },
+    "foto-svg": {
+      "cadena": [
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        },
+        {
+          "metodo": "POST",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        }
+      ],
+      "post": {
+        "status": 200,
+        "cache-control": "no-cache, no-store, max-age=0, must-revalidate",
+        "content-type": "text/html; charset=utf-8",
+        "seguridad": true,
+        "cookies": []
+      },
+      "errores": {
+        "foto": "No pudimos leer esa foto. Sube una imagen JPG, PNG o WebP."
+      },
+      "valores": {
+        "sitio_web": "",
+        "nombre": "Fonda Ficticia Del Arnés",
+        "categoriaId": "cat:Talleres",
+        "whatsapp": "7719998133",
+        "coloniaId": "cat:Tizayuca Centro",
+        "coloniaOtra": "",
+        "queOfreces": "",
+        "entregaADomicilio": false,
+        "telefonoFijo": "",
+        "direccion": "",
+        "horario": "",
+        "facebookUrl": "",
+        "quitarFoto": false,
+        "avisoVersion": "2",
+        "consentimiento": false
+      },
+      "base": null
+    },
+    "sin-origen": {
+      "cadena": [
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        },
+        {
+          "metodo": "POST",
+          "status": 303,
+          "location": "/registro/gracias",
+          "cookies": []
+        },
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        }
+      ],
+      "post": {
+        "status": 303,
+        "cache-control": "no-cache, no-store, max-age=0, must-revalidate",
+        "content-type": null,
+        "seguridad": true,
+        "cookies": []
+      },
+      "errores": null,
+      "valores": null,
+      "base": {
+        "nombre": "Fonda Ficticia Del Arnés",
+        "estado": "en_revision",
+        "origen": "organico",
+        "conFoto": false,
+        "consintioAvisoVersion": "2",
+        "reconsintioAvisoVersion": null,
+        "verificado": false,
+        "publicado": false
+      }
+    },
+    "origen-ajeno": {
+      "cadena": [
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        },
+        {
+          "metodo": "POST",
+          "status": 500,
+          "location": null,
+          "cookies": []
+        }
+      ],
+      "post": {
+        "status": 500,
+        "cache-control": null,
+        "content-type": "text/plain",
+        "seguridad": true,
+        "cookies": []
+      },
+      "errores": null,
+      "valores": null,
+      "base": null
+    },
+    "origen-null": {
+      "cadena": [
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        },
+        {
+          "metodo": "POST",
+          "status": 500,
+          "location": null,
+          "cookies": []
+        }
+      ],
+      "post": {
+        "status": 500,
+        "cache-control": null,
+        "content-type": "text/plain",
+        "seguridad": true,
+        "cookies": []
+      },
+      "errores": null,
+      "valores": null,
+      "base": null
+    }
+  }
+}

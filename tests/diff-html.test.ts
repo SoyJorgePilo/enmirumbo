@@ -15,6 +15,7 @@ import {
   limpiarHtml,
   NORMALIZACIONES_404_DINAMICA,
   NORMALIZACIONES_FORMULARIO,
+  NORMALIZACIONES_REGISTRO,
 } from "../scripts/diff-html/nucleo.mjs";
 
 const CSP = "default-src 'self'";
@@ -336,6 +337,77 @@ describe("diff · normalizaciones del formulario (3a)", () => {
       const cambiado = FORM_ASTRO.replace(antes, despues);
       const d = compararRespuestas("/f", respuesta(DOC(FORM_NEXT)), respuesta(DOC(cambiado)), { formulario: { urlPagina: URL_FORM, aplicadas: [] } });
       expect(d.length, despues).toBeGreaterThan(0);
+    }
+  });
+});
+
+// ── 3b-1 (change `migrar-registro-astro`, design.md §8; tasks.md #14) ────────
+
+const CAMPOS_REGISTRO = `<input type="text" name="sitio_web"><select id="categoriaId" name="categoriaId"><option value="">Elige</option><option value="2">Hogar</option></select><input type="tel" id="whatsapp" name="whatsapp" aria-invalid="true" value="12"><p id="whatsapp-error">⚠ Revisa</p><button type="submit">Registrar mi negocio</button>`;
+const REG_NEXT = `<form class="f" action="" encType="multipart/form-data" method="POST"><input type="hidden" name="$ACTION_REF_1"><input type="hidden" name="$ACTION_1:0" value="{}">${CAMPOS_REGISTRO}</form>`;
+const conEjemplos = (campos: string) => campos.replace('<select id="categoriaId" name="categoriaId">', '<select id="categoriaId" name="categoriaId" data-ejemplos="{&quot;2&quot;:&quot;ej&quot;}">');
+const REG_ASTRO = `<form class="f" action="?_action=registrar" encType="multipart/form-data" method="post">${conEjemplos(CAMPOS_REGISTRO).replace('aria-invalid="true"', 'aria-invalid="true" autofocus=""')}</form><script type="module" src="/_astro/registro.astro_astro_type_script_index_0_lang.Ab12.js"></script>`;
+const URL_REG = "https://enmirumbo.example/registro";
+const reg = (aplicadas: string[], repintada = true) => ({ registro: { urlPagina: URL_REG, aplicadas, repintada } });
+
+describe("diff · normalizaciones del registro (3b-1)", () => {
+  it("son exactamente cinco, con id y descripción", () => {
+    expect(NORMALIZACIONES_REGISTRO.map((n) => n.id)).toEqual([
+      "atributos-del-form",
+      "campos-action-de-next",
+      "script-de-la-mejora",
+      "data-ejemplos",
+      "autofocus-del-primer-error",
+    ]);
+    expect(NORMALIZACIONES_REGISTRO.every((n) => n.descripcion.length > 20)).toBe(true);
+    expect(Object.isFrozen(NORMALIZACIONES_REGISTRO)).toBe(true);
+  });
+
+  it("el formulario de Next y el nativo de Astro salen iguales, y se anota dónde se aplicó cada una", () => {
+    const aplicadas: string[] = [];
+    expect(compararRespuestas("/registro", respuesta(DOC(REG_NEXT)), respuesta(DOC(REG_ASTRO)), reg(aplicadas))).toEqual([]);
+    expect(aplicadas).toEqual(NORMALIZACIONES_REGISTRO.map((n) => n.id));
+  });
+
+  it("autofocus solo se normaliza en las respuestas re-pintadas", () => {
+    const d = compararRespuestas("/registro", respuesta(DOC(REG_NEXT)), respuesta(DOC(REG_ASTRO)), reg([], false));
+    expect(d.join("\n")).toContain("autofocus");
+  });
+
+  it("sin marcar la ruta como registro, las mismas páginas SÍ difieren", () => {
+    expect(compararRespuestas("/registro", respuesta(DOC(REG_NEXT)), respuesta(DOC(REG_ASTRO))).length).toBeGreaterThan(0);
+  });
+
+  it("un oculto de más, otro atributo data- o un data-ejemplos fuera del select de categoría se reportan", () => {
+    const casos = [
+      REG_ASTRO.replace('<input type="text" name="sitio_web">', '<input type="hidden" name="estado" value="publicado"><input type="text" name="sitio_web">'),
+      REG_ASTRO.replace('data-ejemplos=', 'data-otro="x" data-ejemplos='),
+      REG_ASTRO.replace('<button type="submit">', '<button type="submit" data-ejemplos="x">'),
+    ];
+    for (const caso of casos) {
+      const d = compararRespuestas("/registro", respuesta(DOC(REG_NEXT)), respuesta(DOC(caso)), reg([]));
+      expect(d.length, caso.slice(0, 80)).toBeGreaterThan(0);
+    }
+  });
+
+  it("un segundo <script>, uno en línea o uno de fuera de /_astro/ se reportan", () => {
+    const casos = [
+      REG_ASTRO + '<script type="module" src="/_astro/otro.Ab12.js"></script>',
+      REG_ASTRO.replace(/<script[^>]*><\/script>/, '<script type="module">alert(1)</script>'),
+      REG_ASTRO.replace("/_astro/registro", "https://evil.example/registro"),
+    ];
+    for (const caso of casos) {
+      const d = compararRespuestas("/registro", respuesta(DOC(REG_NEXT)), respuesta(DOC(caso)), reg([]));
+      expect(d.length, caso.slice(-120)).toBeGreaterThan(0);
+    }
+  });
+
+  it("autofocus en dos campos, o en uno sin error, se reporta", () => {
+    const dos = REG_ASTRO.replace('<input type="text" name="sitio_web">', '<input type="text" name="sitio_web" autofocus="">');
+    const sinError = REG_ASTRO.replace('aria-invalid="true" autofocus=""', 'aria-invalid="false" autofocus=""');
+    for (const caso of [dos, sinError]) {
+      const d = compararRespuestas("/registro", respuesta(DOC(REG_NEXT.replace('aria-invalid="true"', 'aria-invalid="false"'))), respuesta(DOC(caso)), reg([]));
+      expect(d.length).toBeGreaterThan(0);
     }
   });
 });

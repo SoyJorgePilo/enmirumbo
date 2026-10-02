@@ -4,10 +4,11 @@
  * `plataforma-astro`, requirement "El HTML servido no difiere del de Next").
  *
  * Uso:
- *   node scripts/diff-html.mjs <baseNext> <baseAstro> --datos <json> [--rutas archivo | --solo-3a]
+ *   node scripts/diff-html.mjs <baseNext> <baseAstro> --datos <json> [--rutas archivo | --solo-3a | --solo-3b]
  *   node scripts/diff-html.mjs --capturar-head <baseNext> <directorio>
  *   node scripts/diff-html.mjs --capturar-2b <baseNext> <directorio> --datos <json>
  *   node scripts/diff-html.mjs --capturar-3a <baseNext> <directorio> --datos <json>
+ *   npx tsx scripts/diff-html.mjs --capturar-3b <baseNext> <directorio> --datos <json> [--con-envios]
  *
  * Sale con código 1 y lista cada diferencia por ruta; 0 si no hay ninguna.
  * NO corre en el CI (necesita las dos builds); su núcleo sí tiene pruebas
@@ -75,11 +76,25 @@ import path from "node:path";
 
 import {
   compararRespuestas,
+  idsDeCatalogoPorNombre,
   limpiarHtml,
   NORMALIZACIONES_404_DINAMICA,
   NORMALIZACIONES_FORMULARIO,
+  NORMALIZACIONES_REGISTRO,
 } from "./diff-html/nucleo.mjs";
-import { enviarFormulario, enviosDe3a, leerSetCookie, resumenDelDesenlace } from "./enviar-formulario.mjs";
+import {
+  enviarFormulario,
+  enviosDe3a,
+  enviosDe3b,
+  erroresDelFormulario,
+  leerSetCookie,
+  PANTALLAS_DE_GRACIAS,
+  SEMBRADAS_3B,
+  resumenDeLaBase,
+  resumenDelDesenlace,
+  valoresDelFormulario,
+  whatsappDelEnvio,
+} from "./enviar-formulario.mjs";
 
 /** Rutas de 2a. `dinamica`: también se exige el mismo `Cache-Control`. */
 export const RUTAS_2A = [
@@ -189,6 +204,93 @@ export function rutas3a(datos, fichaPublicada) {
     { ruta: "/negocio/inventado-xyz/reportar/gracias", dinamica },
     { ruta: "/negocio/%22%3E%3Cscript%3Eficticio()%3C%2Fscript%3E/reportar/gracias", dinamica },
   ];
+}
+
+/**
+ * Rutas de 3b-1 (change `migrar-registro-astro`, tasks.md #14): `/registro`
+ * (con `registro: true`, las únicas con `NORMALIZACIONES_REGISTRO`) y las seis
+ * pantallas de gracias. Las respuestas re-pintadas se comparan en
+ * `compararEnvios3b`.
+ */
+export function rutas3b() {
+  const dinamica = true;
+  return [{ ruta: "/registro", dinamica, registro: true }, ...PANTALLAS_DE_GRACIAS.map(([, ruta]) => ({ ruta, dinamica }))];
+}
+
+/**
+ * Los envíos de 3b-1 contra las dos versiones (tasks.md #16), con la MISMA
+ * base: antes de cada versión se borran las fichas de los envíos y se vuelven
+ * a sembrar las cuatro de `datos` (sin foto), así las dos parten igual. Se
+ * comparan la cadena, los errores por campo, los valores re-pintados, lo que
+ * quedó en la base y el HTML re-pintado (con `NORMALIZACIONES_REGISTRO`). La
+ * única diferencia aceptada es el origen ajeno (Next 500, Astro 403).
+ * Necesita `DATABASE_URL` y `tsx` (las fotos de `tests/fotos-fixtures.ts`).
+ */
+async function compararEnvios3b(baseNext, baseAstro, datos, aplicadasRegistro) {
+  const { default: pg } = await import("pg");
+  const cliente = new pg.Client({ connectionString: process.env.DATABASE_URL });
+  await cliente.connect();
+  const consultar = async (sql, params) => (await cliente.query(sql, params)).rows;
+  const { fotosDelArnes } = await import("../tests/fotos-fixtures.ts");
+  const envios = enviosDe3b(datos, await fotosDelArnes());
+  const numeros = [...new Set([...envios.map(whatsappDelEnvio).filter(Boolean), datos.publicado, datos.revision, datos.rechazado, datos.verificado])];
+  const reiniciar = async () => {
+    await cliente.query(`DELETE FROM "Negocio" WHERE whatsapp = ANY($1)`, [numeros]);
+    const alta = (id, nombre, whatsapp, estado, extra) =>
+      cliente.query(
+        `INSERT INTO "Negocio" (id, nombre, "categoriaId", whatsapp, "consintioAvisoEn", estado, "publicadoEn", "rechazadoEn", "consintioAvisoVersion", "numeroVerificadoEn")
+         VALUES ($1, $2, $3, $4, '2026-08-01T10:00:00Z', $5, $6, $7, $8, $9)`,
+        [id, nombre, datos.categoriaId, whatsapp, estado, extra.publicadoEn ?? null, extra.rechazadoEn ?? null, extra.version ?? null, extra.verificadoEn ?? null],
+      );
+    const ahora = new Date();
+    await alta("c3b1diffpublicado0000000001", "Taller Ficticio Publicado 3b", datos.publicado, "publicado", { publicadoEn: ahora });
+    await alta("c3b1diffrevision00000000001", "Taller Ficticio En Revisión 3b", datos.revision, "en_revision", {});
+    await alta("c3b1diffrechazado0000000001", "Taller Ficticio Rechazado 3b", datos.rechazado, "rechazado", { rechazadoEn: ahora, version: "1" });
+    await alta("c3b1diffverificado000000001", "Taller Ficticio Verificado 3b", datos.verificado, "rechazado", { rechazadoEn: ahora, version: "2", verificadoEn: ahora });
+  };
+  const correr = async (base) => {
+    await reiniciar();
+    const urlPagina = new URL("/registro", base).toString();
+    const salida = [];
+    for (const envio of envios) {
+      const r = await enviarFormulario({ urlPagina, elecciones: envio.elecciones, archivos: envio.archivos, extras: envio.extras, cabecerasExtra: envio.cabeceras });
+      const post = r.cadena[1];
+      const repinta = post.status === 200;
+      salida.push({
+        resumen: {
+          cadena: resumenDelDesenlace(r),
+          errores: repinta ? erroresDelFormulario(r.final.html) : null,
+          valores: repinta ? valoresDelFormulario(idsDeCatalogoPorNombre(r.final.html), urlPagina) : null,
+          base: await resumenDeLaBase(consultar, whatsappDelEnvio(envio)),
+        },
+        respuesta: repinta ? { status: 200, headers: Object.fromEntries(post.cabeceras), cuerpo: r.final.html } : null,
+      });
+    }
+    return salida;
+  };
+  const deNext = await correr(baseNext);
+  const deAstro = await correr(baseAstro);
+  await reiniciar();
+  await cliente.query(`DELETE FROM "Negocio" WHERE whatsapp = ANY($1)`, [numeros]);
+  await cliente.end();
+  const diferencias = [];
+  envios.forEach((envio, i) => {
+    const [n, a] = [deNext[i], deAstro[i]];
+    const iguales = JSON.stringify(n.resumen) === JSON.stringify(a.resumen);
+    const aceptada = !iguales && Boolean(envio.aceptada?.(n.resumen.cadena, a.resumen.cadena));
+    let html = [];
+    if (n.respuesta && a.respuesta) {
+      html = compararRespuestas(`POST /registro (${envio.nombre})`, n.respuesta, a.respuesta, {
+        dinamica: true,
+        registro: { urlPagina: new URL("/registro", baseNext).toString(), aplicadas: aplicadasRegistro[envio.nombre] = [], repintada: true },
+      });
+    }
+    const estado = iguales && html.length === 0 ? "igual   " : aceptada && html.length === 0 ? "ACEPTADA" : "DISTINTA";
+    console.log(`${estado} envío 3b: ${envio.nombre} (${n.resumen.cadena.map((p) => p.status).join("→")} / ${a.resumen.cadena.map((p) => p.status).join("→")})`);
+    if (!iguales && !aceptada) diferencias.push(`envío 3b ${envio.nombre}:\n  Next : ${JSON.stringify(n.resumen)}\n  Astro: ${JSON.stringify(a.resumen)}`);
+    diferencias.push(...html);
+  });
+  return diferencias;
 }
 
 /**
@@ -369,6 +471,65 @@ async function capturar3a(baseNext, directorio, datos) {
   escribir("respuestas.json", `${JSON.stringify({ pantallas: cabecerasDe, desenlaces }, null, 2)}\n`);
 }
 
+/**
+ * Fixtures de 3b-1 (change `migrar-registro-astro`, tasks.md #2): `/registro`,
+ * las seis pantallas de gracias y, con `--con-envios`, lo que responde Next a
+ * cada envío de `enviosDe3b` (cadena, cabeceras del POST, errores, valores
+ * re-pintados, el HTML re-pintado y lo que quedó en la base). Necesita
+ * `DATABASE_URL` (la misma base que sirve Next) y `tsx` (genera las fotos con
+ * `tests/fotos-fixtures.ts`). `datos`: `{ categoriaId, coloniaId }`; los
+ * WhatsApp de las cuatro fichas sembradas son `SEMBRADAS_3B`.
+ * Los ids de catálogo salen como `cat:<nombre>`.
+ */
+async function capturar3b(baseNext, directorio, datos, conEnvios) {
+  mkdirSync(directorio, { recursive: true });
+  const escribir = (nombre, contenido) => {
+    const archivo = path.join(directorio, nombre);
+    writeFileSync(archivo, contenido);
+    console.log(`capturado ${archivo}`);
+  };
+  const legible = (html) => `${idsDeCatalogoPorNombre(html).replace(/></g, ">\n<")}\n`;
+  const pantallas = {};
+  for (const [nombre, ruta] of [["registro.html", "/registro"], ...PANTALLAS_DE_GRACIAS]) {
+    const r = await fetch(new URL(ruta, baseNext), { redirect: "manual" });
+    const cuerpo = await r.text();
+    escribir(nombre, legible(limpiarHtml(cuerpo)));
+    pantallas[nombre] = { status: r.status, "cache-control": r.headers.get("cache-control"), "content-type": r.headers.get("content-type") };
+  }
+  const desenlaces = {};
+  if (conEnvios) {
+    const { default: pg } = await import("pg");
+    const cliente = new pg.Client({ connectionString: process.env.DATABASE_URL });
+    await cliente.connect();
+    const consultar = async (sql, params) => (await cliente.query(sql, params)).rows;
+    const { fotosDelArnes } = await import("../tests/fotos-fixtures.ts");
+    const fotos = await fotosDelArnes();
+    for (const envio of enviosDe3b({ ...SEMBRADAS_3B, ...datos }, fotos)) {
+      const urlPagina = new URL("/registro", baseNext).toString();
+      const r = await enviarFormulario({ urlPagina, elecciones: envio.elecciones, archivos: envio.archivos, extras: envio.extras, cabecerasExtra: envio.cabeceras });
+      const post = r.cadena[1];
+      const repinta = post.status === 200;
+      if (repinta) escribir(`repintado-${envio.nombre}.html`, legible(limpiarHtml(r.final.html)));
+      desenlaces[envio.nombre] = {
+        cadena: resumenDelDesenlace(r),
+        post: {
+          status: post.status,
+          "cache-control": post.cabeceras.get("cache-control"),
+          "content-type": post.cabeceras.get("content-type"),
+          seguridad: ["content-security-policy", "x-content-type-options", "x-frame-options", "referrer-policy"].every((h) => post.cabeceras.has(h)),
+          cookies: post.setCookie.map((linea) => Object.fromEntries(Object.entries(leerSetCookie(linea).atributos).filter(([clave]) => clave !== "expires"))),
+        },
+        errores: repinta ? erroresDelFormulario(r.final.html) : null,
+        valores: repinta ? valoresDelFormulario(idsDeCatalogoPorNombre(r.final.html), urlPagina) : null,
+        base: await resumenDeLaBase(consultar, whatsappDelEnvio(envio)),
+      };
+      console.log(`envío ${envio.nombre}: ${resumenDelDesenlace(r).map((p) => p.status).join("→")}`);
+    }
+    await cliente.end();
+  }
+  escribir("respuestas.json", `${JSON.stringify({ pantallas, desenlaces }, null, 2)}\n`);
+}
+
 function argumento(argumentos, nombre) {
   const i = argumentos.indexOf(nombre);
   return i === -1 ? undefined : argumentos[i + 1];
@@ -384,6 +545,11 @@ async function principal(argumentos) {
   if (argumentos[0] === "--capturar-3a") {
     if (!datos) throw new Error("--capturar-3a necesita --datos <json>");
     await capturar3a(argumentos[1], argumentos[2], datos);
+    return 0;
+  }
+  if (argumentos[0] === "--capturar-3b") {
+    if (!datos) throw new Error("--capturar-3b necesita --datos <json>");
+    await capturar3b(argumentos[1], argumentos[2], datos, argumentos.includes("--con-envios"));
     return 0;
   }
   if (argumentos[0] === "--capturar-2b") {
@@ -403,10 +569,14 @@ async function principal(argumentos) {
     sitemap.find((r) => r.startsWith("/negocio/")) ??
     // Sin URL pública el sitemap sale vacío: por identificador.
     (datos.publicado ? `/negocio/x-${datos.publicado}` : undefined);
-  // `--solo-3a`: solo las rutas y los envíos de 3a (no necesita las fotos de 2b).
-  let rutas = argumentos.includes("--solo-3a")
+  // `--solo-3a` / `--solo-3b`: solo las rutas y los envíos de esa mitad (no necesitan las fotos de 2b).
+  const solo3a = argumentos.includes("--solo-3a");
+  const solo3b = argumentos.includes("--solo-3b");
+  let rutas = solo3a
     ? rutas3a(datos, fichaPublicada)
-    : [...RUTAS_2A, ...rutas2b(datos, sitemap), ...rutas3a(datos, fichaPublicada)];
+    : solo3b
+      ? rutas3b()
+      : [...RUTAS_2A, ...rutas2b(datos, sitemap), ...rutas3a(datos, fichaPublicada), ...rutas3b()];
   const archivoRutas = argumento(argumentos, "--rutas");
   if (archivoRutas) {
     rutas = readFileSync(archivoRutas, "utf8")
@@ -419,9 +589,10 @@ async function principal(argumentos) {
   const referencia404 = String((await pedir(baseNext, "/a/b/c")).cuerpo);
   const dondeSeAplico = Object.fromEntries(NORMALIZACIONES_404_DINAMICA.map((n) => [n.id, []]));
   const dondeSeAplicoFormulario = Object.fromEntries(NORMALIZACIONES_FORMULARIO.map((n) => [n.id, []]));
+  const dondeSeAplicoRegistro = Object.fromEntries(NORMALIZACIONES_REGISTRO.map((n) => [n.id, []]));
   const diferencias = [];
   const medidas404 = [];
-  for (const { ruta, dinamica, es404Dinamica, metodo, mismoOrigen, medir404, formulario } of rutas) {
+  for (const { ruta, dinamica, es404Dinamica, metodo, mismoOrigen, medir404, formulario, registro } of rutas) {
     const [next, astro] = await Promise.all([
       pedir(baseNext, ruta, metodo, mismoOrigen),
       pedir(baseAstro, ruta, metodo, mismoOrigen),
@@ -430,16 +601,20 @@ async function principal(argumentos) {
     if (medidaDinamica) medidas404.push(ruta);
     const aplicadas = [];
     const aplicadasFormulario = [];
+    const aplicadasRegistro = [];
     const propias = compararRespuestas(`${metodo ? `${metodo} ` : ""}${ruta}`, next, astro, {
       dinamica: Boolean(dinamica),
       ...(es404Dinamica || medidaDinamica ? { referencia404, aplicadas } : {}),
       ...(formulario ? { formulario: { urlPagina: new URL(ruta, baseNext).toString(), aplicadas: aplicadasFormulario } } : {}),
+      ...(registro ? { registro: { urlPagina: new URL(ruta, baseNext).toString(), aplicadas: aplicadasRegistro, repintada: false } } : {}),
     });
     for (const id of aplicadas) dondeSeAplico[id].push(ruta);
     for (const id of aplicadasFormulario) dondeSeAplicoFormulario[id].push(ruta);
+    for (const id of aplicadasRegistro) dondeSeAplicoRegistro[id].push(ruta);
     const marca =
       (aplicadas.length ? ` [normalizaciones 404: ${aplicadas.length}]` : "") +
-      (aplicadasFormulario.length ? ` [normalizaciones del formulario: ${aplicadasFormulario.length}]` : "");
+      (aplicadasFormulario.length ? ` [normalizaciones del formulario: ${aplicadasFormulario.length}]` : "") +
+      (aplicadasRegistro.length ? ` [normalizaciones del registro: ${aplicadasRegistro.length}]` : "");
     console.log(`${propias.length === 0 ? "igual   " : "DISTINTA"} ${metodo ? `${metodo} ` : ""}${ruta} (${next.status}/${astro.status})${marca}`);
     diferencias.push(...propias);
   }
@@ -454,7 +629,17 @@ async function principal(argumentos) {
   }
   if (!archivoRutas) {
     console.log("\nEnvíos del arnés (sin JS):");
-    diferencias.push(...(await compararEnvios(baseNext, baseAstro, datos, fichaPublicada)));
+    if (!solo3b) diferencias.push(...(await compararEnvios(baseNext, baseAstro, datos, fichaPublicada)));
+    if (!solo3a && datos.categoriaId) {
+      const enEnvios = {};
+      const datos3b = { categoriaId: datos.categoriaId, coloniaId: datos.coloniaId, ...SEMBRADAS_3B };
+      diferencias.push(...(await compararEnvios3b(baseNext, baseAstro, datos3b, enEnvios)));
+      for (const [envio, ids] of Object.entries(enEnvios)) for (const id of ids) dondeSeAplicoRegistro[id].push(`POST ${envio}`);
+    }
+  }
+  console.log("Normalizaciones del registro aplicadas (NORMALIZACIONES_REGISTRO):");
+  for (const { id, descripcion } of NORMALIZACIONES_REGISTRO) {
+    console.log(`- ${id} (${descripcion}): ${dondeSeAplicoRegistro[id].length} → ${dondeSeAplicoRegistro[id].join(", ") || "ninguna"}`);
   }
   if (diferencias.length > 0) {
     console.log(`\n${diferencias.length} diferencias:\n`);

@@ -1,20 +1,12 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("next/headers", async () => {
-  const simulado = await import("./admin-mocks");
-  return { cookies: simulado.cookies, headers: simulado.headers };
-});
-vi.mock("next/navigation", async () => {
-  const simulado = await import("./admin-mocks");
-  return { redirect: simulado.redirect, notFound: simulado.notFound };
-});
-
 import { seedCatalogos } from "../prisma/seed";
 import type { PrismaClient } from "../src/generated/prisma/client";
 import {
-  ejecutarConfirmacion,
-  ejecutarReenvio,
+  ejecutarConfirmacion as confirmar,
+  ejecutarReenvio as reenviar,
   type DependenciasVerificacion,
+  type DestinoVerificacion,
 } from "../src/lib/verificacion/acciones";
 import {
   CODIGOS_POR_IP_POR_HORA,
@@ -43,6 +35,8 @@ import {
 } from "../src/lib/verificacion/proveedor";
 import {
   NoEncontradoSimulado,
+  cookies,
+  obedecerDestino,
   peticion,
   reiniciarPeticion,
   urlDeRedireccion,
@@ -50,9 +44,12 @@ import {
 import { crearClientePrueba } from "./db";
 
 /**
- * Spec `registro-negocio` (T-016) · las dos Server Actions de
- * `/registro/verificar` (tasks.md #11 y #12), con el request de Next.js
- * simulado (`tests/admin-mocks.ts`): la cookie que se firma, la que se lee y
+ * Spec `registro-negocio` (T-016) · las dos acciones de `/registro/verificar`
+ * (tasks.md #11 y #12). Desde `migrar-registro-astro` (design.md §4) no
+ * dependen de Next: reciben el almacén de cookies y DEVUELVEN el destino. Aquí
+ * el almacén es el de `tests/admin-mocks.ts` y el destino se obedece como lo
+ * hacían `redirect()`/`notFound()` (`obedecerDestino`), así que las
+ * aserciones de antes siguen igual. La cookie que se firma, la que se lee y
  * las consultas a la base son las de producción; solo el proveedor es el
  * adaptador simulado, así que ninguna prueba manda un SMS.
  *
@@ -111,6 +108,14 @@ function cookieBorrada(): boolean {
   return peticion.puestas.some((c) => c.nombre === COOKIE_PASO && c.opciones.maxAge === 0);
 }
 
+/** Las acciones con el almacén de la petición simulada; el destino se obedece. */
+async function ejecutarConfirmacion(formData: FormData, dependencias: DependenciasVerificacion | null) {
+  return obedecerDestino(await confirmar(formData, dependencias, await cookies()));
+}
+async function ejecutarReenvio(dependencias: DependenciasVerificacion | null) {
+  return obedecerDestino(await reenviar(dependencias, await cookies()));
+}
+
 const conCodigo = (codigo: string) => {
   const formData = new FormData();
   formData.set("codigo", codigo);
@@ -140,6 +145,25 @@ afterEach(() => vi.restoreAllMocks());
 afterAll(async () => {
   await prisma.negocio.deleteMany({ where: { whatsapp: { startsWith: PREFIJO } } });
   await prisma.$disconnect();
+});
+
+describe("registro-negocio · las acciones devuelven un destino cerrado, sin Next", () => {
+  it("el módulo no importa next/headers ni next/navigation", async () => {
+    const { readFileSync } = await import("node:fs");
+    const fuente = readFileSync(new URL("../src/lib/verificacion/acciones.ts", import.meta.url), "utf8");
+    expect(fuente).not.toMatch(/from\s+["']next\//);
+  });
+
+  it("sin capacidad, cada acción devuelve 'no-encontrado' sin tocar la cookie", async () => {
+    const formData = new FormData();
+    formData.set("codigo", "123456");
+    const destinos: DestinoVerificacion[] = [
+      await confirmar(formData, null, await cookies()),
+      await reenviar(null, await cookies()),
+    ];
+    expect(destinos).toEqual([{ tipo: "no-encontrado" }, { tipo: "no-encontrado" }]);
+    expect(peticion.puestas).toEqual([]);
+  });
 });
 
 describe("registro-negocio · confirmar el código desde la acción", () => {

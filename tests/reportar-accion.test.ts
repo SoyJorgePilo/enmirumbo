@@ -228,8 +228,10 @@ describe("tabla de Actions · fallas antes del manejador", () => {
     }
   });
 
-  it("solo hay una Action en la tabla, atada a su ruta", () => {
-    expect(Object.keys(ACCIONES)).toEqual(["reportar"]);
+  // 3b-1 (change `migrar-registro-astro`, MODIFIED "Cada Action corre solo…"):
+  // la tabla suma `registrar` → `/registro` (lo prueba `registrar-accion`).
+  it("la tabla tiene exactamente reportar y registrar, cada una atada a su ruta", () => {
+    expect(Object.keys(ACCIONES)).toEqual(["reportar", "registrar"]);
     expect(ACCIONES.reportar.ruta).toBe("/negocio/[ficha]/reportar");
   });
 });

@@ -349,6 +349,88 @@ export function normalizarFormulario(htmlNext, htmlAstro, urlPagina, aplicadas) 
   return { next: raizNext.toString(), astro: raizAstro.toString(), diferencias };
 }
 
+/**
+ * Las ÚNICAS diferencias aceptadas en `/registro` entre Next y Astro (change
+ * `migrar-registro-astro`, design.md §8; spec `plataforma-astro`, requirement
+ * "La página de registro responde desde Astro el mismo HTML que Next"). Se
+ * aplican solo si quien llama marca la ruta como registro (pasando
+ * `registro: { urlPagina, repintada }`). Las dos primeras son las de 3a; las
+ * otras tres solo quitan cosas del lado de Astro, y solo si son exactamente
+ * las esperadas. Todo lo demás se compara: un oculto de más, otro atributo
+ * `data-`, un segundo script o un `autofocus` fuera de lugar salen como
+ * diferencia. No se agregan entradas.
+ */
+export const NORMALIZACIONES_REGISTRO = Object.freeze([
+  NORMALIZACIONES_FORMULARIO[0],
+  NORMALIZACIONES_FORMULARIO[1],
+  {
+    id: "script-de-la-mejora",
+    descripcion: 'se quita el ÚNICO <script type="module" src="/_astro/…"> de Astro (la mejora progresiva, design.md §1.3)',
+  },
+  {
+    id: "data-ejemplos",
+    descripcion: 'se quita el atributo data-ejemplos del <select id="categoriaId"> de Astro (la tabla de ejemplos de la mejora)',
+  },
+  {
+    id: "autofocus-del-primer-error",
+    descripcion: "en las respuestas re-pintadas, se quita el autofocus de Astro si está en UN solo campo y ese campo tiene aria-invalid=true",
+  },
+]);
+
+/**
+ * Aplica `NORMALIZACIONES_REGISTRO`. Devuelve los HTML ajustados y las
+ * diferencias que impiden aplicar las del formulario.
+ *
+ * @param {string} htmlNext
+ * @param {string} htmlAstro
+ * @param {{ urlPagina: string, aplicadas: string[], repintada?: boolean }} opciones
+ */
+export function normalizarRegistro(htmlNext, htmlAstro, { urlPagina, aplicadas, repintada = false }) {
+  const n = normalizarFormulario(htmlNext, htmlAstro, urlPagina, aplicadas);
+  const raiz = parse(n.astro, { comment: true, blockTextElements: { script: true, style: true } });
+  const propios = raiz.querySelectorAll("script").filter((nodo) => !esJsonLd(nodo) && !/umami/.test(atributoSinMayusculas(nodo, "src") ?? ""));
+  const script = propios[0];
+  if (
+    propios.length === 1 &&
+    (atributoSinMayusculas(script, "type") ?? "").toLowerCase() === "module" &&
+    /^\/_astro\/[\w.-]+\.js$/.test(atributoSinMayusculas(script, "src") ?? "") &&
+    script.rawText.trim() === ""
+  ) {
+    script.remove();
+    aplicadas.push(NORMALIZACIONES_REGISTRO[2].id);
+  }
+  const categoria = raiz.querySelector("select#categoriaId");
+  if (categoria && atributoSinMayusculas(categoria, "data-ejemplos") !== undefined) {
+    quitarAtributo(categoria, "data-ejemplos");
+    aplicadas.push(NORMALIZACIONES_REGISTRO[3].id);
+  }
+  if (repintada) {
+    const conFoco = raiz.querySelectorAll("[autofocus]");
+    if (conFoco.length === 1 && atributoSinMayusculas(conFoco[0], "aria-invalid") === "true") {
+      quitarAtributo(conFoco[0], "autofocus");
+      aplicadas.push(NORMALIZACIONES_REGISTRO[4].id);
+    }
+  }
+  return { next: n.next, astro: raiz.toString(), diferencias: n.diferencias };
+}
+
+/**
+ * Los `value` numéricos de las opciones de categoría y colonia del formulario
+ * de registro, cambiados por `cat:<texto de la opción>` (change
+ * `migrar-registro-astro`). Los ids son autoincrementales y dependen de la
+ * base: así un fixture de Next se compara contra una base de pruebas con otros
+ * ids, sin dejar de comparar QUÉ opción está elegida. Toca solo esos dos
+ * `<select>`; no es una normalización de paridad (se aplica igual a los dos
+ * lados).
+ *
+ * @param {string} html
+ */
+export function idsDeCatalogoPorNombre(html) {
+  return html.replace(/(<select[^>]*\bid="(?:categoriaId|coloniaId)"[^>]*>)([\s\S]*?)(<\/select>)/g, (_, abre, opciones, cierra) =>
+    abre + opciones.replace(/<option([^>]*?)\bvalue="(\d+)"([^>]*)>([^<]*)<\/option>/g, (_m, antes, _id, despues, texto) => `<option${antes}value="cat:${texto.trim()}"${despues}>${texto}</option>`) + cierra,
+  );
+}
+
 const sha256 = (bytes) => createHash("sha256").update(bytes).digest("hex");
 
 function minusculas(cabeceras) {
@@ -369,13 +451,15 @@ export function medidasPng(bytes) {
  * @param {string} ruta
  * @param {{status: number, headers: Record<string,string>, cuerpo: string|Uint8Array}} next
  * @param {{status: number, headers: Record<string,string>, cuerpo: string|Uint8Array}} astro
- * @param {{dinamica?: boolean, referencia404?: string, aplicadas?: string[], formulario?: {urlPagina: string, aplicadas: string[]}}} [opciones]
+ * @param {{dinamica?: boolean, referencia404?: string, aplicadas?: string[], formulario?: {urlPagina: string, aplicadas: string[]}, registro?: {urlPagina: string, aplicadas: string[], repintada?: boolean}}} [opciones]
  *   `dinamica`: también se exige el mismo `Cache-Control`. `referencia404`: la
  *   ruta es una 404 dinámica; el HTML de Next en `/a/b/c` contra el que se
  *   compara el `<body>`. `aplicadas`: aquí se anotan las normalizaciones de
  *   `NORMALIZACIONES_404_DINAMICA` que se aplicaron. `formulario`: la ruta
  *   pinta el formulario de reporte; se aplican `NORMALIZACIONES_FORMULARIO` y
- *   se anotan en `formulario.aplicadas`.
+ *   se anotan en `formulario.aplicadas`. `registro`: la ruta es `/registro`
+ *   (o su respuesta re-pintada, con `repintada`); se aplican
+ *   `NORMALIZACIONES_REGISTRO` y se anotan en `registro.aplicadas`.
  */
 export function compararRespuestas(ruta, next, astro, opciones = {}) {
   const d = [];
@@ -404,6 +488,11 @@ export function compararRespuestas(ruta, next, astro, opciones = {}) {
     let htmlAstro = String(astro.cuerpo);
     if (opciones.formulario) {
       const n = normalizarFormulario(htmlNext, htmlAstro, opciones.formulario.urlPagina, opciones.formulario.aplicadas);
+      htmlNext = n.next;
+      htmlAstro = n.astro;
+      d.push(...n.diferencias);
+    } else if (opciones.registro) {
+      const n = normalizarRegistro(htmlNext, htmlAstro, opciones.registro);
       htmlNext = n.next;
       htmlAstro = n.astro;
       d.push(...n.diferencias);

@@ -177,3 +177,18 @@ export function almacenDeMentiras(
     ...parcial,
   };
 }
+
+/**
+ * Los archivos que el arnés de envío sin JS elige en el campo de foto (change
+ * `migrar-registro-astro`, `enviosDe3b` de `scripts/enviar-formulario.mjs`):
+ * una foto válida, una de 5.5 MB, un HTML llamado `foto.jpg` y un SVG. Todo
+ * generado aquí, nada versionado.
+ */
+export async function fotosDelArnes() {
+  return {
+    valida: { nombre: "local.jpg", tipo: "image/jpeg", bytes: await jpegDePrueba(800, 600) },
+    grande: { nombre: "grande.jpg", tipo: "image/jpeg", bytes: bytesDeRelleno(Math.round(5.5 * 1024 * 1024)) },
+    html: { nombre: "foto.jpg", tipo: "image/jpeg", bytes: htmlDisfrazadoDeJpg() },
+    svg: { nombre: "foto.svg", tipo: "image/svg+xml", bytes: svgDePrueba() },
+  };
+}

@@ -51,7 +51,7 @@ export async function registrarNegocio(
 
   // Con la capacidad apagada esto es `null` y no cuesta ni una consulta: no se
   // construye el adaptador del proveedor ni se lee ninguna credencial.
-  const dependencias = await dependenciasDeVerificacion();
+  const dependencias = await dependenciasDeVerificacion(encabezados);
   if (dependencias) {
     const paso = await pedirCodigoParaFicha(resultado.ficha, dependencias.contexto);
     if (paso) {

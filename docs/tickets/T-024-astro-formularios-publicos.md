@@ -1,6 +1,6 @@
 # T-024 · Formularios públicos en Astro (Fase 3)
 
-**Estado:** en-desarrollo <!-- pendiente | en-spec | en-desarrollo | en-review | hecho --> — 3a en review (PR #36); 3b-1 en spec, pendiente de aprobación humana; 3b-2 por especificar
+**Estado:** en-review <!-- pendiente | en-spec | en-desarrollo | en-review | hecho --> — 3a mergeada en `migracion-astro` (PR #36); 3b-1 en review; 3b-2 por especificar. No pasa a hecho hasta mergear 3b-2
 **Prioridad:** P1
 **Épica:** E9 (docs/backlog.md)
 **Referencias PRD:** v2 §10 (técnica reemplazable); ADR-013

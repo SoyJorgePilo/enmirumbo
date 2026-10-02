@@ -15,9 +15,11 @@ import {
   camposAEnviar,
   cuerpoDelEnvio,
   enviarFormulario,
+  erroresDelFormulario,
   leerFormulario,
   leerSetCookie,
   resumenDelDesenlace,
+  valoresDelFormulario,
 } from "../scripts/enviar-formulario.mjs";
 
 const raiz = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
@@ -109,6 +111,67 @@ describe("arnés · lo que manda el navegador", () => {
     expect(cabecerasDeNavegador(pagina, "https://otro.example/", "strict-origin-when-cross-origin").referer).toBe(
       "https://enmirumbo.example/",
     );
+  });
+});
+
+// ── 3b-1 (change `migrar-registro-astro`, tasks.md #3): archivos y re-pintado ──
+
+const HTML_REGISTRO = `<form method="post" enctype="multipart/form-data" action="?_action=registrar">
+  <input type="text" name="nombre" value="Fonda Ficticia">
+  <select name="categoriaId"><option value="">Elige</option><option value="3" selected>Talleres</option></select>
+  <textarea name="queOfreces">tacos &amp; más</textarea>
+  <input type="checkbox" name="entregaADomicilio" checked>
+  <input type="file" name="foto" accept="image/jpeg,image/png,image/webp">
+  <input type="checkbox" name="consentimiento">
+  <input type="hidden" name="$ACTION_REF_1" value="">
+  <p id="whatsapp-error" role="alert">⚠ Revisa tu número de WhatsApp: deben ser 10 dígitos</p>
+  <p id="foto-error" role="alert">⚠ Tu foto no se quedó guardada: vuelve a elegirla antes de enviar.</p>
+  <p id="vacio-error"></p>
+</form>`;
+const URL_REGISTRO = "https://enmirumbo.example/registro";
+const jpeg = { nombre: "foto.jpg", tipo: "image/jpeg", bytes: Buffer.from([0xff, 0xd8, 0xff, 0xd9]) };
+
+describe("arnés · archivos (3b-1)", () => {
+  it("lee el campo de archivo con su accept, en orden de documento", () => {
+    const f = leerFormulario(HTML_REGISTRO, URL_REGISTRO);
+    expect(f.codificacion).toBe("multipart/form-data");
+    expect(f.accion).toBe("https://enmirumbo.example/registro?_action=registrar");
+    const foto = f.campos.find((c) => c.nombre === "foto");
+    expect(foto).toMatchObject({ tipo: "file", accept: "image/jpeg,image/png,image/webp" });
+  });
+
+  it("sin archivo elegido manda una parte vacía con filename vacío, como el navegador", () => {
+    const pares = camposAEnviar(leerFormulario(HTML_REGISTRO, URL_REGISTRO));
+    const foto = pares.find(([n]) => n === "foto")![1] as File;
+    expect(foto).toBeInstanceOf(File);
+    expect(foto.name).toBe("");
+    expect(foto.size).toBe(0);
+    expect(pares.map(([n]) => n)).toEqual(["nombre", "categoriaId", "queOfreces", "entregaADomicilio", "foto", "$ACTION_REF_1"]);
+  });
+
+  it("con uno o varios archivos los manda en su lugar, con su nombre y su tipo", async () => {
+    const uno = camposAEnviar(leerFormulario(HTML_REGISTRO, URL_REGISTRO), {}, [], { foto: jpeg });
+    const archivo = uno.find(([n]) => n === "foto")![1] as File;
+    expect([archivo.name, archivo.type, archivo.size]).toEqual(["foto.jpg", "image/jpeg", 4]);
+    const varios = camposAEnviar(leerFormulario(HTML_REGISTRO, URL_REGISTRO), {}, [], { foto: [jpeg, { ...jpeg, nombre: "otra.jpg" }] });
+    expect(varios.filter(([n]) => n === "foto").map(([, v]) => (v as File).name)).toEqual(["foto.jpg", "otra.jpg"]);
+    const cuerpo = cuerpoDelEnvio(varios, "multipart/form-data") as FormData;
+    expect(cuerpo.getAll("foto").map((v) => (v as File).name)).toEqual(["foto.jpg", "otra.jpg"]);
+    expect(new Uint8Array(await (cuerpo.get("foto") as File).arrayBuffer())).toEqual(new Uint8Array([0xff, 0xd8, 0xff, 0xd9]));
+  });
+
+  it("lee los errores por campo y los valores del formulario re-pintado (sin $ACTION_ ni archivo)", () => {
+    expect(erroresDelFormulario(HTML_REGISTRO)).toEqual({
+      whatsapp: "Revisa tu número de WhatsApp: deben ser 10 dígitos",
+      foto: "Tu foto no se quedó guardada: vuelve a elegirla antes de enviar.",
+    });
+    expect(valoresDelFormulario(HTML_REGISTRO, URL_REGISTRO)).toEqual({
+      nombre: "Fonda Ficticia",
+      categoriaId: "3",
+      queOfreces: "tacos & más",
+      entregaADomicilio: true,
+      consentimiento: false,
+    });
   });
 });
 

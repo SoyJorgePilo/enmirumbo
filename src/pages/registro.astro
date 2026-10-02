@@ -1,0 +1,58 @@
+---
+/**
+ * Página pública de registro (lo que era `src/app/(publico)/registro/page.tsx`;
+ * change `migrar-registro-astro`, Fase 3b-1). Spec `registro-negocio` y spec
+ * `plataforma-astro`, "La página de registro responde desde Astro el mismo
+ * HTML que Next".
+ *
+ * Por petición (los catálogos son los de la base; al construir no hay base).
+ * El formulario es HTML NATIVO (`FormularioRegistroNativo`, sin isla): postea
+ * a `?_action=registrar` de esta misma ruta y el middleware corre la Action
+ * (`src/astro/acciones.ts`). Con éxito responde el 303; con error, esta misma
+ * página vuelve a pintarse en la respuesta al POST con el estado de la Action
+ * (errores, valores y `autofocus`), como Next sin JS.
+ *
+ * El único JavaScript propio es la mejora progresiva de
+ * `src/astro/registro-cliente.ts` (design.md §1.3). Si la base no responde, la
+ * página lanza y se responde la 500.
+ */
+import { actions } from "astro:actions";
+
+import { catalogosDelRegistro, estadoDelEnvio } from "@/astro/registro";
+import { FormularioRegistroNativo } from "@/components/registro/formulario-registro-nativo";
+import TroncoPublico from "@/layouts/TroncoPublico.astro";
+
+export const prerender = false;
+
+const estado = estadoDelEnvio(Astro.getActionResult(actions.registrar));
+const { categorias, colonias } = await catalogosDelRegistro();
+---
+
+<TroncoPublico>
+  <section class="flex flex-col gap-6 py-4">
+    <div class="flex flex-col gap-2">
+      <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">Registra tu negocio gratis</h1>
+      <p class="text-tinta-suave">
+        Llena este formulario en un par de minutos, sin cuenta ni contraseña. En cuanto lo revisemos, te contactamos por
+        WhatsApp.
+      </p>
+    </div>
+    <FormularioRegistroNativo
+      action={actions.registrar.toString()}
+      categorias={categorias}
+      colonias={colonias}
+      estado={estado}
+    />
+  </section>
+  <script>
+    // La mejora progresiva se baja aparte (`import()`), y solo si el navegador
+    // tiene las tres APIs que usa: sin ellas, el envío es el nativo. Además así
+    // Astro no la mete en línea en el HTML: queda como un módulo de `/_astro/`
+    // (design.md §1.3).
+    if ("fetch" in window && "FormData" in window && "DOMParser" in window) {
+      void import("@/astro/registro-cliente").then(({ mejorarFormularioDeRegistro }) =>
+        mejorarFormularioDeRegistro(document, window),
+      );
+    }
+  </script>
+</TroncoPublico>

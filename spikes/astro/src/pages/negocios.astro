@@ -1,0 +1,42 @@
+---
+import { existsSync } from "node:fs";
+
+import { getSecret } from "astro:env/server";
+
+import Base from "../layouts/Base.astro";
+import { MENSAJE_SIN_BASE, revisarConexion } from "../lib/base";
+import { prisma } from "../lib/prisma";
+
+type Fila = { id: number; nombre: string; giro: string; colonia: string };
+
+const url = getSecret("DATABASE_URL");
+const revision = revisarConexion(url, existsSync);
+let negocios: Fila[] | null = null;
+
+if (!revision.ok) {
+  // Falla a la vista (PRD v2 §2.5): ni datos inventados ni conexión sin verificar.
+  console.error(`[spike] la base no se abre: ${revision.motivo}`);
+} else {
+  try {
+    negocios = await prisma(url as string).negocioSpike.findMany({ orderBy: { id: "asc" } });
+  } catch (error) {
+    console.error("[spike] falló la lectura de la base:", error instanceof Error ? error.message : error);
+  }
+}
+if (negocios === null) Astro.response.status = 503;
+---
+<Base titulo="Negocios">
+  <h1 class="text-2xl font-bold">Negocios de prueba</h1>
+  {negocios === null ? (
+    <p role="alert" class="font-semibold">⚠ {MENSAJE_SIN_BASE}</p>
+  ) : (
+    <ul class="flex flex-col gap-3">
+      {negocios.map((negocio) => (
+        <li class="rounded-lg border border-borde p-4">
+          <p class="text-lg font-semibold">{negocio.nombre}</p>
+          <p class="text-sm text-tinta-suave">{negocio.giro} · {negocio.colonia}</p>
+        </li>
+      ))}
+    </ul>
+  )}
+</Base>

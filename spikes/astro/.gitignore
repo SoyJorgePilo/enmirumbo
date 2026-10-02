@@ -1,0 +1,10 @@
+# El .gitignore de la raíz ancla node_modules/.vercel a la raíz: aquí hacen
+# falta los propios para que nada generado del spike llegue al repo público.
+node_modules/
+dist/
+.astro/
+.vercel/
+src/generated/
+.env
+.env.*
+!.env.example

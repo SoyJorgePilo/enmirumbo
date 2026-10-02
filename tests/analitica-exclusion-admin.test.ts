@@ -434,7 +434,10 @@ describe("layout-base · la 404 queda fuera del tronco medido", () => {
     // `reports/b-dev.md`, iteración 2) y actualizar estas versiones. Si
     // pasara a ejecutarse, las 404 empezarían a medirse solas.
     const paquete = JSON.parse(readFileSync(join(raiz, "package.json"), "utf8"));
-    expect(paquete.dependencies.next, "vuelve a medir la 404 (M-1)").toBe("16.3.3");
+    // Re-medido el 2026-10-01 con next@16.3.8 (parche de seguridad GHSA-vcvr-r3jv-pc5j):
+    // DOM hidratado de la 404 CON la etiqueta del proveedor, cero peticiones; la
+    // portada (control) sí pide `/script.js` y `POST /api/send`.
+    expect(paquete.dependencies.next, "vuelve a medir la 404 (M-1)").toBe("16.3.8");
     expect(paquete.dependencies["react-dom"], "vuelve a medir la 404 (M-1)").toBe("19.2.8");
   });
 });

@@ -112,6 +112,27 @@ model Negocio {
   registradoEn DateTime @default(now())
   publicadoEn  DateTime?
 
+  // Cuándo el proveedor de SMS confirmó que este número le pertenece a quien
+  // lo capturó (spec `modelo-datos` de T-016, ADR-011). NULABLE y sin default
+  // a propósito: nula significa exactamente "ese número no pasó por la
+  // verificación por SMS", que es el estado de TODAS las fichas mientras la
+  // bandera `VERIFICACION_SMS_ACTIVA` esté apagada —el estado del lanzamiento—
+  // y el de cualquier ficha anterior a esta columna. A esas filas no se les
+  // pone una fecha de relleno.
+  //
+  // La escribe ÚNICAMENTE el servidor, tras la confirmación del proveedor
+  // (`src/app/(publico)/registro/verificar/accion-confirmar.ts`): igual que el
+  // estado, el origen, la constancia del consentimiento y la clave de la foto,
+  // ningún valor del cliente puede fijarla.
+  //
+  // Sobrevive a todas las transiciones del panel y al reenvío tras rechazo (el
+  // número no cambió, el hecho comprobado sigue siendo cierto). Solo
+  // desaparece con la fila.
+  //
+  // NO hay —ni puede haber— ninguna columna con el código: lo genera, lo
+  // caduca y lo compara el proveedor (ADR-011).
+  numeroVerificadoEn DateTime?
+
   // Rastro del rechazo (PRD §6.3 y §8): nulos mientras el negocio no haya
   // sido rechazado, y vuelven a nulos si corrige y reenvía. `rechazadoEn` es
   // lo que habilitará la purga de rechazados a los 90 días (E0-3).

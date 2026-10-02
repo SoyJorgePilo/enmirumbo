@@ -5,6 +5,7 @@ import { PrismaClient } from "../src/generated/prisma/client";
 import {
   CAMPOS_EDITABLES,
   CAMPOS_PROHIBIDOS_EN_EDICION,
+  COLUMNAS_DERIVADAS_AL_APLICAR,
   COLUMNAS_CICLO_EDICION,
   soloCamposEditables,
 } from "../src/lib/gestion/campos";
@@ -163,6 +164,31 @@ describe("modelo-datos · la tabla EdicionPendiente", () => {
       if (propias.has(prohibido)) continue;
       expect(columnas, prohibido).not.toContain(prohibido);
     }
+  });
+
+  /**
+   * CENSO EXHAUSTIVO DE `Negocio` (hallazgo [C-1b] de la etapa C de T-016).
+   *
+   * Antes, `CAMPOS_PROHIBIDOS_EN_EDICION` era una lista escrita a mano que
+   * nadie contrastaba contra el esquema: `numeroVerificadoEn` entró al modelo
+   * y ningún guardián notó que nadie había decidido qué pasa con ella al
+   * editar. Este test cierra ese mecanismo: TODA columna de `Negocio` tiene
+   * que estar declarada en una de las tres listas de `campos.ts` —editable,
+   * derivada al aplicar, o prohibida—, así que la siguiente columna nueva
+   * rompe la suite hasta que alguien tome esa decisión a conciencia.
+   */
+  it("toda columna de Negocio está declarada como editable, derivada o prohibida", async () => {
+    const columnas = await columnasDeTabla(consultarConPrisma(prisma), "Negocio");
+    const declaradas = new Set<string>([
+      ...CAMPOS_EDITABLES,
+      ...COLUMNAS_DERIVADAS_AL_APLICAR,
+      ...CAMPOS_PROHIBIDOS_EN_EDICION,
+    ]);
+    expect(columnas.filter((columna) => !declaradas.has(columna))).toEqual([]);
+    // Y al revés: ninguna lista nombra una columna que ya no existe (salvo
+    // `giros`, que es una relación, no una columna de la tabla).
+    const existentes = new Set([...columnas, "giros"]);
+    expect([...declaradas].filter((nombre) => !existentes.has(nombre))).toEqual([]);
   });
 
   // tasks.md #3: el guardián de la lista única de campos editables.

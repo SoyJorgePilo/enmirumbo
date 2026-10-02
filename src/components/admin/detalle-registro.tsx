@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 import { MarcadorFoto } from "@/components/directorio/marcador-foto";
 import {
   ETIQUETA_CUANDO_DESPUBLICO,
@@ -6,6 +8,7 @@ import {
 } from "@/lib/admin/textos";
 import type { RegistroAdminDetalle } from "@/lib/admin/consultas";
 import { urlDeFoto } from "@/lib/fotos/url";
+import { TEXTO_SIN_VERIFICAR_SMS, textoNumeroVerificadoSms } from "@/lib/verificacion/textos";
 
 const FORMATO_FECHA = new Intl.DateTimeFormat("es-MX", {
   day: "2-digit",
@@ -49,13 +52,23 @@ function etiquetaReaceptacion(version: string | null): string {
     : "El reenvío volvió a aceptar el aviso";
 }
 
-function Dato({ etiqueta, valor }: { etiqueta: string; valor: string | null }) {
+function Dato({
+  etiqueta,
+  valor,
+  extra,
+}: {
+  etiqueta: string;
+  valor: string | null;
+  /** Línea opcional bajo el valor (verificación por SMS junto al WhatsApp). */
+  extra?: ReactNode;
+}) {
   return (
     <div className="flex flex-col gap-0.5 border-b border-borde py-2.5 last:border-0">
       <dt className="text-sm font-semibold text-tinta">{etiqueta}</dt>
       <dd className="break-words text-tinta-suave">
         {valor ?? <span className="italic">No capturado</span>}
       </dd>
+      {extra}
     </div>
   );
 }
@@ -72,11 +85,27 @@ function Dato({ etiqueta, valor }: { etiqueta: string; valor: string | null }) {
  * única que vive dentro del alcance de la cookie de sesión y la única que
  * sirve la foto de un registro que todavía no está publicado. Sin sesión, esa
  * dirección responde el mismo "no encontrado" que el sitio público.
+ *
+ * `capacidadVerificacionSmsEncendida` (spec `revision-admin` MODIFIED de
+ * T-016, ADR-011): junto al WhatsApp, DEBE decir si el número está
+ * verificado, con la regla de aparición que respeta el fail-safe de la
+ * capacidad —
+ * 1. `registro.numeroVerificadoEn` presente → se muestra SIEMPRE, esté la
+ *    capacidad encendida o apagada (un hecho comprobado no se borra);
+ * 2. sin esa fecha y la capacidad encendida → "Sin verificar...";
+ * 3. sin esa fecha y la capacidad apagada (el valor por defecto de esta
+ *    prop) → ninguna de las dos líneas, ni un hueco en su lugar.
+ * Por defecto `false` y `registro.numeroVerificadoEn` hoy siempre
+ * `undefined` (el dev conecta la consulta real y `config.ts` en tasks.md
+ * #3 y #15), así que sin cambiar la llamada en
+ * `src/app/admin/registros/[id]/page.tsx` el detalle es idéntico al de hoy.
  */
 export function DetalleRegistro({
   registro,
+  capacidadVerificacionSmsEncendida = false,
 }: {
   registro: RegistroAdminDetalle;
+  capacidadVerificacionSmsEncendida?: boolean;
 }) {
   // "Sin foto" también cuando lo guardado no es una clave del servidor: el
   // panel no pinta referencias que no generó él (M1 de T-004).
@@ -119,7 +148,19 @@ export function DetalleRegistro({
       </div>
 
       <dl className="flex flex-col">
-        <Dato etiqueta="WhatsApp" valor={registro.whatsapp} />
+        <Dato
+          etiqueta="WhatsApp"
+          valor={registro.whatsapp}
+          extra={
+            registro.numeroVerificadoEn ? (
+              <p className="text-sm font-semibold text-tinta">
+                {textoNumeroVerificadoSms(FORMATO_FECHA.format(registro.numeroVerificadoEn))}
+              </p>
+            ) : capacidadVerificacionSmsEncendida ? (
+              <p className="text-sm text-tinta-suave">{TEXTO_SIN_VERIFICAR_SMS}</p>
+            ) : undefined
+          }
+        />
         <Dato etiqueta="Colonia" valor={coloniaMostrada} />
         <Dato etiqueta="¿Qué ofreces?" valor={registro.queOfreces} />
         <Dato

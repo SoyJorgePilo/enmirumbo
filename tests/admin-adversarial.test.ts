@@ -932,7 +932,7 @@ describe("adversarial · el rastro del rechazo no llega a ninguna página públi
       { prisma, ip: IP },
     );
 
-    expect(resultado).toEqual({ exito: true });
+    expect(resultado).toMatchObject({ exito: true });
     const serializado = JSON.stringify(resultado);
     expect(serializado).not.toContain(MOTIVO);
     expect(serializado).not.toContain("Dirección ficticia anterior");
@@ -1122,7 +1122,7 @@ describe("adversarial · el reenvío y la constancia LFPDPPP del titular", () =>
       envio({ nombre: "Datos Ficticios de un Tercero" }),
       { prisma, ip: IP },
     );
-    expect(resultado).toEqual({ exito: true });
+    expect(resultado).toMatchObject({ exito: true });
 
     const despues = await prisma.negocio.findUniqueOrThrow({ where: { id: previa.id } });
     // La ficha sí quedó pisada (riesgo asumido en design.md §6)…

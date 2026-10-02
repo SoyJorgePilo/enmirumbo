@@ -27,6 +27,8 @@ import EditarPage from "../src/app/(gestion)/editar/[token]/page";
 import EditarGraciasPage from "../src/app/(gestion)/editar/[token]/gracias/page";
 import Home from "../src/app/(publico)/page";
 import RegistroPage from "../src/app/(publico)/registro/page";
+import RegistroGraciasPage from "../src/app/(publico)/registro/gracias/page";
+import RegistroVerificarPage from "../src/app/(publico)/registro/verificar/page";
 import TerminosPage from "../src/app/(publico)/terminos/page";
 import NotFoundPage from "../src/app/not-found";
 import { Footer } from "../src/components/footer";
@@ -34,6 +36,15 @@ import { Header } from "../src/components/header";
 import type { PrismaClient } from "../src/generated/prisma/client";
 import { construirSegmentoFicha } from "../src/lib/ficha-url";
 import { huellaDeToken } from "../src/lib/gestion/token";
+import {
+  VARIABLE_BANDERA,
+  VARIABLE_SECRETO,
+  VARIABLE_TWILIO_AUTH_TOKEN,
+  VARIABLE_TWILIO_SERVICE_SID,
+  VARIABLE_TWILIO_SID,
+} from "../src/lib/verificacion/config";
+import { COOKIE_PASO, crearPasoInicial, firmarPaso } from "../src/lib/verificacion/paso";
+import { peticion } from "./admin-mocks";
 import { crearClientePrueba } from "./db";
 
 /**
@@ -188,6 +199,61 @@ beforeAll(async () => {
     ),
   );
   pantallas.set("registro", await render(await RegistroPage()));
+
+  // Las tres formas de la pantalla de gracias y la pantalla del código
+  // (T-016). La del código solo se puede servir con la capacidad ENCENDIDA y
+  // la cookie de paso puesta, así que se enciende aquí y se apaga enseguida.
+  for (const [nombre, parametros] of [
+    ["gracias", {}],
+    ["gracias-verificado", { verificado: "1" }],
+    ["gracias-agotado", { agotado: "1" }],
+  ] as const) {
+    pantallas.set(
+      nombre,
+      await render(
+        await RegistroGraciasPage({
+          searchParams: Promise.resolve(parametros),
+        } as unknown as Parameters<typeof RegistroGraciasPage>[0]),
+      ),
+    );
+  }
+
+  const SECRETO_VERIFICACION = "secreto-de-pruebas-de-32-caracteres-o-mas";
+  process.env[VARIABLE_BANDERA] = "1";
+  process.env[VARIABLE_TWILIO_SID] = "AC-de-mentiras-000";
+  process.env[VARIABLE_TWILIO_AUTH_TOKEN] = "token-de-mentiras-000";
+  process.env[VARIABLE_TWILIO_SERVICE_SID] = "VA-de-mentiras-000";
+  process.env[VARIABLE_SECRETO] = SECRETO_VERIFICACION;
+  peticion.cookies[COOKIE_PASO] = firmarPaso(
+    crearPasoInicial(publicado.id, "7719995099"),
+    SECRETO_VERIFICACION,
+  );
+  // Con error de código y con el aviso de espera del reenvío: son los dos
+  // estados que agregan texto y por tanto los que pueden desbordar.
+  for (const [nombre, parametros] of [
+    ["verificar", {}],
+    ["verificar-error", { error: "no-coincide" }],
+    ["verificar-espera", { errorReenvio: "espera-reenvio" }],
+  ] as const) {
+    pantallas.set(
+      nombre,
+      await render(
+        await RegistroVerificarPage({
+          searchParams: Promise.resolve(parametros),
+        } as unknown as Parameters<typeof RegistroVerificarPage>[0]),
+      ),
+    );
+  }
+  for (const variable of [
+    VARIABLE_BANDERA,
+    VARIABLE_TWILIO_SID,
+    VARIABLE_TWILIO_AUTH_TOKEN,
+    VARIABLE_TWILIO_SERVICE_SID,
+    VARIABLE_SECRETO,
+  ]) {
+    delete process.env[variable];
+  }
+  delete peticion.cookies[COOKIE_PASO];
   pantallas.set(
     "editar",
     await render(

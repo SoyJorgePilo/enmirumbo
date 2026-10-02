@@ -147,7 +147,13 @@ beforeAll(async () => {
   );
   htmlHome = await render(Home());
   htmlRegistro = await render(RegistroPage());
-  htmlGracias = renderToStaticMarkup(createElement(RegistroGraciasPage));
+  // `async` desde T-016 (lee `searchParams`); sin parámetros es la pantalla de
+  // siempre, la de la bandera apagada.
+  htmlGracias = await render(
+    RegistroGraciasPage({
+      searchParams: Promise.resolve({}),
+    } as unknown as Parameters<typeof RegistroGraciasPage>[0]),
+  );
   htmlAviso = renderToStaticMarkup(createElement(AvisoDePrivacidadPage));
   htmlTerminos = renderToStaticMarkup(createElement(TerminosPage));
 });

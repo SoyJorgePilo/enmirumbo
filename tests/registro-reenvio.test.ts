@@ -153,7 +153,7 @@ describe("registro-negocio · reenvío tras un rechazo", () => {
     const previa = await fichaPrevia("rechazado");
 
     const resultado = await procesar(envioCorregido());
-    expect(resultado).toEqual({ exito: true });
+    expect(resultado).toMatchObject({ exito: true });
 
     // Una sola ficha por número: se actualizó, no se creó otra.
     expect(await prisma.negocio.count()).toBe(1);
@@ -206,7 +206,7 @@ describe("registro-negocio · reenvío tras un rechazo", () => {
     const previa = await fichaPrevia("rechazado", { version: VERSION_AVISO });
 
     const resultado = await procesar(envioCorregido());
-    expect(resultado).toEqual({ exito: true });
+    expect(resultado).toMatchObject({ exito: true });
 
     const despues = await leer();
     expect(despues.consintioAvisoEn.toISOString()).toBe(
@@ -264,7 +264,7 @@ describe("registro-negocio · reenvío tras un rechazo", () => {
     const previa = await fichaPrevia("rechazado", { version: null });
 
     const resultado = await procesar(envioCorregido());
-    expect(resultado).toEqual({ exito: true });
+    expect(resultado).toMatchObject({ exito: true });
 
     const despues = await leer();
     // El reenvío entra (datos nuevos, vuelve a la cola)…
@@ -289,7 +289,7 @@ describe("registro-negocio · reenvío tras un rechazo", () => {
     const previa = await fichaPrevia("rechazado", { version: "2" });
 
     const resultado = await procesar(envioCorregido());
-    expect(resultado).toEqual({ exito: true });
+    expect(resultado).toMatchObject({ exito: true });
 
     const despues = await leer();
     expect(despues.estado).toBe("en_revision");
@@ -408,7 +408,9 @@ describe("registro-negocio · reenvío tras un rechazo", () => {
 
     const resultado = await procesar(envioCorregido({ [CAMPO_TRAMPA]: "soy un bot" }));
 
-    expect(resultado).toEqual({ exito: true });
+    // `ficha: null` es lo que impide que el campo trampa provoque un SMS
+    // (T-016): sin ficha tocada no hay código que pedir.
+    expect(resultado).toEqual({ exito: true, ficha: null });
     const despues = await leer();
     expect(despues.nombre).toBe(previa.nombre);
     expect(despues.estado).toBe("rechazado");

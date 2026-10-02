@@ -62,13 +62,19 @@ export type ClienteRegistro = {
         estado: true;
         fotoClave: true;
         consintioAvisoVersion: true;
+        numeroVerificadoEn: true;
       };
     }): Promise<{
       id: string;
       estado: string;
       fotoClave: string | null;
       consintioAvisoVersion: string | null;
+      numeroVerificadoEn: Date | null;
     } | null>;
+    // Devuelve la fila creada; de ahí sale el `id` de la ficha nueva, que la
+    // verificación por SMS necesita (T-016). Sin `select`: el tipo estructural
+    // de arriba se queda sin la inferencia genérica de Prisma en cuanto
+    // aparece esa clave, y `create` ya devuelve la fila entera de todos modos.
     create(args: { data: Record<string, unknown> }): Promise<unknown>;
     updateMany(args: {
       where: { id: string; estado: string };
@@ -91,8 +97,23 @@ export type ContextoRegistro = {
 };
 
 export type ResultadoRegistro =
-  | { exito: true }
+  | { exito: true; ficha: FichaRegistrada | null }
   | { exito: false; estado: EstadoAccionRegistro };
+
+/**
+ * La ficha que ESTE envío creó o actualizó, con lo justo para que la
+ * verificación por SMS sepa qué hacer (T-016, ADR-011). Es `null` cuando el
+ * envío no tocó ninguna ficha —el campo trampa se descarta fingiendo éxito—,
+ * y eso es lo que garantiza que nadie pueda usar el formulario para mandarle
+ * un SMS a un número ajeno: sin ficha, no hay código que pedir.
+ */
+export type FichaRegistrada = {
+  id: string;
+  /** El WhatsApp ya normalizado a 10 dígitos. */
+  whatsapp: string;
+  /** ¿Ya traía su marca de verificación antes de este envío? */
+  yaVerificado: boolean;
+};
 
 /** Umbral por defecto de altas en un día antes de sospechar (PRD §8). */
 const UMBRAL_ALTAS_DIARIAS_DEFAULT = 30;
@@ -199,7 +220,9 @@ export async function procesarRegistro(
   //    delatar la trampa a quien la llenó. No se guarda nada.
   if (trampa !== "") {
     console.warn("[registro] envío descartado: campo trampa lleno");
-    return { exito: true };
+    // `ficha: null` no es un detalle: es lo que impide que un bot use el
+    // formulario para provocar SMS (T-016). Sin ficha, no hay código que pedir.
+    return { exito: true, ficha: null };
   }
 
   // 2. Cupo de la IP (3 altas por hora, design.md §4).
@@ -245,6 +268,7 @@ export async function procesarRegistro(
     estado: string;
     fotoClave: string | null;
     consintioAvisoVersion: string | null;
+    numeroVerificadoEn: Date | null;
   } | null;
   try {
     existente = await contexto.prisma.negocio.findUnique({
@@ -256,6 +280,9 @@ export async function procesarRegistro(
         estado: true,
         fotoClave: true,
         consintioAvisoVersion: true,
+        // La marca de verificación por SMS (T-016): un reenvío del MISMO
+        // número no la toca ni vuelve a pedir código si ya la traía.
+        numeroVerificadoEn: true,
       },
     });
   } catch (error) {
@@ -409,7 +436,18 @@ export async function procesarRegistro(
     }
 
     await avisarSiHayDemasiadasAltas(contexto, ahora);
-    return { exito: true };
+    // Reenvío tras rechazo: la ficha es la MISMA fila, y su marca de
+    // verificación se conserva tal cual (el número no cambió, así que el hecho
+    // comprobado sigue siendo cierto). Con la capacidad encendida, una ficha
+    // ya verificada no vuelve a recibir código.
+    return {
+      exito: true,
+      ficha: {
+        id: existente.id,
+        whatsapp: datos.whatsapp,
+        yaVerificado: existente.numeroVerificadoEn !== null,
+      },
+    };
   }
 
   // 5. Alta. El estado, el origen, la constancia del consentimiento y el
@@ -418,8 +456,9 @@ export async function procesarRegistro(
   //    `validarRegistro` construyó uno por uno, así que un envío con
   //    `nombreNormalizado=...` no llega hasta aquí (spec registro-negocio,
   //    "El alta deja la ficha lista para el buscador").
+  let creado: { id: string };
   try {
-    await contexto.prisma.negocio.create({
+    creado = (await contexto.prisma.negocio.create({
       data: {
         ...datos,
         ...datosDeBusqueda(datos.nombre, datos.queOfreces),
@@ -436,7 +475,7 @@ export async function procesarRegistro(
         estado: ESTADO_NEGOCIO_DEFAULT,
         origen: ORIGEN_NEGOCIO_DEFAULT,
       },
-    });
+    })) as { id: string };
   } catch (error) {
     // El alta no se concretó: la foto recién escrita se borra (nada de
     // huérfanos, spec `registro-negocio`).
@@ -453,5 +492,10 @@ export async function procesarRegistro(
 
   await avisarSiHayDemasiadasAltas(contexto, ahora);
 
-  return { exito: true };
+  // Un alta nueva nunca nace verificada: la marca solo la escribe el servidor
+  // después de que el proveedor confirme el código (spec `modelo-datos`).
+  return {
+    exito: true,
+    ficha: { id: creado.id, whatsapp: datos.whatsapp, yaVerificado: false },
+  };
 }

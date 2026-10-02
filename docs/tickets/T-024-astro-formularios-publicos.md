@@ -1,11 +1,11 @@
 # T-024 · Formularios públicos en Astro (Fase 3)
 
-**Estado:** pendiente <!-- pendiente | en-spec | en-desarrollo | en-review | hecho -->
+**Estado:** en-desarrollo <!-- pendiente | en-spec | en-desarrollo | en-review | hecho -->
 **Prioridad:** P1
 **Épica:** E9 (docs/backlog.md)
 **Referencias PRD:** v2 §10 (técnica reemplazable); ADR-013
 **Depende de:** T-023
-**OpenSpec change:** —
+**OpenSpec change:** `migrar-formularios-publicos-astro` (3a: reportar + lo transversal); 3b `migrar-registro-astro` pendiente
 **PR:** —
 
 ## Contexto

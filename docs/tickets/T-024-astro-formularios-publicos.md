@@ -1,11 +1,11 @@
 # T-024 · Formularios públicos en Astro (Fase 3)
 
-**Estado:** en-review <!-- pendiente | en-spec | en-desarrollo | en-review | hecho --> — 3a mergeada en `migracion-astro` (PR #36); 3b-1 en review; 3b-2 por especificar. No pasa a hecho hasta mergear 3b-2
+**Estado:** en-desarrollo <!-- pendiente | en-spec | en-desarrollo | en-review | hecho --> — 3a mergeada en `migracion-astro` (PR #36); 3b-1 en review (PR #37); 3b-2 en spec, pendiente de aprobación humana. No pasa a hecho hasta mergear 3b-2
 **Prioridad:** P1
 **Épica:** E9 (docs/backlog.md)
 **Referencias PRD:** v2 §10 (técnica reemplazable); ADR-013
 **Depende de:** T-023
-**OpenSpec change:** `migrar-formularios-publicos-astro` (3a: reportar + lo transversal); `migrar-registro-astro` (3b-1: `/registro` con foto, `/registro/gracias`, `acciones.ts` sin Next, O1); `migrar-verificacion-sms-astro` (3b-2: `/registro/verificar`, por especificar)
+**OpenSpec change:** `migrar-formularios-publicos-astro` (3a: reportar + lo transversal); `migrar-registro-astro` (3b-1: `/registro` con foto, `/registro/gracias`, `acciones.ts` sin Next, O1); `migrar-verificacion-sms-astro` (3b-2: `/registro/verificar` con `confirmar`/`reenviar` tras la bandera; spec escrita, PR hacia `migracion-astro` tras mergear #37)
 **PR:** #36 (3a, hacia `migracion-astro`) — https://github.com/SoyJorgePilo/enmirumbo/pull/36; #37 (3b-1, hacia `migracion-astro`) — https://github.com/SoyJorgePilo/enmirumbo/pull/37
 
 ## Contexto

@@ -284,34 +284,56 @@ describe("mejora progresiva en el DOM · la red se cuelga", () => {
     vi.useRealTimers();
   });
 
-  it("si no hay respuesta en el tiempo de espera, cancela el fetch y regresa al envío nativo (una sola vez)", async () => {
+  it("si no hay respuesta en el tiempo de espera, cancela el fetch, NO reenvía, reactiva el botón y muestra el error general con lo capturado", async () => {
     vi.useFakeTimers();
     const { falsa, llamadas, assign } = ventana([], { pausar: true });
     mejorar(falsa);
     const original = formulario();
+    campo<HTMLInputElement>("nombre").value = "Fonda Ficticia Colgada";
+    const boton = original.querySelector<HTMLButtonElement>('button[type="submit"]')!;
+    const texto = boton.textContent;
     const nativo = vi.spyOn(original, "submit").mockImplementation(() => {});
+    const solicitado = vi.spyOn(original, "requestSubmit").mockImplementation(() => {});
     enviar();
     expect(llamadas).toHaveLength(1);
     const senal = llamadas[0].init.signal;
     expect(senal?.aborted).toBe(false);
 
     await vi.advanceTimersByTimeAsync(ESPERA_MAXIMA_DEL_ENVIO_MS - 1);
-    expect(nativo).not.toHaveBeenCalled();
-    expect(original.querySelector("button")!.textContent).toBe(TEXTO_ENVIANDO);
+    expect(boton.textContent).toBe(TEXTO_ENVIANDO);
+    expect(boton.disabled).toBe(true);
+    expect(document.getElementById("general-error")).toBeNull();
 
     await vi.advanceTimersByTimeAsync(1);
     expect(senal?.aborted).toBe(true);
-    expect(nativo).toHaveBeenCalledTimes(1);
-    // Sin otro fetch, sin navegar por su cuenta y sin el error general: el
-    // navegador ya está enviando el formulario.
+    // Sin reenviar por su cuenta (spec, requirement "Con JavaScript...", punto 5).
+    expect(nativo).not.toHaveBeenCalled();
+    expect(solicitado).not.toHaveBeenCalled();
     expect(llamadas).toHaveLength(1);
     expect(assign).not.toHaveBeenCalled();
-    expect(document.getElementById("general-error")).toBeNull();
-    // Un envío más mientras el nativo está en curso no manda nada más.
+    // El mismo desenlace que una falla de red.
+    expect(formulario()).toBe(original);
+    expect(campo<HTMLInputElement>("nombre").value).toBe("Fonda Ficticia Colgada");
+    expect(boton.disabled).toBe(false);
+    expect(boton.textContent).toBe(texto);
+    const mensaje = campo("general-error");
+    expect(mensaje.textContent).toBe(`⚠ ${MENSAJES_ERROR_REGISTRO.servidor}`);
+    expect(mensaje.getAttribute("role")).toBe("alert");
+    expect(mensaje.className).toBe(CLASE_MENSAJE_ERROR);
+  });
+
+  it("tras el vencimiento, el vecino puede volver a intentar a mano: el siguiente envío hace un fetch nuevo", async () => {
+    vi.useFakeTimers();
+    const { falsa, llamadas } = ventana([], { pausar: true });
+    mejorar(falsa);
+    const nativo = vi.spyOn(formulario(), "submit").mockImplementation(() => {});
     enviar();
     await vi.advanceTimersByTimeAsync(ESPERA_MAXIMA_DEL_ENVIO_MS);
     expect(llamadas).toHaveLength(1);
-    expect(nativo).toHaveBeenCalledTimes(1);
+    enviar();
+    expect(llamadas).toHaveLength(2);
+    expect(llamadas[1].init.signal?.aborted).toBe(false);
+    expect(nativo).not.toHaveBeenCalled();
   });
 
   it("es razonable: entre 30 s y 2 min (una foto de 5 MB en una red lenta cabe)", () => {
@@ -319,7 +341,7 @@ describe("mejora progresiva en el DOM · la red se cuelga", () => {
     expect(ESPERA_MAXIMA_DEL_ENVIO_MS).toBeLessThanOrEqual(120_000);
   });
 
-  it("si la respuesta llega a tiempo, el reloj no dispara el envío nativo después", async () => {
+  it("si la respuesta llega a tiempo, el reloj no dispara nada después (ni envío nativo ni error general)", async () => {
     vi.useFakeTimers();
     const { falsa, assign } = ventana([{ status: 200, url: `${ORIGEN}/registro/gracias`, html: "<main>gracias</main>" }]);
     mejorar(falsa);
@@ -329,6 +351,7 @@ describe("mejora progresiva en el DOM · la red se cuelga", () => {
     expect(assign).toHaveBeenCalledWith("/registro/gracias");
     await vi.advanceTimersByTimeAsync(ESPERA_MAXIMA_DEL_ENVIO_MS * 2);
     expect(nativo).not.toHaveBeenCalled();
+    expect(document.getElementById("general-error")).toBeNull();
   });
 });
 

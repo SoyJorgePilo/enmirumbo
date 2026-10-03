@@ -1,0 +1,57 @@
+{
+  "instancia": "sin-correo",
+  "estado": "aviso",
+  "guion": "aceptado",
+  "pasos": [
+    {
+      "nombre": "primera, sin correo",
+      "metodo": "GET",
+      "ruta": "/api/tareas/purgar-rechazados",
+      "comparar": "exacto",
+      "status": 200,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "content-type": "application/json; charset=utf-8",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+        "x-robots-tag": "noindex, nofollow"
+      },
+      "cuerpo": "eyJlbGltaW5hZG9zIjoxLCJmYWxsaWRvcyI6MCwiY3Vwb3NMaW1waWFkb3MiOjAsImF2aXNvIjoic2luLWNvbmZpZ3VyYXIifQ==",
+      "log": [
+        "[aviso] el aviso diario de pendientes está apagado: falta RESEND_API_KEY, AVISOS_CORREO_REMITENTE, AVISOS_CORREO_DESTINO. No se manda ningún correo; todo lo demás sigue igual (ver docs/despliegue.md §3.2).",
+        "[purga] eliminados 1 registros rechazados con 90 días o más"
+      ],
+      "correo": []
+    },
+    {
+      "nombre": "segunda, sin correo",
+      "metodo": "GET",
+      "ruta": "/api/tareas/purgar-rechazados",
+      "comparar": "exacto",
+      "status": 200,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "content-type": "application/json; charset=utf-8",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+        "x-robots-tag": "noindex, nofollow"
+      },
+      "cuerpo": "eyJlbGltaW5hZG9zIjowLCJmYWxsaWRvcyI6MCwiY3Vwb3NMaW1waWFkb3MiOjAsImF2aXNvIjoic2luLWNvbmZpZ3VyYXIifQ==",
+      "log": [
+        "[purga] eliminados 0 registros rechazados con 90 días o más"
+      ],
+      "correo": []
+    }
+  ],
+  "despues": {
+    "fichas": [
+      "7719996605:en_revision"
+    ],
+    "archivos": [],
+    "cupos": 0
+  }
+}

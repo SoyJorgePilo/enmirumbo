@@ -1,0 +1,34 @@
+{
+  "instancia": "principal",
+  "estado": "sin-pendientes",
+  "guion": "aceptado",
+  "pasos": [
+    {
+      "nombre": "nada en la cola",
+      "metodo": "GET",
+      "ruta": "/api/tareas/purgar-rechazados",
+      "comparar": "exacto",
+      "status": 200,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "content-type": "application/json; charset=utf-8",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+        "x-robots-tag": "noindex, nofollow"
+      },
+      "cuerpo": "eyJlbGltaW5hZG9zIjoxLCJmYWxsaWRvcyI6MCwiY3Vwb3NMaW1waWFkb3MiOjAsImF2aXNvIjoic2luLXBlbmRpZW50ZXMifQ==",
+      "log": [
+        "[aviso] no hay pendientes en la cola: hoy no sale correo",
+        "[purga] eliminados 1 registros rechazados con 90 días o más"
+      ],
+      "correo": []
+    }
+  ],
+  "despues": {
+    "fichas": [],
+    "archivos": [],
+    "cupos": 0
+  }
+}

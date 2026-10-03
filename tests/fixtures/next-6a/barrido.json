@@ -1,0 +1,88 @@
+{
+  "instancia": "principal",
+  "estado": "barrido",
+  "guion": "aceptado",
+  "pasos": [
+    {
+      "nombre": "el barrido normal (el cron)",
+      "metodo": "GET",
+      "ruta": "/api/tareas/barrer-fotos-huerfanas",
+      "comparar": "exacto",
+      "status": 200,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "content-type": "application/json; charset=utf-8",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+        "x-robots-tag": "noindex, nofollow"
+      },
+      "cuerpo": "eyJiYXJyaWRvIjp0cnVlLCJyZXZpc2FkYXMiOjQsImh1ZXJmYW5hcyI6MSwiYm9ycmFkYXMiOjEsImVuUGVyaW9kb0RlR3JhY2lhIjoxLCJpZ25vcmFkYXMiOjAsIm5vQm9ycmFibGVzIjowfQ==",
+      "log": [
+        "[fotos] barrido: 1 huérfanas borradas de 4 revisadas"
+      ],
+      "correo": []
+    },
+    {
+      "nombre": "segunda corrida",
+      "metodo": "GET",
+      "ruta": "/api/tareas/barrer-fotos-huerfanas",
+      "comparar": "exacto",
+      "status": 200,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "content-type": "application/json; charset=utf-8",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+        "x-robots-tag": "noindex, nofollow"
+      },
+      "cuerpo": "eyJiYXJyaWRvIjp0cnVlLCJyZXZpc2FkYXMiOjMsImh1ZXJmYW5hcyI6MCwiYm9ycmFkYXMiOjAsImVuUGVyaW9kb0RlR3JhY2lhIjoxLCJpZ25vcmFkYXMiOjAsIm5vQm9ycmFibGVzIjowfQ==",
+      "log": [
+        "[fotos] barrido: 0 huérfanas borradas de 3 revisadas"
+      ],
+      "correo": []
+    },
+    {
+      "nombre": "HEAD con el secreto",
+      "metodo": "HEAD",
+      "ruta": "/api/tareas/barrer-fotos-huerfanas",
+      "comparar": "exacto",
+      "status": 200,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "content-type": "application/json; charset=utf-8",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+        "x-robots-tag": "noindex, nofollow"
+      },
+      "cuerpo": "",
+      "log": [
+        "[fotos] barrido: 0 huérfanas borradas de 3 revisadas"
+      ],
+      "correo": []
+    }
+  ],
+  "despues": {
+    "fichas": [
+      "7719996630:publicado",
+      "7719996631:en_revision",
+      "7719996632:rechazado"
+    ],
+    "archivos": [
+      "f6a00000000000000000000000000003.ficha.webp",
+      "f6a00000000000000000000000000003.tarjeta.webp",
+      "f6a00000000000000000000000000004.ficha.webp",
+      "f6a00000000000000000000000000004.tarjeta.webp",
+      "f6a00000000000000000000000000005.ficha.webp",
+      "f6a00000000000000000000000000005.tarjeta.webp",
+      "f6a00000000000000000000000000007.ficha.webp",
+      "f6a00000000000000000000000000007.tarjeta.webp"
+    ],
+    "cupos": 0
+  }
+}

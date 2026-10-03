@@ -1,7 +1,7 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { seedCatalogos } from "../prisma/seed";
-import { GET as purgarRechazadosRuta } from "../src/app/api/tareas/purgar-rechazados/route";
+import { GET as purgarRechazadosRuta } from "../src/pages/api/tareas/purgar-rechazados";
 import type { PrismaClient } from "../src/generated/prisma/client";
 import { avisarPendientes } from "../src/lib/avisos/aviso";
 import { CLAVE_AVISO_PREFIJO, claveDelDia, fechaEnTizayuca } from "../src/lib/avisos/dia";
@@ -78,12 +78,14 @@ const COMENTARIO_HOSTIL =
 let prisma: PrismaClient;
 let categoriaId: number;
 
-const pedir = (encabezados: Record<string, string> = {}) =>
-  purgarRechazadosRuta(
-    new Request("https://enmirumbo.example/api/tareas/purgar-rechazados", {
-      headers: encabezados,
-    }),
-  );
+// El endpoint de Astro (change `migrar-tareas-programadas-astro`), con el
+// contexto mínimo que usa: la petición.
+const pedir = async (encabezados: Record<string, string> = {}): Promise<Response> => {
+  const request = new Request("https://enmirumbo.example/api/tareas/purgar-rechazados", {
+    headers: encabezados,
+  });
+  return purgarRechazadosRuta({ request, url: new URL(request.url), params: {} } as never);
+};
 
 function configurarCorreo(): void {
   process.env[VARIABLE_CORREO_API_KEY] = LLAVE_DE_MENTIRAS;
@@ -691,7 +693,11 @@ describe("adversarial · la ruta no se convierte en una máquina de mandar corre
       { authorization: SECRETO },
     ];
     for (const encabezado of encabezados) {
-      await expect(pedir(encabezado)).rejects.toThrow(/NEXT_HTTP_ERROR_FALLBACK;404/);
+      // El 404 vacío de la puerta (`src/astro/tareas.ts`), el mismo que daba el `notFound()` de Next.
+      const respuesta = await pedir(encabezado);
+      expect(respuesta.status, JSON.stringify(encabezado)).toBe(404);
+      expect(await respuesta.text()).toBe("");
+      expect(respuesta.headers.get("content-type")).toBeNull();
     }
 
     expect(proveedor.red).not.toHaveBeenCalled();

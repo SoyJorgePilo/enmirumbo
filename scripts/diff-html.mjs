@@ -13,6 +13,8 @@
  *   node scripts/diff-html.mjs --capturar-3b2-apagada <base> <directorio> <configuracion>
  *   npx tsx scripts/diff-html.mjs --capturar-5a <baseNext> <directorio> [--sin-configurar <b>] [--sin-secreto <b>] [--secreto-corto <b>]
  *   npx tsx scripts/diff-html.mjs <baseNext> <baseAstro> --solo-5a [--sin-configurar <bN> <bA>] …   (panel; ver scripts/diff-html/panel.mjs)
+ *   npx tsx scripts/diff-html.mjs --capturar-6a <dirNext> <directorio>      (ver `capturar6a`)
+ *   npx tsx scripts/diff-html.mjs --solo-6a <dirNext>
  *
  * Sale con código 1 y lista cada diferencia por ruta; 0 si no hay ninguna.
  * NO corre en el CI (necesita las dos builds); su núcleo sí tiene pruebas
@@ -703,6 +705,167 @@ async function capturar3b2Apagada(base, directorio, configuracion) {
   console.log(`capturado ${archivo}`);
 }
 
+/**
+ * ── Tareas programadas (6a; change `migrar-tareas-programadas-astro`,
+ * design.md §6; tasks.md #1 y #12) ──
+ *
+ *   npx tsx scripts/diff-html.mjs --capturar-6a <dirNext> <directorio>
+ *   npx tsx scripts/diff-html.mjs --solo-6a <dirNext>
+ *
+ * A diferencia de los demás modos, aquí el script LEVANTA los servidores: cada
+ * sesión de `scripts/diff-html/tareas-6a.mjs` necesita su propio proceso con
+ * su propio entorno (sin correo, sin secreto, base caída…). `<dirNext>` es el
+ * árbol de `main` ya construido (`git archive main | tar -x`, `npm ci`, `next
+ * build`); Astro es la salida de este árbol (`construirSiHaceFalta`). Los dos
+ * con la base de `DATABASE_URL` (solo ficticia: el sembrador VACÍA sus fichas
+ * en `barrido-detenido`), el mismo `FOTOS_DIR` temporal, el mismo secreto
+ * (aleatorio, nunca se escribe) y el Resend falso precargado.
+ */
+async function preparar6a() {
+  const { randomBytes } = await import("node:crypto");
+  const { mkdtempSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { conectar } = await import("./sembrar-tareas.mjs");
+  const dir = mkdtempSync(path.join(tmpdir(), "tareas-6a-"));
+  const conexion = await conectar();
+  return {
+    dir,
+    conexion,
+    ctx: {
+      secreto: randomBytes(32).toString("hex"),
+      fotosDir: path.join(dir, "fotos"),
+      archivoGuion: path.join(dir, "guion.txt"),
+      archivoCorreo: path.join(dir, "correo.jsonl"),
+    },
+  };
+}
+
+const RESEND_FALSO = new URL("../tests/fixtures/resend-falso.mjs", import.meta.url);
+
+/** `next start` del árbol de `main` con el entorno de la instancia y el Resend falso precargado. */
+async function levantarNext6a(dirNext, entorno) {
+  const { spawn } = await import("node:child_process");
+  const { createServer } = await import("node:net");
+  const puerto = await new Promise((listo) => {
+    const s = createServer().listen(0, "127.0.0.1", () => {
+      const p = s.address().port;
+      s.close(() => listo(p));
+    });
+  });
+  const env = { ...process.env, NODE_OPTIONS: `--import=${RESEND_FALSO.href}` };
+  for (const [clave, valor] of Object.entries(entorno)) {
+    if (valor === undefined) delete env[clave];
+    else env[clave] = valor;
+  }
+  const proceso = spawn(process.execPath, [path.join(dirNext, "node_modules/next/dist/bin/next"), "start", "-p", String(puerto)], { cwd: dirNext, env, stdio: ["ignore", "pipe", "pipe"] });
+  let registro = "";
+  proceso.stdout.on("data", (d) => (registro += d.toString()));
+  proceso.stderr.on("data", (d) => (registro += d.toString()));
+  await new Promise((listo, falla) => {
+    const tiempo = setTimeout(() => falla(new Error(`Next no arrancó:\n${registro}`)), 30_000);
+    const mirar = setInterval(() => {
+      if (/Ready in/.test(registro)) {
+        clearTimeout(tiempo);
+        clearInterval(mirar);
+        listo();
+      }
+    }, 50);
+    proceso.on("exit", (c) => falla(new Error(`Next terminó (${c}):\n${registro}`)));
+  });
+  if (!registro.includes("[resend-falso] instalado")) throw new Error("el Resend falso no se cargó en Next");
+  // Next carga su configuración (y avisa de los lockfiles) con la PRIMERA
+  // petición: se la hace una que no toca nada, para que eso no caiga en el log
+  // del primer paso. Lo que Next dice al arrancar no es de ninguna petición.
+  const base = `http://127.0.0.1:${puerto}`;
+  await (await fetch(`${base}/a/b/c`)).arrayBuffer();
+  await new Promise((r) => setTimeout(r, 300));
+  const inicio = registro.length;
+  return { base, registro: () => registro.slice(inicio), detener: () => proceso.kill() };
+}
+
+async function levantarAstro6a(entorno) {
+  const { levantarEmulador } = await import("../tests/salida-astro.ts");
+  const e = await levantarEmulador(entorno, { precargas: ["tests/fixtures/resend-falso.mjs"] });
+  if (!e.registro().includes("[resend-falso] instalado")) throw new Error("el Resend falso no se cargó en el emulador");
+  // Como en `tests/tareas-astro.ts`: la primera petición carga el middleware y sus avisos de arranque.
+  await (await e.pedir("/api/tareas/purgar-rechazados")).arrayBuffer();
+  await new Promise((r) => setTimeout(r, 200));
+  const inicio = e.registro().length;
+  return { base: e.base, registro: () => e.registro().slice(inicio), detener: e.detener };
+}
+
+async function correrLado6a(levantar, { ctx, conexion }) {
+  const { correrSesiones6a, entornoDeInstancia } = await import("./diff-html/tareas-6a.mjs");
+  return correrSesiones6a({ ...ctx, consultar: conexion.consultar, vaciarBase: true, levantar: (instancia) => levantar(entornoDeInstancia(instancia, ctx)) });
+}
+
+async function capturar6a(dirNext, directorio) {
+  mkdirSync(directorio, { recursive: true });
+  const preparado = await preparar6a();
+  try {
+    const sesiones = await correrLado6a((entorno) => levantarNext6a(dirNext, entorno), preparado);
+    for (const [nombre, sesion] of Object.entries(sesiones)) {
+      const archivo = path.join(directorio, `${nombre}.json`);
+      writeFileSync(archivo, `${JSON.stringify(sesion, null, 2)}\n`);
+      console.log(`capturado ${archivo}: ${sesion.pasos.map((p) => p.status).join(" ")}`);
+    }
+  } finally {
+    await preparado.conexion.cerrar();
+    const { rmSync } = await import("node:fs");
+    rmSync(preparado.dir, { recursive: true, force: true });
+  }
+}
+
+async function diff6a(dirNext) {
+  const { compararPaso6a } = await import("./diff-html/tareas-6a.mjs");
+  const { construirSiHaceFalta } = await import("../tests/salida-astro.ts");
+  construirSiHaceFalta();
+  const preparado = await preparar6a();
+  let deNext;
+  let deAstro;
+  try {
+    deNext = await correrLado6a((entorno) => levantarNext6a(dirNext, entorno), preparado);
+    deAstro = await correrLado6a(levantarAstro6a, preparado);
+  } finally {
+    await preparado.conexion.cerrar();
+    const { rmSync } = await import("node:fs");
+    rmSync(preparado.dir, { recursive: true, force: true });
+  }
+  const diferencias = [];
+  const aceptadas = [];
+  const conVary = [];
+  const registradas = [];
+  for (const [nombre, n] of Object.entries(deNext)) {
+    const a = deAstro[nombre];
+    n.pasos.forEach((pn, i) => {
+      const pa = a.pasos[i];
+      const r = compararPaso6a(pn, pa);
+      if (r.aceptada) aceptadas.push(`${nombre} · ${pn.nombre} (Next ${pn.status} / Astro ${pa.status})`);
+      if (r.vary) conVary.push(`${nombre} · ${pn.nombre}`);
+      if (pn.comparar === "registrar") registradas.push(`${nombre} · ${pn.nombre}: Next ${pn.status} ${pn.headers.location ?? ""} / Astro ${pa.status} ${pa.headers.location ?? ""}`);
+      const marca = r.diferencias.length ? "DISTINTA" : r.aceptada ? "ACEPTADA" : pn.comparar === "registrar" ? "anotada " : "igual   ";
+      console.log(`${marca} ${nombre} · ${pn.nombre} (${pn.status}/${pa.status})`);
+      diferencias.push(...r.diferencias.map((d) => `${nombre} · ${d}`));
+    });
+    if (JSON.stringify(n.despues) !== JSON.stringify(a.despues)) {
+      diferencias.push(`${nombre} · estado después: ${JSON.stringify(n.despues)} ≠ ${JSON.stringify(a.despues)}`);
+    }
+  }
+  console.log(`\nDiferencia aceptada (otro método: Next 405/204, Astro 404 vacío o la respuesta del middleware), ${aceptadas.length}:`);
+  for (const x of aceptadas) console.log(`- ${x}`);
+  console.log(`\n\`Vary: ${"rsc, next-router-…"}\` de Next, no replicada en Astro (cabecera del enrutador de Next), ${conVary.length} pasos.`);
+  console.log(`\nSolo anotadas (barra final, se resuelve en 6b), ${registradas.length}:`);
+  for (const x of registradas) console.log(`- ${x}`);
+  if (diferencias.length > 0) {
+    console.log(`\n${diferencias.length} diferencias:\n`);
+    for (const d of diferencias) console.log(`- ${d}`);
+    return 1;
+  }
+  const pasos = Object.values(deNext).reduce((t, s) => t + s.pasos.length, 0);
+  console.log(`\nCero diferencias en ${Object.keys(deNext).length} sesiones y ${pasos} pasos (estado de la base y del almacén incluido).`);
+  return 0;
+}
+
 function argumento(argumentos, nombre) {
   const i = argumentos.indexOf(nombre);
   return i === -1 ? undefined : argumentos[i + 1];
@@ -735,6 +898,11 @@ async function principal(argumentos) {
     console.log("\nCero diferencias en el panel (5a), fuera de las aceptadas.");
     return 0;
   }
+  if (argumentos[0] === "--capturar-6a") {
+    await capturar6a(path.resolve(argumentos[1]), argumentos[2]);
+    return 0;
+  }
+  if (argumentos[0] === "--solo-6a") return diff6a(path.resolve(argumentos[1]));
   const archivoDatos = argumento(argumentos, "--datos");
   const datos = archivoDatos ? JSON.parse(readFileSync(archivoDatos, "utf8")) : null;
   if (argumentos[0] === "--capturar-3a") {

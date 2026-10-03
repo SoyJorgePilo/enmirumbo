@@ -1167,9 +1167,12 @@ const enlacesDeFase3 = (html: string) =>
 
 describe("plataforma-astro · los enlaces de las páginas migradas resuelven en Astro (2b)", () => {
   it("reconoce las rutas dinámicas de src/pages: [destino], negocio/[ficha], su reporte y la de fotos", () => {
+    // Fase 4 (change `migrar-enlace-gestion-astro`): el modo edición y su confirmación.
     expect(rutasDinamicasDeAstro).toEqual([
       "/[destino]",
       "/api/foto/[clave]/[variante]",
+      "/editar/[token]",
+      "/editar/[token]/gracias",
       "/negocio/[ficha]",
       "/negocio/[ficha]/reportar",
       "/negocio/[ficha]/reportar/gracias",

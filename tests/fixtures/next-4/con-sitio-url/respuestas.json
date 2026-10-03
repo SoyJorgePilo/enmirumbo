@@ -1,0 +1,1728 @@
+{
+  "pantallas": {
+    "editar-publicada.html": {
+      "status": 200,
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+      "metaReferrer": "strict-origin",
+      "cookies": 0
+    },
+    "editar-pendiente.html": {
+      "status": 200,
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+      "metaReferrer": "strict-origin",
+      "cookies": 0
+    },
+    "editar-colonia-otra.html": {
+      "status": 200,
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+      "metaReferrer": "strict-origin",
+      "cookies": 0
+    },
+    "gracias.html": {
+      "status": 200,
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+      "metaReferrer": "strict-origin",
+      "cookies": 0
+    },
+    "gracias-inventado.html": {
+      "status": 200,
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+      "metaReferrer": "strict-origin",
+      "cookies": 0
+    }
+  },
+  "motivos": {
+    "GET inventado": {
+      "status": 404,
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+      "cookies": 0,
+      "metaReferrer": "strict-origin",
+      "igualALoquesea": false,
+      "documentoDeError": true
+    },
+    "HEAD inventado": {
+      "status": 404,
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+      "cookies": 0,
+      "metaReferrer": null,
+      "igualALoquesea": false,
+      "documentoDeError": false
+    },
+    "POST-sin-accion inventado": {
+      "status": 404,
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+      "cookies": 0,
+      "metaReferrer": "strict-origin",
+      "igualALoquesea": false,
+      "documentoDeError": true
+    },
+    "GET alterado": {
+      "status": 404,
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+      "cookies": 0,
+      "metaReferrer": "strict-origin",
+      "igualALoquesea": false,
+      "documentoDeError": true
+    },
+    "HEAD alterado": {
+      "status": 404,
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+      "cookies": 0,
+      "metaReferrer": null,
+      "igualALoquesea": false,
+      "documentoDeError": false
+    },
+    "POST-sin-accion alterado": {
+      "status": 404,
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+      "cookies": 0,
+      "metaReferrer": "strict-origin",
+      "igualALoquesea": false,
+      "documentoDeError": true
+    },
+    "GET regenerado": {
+      "status": 404,
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+      "cookies": 0,
+      "metaReferrer": "strict-origin",
+      "igualALoquesea": false,
+      "documentoDeError": true
+    },
+    "HEAD regenerado": {
+      "status": 404,
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+      "cookies": 0,
+      "metaReferrer": null,
+      "igualALoquesea": false,
+      "documentoDeError": false
+    },
+    "POST-sin-accion regenerado": {
+      "status": 404,
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+      "cookies": 0,
+      "metaReferrer": "strict-origin",
+      "igualALoquesea": false,
+      "documentoDeError": true
+    },
+    "GET en-revision": {
+      "status": 404,
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+      "cookies": 0,
+      "metaReferrer": "strict-origin",
+      "igualALoquesea": false,
+      "documentoDeError": true
+    },
+    "HEAD en-revision": {
+      "status": 404,
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+      "cookies": 0,
+      "metaReferrer": null,
+      "igualALoquesea": false,
+      "documentoDeError": false
+    },
+    "POST-sin-accion en-revision": {
+      "status": 404,
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+      "cookies": 0,
+      "metaReferrer": "strict-origin",
+      "igualALoquesea": false,
+      "documentoDeError": true
+    },
+    "GET rechazado": {
+      "status": 404,
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+      "cookies": 0,
+      "metaReferrer": "strict-origin",
+      "igualALoquesea": false,
+      "documentoDeError": true
+    },
+    "HEAD rechazado": {
+      "status": 404,
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+      "cookies": 0,
+      "metaReferrer": null,
+      "igualALoquesea": false,
+      "documentoDeError": false
+    },
+    "POST-sin-accion rechazado": {
+      "status": 404,
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+      "cookies": 0,
+      "metaReferrer": "strict-origin",
+      "igualALoquesea": false,
+      "documentoDeError": true
+    },
+    "GET despublicado": {
+      "status": 404,
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+      "cookies": 0,
+      "metaReferrer": "strict-origin",
+      "igualALoquesea": false,
+      "documentoDeError": true
+    },
+    "HEAD despublicado": {
+      "status": 404,
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+      "cookies": 0,
+      "metaReferrer": null,
+      "igualALoquesea": false,
+      "documentoDeError": false
+    },
+    "POST-sin-accion despublicado": {
+      "status": 404,
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+      "cookies": 0,
+      "metaReferrer": "strict-origin",
+      "igualALoquesea": false,
+      "documentoDeError": true
+    },
+    "GET borrado": {
+      "status": 404,
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+      "cookies": 0,
+      "metaReferrer": "strict-origin",
+      "igualALoquesea": false,
+      "documentoDeError": true
+    },
+    "HEAD borrado": {
+      "status": 404,
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+      "cookies": 0,
+      "metaReferrer": null,
+      "igualALoquesea": false,
+      "documentoDeError": false
+    },
+    "POST-sin-accion borrado": {
+      "status": 404,
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+      "cookies": 0,
+      "metaReferrer": "strict-origin",
+      "igualALoquesea": false,
+      "documentoDeError": true
+    },
+    "GET abc": {
+      "status": 404,
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+      "cookies": 0,
+      "metaReferrer": "strict-origin",
+      "igualALoquesea": false,
+      "documentoDeError": true
+    },
+    "HEAD abc": {
+      "status": 404,
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+      "cookies": 0,
+      "metaReferrer": null,
+      "igualALoquesea": false,
+      "documentoDeError": false
+    },
+    "POST-sin-accion abc": {
+      "status": 404,
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+      "cookies": 0,
+      "metaReferrer": "strict-origin",
+      "igualALoquesea": false,
+      "documentoDeError": true
+    },
+    "GET cien": {
+      "status": 404,
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+      "cookies": 0,
+      "metaReferrer": "strict-origin",
+      "igualALoquesea": false,
+      "documentoDeError": true
+    },
+    "HEAD cien": {
+      "status": 404,
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+      "cookies": 0,
+      "metaReferrer": null,
+      "igualALoquesea": false,
+      "documentoDeError": false
+    },
+    "POST-sin-accion cien": {
+      "status": 404,
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+      "cookies": 0,
+      "metaReferrer": "strict-origin",
+      "igualALoquesea": false,
+      "documentoDeError": true
+    },
+    "GET nul": {
+      "status": 404,
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+      "cookies": 0,
+      "metaReferrer": "strict-origin",
+      "igualALoquesea": false,
+      "documentoDeError": true
+    },
+    "HEAD nul": {
+      "status": 404,
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+      "cookies": 0,
+      "metaReferrer": null,
+      "igualALoquesea": false,
+      "documentoDeError": false
+    },
+    "POST-sin-accion nul": {
+      "status": 404,
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+      "cookies": 0,
+      "metaReferrer": "strict-origin",
+      "igualALoquesea": false,
+      "documentoDeError": true
+    },
+    "GET punto-punto": {
+      "status": 404,
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+      "cookies": 0,
+      "metaReferrer": "strict-origin",
+      "igualALoquesea": false,
+      "documentoDeError": true
+    },
+    "HEAD punto-punto": {
+      "status": 404,
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+      "cookies": 0,
+      "metaReferrer": null,
+      "igualALoquesea": false,
+      "documentoDeError": false
+    },
+    "POST-sin-accion punto-punto": {
+      "status": 404,
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+      "cookies": 0,
+      "metaReferrer": "strict-origin",
+      "igualALoquesea": false,
+      "documentoDeError": true
+    },
+    "GET vacio": {
+      "status": 308,
+      "cookies": 0,
+      "metaReferrer": null,
+      "igualALoquesea": false,
+      "documentoDeError": false
+    },
+    "HEAD vacio": {
+      "status": 308,
+      "cookies": 0,
+      "metaReferrer": null,
+      "igualALoquesea": false,
+      "documentoDeError": false
+    },
+    "POST-sin-accion vacio": {
+      "status": 308,
+      "cookies": 0,
+      "metaReferrer": null,
+      "igualALoquesea": false,
+      "documentoDeError": false
+    }
+  },
+  "javascript": {
+    "archivos": 9,
+    "bytes": 586502,
+    "gzip": 180214
+  },
+  "desenlaces": {
+    "exito": {
+      "cadena": [
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        },
+        {
+          "metodo": "POST",
+          "status": 303,
+          "location": "/editar/<T>/gracias",
+          "cookies": []
+        },
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        }
+      ],
+      "post": {
+        "status": 303,
+        "cache-control": "no-cache, no-store, max-age=0, must-revalidate",
+        "content-type": null,
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "cookies": 0
+      },
+      "avisos": [
+        "¡Gracias! Ya recibimos tus cambios. Los revisamos y en cuanto los aprobemos tu ficha se actualiza. Mientras tanto sigue publicada como está."
+      ],
+      "errores": null,
+      "valores": null,
+      "base": {
+        "ediciones": [
+          {
+            "estado": "pendiente",
+            "nombre": "Cerrajería Ficticia La Llave 1",
+            "whatsapp": "7719996601",
+            "sinColonia": false,
+            "coloniaOtra": null,
+            "queOfreces": "Copias de llaves inventadas",
+            "entregaADomicilio": false,
+            "telefonoFijo": "7717770400",
+            "direccion": "Junto a una tienda inventada, local 4",
+            "horario": "L-D 8am-9pm",
+            "facebookUrl": null,
+            "motivoDescarte": null,
+            "resuelta": false
+          }
+        ],
+        "fichaIgual": true
+      }
+    },
+    "exito-con-pendiente": {
+      "cadena": [
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        },
+        {
+          "metodo": "POST",
+          "status": 303,
+          "location": "/editar/<T-pendiente>/gracias",
+          "cookies": []
+        },
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        }
+      ],
+      "post": {
+        "status": 303,
+        "cache-control": "no-cache, no-store, max-age=0, must-revalidate",
+        "content-type": null,
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "cookies": 0
+      },
+      "avisos": [
+        "¡Gracias! Ya recibimos tus cambios. Los revisamos y en cuanto los aprobemos tu ficha se actualiza. Mientras tanto sigue publicada como está."
+      ],
+      "errores": null,
+      "valores": null,
+      "base": {
+        "ediciones": [
+          {
+            "estado": "descartada",
+            "nombre": "Cerrajería Ficticia La Llave 2",
+            "whatsapp": "7719996602",
+            "sinColonia": false,
+            "coloniaOtra": null,
+            "queOfreces": "Copias de llaves inventadas",
+            "entregaADomicilio": false,
+            "telefonoFijo": "7717770400",
+            "direccion": "Junto a una tienda inventada",
+            "horario": "L-D 7am-10pm (pendiente ficticia)",
+            "facebookUrl": null,
+            "motivoDescarte": null,
+            "resuelta": true
+          },
+          {
+            "estado": "pendiente",
+            "nombre": "Cerrajería Ficticia La Llave 2",
+            "whatsapp": "7719996602",
+            "sinColonia": false,
+            "coloniaOtra": null,
+            "queOfreces": "Copias de llaves inventadas",
+            "entregaADomicilio": false,
+            "telefonoFijo": "7717770400",
+            "direccion": "Junto a una tienda inventada",
+            "horario": "L-V 10am-2pm",
+            "facebookUrl": null,
+            "motivoDescarte": null,
+            "resuelta": false
+          }
+        ],
+        "fichaIgual": true
+      }
+    },
+    "honeypot": {
+      "cadena": [
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        },
+        {
+          "metodo": "POST",
+          "status": 303,
+          "location": "/editar/<T-envios>/gracias",
+          "cookies": []
+        },
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        }
+      ],
+      "post": {
+        "status": 303,
+        "cache-control": "no-cache, no-store, max-age=0, must-revalidate",
+        "content-type": null,
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "cookies": 0
+      },
+      "avisos": [
+        "¡Gracias! Ya recibimos tus cambios. Los revisamos y en cuanto los aprobemos tu ficha se actualiza. Mientras tanto sigue publicada como está."
+      ],
+      "errores": null,
+      "valores": null,
+      "base": {
+        "ediciones": [],
+        "fichaIgual": true
+      }
+    },
+    "whatsapp-9": {
+      "cadena": [
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        },
+        {
+          "metodo": "POST",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        }
+      ],
+      "post": {
+        "status": 200,
+        "cache-control": "no-cache, no-store, max-age=0, must-revalidate",
+        "content-type": "text/html; charset=utf-8",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "cookies": 0
+      },
+      "avisos": [
+        "Edita tu ficha",
+        "Revisa tu número de WhatsApp: deben ser 10 dígitos"
+      ],
+      "errores": {
+        "whatsapp": "Revisa tu número de WhatsApp: deben ser 10 dígitos"
+      },
+      "valores": {
+        "sitio_web": "",
+        "nombre": "Cerrajería Ficticia La Llave 11",
+        "categoriaId": "cat:Talleres",
+        "whatsapp": "771999660",
+        "coloniaId": "cat:Tizayuca Centro",
+        "coloniaOtra": "",
+        "queOfreces": "Copias de llaves inventadas",
+        "entregaADomicilio": false,
+        "telefonoFijo": "7717770400",
+        "direccion": "Junto a una tienda inventada",
+        "horario": "L-V 7am-1pm",
+        "facebookUrl": ""
+      },
+      "base": {
+        "ediciones": [],
+        "fichaIgual": true
+      }
+    },
+    "whatsapp-otra-ficha": {
+      "cadena": [
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        },
+        {
+          "metodo": "POST",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        }
+      ],
+      "post": {
+        "status": 200,
+        "cache-control": "no-cache, no-store, max-age=0, must-revalidate",
+        "content-type": "text/html; charset=utf-8",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "cookies": 0
+      },
+      "avisos": [
+        "Edita tu ficha",
+        "Ese número ya está en otra ficha del directorio."
+      ],
+      "errores": {
+        "whatsapp": "Ese número ya está en otra ficha del directorio."
+      },
+      "valores": {
+        "sitio_web": "",
+        "nombre": "Cerrajería Ficticia La Llave 11",
+        "categoriaId": "cat:Talleres",
+        "whatsapp": "7719996604",
+        "coloniaId": "cat:Tizayuca Centro",
+        "coloniaOtra": "",
+        "queOfreces": "Copias de llaves inventadas",
+        "entregaADomicilio": false,
+        "telefonoFijo": "7717770400",
+        "direccion": "Junto a una tienda inventada",
+        "horario": "L-S 9am-6pm",
+        "facebookUrl": ""
+      },
+      "base": {
+        "ediciones": [],
+        "fichaIgual": true
+      }
+    },
+    "errores-varios": {
+      "cadena": [
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        },
+        {
+          "metodo": "POST",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        }
+      ],
+      "post": {
+        "status": 200,
+        "cache-control": "no-cache, no-store, max-age=0, must-revalidate",
+        "content-type": "text/html; charset=utf-8",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "cookies": 0
+      },
+      "avisos": [
+        "Edita tu ficha",
+        "Escribe el nombre de tu negocio",
+        "Revisa el teléfono fijo: escribe solo números (puedes usar espacios, guiones o paréntesis)",
+        "El link de Facebook debe empezar con http:// o https://"
+      ],
+      "errores": {
+        "nombre": "Escribe el nombre de tu negocio",
+        "telefonoFijo": "Revisa el teléfono fijo: escribe solo números (puedes usar espacios, guiones o paréntesis)",
+        "facebookUrl": "El link de Facebook debe empezar con http:// o https://"
+      },
+      "valores": {
+        "sitio_web": "",
+        "nombre": "",
+        "categoriaId": "cat:Talleres",
+        "whatsapp": "7719996611",
+        "coloniaId": "cat:Tizayuca Centro",
+        "coloniaOtra": "",
+        "queOfreces": "Copias de llaves inventadas",
+        "entregaADomicilio": false,
+        "telefonoFijo": "771abc",
+        "direccion": "a un lado de la primaria (ficticia)",
+        "horario": "L-S 9am-6pm",
+        "facebookUrl": "javascript:alert(1)"
+      },
+      "base": {
+        "ediciones": [],
+        "fichaIgual": true
+      }
+    },
+    "cupo-1": {
+      "cadena": [
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        },
+        {
+          "metodo": "POST",
+          "status": 303,
+          "location": "/editar/<T-cupo>/gracias",
+          "cookies": []
+        },
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        }
+      ],
+      "post": {
+        "status": 303,
+        "cache-control": "no-cache, no-store, max-age=0, must-revalidate",
+        "content-type": null,
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "cookies": 0
+      },
+      "avisos": [
+        "¡Gracias! Ya recibimos tus cambios. Los revisamos y en cuanto los aprobemos tu ficha se actualiza. Mientras tanto sigue publicada como está."
+      ],
+      "errores": null,
+      "valores": null,
+      "base": {
+        "ediciones": [
+          {
+            "estado": "pendiente",
+            "nombre": "Cerrajería Ficticia La Llave 9",
+            "whatsapp": "7719996609",
+            "sinColonia": false,
+            "coloniaOtra": null,
+            "queOfreces": "Copias de llaves inventadas",
+            "entregaADomicilio": false,
+            "telefonoFijo": "7717770400",
+            "direccion": "Junto a una tienda inventada",
+            "horario": "cupo ficticio 1",
+            "facebookUrl": null,
+            "motivoDescarte": null,
+            "resuelta": false
+          }
+        ],
+        "fichaIgual": true
+      }
+    },
+    "cupo-2": {
+      "cadena": [
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        },
+        {
+          "metodo": "POST",
+          "status": 303,
+          "location": "/editar/<T-cupo>/gracias",
+          "cookies": []
+        },
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        }
+      ],
+      "post": {
+        "status": 303,
+        "cache-control": "no-cache, no-store, max-age=0, must-revalidate",
+        "content-type": null,
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "cookies": 0
+      },
+      "avisos": [
+        "¡Gracias! Ya recibimos tus cambios. Los revisamos y en cuanto los aprobemos tu ficha se actualiza. Mientras tanto sigue publicada como está."
+      ],
+      "errores": null,
+      "valores": null,
+      "base": {
+        "ediciones": [
+          {
+            "estado": "descartada",
+            "nombre": "Cerrajería Ficticia La Llave 9",
+            "whatsapp": "7719996609",
+            "sinColonia": false,
+            "coloniaOtra": null,
+            "queOfreces": "Copias de llaves inventadas",
+            "entregaADomicilio": false,
+            "telefonoFijo": "7717770400",
+            "direccion": "Junto a una tienda inventada",
+            "horario": "cupo ficticio 1",
+            "facebookUrl": null,
+            "motivoDescarte": null,
+            "resuelta": true
+          },
+          {
+            "estado": "pendiente",
+            "nombre": "Cerrajería Ficticia La Llave 9",
+            "whatsapp": "7719996609",
+            "sinColonia": false,
+            "coloniaOtra": null,
+            "queOfreces": "Copias de llaves inventadas",
+            "entregaADomicilio": false,
+            "telefonoFijo": "7717770400",
+            "direccion": "Junto a una tienda inventada",
+            "horario": "cupo ficticio 2",
+            "facebookUrl": null,
+            "motivoDescarte": null,
+            "resuelta": false
+          }
+        ],
+        "fichaIgual": true
+      }
+    },
+    "cupo-3": {
+      "cadena": [
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        },
+        {
+          "metodo": "POST",
+          "status": 303,
+          "location": "/editar/<T-cupo>/gracias",
+          "cookies": []
+        },
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        }
+      ],
+      "post": {
+        "status": 303,
+        "cache-control": "no-cache, no-store, max-age=0, must-revalidate",
+        "content-type": null,
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "cookies": 0
+      },
+      "avisos": [
+        "¡Gracias! Ya recibimos tus cambios. Los revisamos y en cuanto los aprobemos tu ficha se actualiza. Mientras tanto sigue publicada como está."
+      ],
+      "errores": null,
+      "valores": null,
+      "base": {
+        "ediciones": [
+          {
+            "estado": "descartada",
+            "nombre": "Cerrajería Ficticia La Llave 9",
+            "whatsapp": "7719996609",
+            "sinColonia": false,
+            "coloniaOtra": null,
+            "queOfreces": "Copias de llaves inventadas",
+            "entregaADomicilio": false,
+            "telefonoFijo": "7717770400",
+            "direccion": "Junto a una tienda inventada",
+            "horario": "cupo ficticio 1",
+            "facebookUrl": null,
+            "motivoDescarte": null,
+            "resuelta": true
+          },
+          {
+            "estado": "descartada",
+            "nombre": "Cerrajería Ficticia La Llave 9",
+            "whatsapp": "7719996609",
+            "sinColonia": false,
+            "coloniaOtra": null,
+            "queOfreces": "Copias de llaves inventadas",
+            "entregaADomicilio": false,
+            "telefonoFijo": "7717770400",
+            "direccion": "Junto a una tienda inventada",
+            "horario": "cupo ficticio 2",
+            "facebookUrl": null,
+            "motivoDescarte": null,
+            "resuelta": true
+          },
+          {
+            "estado": "pendiente",
+            "nombre": "Cerrajería Ficticia La Llave 9",
+            "whatsapp": "7719996609",
+            "sinColonia": false,
+            "coloniaOtra": null,
+            "queOfreces": "Copias de llaves inventadas",
+            "entregaADomicilio": false,
+            "telefonoFijo": "7717770400",
+            "direccion": "Junto a una tienda inventada",
+            "horario": "cupo ficticio 3",
+            "facebookUrl": null,
+            "motivoDescarte": null,
+            "resuelta": false
+          }
+        ],
+        "fichaIgual": true
+      }
+    },
+    "cupo-4": {
+      "cadena": [
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        },
+        {
+          "metodo": "POST",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        }
+      ],
+      "post": {
+        "status": 200,
+        "cache-control": "no-cache, no-store, max-age=0, must-revalidate",
+        "content-type": "text/html; charset=utf-8",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "cookies": 0
+      },
+      "avisos": [
+        "Edita tu ficha",
+        "Ojo: ya tienes cambios esperando revisión. Si mandas otros, estos reemplazan a los anteriores.",
+        "Ya recibimos varios cambios desde aquí. Espera un rato y vuelve a intentar."
+      ],
+      "errores": {
+        "general": "Ya recibimos varios cambios desde aquí. Espera un rato y vuelve a intentar."
+      },
+      "valores": {
+        "sitio_web": "",
+        "nombre": "Cerrajería Ficticia La Llave 9",
+        "categoriaId": "cat:Talleres",
+        "whatsapp": "7719996609",
+        "coloniaId": "cat:Tizayuca Centro",
+        "coloniaOtra": "",
+        "queOfreces": "Copias de llaves inventadas",
+        "entregaADomicilio": false,
+        "telefonoFijo": "7717770400",
+        "direccion": "Junto a una tienda inventada",
+        "horario": "cupo ficticio 4",
+        "facebookUrl": ""
+      },
+      "base": {
+        "ediciones": [
+          {
+            "estado": "descartada",
+            "nombre": "Cerrajería Ficticia La Llave 9",
+            "whatsapp": "7719996609",
+            "sinColonia": false,
+            "coloniaOtra": null,
+            "queOfreces": "Copias de llaves inventadas",
+            "entregaADomicilio": false,
+            "telefonoFijo": "7717770400",
+            "direccion": "Junto a una tienda inventada",
+            "horario": "cupo ficticio 1",
+            "facebookUrl": null,
+            "motivoDescarte": null,
+            "resuelta": true
+          },
+          {
+            "estado": "descartada",
+            "nombre": "Cerrajería Ficticia La Llave 9",
+            "whatsapp": "7719996609",
+            "sinColonia": false,
+            "coloniaOtra": null,
+            "queOfreces": "Copias de llaves inventadas",
+            "entregaADomicilio": false,
+            "telefonoFijo": "7717770400",
+            "direccion": "Junto a una tienda inventada",
+            "horario": "cupo ficticio 2",
+            "facebookUrl": null,
+            "motivoDescarte": null,
+            "resuelta": true
+          },
+          {
+            "estado": "pendiente",
+            "nombre": "Cerrajería Ficticia La Llave 9",
+            "whatsapp": "7719996609",
+            "sinColonia": false,
+            "coloniaOtra": null,
+            "queOfreces": "Copias de llaves inventadas",
+            "entregaADomicilio": false,
+            "telefonoFijo": "7717770400",
+            "direccion": "Junto a una tienda inventada",
+            "horario": "cupo ficticio 3",
+            "facebookUrl": null,
+            "motivoDescarte": null,
+            "resuelta": false
+          }
+        ],
+        "fichaIgual": true
+      }
+    },
+    "guardado-falla": {
+      "cadena": [
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        },
+        {
+          "metodo": "POST",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        }
+      ],
+      "post": {
+        "status": 200,
+        "cache-control": "no-cache, no-store, max-age=0, must-revalidate",
+        "content-type": "text/html; charset=utf-8",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "cookies": 0
+      },
+      "avisos": [
+        "Edita tu ficha",
+        "No pudimos guardar tus cambios. Vuelve a intentarlo en un momento."
+      ],
+      "errores": {
+        "general": "No pudimos guardar tus cambios. Vuelve a intentarlo en un momento."
+      },
+      "valores": {
+        "sitio_web": "",
+        "nombre": "Cerrajería Ficticia La Llave 10",
+        "categoriaId": "cat:Talleres",
+        "whatsapp": "7719996610",
+        "coloniaId": "cat:Tizayuca Centro",
+        "coloniaOtra": "",
+        "queOfreces": "Copias de llaves inventadas",
+        "entregaADomicilio": false,
+        "telefonoFijo": "7717770400",
+        "direccion": "Lo que el dueño capturó",
+        "horario": "Horario ficticio que no se deja guardar",
+        "facebookUrl": ""
+      },
+      "base": {
+        "ediciones": [],
+        "fichaIgual": true
+      }
+    },
+    "campos-prohibidos": {
+      "cadena": [
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        },
+        {
+          "metodo": "POST",
+          "status": 303,
+          "location": "/editar/<T-envios>/gracias",
+          "cookies": []
+        },
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        }
+      ],
+      "post": {
+        "status": 303,
+        "cache-control": "no-cache, no-store, max-age=0, must-revalidate",
+        "content-type": null,
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "cookies": 0
+      },
+      "avisos": [
+        "¡Gracias! Ya recibimos tus cambios. Los revisamos y en cuanto los aprobemos tu ficha se actualiza. Mientras tanto sigue publicada como está."
+      ],
+      "errores": null,
+      "valores": null,
+      "base": {
+        "ediciones": [
+          {
+            "estado": "pendiente",
+            "nombre": "Cerrajería Ficticia La Llave 11",
+            "whatsapp": "7719996611",
+            "sinColonia": false,
+            "coloniaOtra": null,
+            "queOfreces": "Copias de llaves inventadas",
+            "entregaADomicilio": false,
+            "telefonoFijo": "7717770400",
+            "direccion": "Junto a una tienda inventada",
+            "horario": "con campos de más",
+            "facebookUrl": null,
+            "motivoDescarte": null,
+            "resuelta": false
+          }
+        ],
+        "fichaIgual": true
+      }
+    },
+    "referer-hostil": {
+      "cadena": [
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        },
+        {
+          "metodo": "POST",
+          "status": 303,
+          "location": "/editar/<T-envios>/gracias",
+          "cookies": []
+        },
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        }
+      ],
+      "post": {
+        "status": 303,
+        "cache-control": "no-cache, no-store, max-age=0, must-revalidate",
+        "content-type": null,
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "cookies": 0
+      },
+      "avisos": [
+        "¡Gracias! Ya recibimos tus cambios. Los revisamos y en cuanto los aprobemos tu ficha se actualiza. Mientras tanto sigue publicada como está."
+      ],
+      "errores": null,
+      "valores": null,
+      "base": {
+        "ediciones": [
+          {
+            "estado": "descartada",
+            "nombre": "Cerrajería Ficticia La Llave 11",
+            "whatsapp": "7719996611",
+            "sinColonia": false,
+            "coloniaOtra": null,
+            "queOfreces": "Copias de llaves inventadas",
+            "entregaADomicilio": false,
+            "telefonoFijo": "7717770400",
+            "direccion": "Junto a una tienda inventada",
+            "horario": "con campos de más",
+            "facebookUrl": null,
+            "motivoDescarte": null,
+            "resuelta": true
+          },
+          {
+            "estado": "pendiente",
+            "nombre": "Cerrajería Ficticia La Llave 11",
+            "whatsapp": "7719996611",
+            "sinColonia": false,
+            "coloniaOtra": null,
+            "queOfreces": "Copias de llaves inventadas",
+            "entregaADomicilio": false,
+            "telefonoFijo": "7717770400",
+            "direccion": "Junto a una tienda inventada",
+            "horario": "con referer hostil",
+            "facebookUrl": null,
+            "motivoDescarte": null,
+            "resuelta": false
+          }
+        ],
+        "fichaIgual": true
+      }
+    },
+    "sin-referer": {
+      "cadena": [
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        },
+        {
+          "metodo": "POST",
+          "status": 303,
+          "location": "/editar/<T-envios>/gracias",
+          "cookies": []
+        },
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        }
+      ],
+      "post": {
+        "status": 303,
+        "cache-control": "no-cache, no-store, max-age=0, must-revalidate",
+        "content-type": null,
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "cookies": 0
+      },
+      "avisos": [
+        "¡Gracias! Ya recibimos tus cambios. Los revisamos y en cuanto los aprobemos tu ficha se actualiza. Mientras tanto sigue publicada como está."
+      ],
+      "errores": null,
+      "valores": null,
+      "base": {
+        "ediciones": [
+          {
+            "estado": "descartada",
+            "nombre": "Cerrajería Ficticia La Llave 11",
+            "whatsapp": "7719996611",
+            "sinColonia": false,
+            "coloniaOtra": null,
+            "queOfreces": "Copias de llaves inventadas",
+            "entregaADomicilio": false,
+            "telefonoFijo": "7717770400",
+            "direccion": "Junto a una tienda inventada",
+            "horario": "con campos de más",
+            "facebookUrl": null,
+            "motivoDescarte": null,
+            "resuelta": true
+          },
+          {
+            "estado": "descartada",
+            "nombre": "Cerrajería Ficticia La Llave 11",
+            "whatsapp": "7719996611",
+            "sinColonia": false,
+            "coloniaOtra": null,
+            "queOfreces": "Copias de llaves inventadas",
+            "entregaADomicilio": false,
+            "telefonoFijo": "7717770400",
+            "direccion": "Junto a una tienda inventada",
+            "horario": "con referer hostil",
+            "facebookUrl": null,
+            "motivoDescarte": null,
+            "resuelta": true
+          },
+          {
+            "estado": "pendiente",
+            "nombre": "Cerrajería Ficticia La Llave 11",
+            "whatsapp": "7719996611",
+            "sinColonia": false,
+            "coloniaOtra": null,
+            "queOfreces": "Copias de llaves inventadas",
+            "entregaADomicilio": false,
+            "telefonoFijo": "7717770400",
+            "direccion": "Junto a una tienda inventada",
+            "horario": "sin referer",
+            "facebookUrl": null,
+            "motivoDescarte": null,
+            "resuelta": false
+          }
+        ],
+        "fichaIgual": true
+      }
+    },
+    "sin-origen": {
+      "cadena": [
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        },
+        {
+          "metodo": "POST",
+          "status": 303,
+          "location": "/editar/<T-envios>/gracias",
+          "cookies": []
+        },
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        }
+      ],
+      "post": {
+        "status": 303,
+        "cache-control": "no-cache, no-store, max-age=0, must-revalidate",
+        "content-type": null,
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "cookies": 0
+      },
+      "avisos": [
+        "¡Gracias! Ya recibimos tus cambios. Los revisamos y en cuanto los aprobemos tu ficha se actualiza. Mientras tanto sigue publicada como está."
+      ],
+      "errores": null,
+      "valores": null,
+      "base": {
+        "ediciones": [
+          {
+            "estado": "descartada",
+            "nombre": "Cerrajería Ficticia La Llave 11",
+            "whatsapp": "7719996611",
+            "sinColonia": false,
+            "coloniaOtra": null,
+            "queOfreces": "Copias de llaves inventadas",
+            "entregaADomicilio": false,
+            "telefonoFijo": "7717770400",
+            "direccion": "Junto a una tienda inventada",
+            "horario": "con campos de más",
+            "facebookUrl": null,
+            "motivoDescarte": null,
+            "resuelta": true
+          },
+          {
+            "estado": "descartada",
+            "nombre": "Cerrajería Ficticia La Llave 11",
+            "whatsapp": "7719996611",
+            "sinColonia": false,
+            "coloniaOtra": null,
+            "queOfreces": "Copias de llaves inventadas",
+            "entregaADomicilio": false,
+            "telefonoFijo": "7717770400",
+            "direccion": "Junto a una tienda inventada",
+            "horario": "con referer hostil",
+            "facebookUrl": null,
+            "motivoDescarte": null,
+            "resuelta": true
+          },
+          {
+            "estado": "descartada",
+            "nombre": "Cerrajería Ficticia La Llave 11",
+            "whatsapp": "7719996611",
+            "sinColonia": false,
+            "coloniaOtra": null,
+            "queOfreces": "Copias de llaves inventadas",
+            "entregaADomicilio": false,
+            "telefonoFijo": "7717770400",
+            "direccion": "Junto a una tienda inventada",
+            "horario": "sin referer",
+            "facebookUrl": null,
+            "motivoDescarte": null,
+            "resuelta": true
+          },
+          {
+            "estado": "pendiente",
+            "nombre": "Cerrajería Ficticia La Llave 11",
+            "whatsapp": "7719996611",
+            "sinColonia": false,
+            "coloniaOtra": null,
+            "queOfreces": "Copias de llaves inventadas",
+            "entregaADomicilio": false,
+            "telefonoFijo": "7717770400",
+            "direccion": "Junto a una tienda inventada",
+            "horario": "sin origen",
+            "facebookUrl": null,
+            "motivoDescarte": null,
+            "resuelta": false
+          }
+        ],
+        "fichaIgual": true
+      }
+    },
+    "origen-ajeno": {
+      "cadena": [
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        },
+        {
+          "metodo": "POST",
+          "status": 500,
+          "location": null,
+          "cookies": []
+        }
+      ],
+      "post": {
+        "status": 500,
+        "cache-control": null,
+        "content-type": "text/plain",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "cookies": 0
+      },
+      "avisos": [],
+      "errores": null,
+      "valores": null,
+      "base": {
+        "ediciones": [
+          {
+            "estado": "descartada",
+            "nombre": "Cerrajería Ficticia La Llave 11",
+            "whatsapp": "7719996611",
+            "sinColonia": false,
+            "coloniaOtra": null,
+            "queOfreces": "Copias de llaves inventadas",
+            "entregaADomicilio": false,
+            "telefonoFijo": "7717770400",
+            "direccion": "Junto a una tienda inventada",
+            "horario": "con campos de más",
+            "facebookUrl": null,
+            "motivoDescarte": null,
+            "resuelta": true
+          },
+          {
+            "estado": "descartada",
+            "nombre": "Cerrajería Ficticia La Llave 11",
+            "whatsapp": "7719996611",
+            "sinColonia": false,
+            "coloniaOtra": null,
+            "queOfreces": "Copias de llaves inventadas",
+            "entregaADomicilio": false,
+            "telefonoFijo": "7717770400",
+            "direccion": "Junto a una tienda inventada",
+            "horario": "con referer hostil",
+            "facebookUrl": null,
+            "motivoDescarte": null,
+            "resuelta": true
+          },
+          {
+            "estado": "descartada",
+            "nombre": "Cerrajería Ficticia La Llave 11",
+            "whatsapp": "7719996611",
+            "sinColonia": false,
+            "coloniaOtra": null,
+            "queOfreces": "Copias de llaves inventadas",
+            "entregaADomicilio": false,
+            "telefonoFijo": "7717770400",
+            "direccion": "Junto a una tienda inventada",
+            "horario": "sin referer",
+            "facebookUrl": null,
+            "motivoDescarte": null,
+            "resuelta": true
+          },
+          {
+            "estado": "pendiente",
+            "nombre": "Cerrajería Ficticia La Llave 11",
+            "whatsapp": "7719996611",
+            "sinColonia": false,
+            "coloniaOtra": null,
+            "queOfreces": "Copias de llaves inventadas",
+            "entregaADomicilio": false,
+            "telefonoFijo": "7717770400",
+            "direccion": "Junto a una tienda inventada",
+            "horario": "sin origen",
+            "facebookUrl": null,
+            "motivoDescarte": null,
+            "resuelta": false
+          }
+        ],
+        "fichaIgual": true
+      }
+    },
+    "origen-null": {
+      "cadena": [
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        },
+        {
+          "metodo": "POST",
+          "status": 500,
+          "location": null,
+          "cookies": []
+        }
+      ],
+      "post": {
+        "status": 500,
+        "cache-control": null,
+        "content-type": "text/plain",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "cookies": 0
+      },
+      "avisos": [],
+      "errores": null,
+      "valores": null,
+      "base": {
+        "ediciones": [
+          {
+            "estado": "descartada",
+            "nombre": "Cerrajería Ficticia La Llave 11",
+            "whatsapp": "7719996611",
+            "sinColonia": false,
+            "coloniaOtra": null,
+            "queOfreces": "Copias de llaves inventadas",
+            "entregaADomicilio": false,
+            "telefonoFijo": "7717770400",
+            "direccion": "Junto a una tienda inventada",
+            "horario": "con campos de más",
+            "facebookUrl": null,
+            "motivoDescarte": null,
+            "resuelta": true
+          },
+          {
+            "estado": "descartada",
+            "nombre": "Cerrajería Ficticia La Llave 11",
+            "whatsapp": "7719996611",
+            "sinColonia": false,
+            "coloniaOtra": null,
+            "queOfreces": "Copias de llaves inventadas",
+            "entregaADomicilio": false,
+            "telefonoFijo": "7717770400",
+            "direccion": "Junto a una tienda inventada",
+            "horario": "con referer hostil",
+            "facebookUrl": null,
+            "motivoDescarte": null,
+            "resuelta": true
+          },
+          {
+            "estado": "descartada",
+            "nombre": "Cerrajería Ficticia La Llave 11",
+            "whatsapp": "7719996611",
+            "sinColonia": false,
+            "coloniaOtra": null,
+            "queOfreces": "Copias de llaves inventadas",
+            "entregaADomicilio": false,
+            "telefonoFijo": "7717770400",
+            "direccion": "Junto a una tienda inventada",
+            "horario": "sin referer",
+            "facebookUrl": null,
+            "motivoDescarte": null,
+            "resuelta": true
+          },
+          {
+            "estado": "pendiente",
+            "nombre": "Cerrajería Ficticia La Llave 11",
+            "whatsapp": "7719996611",
+            "sinColonia": false,
+            "coloniaOtra": null,
+            "queOfreces": "Copias de llaves inventadas",
+            "entregaADomicilio": false,
+            "telefonoFijo": "7717770400",
+            "direccion": "Junto a una tienda inventada",
+            "horario": "sin origen",
+            "facebookUrl": null,
+            "motivoDescarte": null,
+            "resuelta": false
+          }
+        ],
+        "fichaIgual": true
+      }
+    },
+    "regenerado-al-enviar": {
+      "cadena": [
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        },
+        {
+          "metodo": "POST",
+          "status": 404,
+          "location": null,
+          "cookies": []
+        }
+      ],
+      "post": {
+        "status": 404,
+        "cache-control": "no-cache, no-store, max-age=0, must-revalidate",
+        "content-type": "text/html; charset=utf-8",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "cookies": 0
+      },
+      "avisos": [
+        "No encontramos esta página"
+      ],
+      "errores": null,
+      "valores": null,
+      "base": {
+        "ediciones": [],
+        "fichaIgual": false
+      }
+    },
+    "recargar-gracias": {
+      "base": {
+        "ediciones": [
+          {
+            "estado": "pendiente",
+            "nombre": "Cerrajería Ficticia La Llave 1",
+            "whatsapp": "7719996601",
+            "sinColonia": false,
+            "coloniaOtra": null,
+            "queOfreces": "Copias de llaves inventadas",
+            "entregaADomicilio": false,
+            "telefonoFijo": "7717770400",
+            "direccion": "Junto a una tienda inventada, local 4",
+            "horario": "L-D 8am-9pm",
+            "facebookUrl": null,
+            "motivoDescarte": null,
+            "resuelta": false
+          }
+        ]
+      }
+    },
+    "base-caida": {
+      "status": 500,
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "no-cache, no-store, max-age=0, must-revalidate",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+      "h1": null
+    }
+  }
+}

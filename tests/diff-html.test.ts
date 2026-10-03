@@ -19,6 +19,8 @@ import {
   NORMALIZACIONES_404_DINAMICA,
   NORMALIZACIONES_FORMULARIO,
   NORMALIZACIONES_REGISTRO,
+  DIFERENCIAS_ACEPTADAS_GESTION,
+  sinDiferenciasAceptadasDeGestion,
 } from "../scripts/diff-html/nucleo.mjs";
 
 const CSP = "default-src 'self'";
@@ -444,5 +446,44 @@ describe("diff · la pantalla del código (3b-2), sin normalizaciones nuevas", (
   it("si un formulario de Astro postea a otra ruta, se reporta", () => {
     const otraRuta = ASTRO_VERIFICAR.replace('action="?_action=reenviar"', 'action="/registro?_action=reenviar"');
     expect(comparar(otraRuta).join("\n")).toMatch(/formulario #1: Next hace POST a \/registro\/verificar y Astro POST a \/registro/);
+  });
+});
+
+// Fase 4 (change `migrar-enlace-gestion-astro`, design.md §9): ninguna
+// normalización nueva; dos DIFERENCIAS ACEPTADAS que se reconocen por su texto
+// exacto y se imprimen. Cualquier variante sigue saliendo como diferencia.
+describe("diff · Fase 4: las diferencias aceptadas del enlace de gestión", () => {
+  const NEXT_EDICION = readFileSync(join(__dirname, "fixtures/next-4/con-sitio-url/editar-publicada.html"), "utf8");
+
+  it("la cabecera strict-origin bajo /editar/ y la <meta> de la 404 de Next: aceptadas y anotadas", () => {
+    const aceptadas: string[] = [];
+    const diferencias = compararRespuestas("/editar/<T>", respuesta(HTML_NEXT), respuesta(HTML_ASTRO, { "referrer-policy": "strict-origin" }));
+    expect(diferencias.length).toBeGreaterThan(0);
+    expect(sinDiferenciasAceptadasDeGestion(diferencias, aceptadas)).toEqual([]);
+    expect(aceptadas).toEqual(["cabecera-referrer-policy"]);
+    const conMeta = HTML_NEXT.replace("<title>", '<meta name="referrer" content="strict-origin"/><title>');
+    const deLa404: string[] = [];
+    expect(sinDiferenciasAceptadasDeGestion(compararRespuestas("/editar/x", respuesta(conMeta), respuesta(HTML_ASTRO)), deLa404)).toEqual([]);
+    expect(deLa404).toEqual(["meta-referrer-en-la-404"]);
+    expect(DIFERENCIAS_ACEPTADAS_GESTION.map((d: { id: string }) => d.id)).toEqual(["cabecera-referrer-policy", "meta-referrer-en-la-404"]);
+  });
+
+  it("otra política, otra cabecera, la meta de sobra en Astro o con otro valor: siguen siendo diferencias", () => {
+    const casos = [
+      compararRespuestas("/editar/<T>", respuesta(HTML_NEXT), respuesta(HTML_ASTRO, { "referrer-policy": "no-referrer" })),
+      compararRespuestas("/editar/<T>", respuesta(HTML_NEXT), respuesta(HTML_ASTRO, { "referrer-policy": "strict-origin", "x-frame-options": "SAMEORIGIN" })),
+      compararRespuestas("/editar/<T>", respuesta(HTML_NEXT), respuesta(HTML_ASTRO.replace("<title>", '<meta name="referrer" content="strict-origin"><title>'))),
+      compararRespuestas("/editar/<T>", respuesta(HTML_NEXT.replace("<title>", '<meta name="referrer" content="origin"/><title>')), respuesta(HTML_ASTRO)),
+    ];
+    for (const diferencias of casos) expect(sinDiferenciasAceptadasDeGestion(diferencias, []).length).toBeGreaterThan(0);
+  });
+
+  it("la pantalla de edición de Next: un oculto con el token o un data- en Astro salen como diferencia (no hay normalización nueva)", () => {
+    const urlPagina = "https://enmirumbo.example/editar/%3CT%3E";
+    const astro = NEXT_EDICION.replace(/\n<input type="hidden" name="\$ACTION_[^>]*>/g, "");
+    const base = compararRespuestas("/editar/<T>", respuesta(NEXT_EDICION), respuesta(astro), { registro: { urlPagina, aplicadas: [] } });
+    const conToken = compararRespuestas("/editar/<T>", respuesta(NEXT_EDICION), respuesta(astro.replace('id="whatsapp"', 'id="whatsapp" data-token="<T>"')), { registro: { urlPagina, aplicadas: [] } });
+    expect(conToken.length).toBeGreaterThan(base.length);
+    expect(conToken.join("\n")).toContain("data-token");
   });
 });

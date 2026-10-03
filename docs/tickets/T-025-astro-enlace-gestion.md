@@ -1,6 +1,6 @@
 # T-025 · Enlace de gestión en Astro (Fase 4)
 
-**Estado:** en-desarrollo <!-- pendiente | en-spec | en-desarrollo | en-review | hecho -->
+**Estado:** en-review <!-- pendiente | en-spec | en-desarrollo | en-review | hecho -->
 **Prioridad:** P1
 **Épica:** E9 (docs/backlog.md)
 **Referencias PRD:** v2 §10 (técnica reemplazable); ADR-013
@@ -14,9 +14,9 @@
 
 ## Criterios de aceptación
 
-- [ ] Scenarios de `gestion` en verde
-- [ ] El token no aparece en `Referer` ni en la analítica (guardianes intactos)
-- [ ] `Referrer-Policy: strict-origin` en el grupo de gestión
+- [x] Scenarios de `gestion` en verde
+- [x] El token no aparece en `Referer` ni en la analítica (guardianes intactos)
+- [x] `Referrer-Policy: strict-origin` en el grupo de gestión
 
 ## Fuera de alcance de este ticket
 

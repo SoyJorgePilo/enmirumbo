@@ -319,8 +319,9 @@ describe("Action registrar · con la bandera encendida (Twilio falso en el proce
 
 describe("tabla de Actions · registrar", () => {
   // 3b-2 (change `migrar-verificacion-sms-astro`): la tabla suma `confirmar` y `reenviar`.
-  it("cuatro Actions en la tabla, cada una atada a su ruta", () => {
-    expect(Object.keys(ACCIONES)).toEqual(["reportar", "registrar", "confirmar", "reenviar"]);
+  it("cinco Actions en la tabla (Fase 4 suma editar), cada una atada a su ruta", () => {
+    // Fase 4 (change `migrar-enlace-gestion-astro`, MODIFIED): la tabla suma `editar` → `/editar/[token]` (lo prueba `editar-accion`).
+    expect(Object.keys(ACCIONES)).toEqual(["reportar", "registrar", "confirmar", "reenviar", "editar"]);
     expect(ACCIONES.registrar.ruta).toBe("/registro");
   });
 

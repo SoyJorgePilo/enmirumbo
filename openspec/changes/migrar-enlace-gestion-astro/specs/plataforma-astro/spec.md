@@ -61,7 +61,7 @@ La Action `editar` DEBE delegar sin lógica nueva en `procesarEdicion`, con el t
 
 El único destino de un 303 DEBE ser exactamente `/editar/<el mismo token>/gracias`, y solo si el segmento tiene forma de token; cualquier otro desenlace de destino DEBE tratarse como no encontrado. El destino NO DEBE depender del `Referer`. Los errores DEBEN volver a pintarse en el mismo 200, sin PRG y sin guardar lo capturado en ningún lado. Recargar la confirmación NO DEBE crear otra edición.
 
-Un envío NO DEBE poder fijar ni cambiar estado, origen, giros, fecha de publicación, fecha de registro, constancia del consentimiento (fecha, versión y reaceptación), foto, huella del enlace, coordenadas, marca de verificación ni el negocio al que pertenece. Un archivo de foto en el envío NO DEBE procesarse ni guardarse. Dos envíos casi simultáneos del mismo enlace DEBEN dejar exactamente una edición pendiente y ningún error técnico.
+Un envío NO DEBE poder fijar ni cambiar estado, origen, giros, fecha de publicación, fecha de registro, constancia del consentimiento (fecha, versión y reaceptación), foto, huella del enlace, coordenadas, marca de verificación ni el negocio al que pertenece. Un archivo de foto en el envío NO DEBE procesarse ni guardarse. Dos envíos casi simultáneos del mismo enlace DEBEN responder ambos 303 a la confirmación. Cinco o más envíos simultáneos del mismo enlace DEBEN dejar exactamente una edición pendiente, ningún 500 y ningún detalle técnico; cada respuesta DEBE ser el 303 a la confirmación o la pantalla del formulario con "No pudimos guardar tus cambios. Vuelve a intentarlo en un momento.", igual que Next.
 
 #### Scenario: recorrido completo sin JS
 
@@ -80,8 +80,10 @@ Un envío NO DEBE poder fijar ni cambiar estado, origen, giros, fecha de publica
 
 #### Scenario: dos envíos casi simultáneos
 
-- **WHEN** contra la salida construida y con PostgreSQL llegan cinco envíos válidos simultáneos con el mismo `T` desde IPs distintas
-- **THEN** queda exactamente una edición pendiente de esa ficha, los cinco responden 303 a la confirmación y ninguno es 500
+- **WHEN** contra la salida construida y con PostgreSQL llegan dos envíos válidos simultáneos con el mismo `T` desde IPs distintas
+- **THEN** los dos responden 303 a la confirmación y queda exactamente una edición pendiente de esa ficha
+- **WHEN** después llegan cinco envíos válidos simultáneos con el mismo `T` desde IPs distintas
+- **THEN** queda exactamente una edición pendiente de esa ficha, ninguno es 500 ni muestra detalle técnico, y cada uno responde 303 a la confirmación o la pantalla del formulario con "No pudimos guardar tus cambios. Vuelve a intentarlo en un momento."
 
 #### Scenario: el cupo es propio y se lee del encabezado declarado
 

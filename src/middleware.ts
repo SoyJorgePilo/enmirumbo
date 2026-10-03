@@ -41,7 +41,7 @@ avisarSinAlmacenDeFotosUnaVez();
  */
 export const onRequest = defineMiddleware(async (contexto, siguiente) => {
   if (contexto.isPrerendered) return siguiente();
-  return prepararRespuesta(await atender(contexto, siguiente));
+  return prepararRespuesta(await atender(contexto, siguiente), contexto.url.pathname);
 });
 
 async function atender(contexto: APIContext, siguiente: MiddlewareNext): Promise<Response> {

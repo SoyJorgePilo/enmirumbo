@@ -18,8 +18,6 @@ vi.mock("next/navigation", async () => {
 
 import { seedCatalogos } from "../prisma/seed";
 import { sembrarNegociosDemo } from "../prisma/seed-demo";
-import EditarPage from "../src/app/(gestion)/editar/[token]/page";
-import EditarGraciasPage from "../src/app/(gestion)/editar/[token]/gracias/page";
 import { Footer } from "../src/components/footer";
 import { Header } from "../src/components/header";
 import type { PrismaClient } from "../src/generated/prisma/client";
@@ -37,6 +35,9 @@ import Registro from "../src/pages/registro.astro";
 import RegistroVerificar from "../src/pages/registro/verificar.astro";
 import TerminosPage from "../src/pages/terminos.astro";
 import { pintarPagina } from "./astro-paginas";
+// El modo edición y su confirmación, de Astro desde la Fase 4 (change
+// `migrar-enlace-gestion-astro`): se mide su documento completo.
+import { abrirEdicion, pintarGraciasEdicion } from "./editar-astro";
 import {
   VARIABLE_BANDERA,
   VARIABLE_SECRETO,
@@ -170,9 +171,6 @@ beforeAll(async () => {
   });
   const segmento = construirSegmentoFicha(publicado.nombre, publicado.id);
 
-  const render = async (elemento: unknown) =>
-    renderToStaticMarkup(createElement(() => elemento as never));
-
   pantallas.set("home", await pintarPagina(Home, { ruta: "/" }));
   pantallas.set("listado", (await pintarDestino("servicios-del-hogar")).documento);
   pantallas.set("ficha", (await pintarFicha(segmento)).documento);
@@ -221,15 +219,10 @@ beforeAll(async () => {
   ]) {
     delete process.env[variable];
   }
-  pantallas.set(
-    "editar",
-    await render(
-      await EditarPage({
-        params: Promise.resolve({ token: TOKEN_RESPONSIVO }),
-      } as Parameters<typeof EditarPage>[0]),
-    ),
-  );
-  pantallas.set("editar-gracias", renderToStaticMarkup(createElement(EditarGraciasPage)));
+  const edicion = await abrirEdicion(TOKEN_RESPONSIVO);
+  if (edicion.status !== 200 || !edicion.html.includes("Edita tu ficha")) throw new Error("la pantalla de edición no se pintó");
+  pantallas.set("editar", edicion.html);
+  pantallas.set("editar-gracias", await pintarGraciasEdicion(TOKEN_RESPONSIVO));
   pantallas.set("aviso", await pintarPagina(AvisoDePrivacidadPage, { ruta: "/aviso-de-privacidad" }));
   pantallas.set("terminos", await pintarPagina(TerminosPage, { ruta: "/terminos" }));
   pantallas.set("404", await pintarPagina(NotFoundPage, { ruta: "/no-existe" }));

@@ -85,6 +85,69 @@ describe("plataforma-astro · el middleware pone las cuatro cabeceras", () => {
   });
 });
 
+// Fase 4 (change `migrar-enlace-gestion-astro`, design.md §1.2; tasks.md #9):
+// toda respuesta cuya ruta PEDIDA empiece con `/editar/` sale con
+// `Referrer-Policy: strict-origin`, aunque traiga otra; fuera, nada cambia.
+describe("plataforma-astro · Fase 4: la política de referente del grupo de gestión", () => {
+  it("bajo /editar/ fija strict-origin en 200, 303, 403, 404 y 500, pisando lo que traiga", async () => {
+    const casos = [
+      html(),
+      html({ status: 404 }),
+      html({ status: 403 }),
+      html({ status: 500 }),
+      new Response(null, { status: 303, headers: { Location: "/editar/x/gracias" } }),
+      html({ headers: { "Referrer-Policy": "unsafe-url" } }),
+      html({ headers: { "Referrer-Policy": "strict-origin-when-cross-origin" } }),
+      Response.redirect("https://sitio.example/editar/x/gracias", 303), // cabeceras inmutables
+    ];
+    for (const caso of casos) {
+      const respuesta = await pasar(caso, "/editar/token-ficticio");
+      expect(respuesta.headers.get("referrer-policy"), String(caso.status)).toBe("strict-origin");
+      expect(respuesta.status).toBe(caso.status);
+    }
+    expect((await pasar(html(), "/editar/token-ficticio/gracias")).headers.get("referrer-policy")).toBe("strict-origin");
+    expect((await pasar(html(), "/editar/")).headers.get("referrer-policy")).toBe("strict-origin");
+  });
+
+  it("las otras tres cabeceras siguen la regla de siempre (no se pisa una que ya venga)", async () => {
+    const propia = "default-src 'none'";
+    const respuesta = await pasar(html({ headers: { "Content-Security-Policy": propia } }), "/editar/token-ficticio");
+    expect(respuesta.headers.get("content-security-policy")).toBe(propia);
+    const global = Object.fromEntries(cabecerasDeSeguridad().map(({ key, value }) => [key.toLowerCase(), value]));
+    expect(respuesta.headers.get("x-frame-options")).toBe(global["x-frame-options"]);
+    expect(respuesta.headers.get("x-content-type-options")).toBe(global["x-content-type-options"]);
+  });
+
+  it("fuera de /editar/ la política es la global y una más estricta no se pisa", async () => {
+    const global = cabecerasDeSeguridad().find(({ key }) => key.toLowerCase() === "referrer-policy")!.value;
+    for (const ruta of ["/", "/loquesea", "/editar", "/editarx/y", "/registro", "/negocio/editar/x"]) {
+      expect((await pasar(html(), ruta)).headers.get("referrer-policy"), ruta).toBe(global);
+    }
+    expect((await pasar(html({ headers: { "Referrer-Policy": "no-referrer" } }), "/")).headers.get("referrer-policy")).toBe("no-referrer");
+  });
+
+  it("decide la ruta PEDIDA (url), no el patrón al que se reescribió (403 y 404 pasan por /envio-rechazado)", async () => {
+    const onRequest = await cargarMiddleware();
+    const reescrito = { ...contexto("/editar/token-ficticio"), routePattern: "/envio-rechazado" };
+    const respuesta = await onRequest(reescrito, async () => html({ status: 404 }));
+    expect(respuesta.headers.get("referrer-policy")).toBe("strict-origin");
+  });
+
+  it("el prefijo es exactamente / + la carpeta de las pantallas del enlace + /", async () => {
+    const { PREFIJO_DE_GESTION } = await import("../src/astro/cabeceras");
+    const { existsSync, statSync } = await import("node:fs");
+    const carpeta = new URL(`../src/pages${PREFIJO_DE_GESTION}`, import.meta.url);
+    expect(PREFIJO_DE_GESTION).toBe("/editar/");
+    expect(existsSync(carpeta) && statSync(carpeta).isDirectory()).toBe(true);
+  });
+
+  it("prepararRespuesta recibe la ruta pedida", async () => {
+    const { prepararRespuesta } = await import("../src/astro/cabeceras");
+    expect(prepararRespuesta(html(), "/editar/x").headers.get("referrer-policy")).toBe("strict-origin");
+    expect(prepararRespuesta(html(), "/x").headers.get("referrer-policy")).not.toBe("strict-origin");
+  });
+});
+
 describe("plataforma-astro · lo dinámico no se guarda en cachés compartidas", () => {
   it("el HTML dinámico lleva el mismo Cache-Control que manda Next con force-dynamic", async () => {
     const respuesta = await pasar(html());

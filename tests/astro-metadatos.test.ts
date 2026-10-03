@@ -156,3 +156,34 @@ describe("plataforma-astro · metadatos, scenarios", () => {
     expect(pagina).toContain('content="a&quot;b&lt;c"');
   });
 });
+
+// Fase 4 (change `migrar-enlace-gestion-astro`, design.md §1.2; tasks.md #8):
+// la `<meta name="referrer">` del grupo de gestión, donde la pinta Next
+// (fixture `tests/fixtures/next-4/*/editar-publicada.html`: después de la
+// descripción y antes de `robots`).
+describe("plataforma-astro · Fase 4: la etiqueta referrer", () => {
+  const head = (variante: string) =>
+    /<head>([\s\S]*?)<\/head>/.exec(readFileSync(join(raiz, "tests/fixtures/next-4", variante, "editar-publicada.html"), "utf8"))![1];
+
+  for (const [variante, env] of Object.entries(ENTORNOS)) {
+    it(`edición, ${variante}: mismas <meta> y <link> que Next, con la referrer en su lugar`, () => {
+      const etiquetas = resolverMetadatos({
+        sitio: metadataDelSitio({ ...env }),
+        pagina: { title: "Edita tu ficha", robots: { index: false, follow: false }, referrer: "strict-origin" },
+        versionImagenDeMarca: "0123456789abcdef",
+        versionIcono: "fedcba9876543210",
+      });
+      expect(conjuntoDe(etiquetasAHtml(etiquetas))).toEqual(conjuntoDe(head(variante)));
+      const nombres = etiquetas.map((e) => (e.etiqueta === "meta" ? (e.atributos.name ?? e.atributos.property ?? "charset") : e.etiqueta));
+      const i = nombres.indexOf("referrer");
+      expect(etiquetas[i]).toEqual({ etiqueta: "meta", atributos: { name: "referrer", content: "strict-origin" } });
+      expect(nombres[i - 1]).toBe("description");
+      expect(nombres[i + 1]).toBe("robots");
+    });
+  }
+
+  it("sin referrer declarado no se pinta ninguna", () => {
+    const html = etiquetasAHtml(resolver("terminos", { ...ENTORNOS["con-sitio-url"] }));
+    expect(html).not.toContain('name="referrer"');
+  });
+});

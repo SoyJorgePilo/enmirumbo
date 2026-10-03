@@ -19,7 +19,6 @@ vi.mock("next/navigation", async () => {
 import { seedCatalogos } from "../prisma/seed";
 import { sembrarNegociosDemo } from "../prisma/seed-demo";
 import LayoutPublico from "../src/app/(publico)/layout";
-import { metadata as metadataGestion } from "../src/app/(gestion)/layout";
 import LayoutPanel, { metadata as metadataPanel } from "../src/app/admin/layout";
 import ColaAdminPage, { metadata as metadataCola } from "../src/app/admin/cola/page";
 import NegociosAdminPage, {
@@ -337,17 +336,26 @@ describe("layout-base · el panel no filtra sus URLs por el referente (A-1/A-2)"
    * del grupo, que es la decisión que este repo ya había ratificado para el
    * panel, y el envío sin JS volvió a guardar la edición.
    */
-  it("el layout del modo edición declara la misma política que el panel", () => {
-    expect(POLITICAS_ACEPTABLES).toContain(metadataGestion.referrer);
-    expect(POLITICAS_PROHIBIDAS).not.toContain(metadataGestion.referrer);
+  // Fase 4 (change `migrar-enlace-gestion-astro`, design.md §1.2): el modo
+  // edición ya se sirve con Astro. La política vive en su tronco
+  // (`src/layouts/TroncoGestion.astro`), no en cada pantalla.
+  const TRONCO_GESTION = join(raiz, "src/layouts/TroncoGestion.astro");
+  const politicaDelTronco = () => [...readFileSync(TRONCO_GESTION, "utf8").matchAll(/referrer:\s*"([^"]*)"/g)].map((m) => m[1]);
+
+  it("el tronco del modo edición declara la misma política que el panel", () => {
+    expect(politicaDelTronco()).toHaveLength(1);
+    expect(POLITICAS_ACEPTABLES).toContain(politicaDelTronco()[0]);
+    expect(POLITICAS_PROHIBIDAS).not.toContain(politicaDelTronco()[0]);
   });
 
   it("las páginas del modo edición no cambian la política por su cuenta", () => {
-    for (const ruta of archivosDe(join(raiz, "src/app/(gestion)"))) {
+    const paginas = archivosDe(join(raiz, "src/pages/editar"));
+    expect(paginas.length).toBeGreaterThanOrEqual(2);
+    for (const ruta of [...paginas, TRONCO_GESTION]) {
       const codigo = readFileSync(ruta, "utf8");
       const declaraciones = [...codigo.matchAll(/referrer:\s*"([^"]*)"/g)].map((m) => m[1]);
       if (declaraciones.length === 0) continue;
-      expect(ruta.endsWith("layout.tsx"), `${ruta} declara una política`).toBe(true);
+      expect(ruta, `${ruta} declara una política`).toBe(TRONCO_GESTION);
       for (const politica of declaraciones) {
         expect(POLITICAS_ACEPTABLES, `${ruta} usa "${politica}"`).toContain(politica);
       }
@@ -357,10 +365,10 @@ describe("layout-base · el panel no filtra sus URLs por el referente (A-1/A-2)"
   it("el modo edición deja escrito por qué el valor no es intercambiable", () => {
     // Igual que en el panel: sin el motivo al lado, el siguiente que pase
     // "endurece" a `no-referrer` y vuelve a romper el envío sin JavaScript.
-    const layout = readFileSync(join(raiz, "src/app/(gestion)/layout.tsx"), "utf8");
-    expect(layout).toContain("Origin: null");
-    expect(layout).toContain("Server Action");
-    expect(layout).toContain("sin JavaScript");
+    const tronco = readFileSync(TRONCO_GESTION, "utf8");
+    expect(tronco).toContain("Origin: null");
+    expect(tronco).toContain("Server Action");
+    expect(tronco).toContain("sin JavaScript");
   });
 
   it("el panel deja escrito por qué el valor no es intercambiable", () => {
@@ -503,7 +511,19 @@ const EXCLUSIONES_DE_ASTRO: Array<[string, string]> = [
   // `/[destino]` y `/negocio/[ficha]`. Las URLs de fichas no publicadas llevan
   // el nombre del negocio; hoy tampoco se miden.
   ["src/astro/componentes/NoEncontradoDinamico.astro", "la 404 de las rutas dinámicas (alternativa B, M-1)"],
+  // Change `migrar-enlace-gestion-astro` (Fase 4, design.md §2): el tronco de
+  // las pantallas del enlace de gestión. La ruta ES la credencial de la ficha
+  // y el tracker manda el `pathname` (hallazgo ALTO 1 de T-014).
+  ["src/layouts/TroncoGestion.astro", "el tronco del enlace de gestión: la ruta lleva el token (T-014, ALTO 1)"],
 ];
+
+/** Carpeta de las pantallas del enlace de gestión: las ÚNICAS que pueden usar `TroncoGestion`. */
+const CARPETA_DE_GESTION = join(raiz, "src/pages/editar");
+
+/** ¿Es una pantalla del enlace que usa el tronco de gestión (con el motivo escrito en el tronco)? */
+function usaTroncoDeGestion(ruta: string, fuente: string): boolean {
+  return ruta.startsWith(`${CARPETA_DE_GESTION}/`) && /<TroncoGestion\b/.test(fuente);
+}
 
 /**
  * Componentes `.astro` de `rutaAstro` que pintan un DOCUMENTO (usan
@@ -524,6 +544,17 @@ export function componentesAstroSinMotivo(rutaAstro: string): string[] {
     .map((ruta) => ruta.slice(raiz.length + 1));
 }
 
+/** Troncos de `src/layouts/` que pintan el documento sin el tronco medido (Fase 4: `TroncoGestion`). */
+function troncosFueraDeLaMedicion(): string[] {
+  return archivosDe(join(raiz, "src/layouts"))
+    .filter((ruta) => ruta.endsWith(".astro"))
+    .filter((ruta) => {
+      const fuente = readFileSync(ruta, "utf8");
+      // `TroncoPublico` también envuelve al documento, pero pinta la medición.
+      return /<DocumentoBase\b/.test(fuente) && !/<ScriptAnalitica\b/.test(fuente);
+    });
+}
+
 /** Componentes `.astro` de `src/astro/` que pintan un documento fuera del tronco. */
 function documentosDeSrcAstro(): string[] {
   return archivosDe(join(raiz, "src/astro"))
@@ -542,6 +573,8 @@ export function paginasAstroSinMotivo(rutaPages: string): string[] {
       const fuente = readFileSync(ruta, "utf8");
       const frontmatter = fuente.split("---")[1] ?? "";
       if (/<TroncoPublico\b/.test(fuente)) return false;
+      // Fase 4: una pantalla del enlace con el tronco de gestión (el motivo vive en el tronco).
+      if (usaTroncoDeGestion(ruta, fuente)) return false;
       return !(/<DocumentoBase\b/.test(fuente) && MOTIVO_DE_EXCLUSION.test(frontmatter));
     })
     .map((ruta) => ruta.slice(raiz.length + 1));
@@ -557,8 +590,12 @@ describe("plataforma-astro · la medición sigue siendo una propiedad de la estr
 
   it("las páginas fuera del tronco son exactamente las exclusiones declaradas, y existen", () => {
     const fuera = [
-      ...paginas.filter((ruta) => !/<TroncoPublico\b/.test(readFileSync(ruta, "utf8"))),
+      ...paginas.filter((ruta) => {
+        const fuente = readFileSync(ruta, "utf8");
+        return !/<TroncoPublico\b/.test(fuente) && !usaTroncoDeGestion(ruta, fuente);
+      }),
       ...documentosDeSrcAstro(),
+      ...troncosFueraDeLaMedicion(),
     ].map((ruta) => ruta.slice(raiz.length + 1));
     expect(fuera).toEqual(EXCLUSIONES_DE_ASTRO.map(([ruta]) => ruta));
     for (const [ruta, porque] of EXCLUSIONES_DE_ASTRO) {
@@ -577,6 +614,35 @@ describe("plataforma-astro · la medición sigue siendo una propiedad de la estr
       expect(readFileSync(join(raiz, ruta), "utf8"), ruta).toMatch(/<TroncoPublico\b/);
       expect(EXCLUSIONES_DE_ASTRO.map(([r]) => r), ruta).not.toContain(ruta);
     }
+  });
+
+  // Fase 4 (change `migrar-enlace-gestion-astro`, design.md §1.2 y §2): la
+  // exclusión del enlace es por ESTRUCTURA. Toda pantalla de `src/pages/editar`
+  // pinta el tronco de gestión o la 404 dinámica; nunca el tronco medido ni el
+  // script. Y el tronco de gestión no sirve de escape a una página pública.
+  it("las pantallas del enlace usan el tronco de gestión o la 404 dinámica, y nada más las usa", () => {
+    const delEnlace = archivosDe(CARPETA_DE_GESTION).filter((ruta) => ruta.endsWith(".astro"));
+    expect(delEnlace.map((ruta) => ruta.slice(raiz.length + 1)).sort()).toEqual(["src/pages/editar/[token].astro", "src/pages/editar/[token]/gracias.astro"]);
+    for (const ruta of delEnlace) {
+      const fuente = readFileSync(ruta, "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+      expect(fuente, ruta).toMatch(/<TroncoGestion\b/);
+      expect(fuente, ruta).not.toMatch(/<TroncoPublico\b|ScriptAnalitica|<DocumentoBase\b/);
+      expect(fuente.match(/<(TroncoGestion|NoEncontradoDinamico)\b/g)?.length ?? 0, ruta).toBeGreaterThanOrEqual(1);
+    }
+    const fueraDelEnlace = archivosDe(join(raiz, "src"))
+      .filter((ruta) => !ruta.startsWith(`${CARPETA_DE_GESTION}/`) && !ruta.endsWith("TroncoGestion.astro"))
+      // Se mira el código, no los comentarios que lo mencionan.
+      .filter((ruta) => /<TroncoGestion\b|TroncoGestion\.astro/.test(readFileSync(ruta, "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "")));
+    expect(fueraDelEnlace).toEqual([]);
+  });
+
+  it("el tronco de gestión no mide: ni el script, ni el tronco medido, y dice por qué", () => {
+    const tronco = readFileSync(join(raiz, "src/layouts/TroncoGestion.astro"), "utf8");
+    const frontmatter = tronco.split("---")[1] ?? "";
+    expect(frontmatter).toMatch(MOTIVO_DE_EXCLUSION);
+    const codigo = tronco.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+    expect(codigo).toMatch(/<DocumentoBase\b/);
+    expect(codigo).not.toMatch(/ScriptAnalitica|TroncoPublico|umami/);
   });
 
   it("todo componente de src/astro que pinta un documento fuera del tronco dice por escrito por qué", () => {

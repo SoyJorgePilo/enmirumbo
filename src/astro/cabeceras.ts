@@ -26,6 +26,24 @@ export const CACHE_DE_HTML_DINAMICO = "private, no-cache, no-store, max-age=0, m
  */
 export const CACHE_DE_ARTEFACTO_DINAMICO = "public, max-age=0, must-revalidate";
 
+/**
+ * Prefijo de las rutas del enlace de gestión: el de la carpeta
+ * `src/pages/editar/` (change `migrar-enlace-gestion-astro`, design.md §1.2).
+ * Toda respuesta cuya ruta PEDIDA empiece así sale con
+ * `POLITICA_DE_GESTION`, aunque traiga otra: ni una página, ni Astro, ni una
+ * reescritura (el 403 y "como dirección inexistente" pasan por
+ * `/envio-rechazado`, el 500 por `/500`) pueden debilitarla. Una pantalla
+ * nueva del enlace nace cubierta por estar en esa carpeta.
+ */
+export const PREFIJO_DE_GESTION = "/editar/";
+
+/**
+ * La política de referente del grupo de gestión: el origen pelado, nunca la
+ * ruta (que ES el token). No `no-referrer`: rompe el envío sin JavaScript
+ * (`Origin: null` → 403). El porqué completo, en `src/layouts/TroncoGestion.astro`.
+ */
+const POLITICA_DE_GESTION = "strict-origin";
+
 /** Cabeceras que anuncian el marco: no deben salir nunca. */
 const CABECERAS_DEL_MARCO = ["x-powered-by"];
 
@@ -34,13 +52,15 @@ export function cabecerasComoObjeto(): Record<string, string> {
   return Object.fromEntries(cabecerasDeSeguridad().map(({ key, value }) => [key, value]));
 }
 
-function ajustar(cabeceras: Headers): void {
+function ajustar(cabeceras: Headers, rutaPedida: string): void {
   // Solo se pone una cabecera si la respuesta no la trae: así una ruta que
   // declare una política de referente más estricta no queda anulada por la
   // global (spec `despliegue`).
   for (const [nombre, valor] of Object.entries(cabecerasComoObjeto())) {
     if (!cabeceras.has(nombre)) cabeceras.set(nombre, valor);
   }
+  // El grupo de gestión: su política SE FIJA, pisando lo que venga (Fase 4).
+  if (rutaPedida.startsWith(PREFIJO_DE_GESTION)) cabeceras.set("referrer-policy", POLITICA_DE_GESTION);
   const tipo = (cabeceras.get("content-type") ?? "").toLowerCase();
   if (tipo.startsWith("text/html")) {
     // Astro manda `text/html` a secas; Next, con el juego de caracteres.
@@ -54,14 +74,16 @@ function ajustar(cabeceras: Headers): void {
  * La respuesta de la función con las cuatro cabeceras y el `Cache-Control`
  * del HTML dinámico. Si sus cabeceras son inmutables (p. ej.
  * `Response.redirect`), se copia en una nueva en vez de reventar con un 500.
+ * `rutaPedida`: la de la petición ORIGINAL (`contexto.url.pathname`), no la
+ * de una reescritura; decide la política del grupo de gestión.
  */
-export function prepararRespuesta(respuesta: Response): Response {
+export function prepararRespuesta(respuesta: Response, rutaPedida: string): Response {
   try {
-    ajustar(respuesta.headers);
+    ajustar(respuesta.headers, rutaPedida);
     return respuesta;
   } catch {
     const copia = new Response(respuesta.body, respuesta);
-    ajustar(copia.headers);
+    ajustar(copia.headers, rutaPedida);
     return copia;
   }
 }

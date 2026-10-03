@@ -1,0 +1,9 @@
+---
+// Ejemplo para `tests/astro-seguridad-adversarial.test.ts` (Fase 4): un tronco
+// que pinta la medición. Una pantalla del enlace que lo importe DEBE reprobar
+// aunque ella misma no nombre el script.
+import { ScriptAnalitica } from "../../../../src/components/analitica/script-analitica";
+import DocumentoBase from "../../../../src/layouts/DocumentoBase.astro";
+---
+
+<DocumentoBase><slot /><ScriptAnalitica /></DocumentoBase>

@@ -29,6 +29,8 @@
  */
 import { parse } from "node-html-parser";
 
+import { idsDeCatalogoPorNombre } from "./diff-html/nucleo.mjs";
+
 /**
  * @typedef {{ nombre: string, valor: string, tipo: string, marcado: boolean, accept?: string }} Campo
  * @typedef {{ metodo: string, accion: string, codificacion: string, campos: Campo[] }} Formulario
@@ -312,7 +314,12 @@ function sinNulos(cabeceras) {
  *   cookieDelEnvio?: string | null,
  *   pedir?: typeof fetch,
  *   archivos?: Record<string, Archivo | Archivo[]>,
+ *   antesDelEnvio?: () => Promise<void>,
  * }} opciones
+ *
+ * `antesDelEnvio` (Fase 4, change `migrar-enlace-gestion-astro`): corre entre
+ * abrir la página y mandar el formulario (p. ej. regenerar el enlace de
+ * gestión mientras el dueño tiene la pantalla abierta).
  */
 export async function enviarFormulario({
   urlPagina,
@@ -325,6 +332,7 @@ export async function enviarFormulario({
   boton,
   cookieDelEnvio,
   pedir = fetch,
+  antesDelEnvio,
 }) {
   /** @type {Array<{ metodo: string, url: string, status: number, location: string | null, setCookie: string[], cabeceras: Headers }>} */
   const cadena = [];
@@ -337,6 +345,7 @@ export async function enviarFormulario({
   };
 
   const pagina = await get(urlPagina);
+  if (antesDelEnvio) await antesDelEnvio();
   const formulario = leerFormulario(pagina.html, urlPagina, boton === undefined ? indice : indiceDelBoton(pagina.html, boton));
   const politica = pagina.r.headers.get("referrer-policy") ?? undefined;
   const cuerpo = cuerpoDelEnvio(camposAEnviar(formulario, elecciones, extras, archivos), formulario.codificacion);
@@ -696,6 +705,158 @@ export function avisosDe(html) {
   return parse(html)
     .querySelectorAll("h1, [role=alert], [role=status]")
     .map((n) => n.text.replace(/^\s*⚠\s*/, "").replace(/\s+/g, " ").trim());
+}
+
+// ── Fase 4: la edición del enlace de gestión (change `migrar-enlace-gestion-astro`) ──
+
+/**
+ * Los envíos sin JS de `/editar/<token>` que se comparan contra Next (tasks.md
+ * #2 y #5; scenario "mismos desenlaces que Next"), en el orden en que se
+ * capturaron. Cada uno abre la pantalla de SU ficha (`ficha`, una de
+ * `FICHAS_DE_4` de `tests/gestion-astro.ts`), cambia lo que diga `elecciones`
+ * sobre lo prellenado y lo manda. Cada uno lleva su propia IP de
+ * documentación (RFC 5737) como ÚLTIMO valor de `x-forwarded-for`, salvo los
+ * cuatro del cupo, que comparten la última (`203.0.113.7`) y rotan la primera.
+ *
+ * `datos`: `{ whatsappAjeno, negocioIdAjeno, tokenAjeno, marcaFalla }` (el
+ * número de otra ficha, su id y su token, y el horario que hace fallar el
+ * guardado). `foto`: un archivo `{ nombre, tipo, bytes }` que se fabrica en el
+ * cuerpo aunque la pantalla no tenga campo de foto. `aceptada`: la única
+ * diferencia admitida (origen ajeno o `null`: Next 500, Astro 403).
+ * `regenerarAntes`: el enlace se regenera entre abrir y enviar (404).
+ */
+export function enviosDe4(datos, foto) {
+  const estado = (resumen) => resumen[1]?.status;
+  const aceptada = (next, astro) => estado(next) === 500 && estado(astro) === 403;
+  let k = 40;
+  const ip = () => ({ "x-forwarded-for": `198.51.100.${++k}` });
+  const archivo = new File([foto.bytes], foto.nombre, { type: foto.tipo });
+  return [
+    { nombre: "exito", ficha: "publicada", elecciones: { horario: "L-D 8am-9pm", direccion: "Junto a una tienda inventada, local 4" }, cabeceras: ip() },
+    { nombre: "exito-con-pendiente", ficha: "pendiente", elecciones: { horario: "L-V 10am-2pm" }, cabeceras: ip() },
+    { nombre: "honeypot", ficha: "envios", elecciones: { horario: "con campo trampa", sitio_web: "http://spam.example" }, cabeceras: ip() },
+    { nombre: "whatsapp-9", ficha: "envios", elecciones: { whatsapp: "771999660", horario: "L-V 7am-1pm" }, cabeceras: ip() },
+    { nombre: "whatsapp-otra-ficha", ficha: "envios", elecciones: { whatsapp: datos.whatsappAjeno }, cabeceras: ip() },
+    {
+      nombre: "errores-varios",
+      ficha: "envios",
+      elecciones: { nombre: "", telefonoFijo: "771abc", facebookUrl: "javascript:alert(1)", direccion: "a un lado de la primaria (ficticia)" },
+      cabeceras: ip(),
+    },
+    ...[1, 2, 3, 4].map((i) => ({
+      nombre: `cupo-${i}`,
+      ficha: "cupo",
+      elecciones: { horario: `cupo ficticio ${i}` },
+      cabeceras: { "x-forwarded-for": `198.51.100.${150 + i}, 203.0.113.7` },
+    })),
+    { nombre: "guardado-falla", ficha: "falla", elecciones: { horario: datos.marcaFalla, direccion: "Lo que el dueño capturó" }, cabeceras: ip() },
+    {
+      nombre: "campos-prohibidos",
+      ficha: "envios",
+      elecciones: { horario: "con campos de más" },
+      extras: [
+        ["estado", "publicado"],
+        ["origen", "siembra"],
+        ["giros", "1"],
+        ["publicadoEn", "2020-01-01T00:00:00.000Z"],
+        ["registradoEn", "2020-01-01T00:00:00.000Z"],
+        ["consintioAvisoEn", "2020-01-01T00:00:00.000Z"],
+        ["consintioAvisoVersion", "9"],
+        ["consentimiento", "on"],
+        ["versionAviso", "9"],
+        ["avisoVersion", "9"],
+        ["fotoClave", "0123456789abcdef0123456789abcdef"],
+        ["tokenGestionHash", "huella-falsificada"],
+        ["numeroVerificadoEn", "2020-01-01T00:00:00.000Z"],
+        ["latitud", "19.83"],
+        ["negocioId", datos.negocioIdAjeno],
+        ["token", datos.tokenAjeno],
+        ["foto", archivo],
+      ],
+      cabeceras: ip(),
+    },
+    { nombre: "referer-hostil", ficha: "envios", elecciones: { horario: "con referer hostil" }, cabeceras: { ...ip(), referer: "https://evil.example/" } },
+    { nombre: "sin-referer", ficha: "envios", elecciones: { horario: "sin referer" }, cabeceras: { ...ip(), referer: null } },
+    { nombre: "sin-origen", ficha: "envios", elecciones: { horario: "sin origen" }, cabeceras: { ...ip(), origin: null } },
+    { nombre: "origen-ajeno", ficha: "envios", elecciones: { horario: "origen ajeno" }, cabeceras: { ...ip(), origin: "https://ajeno.example" }, aceptada },
+    { nombre: "origen-null", ficha: "envios", elecciones: { horario: "origen null" }, cabeceras: { ...ip(), origin: "null" }, aceptada },
+    { nombre: "regenerado-al-enviar", ficha: "regenerable", elecciones: { horario: "tras regenerar" }, cabeceras: ip(), regenerarAntes: true },
+  ];
+}
+
+/** Las pantallas de 200 de la Fase 4: `[archivo, ficha, sufijo]` (la ruta es `/editar/<token de la ficha><sufijo>`). */
+export const PANTALLAS_DE_4 = [
+  ["editar-publicada.html", "publicada", ""],
+  ["editar-pendiente.html", "pendiente", ""],
+  ["editar-colonia-otra.html", "coloniaOtra", ""],
+  ["gracias.html", "publicada", "/gracias"],
+  ["gracias-inventado.html", "inventado", "/gracias"],
+];
+
+/**
+ * Los motivos de la 404 del enlace (scenario "los motivos no se distinguen"):
+ * `[nombre, segmento]`. Los tokens salen de la siembra (`tokens`) y del
+ * inventado que se pasa; los segmentos sin forma de token van tal cual.
+ */
+export function motivosDe404(tokens, inventado) {
+  const alterado = `${tokens.publicada.slice(0, -1)}${tokens.publicada.at(-1) === "A" ? "B" : "A"}`;
+  return [
+    ["inventado", inventado],
+    ["alterado", alterado],
+    ["regenerado", tokens.regenerada],
+    ["en-revision", tokens.revision],
+    ["rechazado", tokens.rechazada],
+    ["despublicado", tokens.despublicada],
+    ["borrado", tokens.borrada],
+    ["abc", "abc"],
+    ["cien", "a".repeat(100)],
+    ["nul", "%00"],
+    ["punto-punto", "..%2F"],
+  ];
+}
+
+/**
+ * Manda un envío de `enviosDe4` contra `base` y devuelve lo comparable, ya
+ * sin tokens (`ctx.anonimizar`): la cadena resumida, lo que vio el dueño
+ * (avisos, errores por campo y valores si se re-pintó), las cabeceras útiles
+ * del POST, el HTML re-pintado y lo que quedó en la base (las ediciones de la
+ * ficha y si su fila cambió).
+ *
+ * `ctx`: `{ tokens, ids, consultar, anonimizar(texto), regenerar(negocioId),
+ * ediciones(negocioId), fila(negocioId) }`.
+ */
+export async function recorrerEnvioDe4(base, envio, ctx) {
+  const negocioId = ctx.ids[envio.ficha];
+  const antes = await ctx.fila(negocioId);
+  const urlPagina = new URL(`/editar/${ctx.tokens[envio.ficha]}`, base).toString();
+  const r = await enviarFormulario({
+    urlPagina,
+    elecciones: envio.elecciones,
+    extras: envio.extras ?? [],
+    cabecerasExtra: envio.cabeceras ?? {},
+    antesDelEnvio: envio.regenerarAntes ? async () => void (await ctx.regenerar(negocioId)) : undefined,
+  });
+  const post = r.cadena[1];
+  const repinta = post.status === 200;
+  // Los ids de catálogo como `cat:<nombre>`: así un fixture se compara contra otra base.
+  const html = idsDeCatalogoPorNombre(r.final.html);
+  const despues = await ctx.fila(negocioId);
+  const anonimo = (valor) => JSON.parse(ctx.anonimizar(JSON.stringify(valor)));
+  return {
+    cadena: anonimo(resumenDelDesenlace(r)),
+    post: {
+      status: post.status,
+      "cache-control": post.cabeceras.get("cache-control"),
+      "content-type": post.cabeceras.get("content-type"),
+      "referrer-policy": post.cabeceras.get("referrer-policy"),
+      cookies: post.setCookie.length,
+    },
+    avisos: anonimo(avisosDe(html)),
+    errores: repinta ? anonimo(erroresDelFormulario(html)) : null,
+    valores: repinta ? anonimo(valoresDelFormulario(html, urlPagina)) : null,
+    base: { ediciones: anonimo(await ctx.ediciones(negocioId)), fichaIgual: JSON.stringify(antes) === JSON.stringify(despues) },
+    html: repinta ? ctx.anonimizar(html) : null,
+  };
 }
 
 async function principal(argumentos) {

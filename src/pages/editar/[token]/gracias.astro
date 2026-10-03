@@ -1,0 +1,31 @@
+---
+/**
+ * Confirmación tras enviar cambios desde el enlace de gestión (lo que era
+ * `src/app/(gestion)/editar/[token]/gracias/page.tsx`; change
+ * `migrar-enlace-gestion-astro`, Fase 4). Destino del 303 de la Action
+ * `editar` (POST → 303 → GET): recargarla no reenvía nada, porque aquí no hay
+ * `<form>`.
+ *
+ * Por petición, SIN CONSULTAR LA BASE y SIN VALIDAR EL TOKEN, igual que en
+ * Next: es la misma pantalla para cualquier segmento, así que no delata nada.
+ * El token no se repite en ningún `href` (vuelve a la home). Fuera de la
+ * medición y con la política de referente del grupo (`TroncoGestion`): la URL
+ * que el navegador tiene delante sigue llevando el secreto.
+ */
+import { METADATOS_GRACIAS_EDICION } from "@/astro/editar";
+import TroncoGestion from "@/layouts/TroncoGestion.astro";
+import { MENSAJE_CAMBIOS_RECIBIDOS } from "@/lib/gestion/textos";
+
+export const prerender = false;
+---
+
+<TroncoGestion metadatos={METADATOS_GRACIAS_EDICION}>
+  <section class="flex flex-1 flex-col items-center justify-center gap-6 py-12 text-center">
+    <h1 class="max-w-md text-2xl font-bold tracking-tight sm:text-3xl">{MENSAJE_CAMBIOS_RECIBIDOS}</h1>
+    <a
+      href="/"
+      class="inline-flex min-h-11 items-center justify-center px-4 text-base font-semibold text-accion-fuerte underline underline-offset-4"
+      >Volver al inicio</a
+    >
+  </section>
+</TroncoGestion>

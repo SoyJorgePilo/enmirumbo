@@ -1,0 +1,47 @@
+---
+// fuera de la medición: la ruta de estas pantallas ES el token del enlace de gestión (la credencial de una ficha) y el tracker manda el pathname al proveedor (hallazgo ALTO 1 de T-014).
+/**
+ * Tronco de las pantallas del ENLACE DE GESTIÓN en Astro (change
+ * `migrar-enlace-gestion-astro`, Fase 4, design.md §1 y §2): lo que era
+ * `src/app/(gestion)/layout.tsx`. Lo usan, y solo pueden usarlo, las páginas
+ * de `src/pages/editar/` (lo vigila `tests/analitica-exclusion-admin.test.ts`).
+ *
+ * **Sin medición, por estructura.** Envuelve a `DocumentoBase` SIN el script
+ * de la analítica: `/editar/<token>` lleva la credencial en la RUTA y
+ * `data-exclude-search` solo quita la consulta. Una pantalla nueva del enlace
+ * nace fuera de la medición por estar en esa carpeta y usar este tronco.
+ *
+ * **La política de referente, `strict-origin`, con la `<meta>` en el mismo
+ * lugar que Next** (`metadata.referrer` del layout del grupo). Además, el
+ * middleware fija la cabecera `Referrer-Policy: strict-origin` en TODA
+ * respuesta cuya ruta pedida empiece con `/editar/` (`PREFIJO_DE_GESTION`,
+ * `src/astro/cabeceras.ts`): cubre también el 303, la 404, el 403 y el 500,
+ * que esta `<meta>` no alcanza.
+ *
+ * Por qué `strict-origin` y no otro valor (medido en T-014, no es
+ * intercambiable):
+ *
+ * - Lo único que hay que ocultar es la RUTA, porque la ruta es el secreto:
+ *   `strict-origin` manda el origen pelado y nada al bajar de `https:` a
+ *   `http:`.
+ * - `no-referrer` hace que el navegador mande `Origin: null` en los POST de
+ *   navegación: en Next la Server Action abortaba (500) y aquí la regla de
+ *   origen responde el 403. El envío de cambios sin JavaScript se rompería.
+ * - `same-origin` y `strict-origin-when-cross-origin` dejan pasar la ruta
+ *   completa a las páginas del propio sitio, que sí se miden.
+ */
+import type { MetadatosDePagina } from "@/astro/metadatos";
+
+import DocumentoBase from "./DocumentoBase.astro";
+
+interface Props {
+  metadatos?: MetadatosDePagina;
+}
+
+const { metadatos = {} } = Astro.props;
+const conPolitica: MetadatosDePagina = { ...metadatos, referrer: "strict-origin" };
+---
+
+<DocumentoBase metadatos={conPolitica}>
+  <slot />
+</DocumentoBase>

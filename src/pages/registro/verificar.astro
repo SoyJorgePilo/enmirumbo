@@ -1,0 +1,57 @@
+---
+/**
+ * Pantalla "Confirma tu número" (lo que era
+ * `src/app/(publico)/registro/verificar/page.tsx`; change
+ * `migrar-verificacion-sms-astro`, Fase 3b-2). Spec `registro-negocio` de
+ * T-016 y spec `plataforma-astro`, requirements de 3b-2.
+ *
+ * Por petición y SIN JAVASCRIPT (T-016 lo prohíbe en esta pantalla): dos
+ * formularios nativos que postean a `?_action=confirmar` y
+ * `?_action=reenviar` de esta misma ruta; el middleware corre la Action y
+ * responde el 303 (PRG a `?error=` / `?errorReenvio=`), igual que Next.
+ *
+ * Con la verificación apagada o a medias, esta ruta NO EXISTE: responde la
+ * 404 de no encontrado (`NoEncontradoDinamico`, la misma de una dirección
+ * inventada) ANTES de mirar la cookie. También la responde sin una cookie de
+ * paso válida o si la Action ya dijo "no encontrado". No consulta la base: la
+ * página solo lee la configuración, la cookie y la URL (`cargarPantalla`).
+ */
+import { actions } from "astro:actions";
+
+import NoEncontradoDinamico from "@/astro/componentes/NoEncontradoDinamico.astro";
+import { METADATOS_VERIFICAR, cargarPantalla } from "@/astro/verificar";
+import { FormularioVerificarCodigo } from "@/components/registro/formulario-verificar-codigo";
+import TroncoPublico from "@/layouts/TroncoPublico.astro";
+import { TEXTO_ENCABEZADO_VERIFICAR, TEXTO_TRANQUILIDAD_VERIFICAR, textoExplicacionVerificar } from "@/lib/verificacion/textos";
+
+export const prerender = false;
+
+const pantalla = cargarPantalla(
+  Astro.url,
+  Astro.cookies,
+  Astro.getActionResult(actions.confirmar) ?? Astro.getActionResult(actions.reenviar),
+);
+if (pantalla.tipo === "no-encontrado") Astro.response.status = 404;
+---
+
+{
+  pantalla.tipo === "no-encontrado" ? (
+    <NoEncontradoDinamico />
+  ) : (
+    <TroncoPublico metadatos={METADATOS_VERIFICAR}>
+      <section class="flex flex-col gap-6 py-4">
+        <div class="flex flex-col gap-2">
+          <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">{TEXTO_ENCABEZADO_VERIFICAR}</h1>
+          <p class="text-tinta-suave">{textoExplicacionVerificar(pantalla.ultimosCuatroDigitos)}</p>
+          <p class="text-tinta-suave">{TEXTO_TRANQUILIDAD_VERIFICAR}</p>
+        </div>
+        <FormularioVerificarCodigo
+          accionConfirmar={actions.confirmar.toString()}
+          accionReenviar={actions.reenviar.toString()}
+          errorCodigo={pantalla.errorCodigo}
+          errorReenvio={pantalla.errorReenvio}
+        />
+      </section>
+    </TroncoPublico>
+  )
+}

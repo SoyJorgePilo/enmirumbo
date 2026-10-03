@@ -25,7 +25,6 @@ import ColaAdminPage from "../src/app/admin/cola/page";
 import AccesoAdminPage from "../src/app/admin/page";
 import DetalleRegistroAdminPage from "../src/app/admin/registros/[id]/page";
 import RegistroAprobadoPage from "../src/app/admin/registros/[id]/aprobado/page";
-import RegistroVerificarPage from "../src/app/(publico)/registro/verificar/page";
 import { Footer } from "../src/components/footer";
 import { Header } from "../src/components/header";
 import {
@@ -58,6 +57,7 @@ import AvisoDePrivacidadPage from "../src/pages/aviso-de-privacidad.astro";
 import Home from "../src/pages/index.astro";
 import RegistroGraciasAstro from "../src/pages/registro/gracias.astro";
 import RegistroAstro from "../src/pages/registro.astro";
+import RegistroVerificarAstro from "../src/pages/registro/verificar.astro";
 import TerminosPage from "../src/pages/terminos.astro";
 import { peticion, reiniciarPeticion } from "./admin-mocks";
 import { contenidoDelMain, pintarPagina } from "./astro-paginas";
@@ -290,14 +290,11 @@ beforeAll(async () => {
   process.env[VARIABLE_TWILIO_AUTH_TOKEN] = "token-de-mentiras-000";
   process.env[VARIABLE_TWILIO_SERVICE_SID] = "VA-de-mentiras-000";
   process.env[VARIABLE_SECRETO] = SECRETO_VERIFICACION;
-  peticion.cookies[COOKIE_PASO] = firmarPaso(
-    crearPasoInicial(idsEnRevision[0], "7719995099"),
-    SECRETO_VERIFICACION,
+  // Desde 3b-2 (change `migrar-verificacion-sms-astro`) la pantalla es de Astro.
+  const cookiePaso = firmarPaso(crearPasoInicial(idsEnRevision[0], "7719995099"), SECRETO_VERIFICACION);
+  htmlVerificar = contenidoDelMain(
+    await pintarPagina(RegistroVerificarAstro, { ruta: "/registro/verificar", cabeceras: { cookie: `${COOKIE_PASO}=${cookiePaso}` } }),
   );
-  const verificar = await RegistroVerificarPage({
-    searchParams: Promise.resolve({}),
-  } as unknown as Parameters<typeof RegistroVerificarPage>[0]);
-  htmlVerificar = renderToStaticMarkup(createElement(() => verificar));
   for (const variable of [
     VARIABLE_BANDERA,
     VARIABLE_TWILIO_SID,
@@ -307,7 +304,6 @@ beforeAll(async () => {
   ]) {
     delete process.env[variable];
   }
-  delete peticion.cookies[COOKIE_PASO];
 });
 
 afterAll(async () => {
@@ -638,8 +634,10 @@ describe("layout-base · enlaces internos y externos de las páginas servidas", 
     expect(problemasDeEnlaces(htmlTerminos)).toEqual([]);
     // Pantalla del código (change `agregar-verificacion-sms-tras-bandera`):
     // su única salida es "Mejor luego, mi registro ya quedó", que lleva a la
-    // pantalla de gracias de siempre.
-    expect(problemasDeEnlaces(htmlVerificar)).toEqual([]);
+    // pantalla de gracias de siempre. Desde 3b-2 es de Astro: sus dos
+    // formularios postean a `?_action=` de su propia ruta.
+    expect(htmlVerificar).toContain("Confirma tu número");
+    expect(problemasDeEnlaces(htmlVerificar, "/registro/verificar")).toEqual([]);
   });
 
   // directorio-publico · Requirements "Página indexable por giro…" y "Desde la
@@ -1233,14 +1231,25 @@ describe("plataforma-astro · los enlaces de las páginas migradas resuelven en 
     expect(problemasDeEnlacesEnAstro('<form action="?_action=registrar"></form>', "/ruta-inventada-xyz")).toHaveLength(1);
   });
 
+  // 3b-2 (change `migrar-verificacion-sms-astro`): la pantalla del código,
+  // con sus dos destinos, solo enlaza a lo que Astro sirve.
+  it("la pantalla del código (con los destinos de sus dos formularios) solo enlaza a lo que Astro sirve", () => {
+    expect(rutaDeAstroExiste("/registro/verificar")).toBe(true);
+    expect(htmlVerificar).toContain('action="?_action=confirmar"');
+    expect(htmlVerificar).toContain('action="?_action=reenviar"');
+    expect(htmlVerificar).toContain('href="/registro/gracias"');
+    expect(problemasDeEnlacesEnAstro(htmlVerificar, "/registro/verificar")).toEqual([]);
+  });
+
   it("falla con cualquier otro destino que no existe", () => {
     expect(problemasDeEnlacesEnAstro('<a href="/ruta-inventada-xyz">x</a>')).toHaveLength(1);
     expect(problemasDeEnlacesEnAstro(`<a href="/negocio/${segmentoFichaPublicada}/reportar/enviado">x</a>`)).toHaveLength(1);
     expect(problemasDeEnlacesEnAstro('<a href="/negocio/negocio-que-no-existe-xyz/reportar">x</a>')).toHaveLength(1);
     expect(problemasDeEnlacesEnAstro("<a href=\"/envio-rechazado\">x</a>")).toHaveLength(1);
-    // `/registro/gracias` ya existe (3b-1); `/registro/verificar` llega con 3b-2.
+    // `/registro/gracias` ya existe (3b-1) y `/registro/verificar` también (3b-2):
+    // lo inventado debajo de ellas sigue reprobando.
     expect(problemasDeEnlacesEnAstro('<a href="/registro/gracias/otra">x</a>')).toHaveLength(1);
-    expect(problemasDeEnlacesEnAstro('<a href="/registro/verificar">x</a>')).toHaveLength(1);
+    expect(problemasDeEnlacesEnAstro('<a href="/registro/verificar/otra">x</a>')).toHaveLength(1);
     expect(problemasDeEnlacesEnAstro('<a href="/negocio/negocio-que-no-existe-xyz">x</a>')).toHaveLength(1);
     expect(problemasDeEnlacesEnAstro('<form action="/buscador-inventado"></form>')).toHaveLength(1);
     expect(problemasDeEnlacesEnAstro('<form action="/buscar"></form>')).toEqual([]);

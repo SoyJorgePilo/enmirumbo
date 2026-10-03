@@ -13,7 +13,6 @@
  * Todo ficticio: WhatsApp de la serie 77199917xx, IPs de documentación.
  */
 import { readFileSync, rmSync } from "node:fs";
-import http from "node:http";
 import os from "node:os";
 import path from "node:path";
 
@@ -25,6 +24,7 @@ import type { PrismaClient } from "../src/generated/prisma/client";
 import { VERSION_AVISO } from "../src/lib/legales/version";
 import { MENSAJES_ERROR_FOTO, MENSAJES_ERROR_REGISTRO } from "../src/lib/registro/textos";
 import { crearClientePrueba } from "./db";
+import { postearPorTrozos } from "./postear-por-trozos";
 import { type Emulador, construirSiHaceFalta, levantarEmulador } from "./salida-astro";
 
 const raiz = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
@@ -64,42 +64,22 @@ function multipart(campos: Array<[string, string]>): string {
 /**
  * POST por trozos (`Transfer-Encoding: chunked`, sin `Content-Length`): el
  * principio, `relleno` MiB de foto y el final. Respeta la contrapresión y deja
- * de escribir en cuanto llega la respuesta.
+ * de escribir en cuanto llega la respuesta (`tests/postear-por-trozos.ts`).
  */
-function enviarPorTrozos(inicio: string, rellenoMib: number, fin: string): Promise<{ status: number; html: string }> {
-  const url = new URL(ACCION, emulador.base);
-  return new Promise((listo, falla) => {
-    let respondio = false;
-    const peticion = http.request(
-      url,
-      {
-        method: "POST",
-        headers: {
-          origin: emulador.base,
-          "content-type": `multipart/form-data; boundary=${LIMITE}`,
-          "transfer-encoding": "chunked",
-          "x-forwarded-for": otraIp(),
-        },
+async function enviarPorTrozos(inicio: string, rellenoMib: number, fin: string): Promise<{ status: number; html: string }> {
+  const trozo = Buffer.alloc(MIB, 0x41);
+  const r = await postearPorTrozos(
+    new URL(ACCION, emulador.base),
+    { origin: emulador.base, "content-type": `multipart/form-data; boundary=${LIMITE}`, "transfer-encoding": "chunked", "x-forwarded-for": otraIp() },
+    {
+      *trozos() {
+        yield inicio;
+        for (let i = 0; i < rellenoMib; i++) yield trozo;
+        yield fin;
       },
-      (respuesta) => {
-        respondio = true;
-        let html = "";
-        respuesta.setEncoding("utf8");
-        respuesta.on("data", (d: string) => (html += d));
-        respuesta.on("end", () => listo({ status: respuesta.statusCode ?? 0, html }));
-        respuesta.on("error", falla);
-      },
-    );
-    peticion.on("error", (error) => (respondio ? undefined : falla(error)));
-    const trozo = Buffer.alloc(MIB, 0x41);
-    void (async () => {
-      peticion.write(inicio);
-      for (let i = 0; i < rellenoMib && !respondio && !peticion.destroyed; i++) {
-        if (!peticion.write(trozo)) await new Promise((r) => peticion.once("drain", r));
-      }
-      if (!peticion.destroyed) peticion.end(fin);
-    })().catch(() => undefined);
-  });
+    },
+  );
+  return { status: r.status, html: r.cuerpo };
 }
 
 beforeAll(async () => {

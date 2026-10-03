@@ -56,6 +56,23 @@ describe("twilio falso · guion", () => {
     }
   });
 
+  // 3b-2 (change `migrar-verificacion-sms-astro`, design.md §8): el proveedor
+  // caído o que no contesta AL COMPROBAR, para el desenlace `?error=proveedor`.
+  it("al comprobar: error (503) y tarda (no contesta hasta que la espera acotada aborta)", async () => {
+    const comprobar = (pedir: typeof fetch, init: RequestInit = {}) =>
+      pedir(`${SERVICIO}/VerificationCheck`, { method: "POST", body: "To=%2B527719990001&Code=123456", ...init });
+    const caido = falso("enviado,error");
+    expect((await comprobar(caido.pedir)).status).toBe(503);
+    expect(caido.llamadas).toEqual([{ ruta: "/VerificationCheck", parametros: { To: "+527719990001", Code: "123456" } }]);
+
+    const lento = falso("enviado,tarda");
+    const abortador = new AbortController();
+    const respuesta = comprobar(lento.pedir, { signal: abortador.signal });
+    setTimeout(() => abortador.abort(), 20);
+    await expect(respuesta).rejects.toBeDefined();
+    expect(lento.llamadas).toHaveLength(1);
+  });
+
   it("un guion desconocido no arranca", () => {
     expect(() => leerGuion("inventado")).toThrow();
     expect(() => leerGuion("enviado,inventado")).toThrow();

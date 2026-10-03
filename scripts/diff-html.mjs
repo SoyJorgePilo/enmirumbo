@@ -4,11 +4,13 @@
  * `plataforma-astro`, requirement "El HTML servido no difiere del de Next").
  *
  * Uso:
- *   node scripts/diff-html.mjs <baseNext> <baseAstro> --datos <json> [--rutas archivo | --solo-3a | --solo-3b]
+ *   node scripts/diff-html.mjs <baseNext> <baseAstro> --datos <json> [--rutas archivo | --solo-3a | --solo-3b | --solo-3b2] [--verificacion encendida|apagada]
  *   node scripts/diff-html.mjs --capturar-head <baseNext> <directorio>
  *   node scripts/diff-html.mjs --capturar-2b <baseNext> <directorio> --datos <json>
  *   node scripts/diff-html.mjs --capturar-3a <baseNext> <directorio> --datos <json>
  *   npx tsx scripts/diff-html.mjs --capturar-3b <baseNext> <directorio> --datos <json> [--con-envios]
+ *   npx tsx scripts/diff-html.mjs --capturar-3b2 <baseNext> <directorio> --datos <json>
+ *   node scripts/diff-html.mjs --capturar-3b2-apagada <base> <directorio> <configuracion>
  *
  * Sale con código 1 y lista cada diferencia por ruta; 0 si no hay ninguna.
  * NO corre en el CI (necesita las dos builds); su núcleo sí tiene pruebas
@@ -85,6 +87,9 @@ import {
 import {
   enviarFormulario,
   enviosDe3a,
+  PANTALLAS_DE_VERIFICAR,
+  recorrerSecuencia3b2,
+  secuenciasDe3b2,
   enviosDe3b,
   erroresDelFormulario,
   leerSetCookie,
@@ -218,6 +223,81 @@ export function rutas3b() {
 }
 
 /**
+ * Rutas de 3b-2 (change `migrar-verificacion-sms-astro`, design.md §12;
+ * tasks.md #12), según cómo corran LAS DOS versiones (`--verificacion`):
+ *
+ * - `encendida`: las nueve pantallas de `PANTALLAS_DE_VERIFICAR` con la MISMA
+ *   cookie de paso firmada (`cookie: true`) y con `NORMALIZACIONES_FORMULARIO`
+ *   en sus dos formularios; sin cookie, la 404 dinámica.
+ * - `apagada`: `GET`, `POST ?_action=confirmar` y `POST` sin parámetro como
+ *   404 dinámica (`NORMALIZACIONES_404_DINAMICA`); `HEAD`, sin cuerpo, solo
+ *   estado y cabeceras. En
+ *   los `POST` el `Cache-Control` no se exige (`dinamica: false`): Astro
+ *   responde el de una Action también con la bandera encendida y sin cookie,
+ *   y Next, el del HTML dinámico (diferencia anotada en el reporte de 3b-2).
+ *
+ * Ninguna normalización nueva.
+ */
+export function rutas3b2(verificacion) {
+  const dinamica = true;
+  if (verificacion === "encendida") {
+    return [
+      ...PANTALLAS_DE_VERIFICAR.map(([, ruta]) => ({ ruta, dinamica, formulario: true, cookie: true })),
+      { ruta: "/registro/verificar", dinamica, es404Dinamica: true },
+    ];
+  }
+  if (verificacion === "apagada") {
+    return [
+      { ruta: "/registro/verificar", dinamica, es404Dinamica: true },
+      // Sin cuerpo: se comparan estado y cabeceras (la 404 dinámica reemplazaría el cuerpo vacío de Next).
+      { ruta: "/registro/verificar", dinamica, metodo: "HEAD" },
+      { ruta: "/registro/verificar?_action=confirmar", es404Dinamica: true, metodo: "POST", mismoOrigen: true },
+      { ruta: "/registro/verificar", es404Dinamica: true, metodo: "POST", mismoOrigen: true },
+    ];
+  }
+  return [];
+}
+
+/**
+ * Las secuencias de 3b-2 contra las dos versiones (tasks.md #14), con la
+ * MISMA base y la bandera encendida en las dos, cada una con su Twilio falso
+ * (`datos.next` y `datos.astro`: `{ archivoGuion, archivoLlamadas }`, y el
+ * mismo `datos.secreto`). Se comparan cadena, `Location`, atributos de
+ * `Set-Cookie`, avisos, llamadas al simulador, ficha y cupos. La única
+ * diferencia aceptada es el origen ajeno o `null` (Next 500, Astro 403).
+ */
+async function compararEnvios3b2(baseNext, baseAstro, datos) {
+  const { default: pg } = await import("pg");
+  const cliente = new pg.Client({ connectionString: process.env.DATABASE_URL });
+  await cliente.connect();
+  const consultar = async (sql, params) => (await cliente.query(sql, params)).rows;
+  const { contextoDe3b2 } = await import("../tests/verificar-astro.ts");
+  const secuencias = secuenciasDe3b2();
+  const numeros = secuencias.flatMap((x) => [x.whatsapp, ...(x.previos ?? []).map(([w]) => w)]);
+  const correr = async (base, lado) => {
+    await consultar(`DELETE FROM "Negocio" WHERE whatsapp = ANY($1)`, [numeros]);
+    const ctx = contextoDe3b2({ consultar, secreto: datos.secreto, categoriaId: datos.categoriaId, coloniaId: datos.coloniaId, ...datos[lado] });
+    const salida = {};
+    for (const secuencia of secuencias) salida[secuencia.nombre] = await recorrerSecuencia3b2(base, secuencia, ctx);
+    return salida;
+  };
+  const deNext = await correr(baseNext, "next");
+  const deAstro = await correr(baseAstro, "astro");
+  await consultar(`DELETE FROM "Negocio" WHERE whatsapp = ANY($1)`, [numeros]);
+  await cliente.end();
+  const diferencias = [];
+  for (const secuencia of secuencias) {
+    const [n, a] = [deNext[secuencia.nombre], deAstro[secuencia.nombre]];
+    const iguales = JSON.stringify(n) === JSON.stringify(a);
+    const aceptada = !iguales && Boolean(secuencia.aceptada?.(n, a));
+    const estados = (r) => r.pasos.map((p) => p.cadena.map((c) => c.status).join("→")).join(" | ");
+    console.log(`${iguales ? "igual   " : aceptada ? "ACEPTADA" : "DISTINTA"} envío 3b-2: ${secuencia.nombre} (${estados(n)} / ${estados(a)})`);
+    if (!iguales && !aceptada) diferencias.push(`envío 3b-2 ${secuencia.nombre}:\n  Next : ${JSON.stringify(n)}\n  Astro: ${JSON.stringify(a)}`);
+  }
+  return diferencias;
+}
+
+/**
  * Los envíos de 3b-1 contra las dos versiones (tasks.md #16), con la MISMA
  * base: antes de cada versión se borran las fichas de los envíos y se vuelven
  * a sembrar las cuatro de `datos` (sin foto), así las dos parten igual. Se
@@ -236,6 +316,10 @@ async function compararEnvios3b(baseNext, baseAstro, datos, aplicadasRegistro) {
   const numeros = [...new Set([...envios.map(whatsappDelEnvio).filter(Boolean), datos.publicado, datos.revision, datos.rechazado, datos.verificado])];
   const reiniciar = async () => {
     await cliente.query(`DELETE FROM "Negocio" WHERE whatsapp = ANY($1)`, [numeros]);
+    // Los cupos (espera de 60 s del reenvío, topes) son estado de la corrida: los dos lados
+    // tienen que partir sin historia, o el que corre segundo hereda la espera del primero
+    // y al invertir el orden de los lados la diferencia se invierte (V1 de 3b-2).
+    await cliente.query(`DELETE FROM "IntentoDeCupo"`);
     const alta = (id, nombre, whatsapp, estado, extra) =>
       cliente.query(
         `INSERT INTO "Negocio" (id, nombre, "categoriaId", whatsapp, "consintioAvisoEn", estado, "publicadoEn", "rechazadoEn", "consintioAvisoVersion", "numeroVerificadoEn")
@@ -327,8 +411,8 @@ const PAGINAS_DE_FIXTURE = [
   ["404", "/a/b/c"],
 ];
 
-async function pedir(base, ruta, metodo = "GET", mismoOrigen = false) {
-  const headers0 = mismoOrigen ? { origin: new URL(base).origin } : {};
+async function pedir(base, ruta, metodo = "GET", mismoOrigen = false, cookie = undefined) {
+  const headers0 = { ...(mismoOrigen ? { origin: new URL(base).origin } : {}), ...(cookie ? { cookie } : {}) };
   const respuesta = await fetch(new URL(ruta, base), { method: metodo, redirect: "manual", headers: headers0 });
   const headers = {};
   respuesta.headers.forEach((valor, nombre) => {
@@ -530,6 +614,93 @@ async function capturar3b(baseNext, directorio, datos, conEnvios) {
   escribir("respuestas.json", `${JSON.stringify({ pantallas, desenlaces }, null, 2)}\n`);
 }
 
+/**
+ * Fixtures de 3b-2 (change `migrar-verificacion-sms-astro`, tasks.md #2), con
+ * la bandera ENCENDIDA y el Twilio falso precargado en Next
+ * (`NODE_OPTIONS="--import …/tests/fixtures/twilio-falso.mjs"`): las nueve
+ * pantallas de `/registro/verificar` con una cookie firmada para una ficha
+ * sembrada, y lo que responde Next a cada secuencia de `secuenciasDe3b2`.
+ * Necesita `DATABASE_URL` (la que sirve Next) y `tsx`. `datos`: `{ secreto,
+ * archivoGuion, archivoLlamadas, categoriaId, coloniaId }` (el secreto y los
+ * dos archivos son los del proceso de Next). Sin identificadores ni valores
+ * de cookie en lo que se escribe.
+ */
+async function capturar3b2(baseNext, directorio, datos) {
+  mkdirSync(directorio, { recursive: true });
+  const escribir = (nombre, contenido) => {
+    const archivo = path.join(directorio, nombre);
+    writeFileSync(archivo, contenido);
+    console.log(`capturado ${archivo}`);
+  };
+  const { default: pg } = await import("pg");
+  const cliente = new pg.Client({ connectionString: process.env.DATABASE_URL });
+  await cliente.connect();
+  const consultar = async (sql, params) => (await cliente.query(sql, params)).rows;
+  const { contextoDe3b2, cookieDePaso } = await import("../tests/verificar-astro.ts");
+  const ctx = contextoDe3b2({ consultar, ...datos });
+  const secuencias = secuenciasDe3b2();
+  const numeros = secuencias.flatMap((s) => [s.whatsapp, ...(s.previos ?? []).map(([w]) => w)]);
+  await consultar(`DELETE FROM "Negocio" WHERE whatsapp = ANY($1)`, [numeros]);
+
+  const cookie = `nu_paso=${cookieDePaso("vigente", "cficticia0000000000000000", datos.secreto, "8299")}`;
+  const pantallas = {};
+  for (const [nombre, ruta] of PANTALLAS_DE_VERIFICAR) {
+    const r = await fetch(new URL(ruta, baseNext), { redirect: "manual", headers: { cookie } });
+    escribir(nombre, `${limpiarHtml(await r.text()).replace(/></g, ">\n<")}\n`);
+    pantallas[nombre] = { status: r.status, "cache-control": r.headers.get("cache-control"), "content-type": r.headers.get("content-type"), cookies: r.headers.getSetCookie().length };
+  }
+  const envios = {};
+  for (const secuencia of secuencias) {
+    envios[secuencia.nombre] = await recorrerSecuencia3b2(baseNext, secuencia, ctx);
+    console.log(`secuencia ${secuencia.nombre}: ${envios[secuencia.nombre].pasos.map((p) => p.cadena.map((c) => c.status).join("→")).join(" | ")}`);
+  }
+  await consultar(`DELETE FROM "Negocio" WHERE whatsapp = ANY($1)`, [numeros]);
+  await cliente.end();
+  escribir("respuestas.json", `${JSON.stringify({ pantallas, envios }, null, 2)}\n`);
+}
+
+/**
+ * La ruta apagada de 3b-2 (tasks.md #2): lo que responde `/registro/verificar`
+ * con cada forma de petición y, para comparar, `/loquesea`,
+ * `/registro/loquesea` y `/a/b/c`. Estado, cabeceras útiles y si el cuerpo es
+ * igual al de `/loquesea`. `configuracion`: el nombre del archivo.
+ */
+async function capturar3b2Apagada(base, directorio, configuracion) {
+  mkdirSync(directorio, { recursive: true });
+  const origin = new URL(base).origin;
+  const formas = [
+    ["GET", "/registro/verificar"],
+    ["HEAD", "/registro/verificar"],
+    ["POST", "/registro/verificar?_action=confirmar"],
+    ["POST", "/registro/verificar"],
+    ["GET", "/loquesea"],
+    ["GET", "/registro/loquesea"],
+    ["GET", "/a/b/c"],
+  ];
+  const referencia = await (await fetch(new URL("/loquesea", base))).text();
+  const salida = {};
+  for (const [metodo, ruta] of formas) {
+    const r = await fetch(new URL(ruta, base), {
+      method: metodo,
+      redirect: "manual",
+      headers: metodo === "POST" ? { origin, "content-type": "application/x-www-form-urlencoded" } : {},
+      body: metodo === "POST" ? "codigo=123456" : undefined,
+    });
+    const cuerpo = await r.text();
+    const utiles = ["content-type", "cache-control", "x-content-type-options", "x-frame-options", "referrer-policy", "content-security-policy"];
+    salida[`${metodo} ${ruta}`] = {
+      status: r.status,
+      ...Object.fromEntries(utiles.filter((h) => r.headers.has(h)).map((h) => [h, r.headers.get(h)])),
+      cookies: r.headers.getSetCookie().length,
+      igualALoquesea: cuerpo === referencia,
+      documentoDeError: /<html id="__next_error__"/.test(cuerpo),
+    };
+  }
+  const archivo = path.join(directorio, `apagada-${configuracion}.json`);
+  writeFileSync(archivo, `${JSON.stringify(salida, null, 2)}\n`);
+  console.log(`capturado ${archivo}`);
+}
+
 function argumento(argumentos, nombre) {
   const i = argumentos.indexOf(nombre);
   return i === -1 ? undefined : argumentos[i + 1];
@@ -552,6 +723,15 @@ async function principal(argumentos) {
     await capturar3b(argumentos[1], argumentos[2], datos, argumentos.includes("--con-envios"));
     return 0;
   }
+  if (argumentos[0] === "--capturar-3b2") {
+    if (!datos) throw new Error("--capturar-3b2 necesita --datos <json>");
+    await capturar3b2(argumentos[1], argumentos[2], datos);
+    return 0;
+  }
+  if (argumentos[0] === "--capturar-3b2-apagada") {
+    await capturar3b2Apagada(argumentos[1], argumentos[2], argumentos[3]);
+    return 0;
+  }
   if (argumentos[0] === "--capturar-2b") {
     if (!datos) throw new Error("--capturar-2b necesita --datos <json>");
     await capturar2b(argumentos[1], argumentos[2], datos);
@@ -572,11 +752,22 @@ async function principal(argumentos) {
   // `--solo-3a` / `--solo-3b`: solo las rutas y los envíos de esa mitad (no necesitan las fotos de 2b).
   const solo3a = argumentos.includes("--solo-3a");
   const solo3b = argumentos.includes("--solo-3b");
+  // 3b-2: `--verificacion encendida|apagada` dice cómo corren LAS DOS versiones; `--solo-3b2`, solo esas rutas.
+  const verificacion = argumento(argumentos, "--verificacion");
+  const solo3b2 = argumentos.includes("--solo-3b2");
   let rutas = solo3a
     ? rutas3a(datos, fichaPublicada)
     : solo3b
       ? rutas3b()
-      : [...RUTAS_2A, ...rutas2b(datos, sitemap), ...rutas3a(datos, fichaPublicada), ...rutas3b()];
+      : solo3b2
+        ? rutas3b2(verificacion)
+        : [...RUTAS_2A, ...rutas2b(datos, sitemap), ...rutas3a(datos, fichaPublicada), ...rutas3b(), ...rutas3b2(verificacion)];
+  // La cookie de paso de las pantallas encendidas: firmada con el secreto que comparten las dos versiones.
+  let cookieDePaso;
+  if (verificacion === "encendida") {
+    const ayudantes = await import("../tests/verificar-astro.ts");
+    cookieDePaso = `nu_paso=${ayudantes.cookieDePaso("vigente", "cficticia0000000000000000", datos.secreto, "8299")}`;
+  }
   const archivoRutas = argumento(argumentos, "--rutas");
   if (archivoRutas) {
     rutas = readFileSync(archivoRutas, "utf8")
@@ -592,10 +783,11 @@ async function principal(argumentos) {
   const dondeSeAplicoRegistro = Object.fromEntries(NORMALIZACIONES_REGISTRO.map((n) => [n.id, []]));
   const diferencias = [];
   const medidas404 = [];
-  for (const { ruta, dinamica, es404Dinamica, metodo, mismoOrigen, medir404, formulario, registro } of rutas) {
+  for (const { ruta, dinamica, es404Dinamica, metodo, mismoOrigen, medir404, formulario, registro, cookie } of rutas) {
+    const galleta = cookie ? cookieDePaso : undefined;
     const [next, astro] = await Promise.all([
-      pedir(baseNext, ruta, metodo, mismoOrigen),
-      pedir(baseAstro, ruta, metodo, mismoOrigen),
+      pedir(baseNext, ruta, metodo, mismoOrigen, galleta),
+      pedir(baseAstro, ruta, metodo, mismoOrigen, galleta),
     ]);
     const medidaDinamica = Boolean(medir404) && next.status === 404 && /<html id="__next_error__"/.test(String(next.cuerpo));
     if (medidaDinamica) medidas404.push(ruta);
@@ -629,8 +821,9 @@ async function principal(argumentos) {
   }
   if (!archivoRutas) {
     console.log("\nEnvíos del arnés (sin JS):");
-    if (!solo3b) diferencias.push(...(await compararEnvios(baseNext, baseAstro, datos, fichaPublicada)));
-    if (!solo3a && datos.categoriaId) {
+    if (!solo3b && !solo3b2) diferencias.push(...(await compararEnvios(baseNext, baseAstro, datos, fichaPublicada)));
+    if (verificacion === "encendida" && !solo3a && !solo3b) diferencias.push(...(await compararEnvios3b2(baseNext, baseAstro, datos)));
+    if (!solo3a && !solo3b2 && datos.categoriaId) {
       const enEnvios = {};
       const datos3b = { categoriaId: datos.categoriaId, coloniaId: datos.coloniaId, ...SEMBRADAS_3B };
       diferencias.push(...(await compararEnvios3b(baseNext, baseAstro, datos3b, enEnvios)));

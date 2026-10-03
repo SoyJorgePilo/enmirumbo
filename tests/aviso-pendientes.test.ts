@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { seedCatalogos } from "../prisma/seed";
 import type { PrismaClient } from "../src/generated/prisma/client";
@@ -125,6 +125,15 @@ beforeEach(async () => {
 
 afterEach(() => {
   vi.restoreAllMocks();
+});
+
+// Lo que siembra este archivo no debe verlo el siguiente: sin esto, el último
+// negocio se quedaba en la base compartida y rompía la "base vacía" de
+// `tareas-programadas.test.ts` cuando le tocaba justo después (obs. 6 de
+// c-seguridad.md de `migrar-verificacion-sms-astro`).
+afterAll(async () => {
+  await prisma.negocio.deleteMany({ where: { whatsapp: { startsWith: PREFIJO } } });
+  await prisma.$disconnect();
 });
 
 // ── 3.1 Los conteos salen de la cola, no de consultas nuevas ───────────────

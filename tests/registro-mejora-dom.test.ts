@@ -28,6 +28,7 @@ import { VERSION_AVISO } from "../src/lib/legales/version";
 import { AVISO_FOTO_NO_GUARDADA, MENSAJES_ERROR_REGISTRO } from "../src/lib/registro/textos";
 import { crearClientePrueba } from "./db";
 import { type Emulador, construirSiHaceFalta, levantarEmulador } from "./salida-astro";
+import { clavesDeLosTopes } from "./verificar-astro";
 
 const ORIGEN = "https://enmirumbo.example";
 
@@ -215,6 +216,77 @@ describe("mejora progresiva en el DOM · éxito", () => {
     mejorar(falsa);
     enviar();
     await vi.waitFor(() => expect(assign).toHaveBeenCalledWith(ruta));
+  });
+});
+
+/**
+ * 3b-2 (change `migrar-verificacion-sms-astro`, design.md §10; tasks.md #7):
+ * con la bandera ENCENDIDA y el Twilio falso, las respuestas REALES de la
+ * build. El `fetch` del navegador sigue el 303 y pide `/registro/verificar`
+ * con la cookie que acaba de poner el 303: esa respuesta (200, la pantalla del
+ * código) es la que ve el módulo. Ficticio: WhatsApp 7719998801.
+ */
+describe("mejora progresiva en el DOM · con la bandera encendida", () => {
+  const WHATSAPP_DOM = "7719998801";
+  const SECRETO_DOM = "secreto-ficticio-del-dom-de-32-caracteres-o-mas";
+  let encendida: Emulador;
+  let htmlVerificar = "";
+  let statusVerificar = 0;
+
+  beforeAll(async () => {
+    await prisma.negocio.deleteMany({ where: { whatsapp: WHATSAPP_DOM } });
+    encendida = await levantarEmulador(
+      {
+        SITIO_URL: ORIGEN,
+        VERIFICACION_SMS_ACTIVA: "1",
+        VERIFICACION_SMS_SECRETO: SECRETO_DOM,
+        TWILIO_ACCOUNT_SID: "ACtest00000000000000000000000000",
+        TWILIO_AUTH_TOKEN: "token-ficticio-de-pruebas",
+        TWILIO_VERIFY_SERVICE_SID: "VAtest00000000000000000000000000",
+        TWILIO_FALSO_GUION: "enviado",
+      },
+      { precargas: ["tests/fixtures/twilio-falso.mjs"] },
+    );
+    const coloniaId = String((await prisma.colonia.findFirstOrThrow({ orderBy: { id: "asc" } })).id);
+    const valido = multipart({ nombre: "Plomería Ficticia Encendida", categoriaId: idHogar, whatsapp: WHATSAPP_DOM, coloniaId, consentimiento: "on", avisoVersion: VERSION_AVISO });
+    const alta = await new Promise<{ status: number; location: string; cookie: string }>((listo, falla) => {
+      const p = request(new URL("/registro?_action=registrar", encendida.base), { method: "POST", headers: { "content-type": valido.tipo, origin: encendida.base }, agent: false }, (r) => {
+        r.resume();
+        listo({ status: r.statusCode ?? 0, location: String(r.headers.location), cookie: (r.headers["set-cookie"] ?? [])[0]?.split(";")[0] ?? "" });
+      });
+      p.on("error", falla);
+      p.end(valido.cuerpo);
+    });
+    expect(alta).toMatchObject({ status: 303, location: "/registro/verificar" });
+    const verificar = await new Promise<{ status: number; html: string }>((listo, falla) => {
+      const p = request(new URL(alta.location, encendida.base), { headers: { cookie: alta.cookie }, agent: false }, (r) => {
+        const trozos: Buffer[] = [];
+        r.on("data", (t: Buffer) => trozos.push(t));
+        r.on("end", () => listo({ status: r.statusCode ?? 0, html: Buffer.concat(trozos).toString("utf8") }));
+      });
+      p.on("error", falla);
+      p.end();
+    });
+    statusVerificar = verificar.status;
+    htmlVerificar = verificar.html;
+  }, 120_000);
+
+  afterAll(async () => {
+    encendida?.detener();
+    const ficha = await prisma.negocio.findUnique({ where: { whatsapp: WHATSAPP_DOM } });
+    if (ficha) await prisma.intentoDeCupo.deleteMany({ where: { clave: { in: Object.values(clavesDeLosTopes(ficha.id, SECRETO_DOM)) } } });
+    await prisma.negocio.deleteMany({ where: { whatsapp: WHATSAPP_DOM } });
+  });
+
+  it("la respuesta real del 303 seguido es la pantalla del código (200), y el módulo navega ahí sin ninguna otra petición", async () => {
+    expect(statusVerificar).toBe(200);
+    expect(htmlVerificar).toContain("Confirma tu número");
+    const { falsa, llamadas, assign } = ventana([{ status: statusVerificar, url: `${ORIGEN}/registro/verificar`, html: htmlVerificar }]);
+    mejorar(falsa);
+    enviar();
+    await vi.waitFor(() => expect(assign).toHaveBeenCalledWith("/registro/verificar"));
+    expect(assign).toHaveBeenCalledTimes(1);
+    expect(llamadas).toHaveLength(1);
   });
 });
 

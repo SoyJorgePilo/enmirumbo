@@ -16,7 +16,6 @@ vi.mock("next/navigation", async () => {
 
 import { seedCatalogos } from "../prisma/seed";
 import type { PrismaClient } from "../src/generated/prisma/client";
-import RegistroVerificarPage from "../src/app/(publico)/registro/verificar/page";
 import { DetalleRegistro } from "../src/components/admin/detalle-registro";
 import { TarjetaCola } from "../src/components/admin/tarjeta-cola";
 import {
@@ -48,8 +47,9 @@ import { COOKIE_PASO, crearPasoInicial, firmarPaso } from "../src/lib/verificaci
 import { proveedorDeVerificacion } from "../src/lib/verificacion/proveedor";
 import RegistroGracias from "../src/pages/registro/gracias.astro";
 import Registro from "../src/pages/registro.astro";
+import RegistroVerificarAstro from "../src/pages/registro/verificar.astro";
 import { NoEncontradoSimulado, cookies, obedecerDestino, peticion, reiniciarPeticion } from "./admin-mocks";
-import { contenidoDelMain, pintarPagina } from "./astro-paginas";
+import { contenidoDelMain, pintarPagina, pintarRespuesta } from "./astro-paginas";
 import { crearClientePrueba } from "./db";
 
 /**
@@ -158,13 +158,29 @@ afterAll(async () => {
 
 // Scenario: la ruta del código no existe cuando la capacidad está apagada
 describe("registro-negocio · con la capacidad apagada, /registro/verificar no existe", () => {
-  const abrir = () =>
-    RegistroVerificarPage({
-      searchParams: Promise.resolve({}),
-    } as unknown as Parameters<typeof RegistroVerificarPage>[0]);
+  /**
+   * La pantalla es de Astro desde 3b-2 (change `migrar-verificacion-sms-astro`):
+   * "no encontrado" es la 404 con la página de no encontrado
+   * (`NoEncontradoDinamico`), no un `notFound()` que lanza. La cookie que
+   * tenga la petición simulada viaja en la cabecera.
+   */
+  async function abrir() {
+    const cookie = peticion.cookies[COOKIE_PASO];
+    return pintarRespuesta(RegistroVerificarAstro, {
+      ruta: "/registro/verificar",
+      cabeceras: cookie ? { cookie: `${COOKIE_PASO}=${cookie}` } : {},
+    });
+  }
+  /** Lo que se exigía con `rejects.toBeInstanceOf(NoEncontradoSimulado)`: la 404, sin nada de la pantalla. */
+  async function esNoEncontrado(r: Promise<{ status: number; html: string }>) {
+    const { status, html } = await r;
+    expect(status).toBe(404);
+    expect(html).toContain("No encontramos esta página");
+    expect(html).not.toContain("Confirma tu número");
+  }
 
   it("sin ninguna variable responde no encontrado", async () => {
-    await expect(abrir()).rejects.toBeInstanceOf(NoEncontradoSimulado);
+    await esNoEncontrado(abrir());
   });
 
   it("responde igual aunque alguien traiga una cookie de paso puesta", async () => {
@@ -172,7 +188,7 @@ describe("registro-negocio · con la capacidad apagada, /registro/verificar no e
       crearPasoInicial("cualquier-ficha", `${PREFIJO}0001`, AHORA),
       "secreto-de-pruebas-de-32-caracteres-o-mas",
     );
-    await expect(abrir()).rejects.toBeInstanceOf(NoEncontradoSimulado);
+    await esNoEncontrado(abrir());
   });
 
   it.each(VARIABLES.filter((v) => v !== VARIABLE_TOPE_DIARIO))(
@@ -185,8 +201,12 @@ describe("registro-negocio · con la capacidad apagada, /registro/verificar no e
       process.env[VARIABLE_TWILIO_SERVICE_SID] = "VA-de-mentiras-000";
       process.env[VARIABLE_SECRETO] = "secreto-de-pruebas-de-32-caracteres-o-mas";
       delete process.env[faltante];
+      peticion.cookies[COOKIE_PASO] = firmarPaso(
+        crearPasoInicial("cualquier-ficha", `${PREFIJO}0001`, AHORA),
+        "secreto-de-pruebas-de-32-caracteres-o-mas",
+      );
 
-      await expect(abrir()).rejects.toBeInstanceOf(NoEncontradoSimulado);
+      await esNoEncontrado(abrir());
     },
   );
 
@@ -378,12 +398,17 @@ describe("registro-negocio · el fail-safe está escrito en un solo lugar", () =
   });
 
   it("la pantalla del código y su formulario no son Client Components", () => {
+    // La pantalla es de Astro desde 3b-2: ni isla (`client:`) ni `<script>`
+    // propio (T-016: "NO DEBE agregar … ningún JavaScript").
     for (const ruta of [
-      "src/app/(publico)/registro/verificar/page.tsx",
+      "src/pages/registro/verificar.astro",
       "src/components/registro/formulario-verificar-codigo.tsx",
       "src/pages/registro/gracias.astro",
     ]) {
-      expect(readFileSync(join(raiz, ruta), "utf8"), ruta).not.toContain('"use client"');
+      const fuente = readFileSync(join(raiz, ruta), "utf8");
+      expect(fuente, ruta).not.toContain('"use client"');
+      expect(fuente, ruta).not.toMatch(/\bclient:[a-z]+/);
+      expect(fuente, ruta).not.toMatch(/<script[\s>]/);
     }
   });
 

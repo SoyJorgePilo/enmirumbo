@@ -538,8 +538,11 @@ describe("c-seguridad 2b · escape de lo que manda el vecino en la URL", () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe("c-seguridad 2b · ninguna 404 lleva la medición ni datos de la petición", () => {
-  // `/registro` dejó de ser una 404 en 3b-1 (change `migrar-registro-astro`):
-  // la 404 que queda en esa zona es `/registro/verificar`, hasta 3b-2.
+  // `/registro` dejó de ser una 404 en 3b-1 (change `migrar-registro-astro`).
+  // `/registro/verificar` existe desde 3b-2 (change
+  // `migrar-verificacion-sms-astro`), pero con la verificación apagada —como
+  // corre este emulador— responde la 404 de no encontrado de la función, sin
+  // medición; `/registro/verificar/otra` es la 404 de la CDN en esa zona.
   it("dinámicas, global, /404, /registro/verificar, sub-rutas y prefijos sueltos: sin script, sin umami y sin eco de la consulta", async () => {
     for (const ruta of [
       "/loquesea?utm_source=Marcadoreco",
@@ -547,6 +550,7 @@ describe("c-seguridad 2b · ninguna 404 lleva la medición ni datos de la petici
       "/404",
       "/404/",
       "/registro/verificar?Marcadoreco=1",
+      "/registro/verificar/otra?Marcadoreco=1",
       "/negocio",
       "/negocio/",
       "/api",

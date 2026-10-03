@@ -86,6 +86,24 @@ export function leerFormulario(html, urlPagina, indice = 0) {
   return { metodo, accion, codificacion, campos };
 }
 
+/**
+ * El índice del `<form>` que tiene un botón con ese texto (change
+ * `migrar-verificacion-sms-astro`, tasks.md #3): la pantalla del código tiene
+ * dos formularios y el vecino elige uno por el botón que toca. Lanza si
+ * ninguno lo tiene.
+ *
+ * @param {string} html
+ * @param {string} texto
+ * @returns {number}
+ */
+export function indiceDelBoton(html, texto) {
+  const indice = parse(html)
+    .querySelectorAll("form")
+    .findIndex((form) => form.querySelectorAll("button").some((boton) => boton.text.trim() === texto));
+  if (indice === -1) throw new Error(`la página no tiene un formulario con el botón «${texto}»`);
+  return indice;
+}
+
 /** Un archivo como lo manda el navegador: con su nombre y su tipo. */
 function comoFile(archivo) {
   return new File([archivo.bytes], archivo.nombre, { type: archivo.tipo });
@@ -262,6 +280,11 @@ export class Frasco {
   tiene(nombre) {
     return this.#galletas.has(nombre);
   }
+
+  /** El valor guardado de esa cookie (3b-2: "reusar la primera cookie"). @param {string} nombre */
+  valor(nombre) {
+    return this.#galletas.get(nombre)?.valor;
+  }
 }
 
 /**
@@ -285,6 +308,8 @@ function sinNulos(cabeceras) {
  *   frasco?: Frasco,
  *   cabecerasExtra?: Record<string, string | null>,
  *   indice?: number,
+ *   boton?: string,
+ *   cookieDelEnvio?: string | null,
  *   pedir?: typeof fetch,
  *   archivos?: Record<string, Archivo | Archivo[]>,
  * }} opciones
@@ -297,6 +322,8 @@ export async function enviarFormulario({
   frasco = new Frasco(),
   cabecerasExtra = {},
   indice = 0,
+  boton,
+  cookieDelEnvio,
   pedir = fetch,
 }) {
   /** @type {Array<{ metodo: string, url: string, status: number, location: string | null, setCookie: string[], cabeceras: Headers }>} */
@@ -310,10 +337,12 @@ export async function enviarFormulario({
   };
 
   const pagina = await get(urlPagina);
-  const formulario = leerFormulario(pagina.html, urlPagina, indice);
+  const formulario = leerFormulario(pagina.html, urlPagina, boton === undefined ? indice : indiceDelBoton(pagina.html, boton));
   const politica = pagina.r.headers.get("referrer-policy") ?? undefined;
   const cuerpo = cuerpoDelEnvio(camposAEnviar(formulario, elecciones, extras, archivos), formulario.codificacion);
-  const galleta = frasco.cabecera(formulario.accion);
+  // `cookieDelEnvio` (3b-2): el POST lleva ESA cookie (o ninguna, con `null`)
+  // en vez de la del frasco; la página se abrió con la del frasco.
+  const galleta = cookieDelEnvio === undefined ? frasco.cabecera(formulario.accion) : (cookieDelEnvio ?? undefined);
   const r = await pedir(formulario.accion, {
     method: formulario.metodo,
     redirect: "manual",
@@ -495,6 +524,178 @@ export async function resumenDeLaBase(consultar, whatsapp) {
     [whatsapp],
   );
   return fila ?? null;
+}
+
+// ── 3b-2: la pantalla del código (change `migrar-verificacion-sms-astro`) ────
+
+/** Los botones de la pantalla "Confirma tu número". */
+export const BOTON_CONFIRMAR = "Confirmar mi número";
+export const BOTON_REENVIAR = "Reenviar el código";
+
+/**
+ * Las pantallas encendidas del diff de 3b-2 (design.md §12), todas con la
+ * misma cookie de paso firmada: `[archivo, ruta]`.
+ */
+export const PANTALLAS_DE_VERIFICAR = [
+  ["verificar.html", "/registro/verificar"],
+  ...["incompleto", "no-coincide", "vencido", "proveedor", "x"].map((e) => [`verificar-error-${e}.html`, `/registro/verificar?error=${e}`]),
+  ...["espera-reenvio", "cupo"].map((e) => [`verificar-reenvio-${e}.html`, `/registro/verificar?errorReenvio=${e}`]),
+  ["verificar-ambos.html", "/registro/verificar?error=no-coincide&errorReenvio=cupo"],
+  ["verificar-primer-valor.html", "/registro/verificar?error=x&error=vencido"],
+];
+
+/**
+ * Las secuencias de envío de 3b-2 que se comparan contra Next (tasks.md #2;
+ * scenario "mismos desenlaces que Next"). Cada una registra su propia ficha
+ * por `/registro` (con la bandera encendida, eso pide el primer código y pone
+ * la cookie de paso) y luego toca botones en `/registro/verificar`. WhatsApp
+ * de la serie ficticia `77199984xx`; IP de documentación (RFC 5737), una por
+ * secuencia salvo la del cupo, que comparte la del último salto.
+ *
+ * Cada paso: `confirmar` (con `codigo`), `reenviar` o `recargar` (un `GET` a
+ * la pantalla con la cookie), con su `guion` del Twilio falso, y opcionalmente
+ * `envejecer` (vence la espera de 60 s sin dormir), `borrarFicha`, `cookie`
+ * (`guardada`: la primera que puso el servidor; `sin`, `alterada`,
+ * `otro-secreto`, `malformada` o `caducada`), `extras` y `cabeceras`.
+ * `aceptada`: la diferencia admitida (origen ajeno o `null`: Next 500, Astro 403).
+ *
+ * @typedef {{ accion: "confirmar" | "reenviar" | "recargar", codigo?: string, guion?: string, ruta?: string, envejecer?: boolean, borrarFicha?: boolean, cookie?: string, extras?: Array<[string, string]>, cabeceras?: Record<string, string | null> }} PasoDe3b2
+ * @typedef {{ pasos: Array<{ cadena: Array<{ status: number }> }> }} ResumenDe3b2
+ * @typedef {{ nombre: string, whatsapp: string, ip: string, pasos: PasoDe3b2[], previos?: Array<[string, string]>, aceptada?: (next: ResumenDe3b2, astro: ResumenDe3b2) => boolean }} SecuenciaDe3b2
+ * @returns {SecuenciaDe3b2[]}
+ */
+export function secuenciasDe3b2() {
+  const estado = (resumen) => resumen.pasos[0]?.cadena[0]?.status;
+  const aceptada = (next, astro) => estado(next) === 500 && estado(astro) === 403;
+  const confirmar = (codigo, guion = "enviado,approved", extra = {}) => ({ accion: "confirmar", codigo, guion, ...extra });
+  const reenviar = (extra = {}) => ({ accion: "reenviar", guion: "enviado", ...extra });
+  let k = 0;
+  const secuencia = (nombre, pasos, extra = {}) => {
+    k += 1;
+    return { nombre, whatsapp: `77199984${String(k).padStart(2, "0")}`, ip: `198.51.100.${100 + k}`, pasos, ...extra };
+  };
+  const invalidas = ["sin", "alterada", "otro-secreto", "malformada", "caducada"];
+  return [
+    secuencia("correcto", [confirmar("123456"), { accion: "recargar", ruta: "/registro/gracias?verificado=1" }]),
+    ...[["vacio", ""], ["cuatro", "1234"], ["letras", "12ab56"], ["siete", "1234567"]].map(([n, c]) => secuencia(`incompleto-${n}`, [confirmar(c)])),
+    secuencia("no-coincide", [confirmar("111111", "enviado,pending")]),
+    secuencia("vencido", [confirmar("111111", "enviado,404")]),
+    secuencia("proveedor-error", [confirmar("123456", "enviado,error")]),
+    secuencia("proveedor-tarda", [confirmar("123456", "enviado,tarda")]),
+    secuencia("quinto-equivocado-y-cookie-vieja", [
+      ...Array.from({ length: 5 }, () => confirmar("111111", "enviado,pending")),
+      confirmar("123456", "enviado,approved", { cookie: "guardada" }),
+    ]),
+    secuencia("equivocado-recargar-correcto", [
+      confirmar("111111", "enviado,pending"),
+      { accion: "recargar", ruta: "/registro/verificar?error=no-coincide" },
+      { accion: "recargar", ruta: "/registro/verificar?error=no-coincide" },
+      confirmar("123456"),
+    ]),
+    secuencia("reenvio-espera", [reenviar()]),
+    secuencia("reenvio-permitido", [reenviar({ envejecer: true })]),
+    secuencia("tercer-reenvio", [reenviar({ envejecer: true }), reenviar({ envejecer: true }), reenviar({ envejecer: true })]),
+    secuencia("reenvio-cupo-ip", [reenviar({ envejecer: true })], {
+      ip: "198.51.100.199, 203.0.113.50",
+      previos: [["7719998490", "198.51.100.197, 203.0.113.50"], ["7719998491", "198.51.100.198, 203.0.113.50"]],
+    }),
+    secuencia("campos-extra", [
+      confirmar("123456", "enviado,approved", {
+        extras: [
+          ["negocioId", "cnoexiste0000000000000000"],
+          ["numeroVerificadoEn", "2020-01-01T00:00:00.000Z"],
+          ["verificado", "1"],
+          ["destino", "https://evil.example/"],
+          ["$ACTION_KEY", "confirmar-falso"],
+        ],
+      }),
+    ]),
+    secuencia("referer-hostil", [confirmar("123456", "enviado,approved", { cabeceras: { referer: "https://evil.example/" } })]),
+    secuencia("sin-origen", [confirmar("123456", "enviado,approved", { cabeceras: { origin: null } })]),
+    secuencia("origen-ajeno", [confirmar("123456", "enviado,approved", { cabeceras: { origin: "https://ajeno.example" } })], { aceptada }),
+    secuencia("origen-null", [confirmar("123456", "enviado,approved", { cabeceras: { origin: "null" } })], { aceptada }),
+    secuencia("ficha-borrada", [confirmar("123456", "enviado,approved", { borrarFicha: true }), reenviar({ envejecer: true })]),
+    ...invalidas.map((cookie) => secuencia(`credencial-${cookie}`, [confirmar("123456", "enviado,approved", { cookie }), reenviar({ envejecer: true, cookie })])),
+  ];
+}
+
+/**
+ * Recorre una secuencia de `secuenciasDe3b2` contra `base` y devuelve lo
+ * comparable: por paso, la cadena resumida, las llamadas al Twilio falso y los
+ * avisos de la pantalla final; al terminar, la ficha y sus cupos. Sin
+ * identificadores, valores de cookie ni fechas.
+ *
+ * `ctx`: `{ categoriaId, coloniaId, consultar(sql, params), usarGuion(texto),
+ * llamadas(): Array<{ ruta }>, envejecer(negocioId), cupos(negocioId),
+ * cookieInvalida(tipo, negocioId) }`.
+ */
+export async function recorrerSecuencia3b2(base, secuencia, ctx) {
+  const registrar = (whatsapp, ip, frasco) =>
+    enviarFormulario({
+      urlPagina: new URL("/registro", base).toString(),
+      elecciones: { nombre: "Cocina Ficticia Del Código", categoriaId: String(ctx.categoriaId), whatsapp, coloniaId: String(ctx.coloniaId), consentimiento: "on" },
+      cabecerasExtra: { "x-forwarded-for": ip },
+      frasco,
+    });
+  ctx.usarGuion("enviado");
+  for (const [whatsapp, ip] of secuencia.previos ?? []) await registrar(whatsapp, ip, new Frasco());
+  const frasco = new Frasco();
+  const antesDelRegistro = ctx.llamadas().length;
+  const registro = await registrar(secuencia.whatsapp, secuencia.ip, frasco);
+  const guardada = frasco.valor("nu_paso");
+  const [fila] = await ctx.consultar(`SELECT id FROM "Negocio" WHERE whatsapp = $1`, [secuencia.whatsapp]);
+  const negocioId = fila?.id;
+  const pasos = [];
+  const llamadasDe = (desde) => ctx.llamadas().slice(desde).map((l) => l.ruta);
+  const registroResumen = { cadena: resumenDelDesenlace(registro).map(({ metodo, status, location }) => ({ metodo, status, location })), llamadas: llamadasDe(antesDelRegistro) };
+  for (const paso of secuencia.pasos) {
+    if (paso.guion) ctx.usarGuion(paso.guion);
+    if (paso.envejecer && negocioId) await ctx.envejecer(negocioId);
+    if (paso.borrarFicha) await ctx.consultar(`DELETE FROM "Negocio" WHERE whatsapp = $1`, [secuencia.whatsapp]);
+    const desde = ctx.llamadas().length;
+    let resultado;
+    if (paso.accion === "recargar") {
+      const url = new URL(paso.ruta, base).toString();
+      const galleta = frasco.cabecera(url);
+      const r = await fetch(url, { redirect: "manual", headers: galleta ? { cookie: galleta } : {} });
+      const html = await r.text();
+      resultado = { cadena: [{ metodo: "GET", status: r.status, location: r.headers.get("location"), cookies: r.headers.getSetCookie().length }], avisos: avisosDe(html) };
+    } else {
+      let cookieDelEnvio;
+      if (paso.cookie === "guardada") cookieDelEnvio = guardada ? `nu_paso=${guardada}` : null;
+      else if (paso.cookie === "sin") cookieDelEnvio = null;
+      else if (paso.cookie) cookieDelEnvio = `nu_paso=${ctx.cookieInvalida(paso.cookie, negocioId)}`;
+      // La pantalla se abre con una cookie VÁLIDA aunque el frasco ya la haya
+      // borrado (p. ej. tras el quinto intento): es la página que el dueño
+      // tenía abierta. Lo que responda el POST se guarda en el frasco.
+      const deLaPagina = new Frasco();
+      if (guardada) deLaPagina.guardar([`nu_paso=${frasco.valor("nu_paso") ?? guardada}; Path=/registro/verificar`]);
+      const r = await enviarFormulario({
+        urlPagina: new URL("/registro/verificar", base).toString(),
+        boton: paso.accion === "confirmar" ? BOTON_CONFIRMAR : BOTON_REENVIAR,
+        elecciones: paso.accion === "confirmar" ? { codigo: paso.codigo } : {},
+        extras: paso.extras ?? [],
+        frasco: deLaPagina,
+        cookieDelEnvio: cookieDelEnvio !== undefined ? cookieDelEnvio : frasco.tiene("nu_paso") ? `nu_paso=${frasco.valor("nu_paso")}` : null,
+        cabecerasExtra: { "x-forwarded-for": secuencia.ip, ...(paso.cabeceras ?? {}) },
+      });
+      frasco.guardar(r.cadena.slice(1).flatMap((p) => p.setCookie));
+      resultado = { cadena: resumenDelDesenlace(r).slice(1), avisos: avisosDe(r.final.html) };
+    }
+    pasos.push({ ...resultado, llamadas: llamadasDe(desde) });
+  }
+  const [base1] = await ctx.consultar(
+    `SELECT estado, origen, "numeroVerificadoEn" IS NOT NULL AS verificado, "publicadoEn" IS NOT NULL AS publicado FROM "Negocio" WHERE whatsapp = $1`,
+    [secuencia.whatsapp],
+  );
+  return { registro: registroResumen, pasos, ficha: base1 ?? null, cupos: negocioId ? await ctx.cupos(negocioId) : null, conCookie: Boolean(guardada) };
+}
+
+/** Los avisos que ve el dueño: `h1`, `role="alert"` y `role="status"`, en orden. */
+export function avisosDe(html) {
+  return parse(html)
+    .querySelectorAll("h1, [role=alert], [role=status]")
+    .map((n) => n.text.replace(/^\s*⚠\s*/, "").replace(/\s+/g, " ").trim());
 }
 
 async function principal(argumentos) {

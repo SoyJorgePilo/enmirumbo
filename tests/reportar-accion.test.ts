@@ -232,8 +232,9 @@ describe("tabla de Actions · fallas antes del manejador", () => {
   // la tabla suma `registrar` → `/registro` (lo prueba `registrar-accion`).
   // 3b-2 (change `migrar-verificacion-sms-astro`): suma `confirmar` y
   // `reenviar` → `/registro/verificar` (lo prueba `verificar-accion`).
-  it("la tabla tiene exactamente reportar, registrar, confirmar y reenviar, cada una atada a su ruta", () => {
-    expect(Object.keys(ACCIONES)).toEqual(["reportar", "registrar", "confirmar", "reenviar"]);
+  // 5a (change `migrar-panel-admin-base-astro`): la tabla suma entrar y salir del panel.
+  it("la tabla tiene exactamente reportar, registrar, confirmar, reenviar, entrar y salir, cada una atada a su ruta", () => {
+    expect(Object.keys(ACCIONES)).toEqual(["reportar", "registrar", "confirmar", "reenviar", "entrar", "salir"]);
     expect(ACCIONES.reportar.ruta).toBe("/negocio/[ficha]/reportar");
   });
 });

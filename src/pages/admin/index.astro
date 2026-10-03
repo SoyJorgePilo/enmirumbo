@@ -1,0 +1,111 @@
+---
+/**
+ * Acceso al panel en `/admin` (lo que era `src/app/admin/page.tsx`; change
+ * `migrar-panel-admin-base-astro`, Fase 5a). Spec `revision-admin`,
+ * requirements "Acceso al panel con contraseña única de entorno y sesión
+ * firmada" y "Sin contraseña configurada el panel no abre (fail-safe)"; spec
+ * `plataforma-astro`, "La pantalla de acceso responde desde Astro el mismo
+ * HTML que Next".
+ *
+ * Por petición y SIN JAVASCRIPT: un formulario nativo que postea a la Action
+ * `entrar` de esta misma ruta; el middleware la corre y responde el 303 (PRG
+ * a `?error=…` o a la cola). No pide sesión porque ES la puerta (es el
+ * destino de la guarda) y no lee ni un dato de ningún registro.
+ *
+ * - Sin contraseña o sin secreto (o con uno corto): "El panel no está
+ *   disponible por ahora." y NINGÚN campo. El detalle de qué falta va solo al
+ *   log, una vez por proceso (`avisarSinConfigurarUnaVez`).
+ * - Con sesión vigente: el 307 a la cola que responde Next (medido).
+ * - `?error=` y `?salida=` se leen como los lee Next (repetidos no valen) y
+ *   con lista cerrada; cualquier otro valor se ignora y no se refleja.
+ */
+import { actions } from "astro:actions";
+
+import { haySesionDelPanel, redireccionDePantalla } from "@/astro/panel/guardia";
+import { METADATOS_ACCESO } from "@/astro/panel/metadatos";
+import { parametroComoNext } from "@/astro/panel/parametros";
+import DocumentoPanel from "@/layouts/DocumentoPanel.astro";
+import { avisarSinConfigurarUnaVez, estaConfigurado } from "@/lib/admin/config";
+import {
+  BOTON_ENTRAR,
+  ERROR_CONTRASENA_INCORRECTA,
+  ERROR_DEMASIADOS_INTENTOS,
+  ETIQUETA_CONTRASENA,
+  MENSAJE_PANEL_NO_DISPONIBLE,
+  MENSAJE_SESION_CERRADA,
+  TEXTO_ENCABEZADO_ACCESO,
+} from "@/lib/admin/textos";
+import { CLASE_BOTON_PRIMARIO } from "@/lib/estilos-boton";
+
+export const prerender = false;
+
+const MENSAJES_ERROR: Readonly<Record<string, string>> = {
+  incorrecta: ERROR_CONTRASENA_INCORRECTA,
+  intentos: ERROR_DEMASIADOS_INTENTOS,
+};
+
+const configurado = estaConfigurado();
+if (!configurado) {
+  // Una sola vez por proceso: esta pantalla es pública y no se le puede dar a
+  // cualquiera un botón para llenar el log (hallazgo BAJO 3 de la etapa C).
+  avisarSinConfigurarUnaVez();
+}
+
+// Con sesión vigente, el acceso sobra: se entra directo a la cola. Sin panel
+// configurado ninguna cookie es sesión, así que esto no aplica. Tras "Salir"
+// no hay sesión, así que esa vuelta no rebota.
+if (configurado && haySesionDelPanel(Astro.cookies)) return redireccionDePantalla("/admin/cola");
+
+const error = parametroComoNext(Astro.url, "error");
+const errorTexto = typeof error === "string" && Object.hasOwn(MENSAJES_ERROR, error) ? MENSAJES_ERROR[error] : undefined;
+const salida = parametroComoNext(Astro.url, "salida") === "1";
+---
+
+<DocumentoPanel metadatos={METADATOS_ACCESO}>
+  {
+    !configurado ? (
+      <section class="flex flex-1 flex-col items-center justify-center gap-4 py-12 text-center">
+        <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">{TEXTO_ENCABEZADO_ACCESO}</h1>
+        <p class="max-w-sm text-tinta-suave">{MENSAJE_PANEL_NO_DISPONIBLE}</p>
+      </section>
+    ) : (
+      <section class="flex flex-1 flex-col items-center justify-center gap-6 py-12">
+        <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">{TEXTO_ENCABEZADO_ACCESO}</h1>
+        {
+          salida && (
+            <p role="status" class="text-tinta-suave">
+              {MENSAJE_SESION_CERRADA}
+            </p>
+          )
+        }
+        <form method="post" action={actions.entrar.toString()} class="flex w-full max-w-xs flex-col gap-3">
+          {
+            errorTexto && (
+              <p id="contrasena-error" role="alert" class="text-sm font-semibold text-tinta">
+                ⚠ {errorTexto}
+              </p>
+            )
+          }
+          <div class="flex flex-col gap-1.5">
+            <label for="contrasena" class="text-sm font-semibold text-tinta">
+              {ETIQUETA_CONTRASENA}
+            </label>
+            <input
+              type="password"
+              id="contrasena"
+              name="contrasena"
+              required
+              autocomplete="current-password"
+              aria-invalid={errorTexto ? "true" : "false"}
+              aria-describedby={errorTexto ? "contrasena-error" : undefined}
+              class="w-full rounded-lg border border-borde-control bg-fondo px-4 py-3 text-base text-tinta focus:outline-none focus:ring-2 focus:ring-accion-fuerte"
+            />
+          </div>
+          <button type="submit" class={CLASE_BOTON_PRIMARIO}>
+            {BOTON_ENTRAR}
+          </button>
+        </form>
+      </section>
+    )
+  }
+</DocumentoPanel>

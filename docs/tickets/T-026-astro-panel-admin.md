@@ -1,11 +1,11 @@
 # T-026 · Panel admin en Astro (Fase 5)
 
-**Estado:** en-desarrollo <!-- pendiente | en-spec | en-desarrollo | en-review | hecho -->
+**Estado:** en-review <!-- pendiente | en-spec | en-desarrollo | en-review | hecho --> — 5a en review; 5b, 5c, 5d pendientes
 **Prioridad:** P1
 **Épica:** E9 (docs/backlog.md)
 **Referencias PRD:** v2 §10 (técnica reemplazable); ADR-013
 **Depende de:** T-025
-**OpenSpec change:** `migrar-panel-admin-base-astro` (5a, en spec). Propuestos, sin especificar: `migrar-panel-admin-detalle-astro` (5b), `migrar-panel-admin-acciones-ficha-astro` (5c), `migrar-panel-admin-ediciones-astro` (5d)
+**OpenSpec change:** `migrar-panel-admin-base-astro` (5a, en review). Propuestos, sin especificar: `migrar-panel-admin-detalle-astro` (5b), `migrar-panel-admin-acciones-ficha-astro` (5c), `migrar-panel-admin-ediciones-astro` (5d)
 **PR:** —
 
 ## Contexto

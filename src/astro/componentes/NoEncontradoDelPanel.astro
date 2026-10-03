@@ -1,0 +1,21 @@
+---
+// fuera de la medición: la 404 de las direcciones del panel que no existen; su URL puede llevar el identificador de un registro (`/admin/registros/<id>/…`) y no debe llegarle al proveedor (observación O-1 de `agregar-analitica-cookieless`; design.md §1.4 del change `migrar-panel-admin-base-astro`).
+/**
+ * La 404 del panel (spec `plataforma-astro`, requirement "Toda ruta del panel
+ * exige sesión por construcción, no por lista", scenario "lo que no existe no
+ * exige sesión"): lo que era `src/app/admin/[...resto]/page.tsx` con
+ * `notFound()` dentro del layout del panel.
+ *
+ * El cuerpo de `NoEncontrado` y los metadatos de la 404 global, MÁS el
+ * referente estricto del panel (`DocumentoPanel`): por eso no se reusa
+ * `NoEncontradoDinamico`, que no lo lleva. Sin props y sin leer la petición:
+ * responde idéntico con sesión y sin ella.
+ */
+import NoEncontrado from "@/astro/componentes/NoEncontrado.astro";
+import DocumentoPanel from "@/layouts/DocumentoPanel.astro";
+import { imagenesDeMarca } from "@/lib/seo/metadata";
+---
+
+<DocumentoPanel metadatos={{ openGraph: { images: imagenesDeMarca() } }} noEncontrado>
+  <NoEncontrado />
+</DocumentoPanel>

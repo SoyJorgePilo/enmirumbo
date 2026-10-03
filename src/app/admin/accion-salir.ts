@@ -5,24 +5,16 @@
  * al panel…"): caduca la cookie de sesión y manda a la pantalla de acceso con
  * el mensaje "Cerraste sesión.".
  *
- * No llama a `requerirSesionAdmin()` a propósito: no lee ni escribe nada de
- * la base y su único efecto es borrar una cookie del propio navegador. Salir
- * sin sesión es simplemente salir. Se expira con los MISMOS atributos con los
- * que se creó (mismo `Path`), que es lo único que garantiza que el navegador
- * la reemplace en vez de guardar una segunda.
+ * Envoltorio de Next (change `migrar-panel-admin-base-astro`, design.md
+ * §2.3): la lógica vive en `ejecutarSalida` (`src/lib/admin/entrar.ts`) y la
+ * comparte la Action `salir` de Astro. Sin guarda a propósito: salir sin
+ * sesión es simplemente salir. Se retira en T-027.
  */
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { RUTA_ACCESO_ADMIN, sirviendoPorHttps } from "@/lib/admin/guarda";
-import { NOMBRE_COOKIE_SESION, opcionesCookieSesion } from "@/lib/admin/sesion";
+import { ejecutarSalida } from "@/lib/admin/entrar";
 
 export async function salirDelPanel(): Promise<void> {
-  const almacen = await cookies();
-  almacen.set(NOMBRE_COOKIE_SESION, "", {
-    ...opcionesCookieSesion(await sirviendoPorHttps()),
-    maxAge: 0,
-  });
-
-  redirect(`${RUTA_ACCESO_ADMIN}?salida=1`);
+  redirect(ejecutarSalida(await headers(), await cookies()).ruta);
 }

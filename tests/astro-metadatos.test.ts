@@ -143,6 +143,48 @@ describe("plataforma-astro · metadatos, scenarios", () => {
     expect(pagina).toContain("<title>Plomería en Tizayuca — EnMiRumbo</title>");
   });
 
+  // 5a (change `migrar-panel-admin-base-astro`, design.md §5): el panel
+  // declara `referrer: "strict-origin"`, que Next pinta después del título (y
+  // de la descripción) y antes de `robots` (medido en `tests/fixtures/next-5a/`).
+  it("el referente del panel va en la posición en que lo pinta Next", () => {
+    const pagina = etiquetasAHtml(
+      resolverMetadatos({
+        sitio: metadataDelSitio(env),
+        pagina: { title: "Panel de revisión — EnMiRumbo", robots: { index: false, follow: false }, referrer: "strict-origin" },
+        versionImagenDeMarca: "v",
+        versionIcono: "i",
+      }),
+    );
+    expect(pagina).toMatch(
+      /<title>Panel de revisión — EnMiRumbo — EnMiRumbo<\/title><meta name="description" content="[^"]+"><meta name="referrer" content="strict-origin"><meta name="robots" content="noindex, nofollow">/,
+    );
+    // El mismo orden que el `<head>` de Next.
+    const head = readFileSync(join(raiz, "tests/fixtures/next-5a/acceso.html"), "utf8");
+    expect(head).toMatch(/<title>[^<]+<\/title>\n<meta name="description" content="[^"]+">\n<meta name="referrer" content="strict-origin">\n<meta name="robots" content="noindex, nofollow">/);
+  });
+
+  it("la 404 del panel: noindex, título del sitio y el referente después del título", () => {
+    const pagina = etiquetasAHtml(
+      resolverMetadatos({
+        sitio: metadataDelSitio(env),
+        pagina: { openGraph: { images: imagenesDeMarca(env) }, referrer: "strict-origin" },
+        noEncontrado: true,
+        versionImagenDeMarca: "v",
+        versionIcono: "i",
+      }),
+    );
+    expect(pagina).toMatch(/<meta name="robots" content="noindex"><title>[^<]+<\/title><meta name="description" content="[^"]+"><meta name="referrer" content="strict-origin">/);
+    // Las mismas <meta> que la 404 del comodín de Next.
+    const esperado = readFileSync(join(raiz, "tests/fixtures/next-5a/comodin-1.html"), "utf8");
+    const head = /<head>([\s\S]*?)<\/head>/.exec(esperado.replace(/>\n</g, "><"))?.[1] ?? "";
+    expect(conjuntoDe(pagina).metas).toEqual(conjuntoDe(head).metas);
+    expect(conjuntoDe(pagina).titulo).toBe(conjuntoDe(head).titulo);
+  });
+
+  it("sin referente declarado no se pinta ninguno", () => {
+    expect(html("home")).not.toContain('name="referrer"');
+  });
+
   it("escapa lo que no es marcado", () => {
     const pagina = etiquetasAHtml(
       resolverMetadatos({

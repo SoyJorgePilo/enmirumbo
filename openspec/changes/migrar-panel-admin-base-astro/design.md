@@ -26,18 +26,18 @@ Los nueve componentes de la cola y del listado ya son React puro sin `next/link`
 
 ## 1. Guarda de sesión por construcción
 
-### 1.1 Lo que responde Next hoy (código leído; la tarea 2 lo mide y fija)
+### 1.1 Lo que responde Next hoy (medido en la tarea 2 contra `main` `8d514f5`; `tests/fixtures/next-5a/respuestas.json`)
 
 | Petición | Sin sesión | Con sesión |
 |---|---|---|
-| `GET /admin`, panel configurado | 200, formulario de acceso | redirección a `/admin/cola` (`redirect()` en render: **307** esperado) |
+| `GET /admin`, panel configurado | 200, formulario de acceso | **307 medido** a `/admin/cola`, `Cache-Control: private, no-cache, no-store, max-age=0, must-revalidate` (también `HEAD`) |
 | `GET /admin`, sin configurar | 200, "El panel no está disponible por ahora." y sin campo | igual: con el panel sin configurar, ninguna cookie es sesión (`haySesionValida`) |
-| `GET /admin/cola`, `GET /admin/negocios?…` | redirección a `/admin` sin parámetros (**307** esperado) | 200 |
-| Action del panel que llama a la guarda | redirección a `/admin` (**303** esperado en un envío nativo) | ejecuta |
+| `GET /admin/cola`, `GET /admin/negocios?…` | **307 medido** a `/admin` sin parámetros, con el mismo `Cache-Control` (también `HEAD`) | 200 |
+| Action del panel que llama a la guarda | **303 medido** a `/admin` (`aprobar` sin cookie), `Cache-Control: no-cache, no-store, max-age=0, must-revalidate` | ejecuta |
 | `entrar` | sin guarda (es la puerta) | sin guarda |
 | `salir` | **sin guarda**: borra la cookie y 303 a `/admin?salida=1` | igual |
 | `GET /admin/<lo que no existe>` | **404**, sin leer la cookie | **404** |
-| `POST /admin/cola` sin `Next-Action` | se mide (tarea 2) | se mide |
+| `POST /admin/cola` sin `Next-Action` (también `PUT`, `DELETE` y `?_action=` cualquiera) | **307 medido** a `/admin` (Next pinta la página y su guarda redirige) | **200 medido**: pinta la pantalla |
 | `/admin/foto/…` (5b) | 404 idéntica a la pública | foto, `no-store` |
 
 Si la medición contradice una celda "esperado", manda lo medido. El dev lo anota en `reports/b-dev.md` antes de implementar.
@@ -62,7 +62,7 @@ Si la medición contradice una celda "esperado", manda lo medido. El dev lo anot
 
 ### 1.3 La respuesta sin sesión
 
-- `GET` y `HEAD` a una ruta `exige-sesion`: el estado medido (307 esperado) con `Location: /admin`, **sin parámetros** (nada de `?destino=` ni identificadores), sin cuerpo con datos, sin `Set-Cookie` y con las cabeceras del §5.
+- `GET` y `HEAD` a una ruta `exige-sesion`: el estado medido (307) con `Location: /admin`, **sin parámetros** (nada de `?destino=` ni identificadores), **sin cuerpo**, sin `Set-Cookie` y con las cabeceras del §5. Next manda ese 307 con su documento de error (sin datos); Astro, sin cuerpo. Estado, `Location`, `Cache-Control` y cookies son iguales: es diferencia aceptada (decisión 5 del fundador, §7).
 - `POST ?_action=<cualquiera salvo la exención>` a una ruta `exige-sesion`: 303 a `/admin` (lo que hace hoy la guarda dentro de una Server Action), sin llamar a `action.handler()` y sin leer el cuerpo. Una ráfaga de envíos grandes sin sesión no ocupa memoria.
 - Cualquier otro método a una ruta `exige-sesion`: lo que mida Next en la tarea 2, nunca un 200 con datos.
 - **Orden en el middleware:**
@@ -79,7 +79,7 @@ Si la medición contradice una celda "esperado", manda lo medido. El dev lo anot
 
 ### 1.4 El comodín `/admin/[...resto]`
 
-- **Responde la 404 de no encontrado dentro de `DocumentoPanel`**: el cuerpo de `NoEncontrado`, `noindex`, el `<meta name="referrer" content="strict-origin">` del panel, sin medición y con estado 404. **No lee la cookie, ni la base, ni la petición**, y responde igual con sesión y sin ella (requisito O-1 de `agregar-analitica-cookieless`).
+- **Responde la 404 de no encontrado dentro de `DocumentoPanel`**: el cuerpo de `NoEncontrado`, `noindex` (sin `nofollow`, como Next), el `<meta name="referrer" content="strict-origin">` del panel, sin medición y con estado 404. **No lee la cookie, ni la base, ni la petición**, y responde igual con sesión y sin ella (requisito O-1 de `agregar-analitica-cookieless`).
 - **No se reusa `NoEncontradoDinamico` tal cual**, porque no lleva el `<meta>` del panel. Se arma `NoEncontradoDelPanel.astro` con los mismos metadatos de la 404 global más el `referrer`.
 - **Contra Next:** si `notFound()` en el panel responde el documento de error vacío (`__next_error__`), se comparan con las tres `NORMALIZACIONES_404_DINAMICA` de 2b, sin agregar ninguna. El `<meta name="referrer">` se compara aparte y **tiene que estar en los dos**.
 - **Mientras 5b y 5d no lleguen,** el comodín atrapa también `/admin/registros/<id>` y `/admin/ediciones/<id>` (proposal, "Estado intermedio").
@@ -136,7 +136,7 @@ La regla de hoy (`guarda.ts:50-58`) es `x-forwarded-proto` (primer valor) igual 
 
   Las líneas del log no cambian ni ganan datos.
 - **Envoltorios de Next** (excepción en `src/app/`, como en 3b-1, para que `typecheck` siga en verde hasta T-027): `accion-acceso.ts` llama a `redirect((await ejecutarAcceso(formData, await headers(), await cookies())).ruta)`, y lo mismo `accion-salir.ts`. Ningún otro archivo de `src/app/` cambia.
-- **Pruebas:** `tests/admin-acceso.test.ts` deja de simular `next/headers`/`next/navigation` para la lógica y comprueba el destino devuelto, con el mismo número de aserciones o más. Las de los envoltorios se quedan como hoy.
+- **Pruebas:** `tests/admin-acceso.test.ts` deja de simular `next/headers`/`next/navigation` para la lógica y comprueba el destino devuelto, con el mismo número de aserciones o más. Ninguna prueba importa los envoltorios (la spec pide vacío el `grep` de imports de `accion-acceso` y `accion-salir`): se vigilan leyendo su código y con `typecheck` (decisión 6 del fundador).
 
 ## 3. El límite de intentos y su llave de IP
 
@@ -168,7 +168,7 @@ La regla de hoy (`guarda.ts:50-58`) es `x-forwarded-proto` (primer valor) igual 
   - sin configuración, el destino es `/admin` sin decir qué falta (el detalle va solo al log, una vez por proceso);
   - la cookie no se pone en ningún camino que no sea el acierto con margen.
 - **`trasFallar`** (un `ActionError` de Astro: cuerpo de más de 6 MiB, cuerpo que no es formulario o falla antes del manejador), para `entrar` y para `salir`: 303 a `/admin`, **sin apartar intento, sin comparar y sin tocar la cookie**. Next responde ahí un error del marco. Es una diferencia aceptada, como en 3b-2 §3. El formulario real no puede producirlo.
-- **Pantalla:** `?error=` y `?salida=` se leen con su **primer** valor (`url.searchParams.get`), con las listas cerradas de `page.tsx` (`incorrecta`, `intentos`; `salida === "1"`). Cualquier otro valor se ignora y no se refleja.
+- **Pantalla:** `?error=` y `?salida=` (y en el listado `?estado=` y `?pagina=`) se leen como los lee Next en `searchParams`: **un parámetro repetido llega como arreglo y no vale**, con las listas cerradas de `page.tsx` (`incorrecta`, `intentos`; `salida === "1"`). Cualquier otro valor se ignora y no se refleja. Leer el primer valor pintaría un mensaje que Next no pinta (`?error=intentos&error=x`) (decisión 7 del fundador).
 - **Con JS:** Next manda la Server Action por `fetch` y navega con el enrutador. Astro recarga un documento chico. Lo que ve el admin es igual: URL, mensaje, campo vacío. Son 0 KB de JS frente al runtime de Next. Es el mismo criterio que 3b-2 §1.3.
 - **`salir`:** `BotonSalir` con `action={actions.salir.toString()}` (`"?_action=salir"`) desde `/admin/cola`. 303 a `/admin?salida=1` con la cookie borrada. Después, "atrás" en el navegador pide `/admin/cola` sin cookie y recibe la redirección: con `no-store` (§5) no hay copia en caché que mostrar.
 
@@ -183,7 +183,7 @@ La regla de hoy (`guarda.ts:50-58`) es `x-forwarded-proto` (primer valor) igual 
   - es diferencia contra Next (duda 1): allá la cabecera es la global y el `<meta>` la endurece.
 - **`<meta name="referrer" content="strict-origin">`** en el `<head>` de cada pantalla del panel, incluida la 404 del comodín, por `DocumentoPanel.astro`. `src/astro/metadatos.ts` gana `referrer` en `MetadatosDePagina`, y su posición en el `<head>` es la que mida el fixture de Next.
 - **`DocumentoPanel.astro`** envuelve a `DocumentoBase` (mismo header, footer y hoja de estilos que el layout raíz de Next) con:
-  - `robots: { index: false, follow: false }` por omisión;
+  - `robots: { index: false, follow: false }` por omisión en las pantallas; la 404 del comodín lleva solo `noindex`, como Next (decisión 4 del fundador; agregar `nofollow` sería una diferencia nueva);
   - `referrer: "strict-origin"`;
   - el comentario `// fuera de la medición: <motivo>`.
 
@@ -223,6 +223,7 @@ Es el método de T-005, T-015 y T-018 del desarrollo original: misma base sembra
   - Cualquier otra diferencia sale como diferencia y el dev la reporta sin normalizarla.
 - **Cabeceras:** se comparan las cuatro, `Cache-Control`, `Content-Type` y los atributos de `Set-Cookie`. Diferencias aceptadas:
   - `Referrer-Policy` bajo `/admin` (§5, duda 1);
+  - el cuerpo del 307 sin sesión: Next manda su documento de error, Astro va sin cuerpo; estado, `Location`, `Cache-Control` y cookies iguales (§1.3, decisión 5 del fundador);
   - origen ajeno o `null`: Next 500, Astro 403 (3a);
   - el `ActionError` del §4.
 - **Envíos** con el arnés sin JS de 3a contra las dos builds: entrar bien, mal, con margen agotado, sin configurar, y salir con y sin sesión. Se compara la cadena de estados, el `Location`, el `Set-Cookie` y las filas de `IntentoDeCupo`.

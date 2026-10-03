@@ -17,6 +17,7 @@
  */
 import { defineAction } from "astro:actions";
 
+import { entrarDesdeElFormulario, salirDesdeElFormulario } from "@/astro/panel/acceso";
 import { registrarDesdeElFormulario } from "@/astro/registro";
 import { reportarDesdeElFormulario } from "@/astro/reportar";
 import { confirmarDesdeElFormulario, reenviarDesdeElFormulario } from "@/astro/verificar";
@@ -37,5 +38,14 @@ export const server = {
   reenviar: defineAction({
     accept: "form",
     handler: (_formData, contexto) => reenviarDesdeElFormulario(contexto),
+  }),
+  // 5a (change `migrar-panel-admin-base-astro`): el acceso al panel.
+  entrar: defineAction({
+    accept: "form",
+    handler: (formData, contexto) => entrarDesdeElFormulario(formData, contexto),
+  }),
+  salir: defineAction({
+    accept: "form",
+    handler: (_formData, contexto) => salirDesdeElFormulario(contexto),
   }),
 };

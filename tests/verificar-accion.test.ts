@@ -301,8 +301,11 @@ describe("Actions confirmar y reenviar · desenlaces", () => {
 });
 
 describe("tabla de Actions · confirmar y reenviar", () => {
-  it("cuatro Actions; confirmar y reenviar atadas a /registro/verificar, con la compuerta de la capacidad", () => {
-    expect(Object.keys(ACCIONES)).toEqual(["reportar", "registrar", "confirmar", "reenviar"]);
+  // 5a (change `migrar-panel-admin-base-astro`): seis, con entrar y salir del panel (sin compuerta).
+  it("seis Actions; confirmar y reenviar atadas a /registro/verificar, con la compuerta de la capacidad", () => {
+    expect(Object.keys(ACCIONES)).toEqual(["reportar", "registrar", "confirmar", "reenviar", "entrar", "salir"]);
+    expect(ACCIONES.entrar.puedeCorrer).toBeUndefined();
+    expect(ACCIONES.salir.puedeCorrer).toBeUndefined();
     for (const nombre of ["confirmar", "reenviar"]) {
       expect(ACCIONES[nombre].ruta).toBe("/registro/verificar");
       expect(ACCIONES[nombre].puedeCorrer?.()).toBe(false);

@@ -16,7 +16,7 @@ T-026 pide el panel en Astro con "sesión firmada y límite de acceso intactos; 
 - **Sin sesión, la misma respuesta que hoy**, medida en Next (tarea 2): redirección a `/admin` sin parámetros en las pantallas y en las Actions; 404 en `/admin/<lo que no existe>`, con o sin sesión.
 - **Acceso, entrar y salir (`design.md` §2 a §4).** `/admin` en Astro, con sus cuatro estados ("Panel de revisión", "Contraseña incorrecta.", "Demasiados intentos. Espera unos minutos y vuelve a intentar.", "Cerraste sesión.") y el fail-safe ("El panel no está disponible por ahora."). Las Actions `entrar` (en `/admin`) y `salir` (en `/admin/cola`) son formularios nativos sin JS con PRG a una lista cerrada de destinos. La cookie `nu_panel` conserva el formato, la firma HMAC, el secreto, los atributos (`HttpOnly`, `SameSite=Lax`, `Path=/admin`, `Max-Age=28800`, `Secure` en HTTPS) y la caducidad de 8 horas.
 - **El límite de intentos conserva su atomicidad (`design.md` §3).** Sigue en la base (`IntentoDeCupo`, cerrojo consultivo por llave, el arreglo del hallazgo A4 de T-013) con el respaldo en memoria. El intento se aparta antes de comparar. La IP sale de `ipDeEncabezados`, nunca de `clientAddress`. Se prueba sobre la build con PostgreSQL, con ráfagas y con dos procesos contra la misma base.
-- **Cabeceras, referente, caché y medición (`design.md` §5).** Toda respuesta bajo `/admin` que sale de la función lleva las cuatro cabeceras, `Referrer-Policy: strict-origin` (que el middleware no pisa) y `Cache-Control` con `no-store`. Las pantallas llevan además `<meta name="referrer" content="strict-origin">` y `noindex, nofollow` en un documento propio del panel (`DocumentoPanel`), que no mide. La 404 del comodín vive dentro del panel y hereda las dos cosas.
+- **Cabeceras, referente, caché y medición (`design.md` §5).** Toda respuesta bajo `/admin` que sale de la función lleva las cuatro cabeceras, `Referrer-Policy: strict-origin` (que el middleware no pisa) y `Cache-Control` con `no-store`. Las pantallas llevan además `<meta name="referrer" content="strict-origin">` y `noindex, nofollow` en un documento propio del panel (`DocumentoPanel`), que no mide. La 404 del comodín vive dentro del panel y hereda el `<meta>` y la exclusión de la medición, pero lleva solo `noindex`, como Next (decisión 4).
 - **Cola y "Todos los negocios" en Astro**, de solo lectura, con los mismos componentes de React pintados en el servidor y el mismo HTML que Next.
 - **`src/lib/` mínimo (`design.md` §2.3).** Dos módulos nuevos sin Next (`peticion.ts`, `entrar.ts`) y dos funciones de `guarda.ts` que delegan en ellos sin cambiar su firma. Los envoltorios de Next (`accion-acceso.ts` y `accion-salir.ts`) traducen el destino, como hizo 3b-1 con `verificacion/acciones.ts`.
 - **`BotonSalir`:** el tipo de `action` se amplía a `string | función` y lleva `method="post"` solo cuando es URL. Es el mismo cambio que 3a hizo en `FormularioReporte`, y el HTML de Next no cambia.
@@ -107,3 +107,19 @@ Cada uno deja menos excepciones en la lista de pruebas que siguen importando el 
 1. **`Referrer-Policy: strict-origin` en todo `/admin` por middleware: aceptado** (que no pisa una más estricta), además del `<meta>`. Es más estricto que Next, que solo tiene el `<meta>`; cubre 307, 303 y 403. Nota al archivar.
 2. **5a se implementa apilada sobre 3b-2, sin esperar a la Fase 4** (5a no usa nada de la gestión; solo 5d la necesita). Se rebasan los tres archivos compartidos (`src/middleware.ts`, `src/astro/acciones.ts`, `src/astro/metadatos.ts`). En la rama, "Revisar", "Ver reportes" y "Ver detalle" dan la 404 del panel hasta 5b y 5d; nada llega a `main` antes del corte.
 3. **"Salir" sin sesión: paridad con Next** (con la sesión vencida igual muestra "Cerraste sesión.").
+
+### Sobre lo medido en Next que difería de la letra (por delegación, 2026-10-03)
+
+Criterio común: es una migración sin cambio de comportamiento, así que se sigue lo medido en Next.
+
+4. **La 404 del comodín `/admin/[...resto]` lleva solo `noindex`**, igual que Next. La letra decía `noindex, nofollow`; agregar `nofollow` sería una diferencia nueva contra Next. Se corrige la letra de la spec y del design.
+5. **El 307 sin sesión va sin cuerpo en Astro; Next lo manda con su documento de error.** Estado, `Location`, `Cache-Control` y cookies son iguales y ninguno de los dos cuerpos lleva datos. Es una segunda diferencia aceptada, que el design no declaraba: queda declarada en el requirement de la guarda y en `design.md` §1.3 y §7.
+6. **Ninguna prueba importa `accion-acceso` ni `accion-salir`.** Queda lo que se hizo: la spec pide vacío el `grep` de imports, y los envoltorios se vigilan leyendo su código y con `typecheck`. Se concilia `design.md` §2.3, que pedía conservar sus pruebas.
+7. **`?error=`, `?salida=`, `?estado=` y `?pagina=` se leen como Next: un valor repetido no vale.** El design decía "primer valor", y eso pintaba un mensaje que Next no pinta (`?error=intentos&error=x`). Se corrige la letra del design §4 y del requirement de la pantalla de acceso.
+
+## Candidatos a ticket
+
+- **`/<ruta>//` recibe un 301/308 de Astro antes del middleware, sin las cuatro cabeceras**, en todo el sitio. Preexistente; no expone datos ni abre un open redirect.
+- **Límite de intentos con `[v6]:puerto` e IPv6 escrita de varias formas** (`src/lib/registro/limite-ip.ts`): la misma IP puede caer en llaves distintas. Preexistente e igual en Next.
+- **"Salir" no revoca una cookie copiada:** la cookie sigue valiendo hasta su caducidad (8 h).
+- **Candado entre procesos para la reconstrucción de `.vercel/output` en las pruebas**, para que dos archivos de pruebas no reconstruyan la salida a la vez.

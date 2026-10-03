@@ -16,6 +16,7 @@
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { esPeticionHttps } from "./peticion";
 import { NOMBRE_COOKIE_SESION, haySesionValida } from "./sesion";
 
 /** Pantalla de acceso: único destino de la redirección, siempre sin parámetros. */
@@ -46,13 +47,9 @@ export async function requerirSesionAdmin(): Promise<void> {
  * ¿El sitio se está sirviendo por HTTPS? Decide el atributo `Secure` de la
  * cookie. Se mira el encabezado que pone el proxy y, además, el entorno: en
  * producción la cookie va siempre marcada, aunque el proxy no lo declare.
+ * La regla vive en `peticion.ts`, sin Next (change
+ * `migrar-panel-admin-base-astro`, design.md §2.3).
  */
 export async function sirviendoPorHttps(): Promise<boolean> {
-  const encabezados = await headers();
-  const protocolo = encabezados.get("x-forwarded-proto")?.split(",")[0]?.trim();
-  return (
-    protocolo === "https" ||
-    process.env.NODE_ENV === "production" ||
-    process.env.VERCEL_ENV === "production"
-  );
+  return esPeticionHttps(await headers());
 }

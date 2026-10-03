@@ -14,6 +14,8 @@ El sitio DEBE decidir el acceso a cada petición del panel según la ruta que va
 
 Sin sesión válida, una pantalla del panel DEBE responder la misma redirección que hoy responde Next (medida), hacia `/admin` sin parámetros, y una Action del panel la redirección de un envío hacia `/admin`. Ninguna de las dos DEBE leer la base, leer el cuerpo del envío, ejecutar la Action ni traer en el HTML, en las cabeceras o en la URL un nombre, un WhatsApp, un conteo o un identificador de registro.
 
+La redirección de una pantalla sin sesión DEBE coincidir con la de Next en estado, `Location`, `Cache-Control` y cookies. Su cuerpo es la única diferencia aceptada: Next manda su documento de error y Astro la manda sin cuerpo.
+
 Las únicas Actions que corren sin sesión son "entrar" en `/admin` y "Salir" en la cola, como hoy. Una cookie con la firma alterada, firmada con otro secreto, vencida, con una caducidad no canónica o presentada con el panel sin configurar DEBE tratarse igual que no traer cookie. Ninguna ruta del panel DEBE prerenderizarse. La verificación automática DEBE enumerar las rutas reales de la salida construida y fallar si alguna ruta bajo `/admin` no tiene política escrita en la tabla.
 
 #### Scenario: pantallas sin sesión
@@ -52,7 +54,7 @@ Las únicas Actions que corren sin sesión son "entrar" en `/admin` y "Salir" en
 - sin contraseña, sin secreto o con un secreto de menos de 32 caracteres: "El panel no está disponible por ahora." y **ningún campo**. El detalle de qué falta va solo al log, una sola vez por proceso;
 - con sesión válida, la redirección medida en Next hacia `/admin/cola`.
 
-Los parámetros se DEBEN leer por su primer valor y con lista cerrada: cualquier otro valor se ignora y no se refleja. La pantalla DEBE llevar el título del panel, `noindex, nofollow`, el `<meta name="referrer" content="strict-origin">` y ningún `<script>`, isla ni runtime de React. El formulario DEBE postear de forma nativa a su Action en esta misma ruta. Contra Next, el diff DEBE aceptar solo las dos normalizaciones de formulario de 3a, con su salida impresa, y Astro NO DEBE agregar campos ocultos.
+Los parámetros se DEBEN leer como los lee Next, con lista cerrada: un parámetro repetido no vale, y cualquier otro valor se ignora y no se refleja. La pantalla DEBE llevar el título del panel, `noindex, nofollow`, el `<meta name="referrer" content="strict-origin">` y ningún `<script>`, isla ni runtime de React. El formulario DEBE postear de forma nativa a su Action en esta misma ruta. Contra Next, el diff DEBE aceptar solo las dos normalizaciones de formulario de 3a, con su salida impresa, y Astro NO DEBE agregar campos ocultos.
 
 #### Scenario: los estados del acceso iguales a hoy
 
@@ -143,9 +145,9 @@ Toda respuesta bajo `/admin` que sale de la función (200, 303, 307, 403, 404 y 
 - `Referrer-Policy: strict-origin`, sin que la global la anule;
 - un `Cache-Control` que incluya `no-store`.
 
-Cada documento del panel, incluida la 404 del comodín, DEBE declarar además `<meta name="referrer" content="strict-origin">` y `noindex, nofollow`. NO DEBE cargar el script de medición ni ningún atributo de evento, aunque la medición esté configurada: la exclusión DEBE salir de la estructura (el documento del panel no es el tronco medido) y quedar escrita con su motivo. Ninguna ruta del panel DEBE aparecer en el sitemap ni estar enlazada desde lo público.
+Cada documento del panel, incluida la 404 del comodín, DEBE declarar además `<meta name="referrer" content="strict-origin">`. Las pantallas DEBEN declarar `noindex, nofollow`, y la 404 del comodín solo `noindex`, igual que Next. NO DEBE cargar el script de medición ni ningún atributo de evento, aunque la medición esté configurada: la exclusión DEBE salir de la estructura (el documento del panel no es el tronco medido) y quedar escrita con su motivo. Ninguna ruta del panel DEBE aparecer en el sitemap ni estar enlazada desde lo público.
 
-Frente a Next, la única diferencia de cabeceras aceptada es la cabecera de referente estricta bajo `/admin`, además de las ya aceptadas en 3a.
+Frente a Next, la única diferencia de cabeceras aceptada es la cabecera de referente estricta bajo `/admin`, además de las ya aceptadas en 3a. (El cuerpo vacío de la redirección sin sesión no es de cabeceras y está declarado en el requirement de la guarda.)
 
 #### Scenario: cabeceras en cada forma de respuesta
 

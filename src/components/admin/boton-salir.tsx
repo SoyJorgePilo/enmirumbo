@@ -2,8 +2,11 @@ import { BOTON_SALIR } from "@/lib/admin/textos";
 import { CLASE_BOTON_SECUNDARIO } from "@/lib/estilos-boton";
 
 export type BotonSalirProps = {
-  /** Server Action que invalida la sesión (`salirDelPanel`). */
-  action: () => void | Promise<void>;
+  /**
+   * Server Action que invalida la sesión (`salirDelPanel`, Next) o la URL a
+   * la que postea el formulario nativo (Astro: `"?_action=salir"`).
+   */
+  action: string | (() => void | Promise<void>);
 };
 
 /**
@@ -13,7 +16,7 @@ export type BotonSalirProps = {
  */
 export function BotonSalir({ action }: BotonSalirProps) {
   return (
-    <form action={action}>
+    <form action={action} method={typeof action === "string" ? "post" : undefined}>
       <button
         type="submit"
         className={`${CLASE_BOTON_SECUNDARIO} px-4 py-2 text-sm`}

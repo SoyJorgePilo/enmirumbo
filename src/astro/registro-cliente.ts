@@ -19,8 +19,9 @@
  *    cualquier otra cosa, deja todo como estaba y muestra el error general.
  *
  * Si la respuesta no llega en `ESPERA_MAXIMA_DEL_ENVIO_MS`, cancela el `fetch`
- * y regresa al envío nativo del mismo formulario (c-seguridad 3b-1,
- * observación 6): el botón no se queda en "Enviando..." para siempre.
+ * y termina como una falla de red: error general, botón reactivado y lo
+ * capturado intacto, sin reenviar nada (c-seguridad 3b-1, observación 6;
+ * hallazgo V1 de la validación): el botón no se queda en "Enviando...".
  *
  * No mide nada, no toca el campo de foto, no usa almacenamiento del
  * navegador, no navega a otro lado ni pide nada a otra dirección. Si faltan
@@ -41,7 +42,7 @@ const RUTA_DEL_FORMULARIO = "/registro";
 export const TEXTO_ENVIANDO = "Enviando...";
 
 /**
- * Cuánto se espera la respuesta del envío antes de regresar al nativo. Holgado
+ * Cuánto se espera la respuesta del envío antes de darla por fallida. Holgado
  * a propósito: una foto de 5 MB en una red móvil lenta tarda; el reloj solo
  * corta una red colgada.
  */
@@ -166,8 +167,6 @@ export function mejorarFormularioDeRegistro(documento: Document, ventana: Ventan
   if (!inicial) return nada;
   ponerEjemplo(inicial);
   let enviando = false;
-  // Tras regresar al envío nativo, el navegador ya está enviando: no se manda nada más.
-  let nativo = false;
 
   const alCambiar = (evento: Event) => {
     const objetivo = evento.target as Element | null;
@@ -179,7 +178,7 @@ export function mejorarFormularioDeRegistro(documento: Document, ventana: Ventan
     const formulario = formularioDe(documento);
     if (!formulario || evento.target !== formulario) return;
     evento.preventDefault();
-    if (enviando || nativo) return;
+    if (enviando) return;
     enviando = true;
     void enviar(formulario).finally(() => {
       enviando = false;
@@ -209,29 +208,27 @@ export function mejorarFormularioDeRegistro(documento: Document, ventana: Ventan
           .then(async (respuesta) => ({ respuesta, html: await respuesta.text() })),
         vencido,
       ]);
-      if (!recibida) {
-        // La red se colgó: el navegador lo envía solo (sin pasar otra vez por aquí).
+      if (recibida) {
+        const { respuesta, html } = recibida;
+        const recibido = formularioDe(new ventana.DOMParser().parseFromString(html, "text/html"));
+        const decision = decidirTrasEnvio(
+          { status: respuesta.status, url: respuesta.url, tieneFormulario: recibido !== null },
+          ventana.location.origin,
+        );
+        if (decision.tipo === "navegar") {
+          ventana.location.assign(decision.ruta);
+          return;
+        }
+        if (decision.tipo === "reemplazar" && recibido) {
+          const nuevo = documento.importNode(recibido, true);
+          formulario.replaceWith(nuevo);
+          ponerEjemplo(nuevo);
+          enfocarPrimerError(nuevo);
+          return;
+        }
+      } else {
+        // La red se colgó: se cancela y cae en el error general, sin reenviar.
         control?.abort();
-        nativo = true;
-        formulario.submit();
-        return;
-      }
-      const { respuesta, html } = recibida;
-      const recibido = formularioDe(new ventana.DOMParser().parseFromString(html, "text/html"));
-      const decision = decidirTrasEnvio(
-        { status: respuesta.status, url: respuesta.url, tieneFormulario: recibido !== null },
-        ventana.location.origin,
-      );
-      if (decision.tipo === "navegar") {
-        ventana.location.assign(decision.ruta);
-        return;
-      }
-      if (decision.tipo === "reemplazar" && recibido) {
-        const nuevo = documento.importNode(recibido, true);
-        formulario.replaceWith(nuevo);
-        ponerEjemplo(nuevo);
-        enfocarPrimerError(nuevo);
-        return;
       }
     } catch {
       // Una falla de red cae en el error general, sin reintentar.

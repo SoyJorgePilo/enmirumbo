@@ -6,7 +6,7 @@
 **Referencias PRD:** v2 §10 (técnica reemplazable); ADR-013
 **Depende de:** T-024
 **OpenSpec change:** `migrar-enlace-gestion-astro`
-**PR:** —
+**PR:** [#41](https://github.com/SoyJorgePilo/enmirumbo/pull/41) (borrador, apilado sobre #38)
 
 ## Contexto
 

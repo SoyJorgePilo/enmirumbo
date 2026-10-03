@@ -316,6 +316,10 @@ async function compararEnvios3b(baseNext, baseAstro, datos, aplicadasRegistro) {
   const numeros = [...new Set([...envios.map(whatsappDelEnvio).filter(Boolean), datos.publicado, datos.revision, datos.rechazado, datos.verificado])];
   const reiniciar = async () => {
     await cliente.query(`DELETE FROM "Negocio" WHERE whatsapp = ANY($1)`, [numeros]);
+    // Los cupos (espera de 60 s del reenvío, topes) son estado de la corrida: los dos lados
+    // tienen que partir sin historia, o el que corre segundo hereda la espera del primero
+    // y al invertir el orden de los lados la diferencia se invierte (V1 de 3b-2).
+    await cliente.query(`DELETE FROM "IntentoDeCupo"`);
     const alta = (id, nombre, whatsapp, estado, extra) =>
       cliente.query(
         `INSERT INTO "Negocio" (id, nombre, "categoriaId", whatsapp, "consintioAvisoEn", estado, "publicadoEn", "rechazadoEn", "consintioAvisoVersion", "numeroVerificadoEn")

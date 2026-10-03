@@ -29,14 +29,41 @@
  *
  * Las decisiones son funciones puras (probadas sin navegador); la capa del
  * DOM es lo mínimo.
+ *
+ * DESDE LA FASE 4 (change `migrar-enlace-gestion-astro`, design.md §4.2) el
+ * mismo módulo mejora también `/editar/[token]`, con una configuración por
+ * página (`ConfigDelFormulario`). La de `/registro` (`CONFIG_DE_REGISTRO`)
+ * reproduce exactamente lo de antes; la de la edición la arma
+ * `src/astro/gestion-cliente.ts` desde el propio `form.action`, y su texto de
+ * error y su configuración viajan en ESE módulo (no en el de `/registro`).
  */
 import { MENSAJES_ERROR_REGISTRO } from "@/lib/registro/textos";
 
-/** Los únicos destinos a los que se navega tras un envío. */
+/** Lo que cambia de una página con formulario a otra. */
+export type ConfigDelFormulario = {
+  /** La ruta de la página del formulario (sin consulta). */
+  rutaDelFormulario: string;
+  /** Los ÚNICOS destinos a los que se navega tras un envío (comparados por igualdad). */
+  rutasDeExito: readonly string[];
+  /** El error general que se muestra ante cualquier otra respuesta. */
+  textoErrorGeneral: string;
+  /** ¿Se pone el ejemplo de la categoría elegida al cargar? (en la edición, no: como Next). */
+  ejemploAlCargar: boolean;
+  /** Ante la 404 de su propia dirección: el error general o volver a cargarla. */
+  alNoEncontrado: "error" | "recargar";
+};
+
+/** Los únicos destinos a los que se navega tras un envío del registro. */
 export const RUTAS_DE_EXITO = ["/registro/gracias", "/registro/verificar"] as const;
 
-/** La ruta de la página del formulario. */
-const RUTA_DEL_FORMULARIO = "/registro";
+/** La configuración de `/registro`: la de siempre. */
+export const CONFIG_DE_REGISTRO: ConfigDelFormulario = Object.freeze({
+  rutaDelFormulario: "/registro",
+  rutasDeExito: RUTAS_DE_EXITO,
+  textoErrorGeneral: MENSAJES_ERROR_REGISTRO.servidor,
+  ejemploAlCargar: true,
+  alNoEncontrado: "error",
+});
 
 /** El literal de hoy del botón mientras se envía. */
 export const TEXTO_ENVIANDO = "Enviando...";
@@ -60,20 +87,23 @@ export type RespuestaDelEnvio = {
   tieneFormulario: boolean;
 };
 
-export type DecisionTrasEnvio = { tipo: "navegar"; ruta: string } | { tipo: "reemplazar" } | { tipo: "error" };
+export type DecisionTrasEnvio = { tipo: "navegar"; ruta: string } | { tipo: "reemplazar" } | { tipo: "recargar" } | { tipo: "error" };
 
-/** Qué hacer con la respuesta del envío (design.md §1.3, paso 4). */
-export function decidirTrasEnvio(respuesta: RespuestaDelEnvio, origen: string): DecisionTrasEnvio {
+/** Qué hacer con la respuesta del envío (design.md §1.3, paso 4; Fase 4, §4.2). */
+export function decidirTrasEnvio(respuesta: RespuestaDelEnvio, origen: string, config: ConfigDelFormulario = CONFIG_DE_REGISTRO): DecisionTrasEnvio {
   let url: URL;
   try {
     url = new URL(respuesta.url);
   } catch {
     return { tipo: "error" };
   }
-  if (respuesta.status !== 200 || url.origin !== origen) return { tipo: "error" };
-  const exito = RUTAS_DE_EXITO.find((ruta) => ruta === url.pathname);
+  if (url.origin !== origen) return { tipo: "error" };
+  // La 404 de su propia dirección (el enlace dejó de abrir): se carga esa dirección.
+  if (respuesta.status === 404 && config.alNoEncontrado === "recargar" && url.pathname === config.rutaDelFormulario) return { tipo: "recargar" };
+  if (respuesta.status !== 200) return { tipo: "error" };
+  const exito = config.rutasDeExito.find((ruta) => ruta === url.pathname);
   if (exito) return { tipo: "navegar", ruta: exito };
-  if (url.pathname === RUTA_DEL_FORMULARIO && respuesta.tieneFormulario) return { tipo: "reemplazar" };
+  if (url.pathname === config.rutaDelFormulario && respuesta.tieneFormulario) return { tipo: "reemplazar" };
   return { tipo: "error" };
 }
 
@@ -136,9 +166,9 @@ function enfocarPrimerError(formulario: HTMLFormElement): void {
   conFoco?.focus();
 }
 
-/** Arriba del formulario, con el marcado de `MensajeError`, el error general de siempre. */
-function mostrarErrorGeneral(formulario: HTMLFormElement): void {
-  const texto = `⚠ ${MENSAJES_ERROR_REGISTRO.servidor}`;
+/** Arriba del formulario, con el marcado de `MensajeError`, el error general de la página. */
+function mostrarErrorGeneral(formulario: HTMLFormElement, textoErrorGeneral: string): void {
+  const texto = `⚠ ${textoErrorGeneral}`;
   const existente = formulario.querySelector<HTMLElement>("#general-error");
   if (existente) {
     existente.textContent = texto;
@@ -155,23 +185,33 @@ function mostrarErrorGeneral(formulario: HTMLFormElement): void {
   else formulario.prepend(mensaje);
 }
 
+/** La mejora de `/registro`: la de siempre, con su configuración. */
+export function mejorarFormularioDeRegistro(documento: Document, ventana: VentanaDelRegistro): () => void {
+  return mejorarFormulario(documento, ventana, CONFIG_DE_REGISTRO);
+}
+
 /**
  * Instala la mejora en el documento. Escucha en el documento (no en el
  * formulario) para seguir funcionando después de reemplazarlo. Devuelve cómo
  * quitarla (lo usan las pruebas).
  */
-export function mejorarFormularioDeRegistro(documento: Document, ventana: VentanaDelRegistro): () => void {
+export function mejorarFormulario(documento: Document, ventana: VentanaDelRegistro, config: ConfigDelFormulario): () => void {
   const nada = () => {};
   if (!puedeMejorar(ventana)) return nada;
   const inicial = formularioDe(documento);
   if (!inicial) return nada;
-  ponerEjemplo(inicial);
+  if (config.ejemploAlCargar) ponerEjemplo(inicial);
   let enviando = false;
+  // En la edición el ejemplo de la categoría aparece solo tras un `change` (como Next).
+  let huboCambio = false;
 
   const alCambiar = (evento: Event) => {
     const objetivo = evento.target as Element | null;
     const formulario = objetivo?.id === "categoriaId" ? objetivo.closest("form") : null;
-    if (formulario) ponerEjemplo(formulario);
+    if (formulario) {
+      huboCambio = true;
+      ponerEjemplo(formulario);
+    }
   };
 
   const alEnviar = (evento: Event) => {
@@ -214,15 +254,20 @@ export function mejorarFormularioDeRegistro(documento: Document, ventana: Ventan
         const decision = decidirTrasEnvio(
           { status: respuesta.status, url: respuesta.url, tieneFormulario: recibido !== null },
           ventana.location.origin,
+          config,
         );
         if (decision.tipo === "navegar") {
           ventana.location.assign(decision.ruta);
           return;
         }
+        if (decision.tipo === "recargar") {
+          ventana.location.assign(config.rutaDelFormulario);
+          return;
+        }
         if (decision.tipo === "reemplazar" && recibido) {
           const nuevo = documento.importNode(recibido, true);
           formulario.replaceWith(nuevo);
-          ponerEjemplo(nuevo);
+          if (config.ejemploAlCargar || huboCambio) ponerEjemplo(nuevo);
           enfocarPrimerError(nuevo);
           return;
         }
@@ -235,7 +280,7 @@ export function mejorarFormularioDeRegistro(documento: Document, ventana: Ventan
     } finally {
       clearTimeout(reloj);
     }
-    mostrarErrorGeneral(formulario);
+    mostrarErrorGeneral(formulario, config.textoErrorGeneral);
     if (boton) {
       boton.disabled = false;
       boton.textContent = textoDelBoton;

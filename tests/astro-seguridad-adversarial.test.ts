@@ -54,11 +54,27 @@ function sinComentarios(fuente: string): string {
     .replace(/^\s*\/\/.*$/gm, "");
 }
 
-/** Páginas privadas (panel, gestión) que traen el tronco medido o el script. */
+/**
+ * Los troncos (`.astro` de una carpeta `layouts/`) que importa una página, con
+ * el alias `@/layouts/` o por ruta relativa (Fase 4, change
+ * `migrar-enlace-gestion-astro`, design.md §2: la pantalla del enlace pinta
+ * `TroncoGestion`, y lo que hay que vigilar es también lo que ESE tronco pinta).
+ */
+function troncosQueImporta(ruta: string, fuente: string): string[] {
+  return [...fuente.matchAll(/from\s+["']([^"']*layouts\/[\w-]+\.astro)["']/g)].map(([, destino]) =>
+    destino.startsWith("@/") ? path.join(raiz, "src", destino.slice(2)) : path.resolve(path.dirname(ruta), destino),
+  );
+}
+
+/** Páginas privadas (panel, gestión) que traen el tronco medido o el script, directo o por el tronco que importan. */
 export function paginasPrivadasMedidas(dirPages: string): string[] {
+  const medido = (fuente: string) => /<TroncoPublico\b|ScriptAnalitica/.test(sinComentarios(fuente));
   return archivosAstro(dirPages)
     .filter((ruta) => SEGMENTOS_PRIVADOS.includes(path.relative(dirPages, ruta).split(path.sep)[0]))
-    .filter((ruta) => /<TroncoPublico\b|ScriptAnalitica/.test(sinComentarios(readFileSync(ruta, "utf8"))))
+    .filter((ruta) => {
+      const fuente = readFileSync(ruta, "utf8");
+      return medido(fuente) || troncosQueImporta(ruta, fuente).some((tronco) => existsSync(tronco) && medido(readFileSync(tronco, "utf8")));
+    })
     .map((ruta) => path.relative(dirPages, ruta))
     .sort();
 }
@@ -70,8 +86,20 @@ describe("adversarial · el panel y el enlace de gestión nunca llevan la medici
 
   it("el guardián nombra la que usa el tronco y la que mete el script a mano aunque declare motivo", () => {
     expect(paginasPrivadasMedidas(path.join(raiz, "tests/fixtures/paginas-privadas-medidas"))).toEqual(
-      [path.join("admin", "cola.astro"), path.join("editar", "[token].astro")].sort(),
+      [path.join("admin", "cola.astro"), path.join("editar", "[token].astro"), path.join("editar", "[token]", "gracias.astro")].sort(),
     );
+  });
+
+  // Fase 4: el tronco de gestión, mirado desde aquí. Si alguien le mete el
+  // script o el tronco medido, las dos pantallas del enlace reprueban.
+  it("el tronco que pintan las pantallas del enlace no trae la medición, y el guardián lo sigue", () => {
+    const paginas = archivosAstro(path.join(raiz, "src/pages/editar"));
+    expect(paginas.length).toBe(2);
+    for (const pagina of paginas) {
+      const troncos = troncosQueImporta(pagina, readFileSync(pagina, "utf8"));
+      expect(troncos.map((t) => path.relative(raiz, t)), pagina).toEqual(["src/layouts/TroncoGestion.astro"]);
+    }
+    expect(sinComentarios(readFileSync(path.join(raiz, "src/layouts/TroncoGestion.astro"), "utf8"))).not.toMatch(/<TroncoPublico\b|ScriptAnalitica/);
   });
 });
 

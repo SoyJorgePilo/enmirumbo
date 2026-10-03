@@ -1,7 +1,9 @@
 /**
  * Las Actions del sitio (change `migrar-formularios-publicos-astro`, Fase 3a;
  * `registrar`, change `migrar-registro-astro`, Fase 3b-1; `confirmar` y
- * `reenviar`, change `migrar-verificacion-sms-astro`, Fase 3b-2).
+ * `reenviar`, change `migrar-verificacion-sms-astro`, Fase 3b-2; `editar`,
+ * change `migrar-enlace-gestion-astro`, Fase 4; `entrar` y `salir`, change
+ * `migrar-panel-admin-base-astro`, Fase 5a).
  *
  * Cada una corre SOLO por envío de formulario (`?_action=<nombre>`) y SOLO
  * desde la ruta que le asigna la tabla de `src/astro/acciones.ts`: el
@@ -10,13 +12,15 @@
  * que a su vez delega en `src/lib/`.
  *
  * Sin esquema de entrada a propósito: el formulario se valida donde siempre
- * (`crearReporte`, `procesarRegistro`, `ejecutarConfirmacion`), con los
+ * (`crearReporte`, `procesarRegistro`, `ejecutarConfirmacion`,
+ * `procesarEdicion`), con los
  * mismos mensajes, y un campo de más se ignora. `confirmar` y `reenviar`
  * además tienen compuerta en la tabla: con la verificación apagada, ni
  * siquiera se llaman.
  */
 import { defineAction } from "astro:actions";
 
+import { editarDesdeElFormulario } from "@/astro/editar";
 import { entrarDesdeElFormulario, salirDesdeElFormulario } from "@/astro/panel/acceso";
 import { registrarDesdeElFormulario } from "@/astro/registro";
 import { reportarDesdeElFormulario } from "@/astro/reportar";
@@ -38,6 +42,11 @@ export const server = {
   reenviar: defineAction({
     accept: "form",
     handler: (_formData, contexto) => reenviarDesdeElFormulario(contexto),
+  }),
+  // El token sale del segmento de la ruta (`contexto.params`), nunca del cuerpo.
+  editar: defineAction({
+    accept: "form",
+    handler: (formData, contexto) => editarDesdeElFormulario(formData, contexto),
   }),
   // 5a (change `migrar-panel-admin-base-astro`): el acceso al panel.
   entrar: defineAction({

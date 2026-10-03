@@ -1,22 +1,9 @@
-import { createElement } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("next/headers", async () => {
-  const simulado = await import("./admin-mocks");
-  return { cookies: simulado.cookies, headers: simulado.headers };
-});
-vi.mock("next/navigation", async () => {
-  const simulado = await import("./admin-mocks");
-  return { redirect: simulado.redirect, notFound: simulado.notFound };
-});
-
 import { seedCatalogos } from "../prisma/seed";
-import { enviarEdicion } from "../src/app/(gestion)/editar/[token]/accion";
-import EditarPage, { metadata as metadataEditar } from "../src/app/(gestion)/editar/[token]/page";
-import { metadata as metadataGracias } from "../src/app/(gestion)/editar/[token]/gracias/page";
-import GraciasPage from "../src/app/(gestion)/editar/[token]/gracias/page";
-import { metadata as metadataLayoutGestion } from "../src/app/(gestion)/layout";
+// El modo edición ya se sirve con Astro (change `migrar-enlace-gestion-astro`,
+// tasks.md #15): la página y la Action de Astro, sin `next/*` simulado.
+import { METADATOS_EDICION, METADATOS_GRACIAS_EDICION } from "../src/astro/editar";
 import type { PrismaClient } from "../src/generated/prisma/client";
 import {
   AVISO_EDICION_PENDIENTE,
@@ -37,7 +24,7 @@ import {
 } from "../src/lib/registro/limite-ip";
 import { COLONIA_OTRA_VALOR, MENSAJES_ERROR_REGISTRO } from "../src/lib/registro/textos";
 import { crearClientePrueba } from "./db";
-import { NoEncontradoSimulado, peticion, reiniciarPeticion, urlDeRedireccion } from "./admin-mocks";
+import { abrirEdicion, destinoDe, enviarEdicion, estadoDe, pintarGraciasEdicion } from "./editar-astro";
 
 /**
  * Spec `registro-negocio` (delta del change `agregar-enlace-de-gestion`) ·
@@ -110,17 +97,18 @@ function envio(cambios: Record<string, string> = {}): FormData {
   return datos;
 }
 
-async function render(pagina: Promise<React.ReactElement> | React.ReactElement) {
-  const resuelta = await pagina;
-  return renderToStaticMarkup(createElement(() => resuelta));
-}
+/** Un token que no abre: la página de Astro responde la 404 (antes, `notFound()` de Next). */
+class NoEncontrado extends Error {}
 
-const abrir = (token: string) =>
-  render(
-    EditarPage({
-      params: Promise.resolve({ token }),
-    } as Parameters<typeof EditarPage>[0]),
-  );
+/** El documento de `/editar/<token>`; lanza `NoEncontrado` si responde 404. */
+const abrir = async (token: string) => {
+  const { status, html } = await abrirEdicion(token);
+  if (status === 404) throw new NoEncontrado(html);
+  return html;
+};
+
+/** El envío, con la IP en el encabezado declarado (antes, `next/headers` simulado). */
+const enviar = (token: string, datos: FormData) => enviarEdicion(token, datos, { [ENCABEZADO_IP]: IP });
 
 beforeAll(async () => {
   prisma = crearClientePrueba();
@@ -143,11 +131,9 @@ afterAll(async () => {
 
 beforeEach(async () => {
   await prisma.negocio.deleteMany({ where: { whatsapp: { startsWith: PREFIJO } } });
-  reiniciarPeticion();
   reiniciarCupoDeEdiciones();
   reiniciarLimitePorIp();
   process.env[VARIABLE_ENCABEZADO_IP] = ENCABEZADO_IP;
-  peticion.encabezados[ENCABEZADO_IP] = IP;
 });
 
 afterEach(() => {
@@ -208,7 +194,9 @@ describe("registro-negocio · el enlace abre la ficha en modo edición", () => {
 
 describe("registro-negocio · un token que no es el vigente no abre nada", () => {
   const esperarNoEncontrado = async (token: string) => {
-    await expect(abrir(token)).rejects.toBeInstanceOf(NoEncontradoSimulado);
+    await expect(abrir(token)).rejects.toBeInstanceOf(NoEncontrado);
+    // Y es la 404 de no encontrado, no otra pantalla.
+    expect((await abrirEdicion(token)).html).toContain("No encontramos esta página");
   };
 
   // Scenario: token inventado
@@ -265,23 +253,23 @@ describe("registro-negocio · un token que no es el vigente no abre nada", () =>
 
   // Scenario: la página de edición no se indexa ni se enlaza
   it("las dos pantallas declaran noindex, nofollow", () => {
-    for (const metadata of [metadataEditar, metadataGracias]) {
+    for (const metadata of [METADATOS_EDICION, METADATOS_GRACIAS_EDICION]) {
       expect(metadata.robots).toEqual({ index: false, follow: false });
       // Ninguna declara política de referente por su cuenta: la hereda del
-      // layout del grupo, para que cubra también las pantallas que se agreguen
+      // tronco del grupo, para que cubra también las pantallas que se agreguen
       // (y para que nadie la "endurezca" a `no-referrer`, que rompe el envío
-      // sin JavaScript — ver `src/app/(gestion)/layout.tsx`).
+      // sin JavaScript — ver `src/layouts/TroncoGestion.astro`).
       expect(metadata.referrer).toBeUndefined();
     }
   });
 
   // Scenario: el token no se va en el Referer
-  it("el grupo del modo edición corta la ruta en el referente de todo enlace saliente", () => {
+  it("el grupo del modo edición corta la ruta en el referente de todo enlace saliente", async () => {
     // `strict-origin` manda solo el origen (`https://sitio/`), nunca
     // `/editar/<token>`: la URL de edición no llega a ningún destino, ni
     // siquiera a otra página del propio sitio (que es donde la analítica
     // reenviaría el referente como ruta).
-    expect(metadataLayoutGestion.referrer).toBe("strict-origin");
+    expect(await pintarGraciasEdicion(generarTokenGestion())).toContain('<meta name="referrer" content="strict-origin">');
   });
 
   // Scenario: el token no aparece en el log
@@ -296,14 +284,10 @@ describe("registro-negocio · un token que no es el vigente no abre nada", () =>
     try {
       await abrir(token);
       await expect(abrir(generarTokenGestion())).rejects.toBeInstanceOf(
-        NoEncontradoSimulado,
+        NoEncontrado,
       );
       // Y un envío que falla por validación.
-      await enviarEdicion(
-        token,
-        { errores: {}, valores: {} as never },
-        envio({ whatsapp: "123" }),
-      );
+      await enviar(token, envio({ whatsapp: "123" }));
     } finally {
       for (const espia of espias) espia.mockRestore();
     }
@@ -324,10 +308,9 @@ describe("registro-negocio · enviar la edición no toca la ficha pública", () 
     const { id, token } = await altaPublicadaConEnlace(`${PREFIJO}020`);
     const antes = await prisma.negocio.findUniqueOrThrow({ where: { id } });
 
-    const destino = await urlDeRedireccion(() =>
-      enviarEdicion(
+    const destino = destinoDe(
+      await enviar(
         token,
-        { errores: {}, valores: {} as never },
         envio({
           whatsapp: `${PREFIJO}020`,
           horario: "L-D 6am-8pm",
@@ -349,7 +332,7 @@ describe("registro-negocio · enviar la edición no toca la ficha pública", () 
   });
 
   it("la confirmación dice el literal de la spec y no repite el envío", async () => {
-    const html = normalizado(await render(GraciasPage()));
+    const html = normalizado(await pintarGraciasEdicion(generarTokenGestion()));
     expect(html).toContain(MENSAJE_CAMBIOS_RECIBIDOS);
     // Scenario: recargar la confirmación — no hay ningún formulario que
     // reenviar, y el token no aparece en ningún href de esta pantalla.
@@ -360,11 +343,7 @@ describe("registro-negocio · enviar la edición no toca la ficha pública", () 
   // Scenario: WhatsApp inválido en la edición
   it("un WhatsApp de menos de 10 dígitos rebota con su literal y no guarda nada", async () => {
     const { id, token } = await altaPublicadaConEnlace(`${PREFIJO}021`);
-    const estado = await enviarEdicion(
-      token,
-      { errores: {}, valores: {} as never },
-      envio({ whatsapp: "771123456", horario: "L-D 7am-9pm" }),
-    );
+    const estado = estadoDe(await enviar(token, envio({ whatsapp: "771123456", horario: "L-D 7am-9pm" })));
 
     expect(estado.errores.whatsapp).toBe(MENSAJES_ERROR_REGISTRO.whatsapp);
     // Lo capturado vuelve intacto.
@@ -377,11 +356,7 @@ describe("registro-negocio · enviar la edición no toca la ficha pública", () 
     const { id, token } = await altaPublicadaConEnlace(`${PREFIJO}022`);
     await altaPublicadaConEnlace(`${PREFIJO}023`);
 
-    const estado = await enviarEdicion(
-      token,
-      { errores: {}, valores: {} as never },
-      envio({ whatsapp: `${PREFIJO}023` }),
-    );
+    const estado = estadoDe(await enviar(token, envio({ whatsapp: `${PREFIJO}023` })));
 
     expect(estado.errores.whatsapp).toBe(ERROR_WHATSAPP_DUPLICADO_EDICION);
     expect(await prisma.edicionPendiente.count({ where: { negocioId: id } })).toBe(0);
@@ -389,13 +364,7 @@ describe("registro-negocio · enviar la edición no toca la ficha pública", () 
 
   it("conservar su propio número no cuenta como duplicado", async () => {
     const { id, token } = await altaPublicadaConEnlace(`${PREFIJO}024`);
-    await urlDeRedireccion(() =>
-      enviarEdicion(
-        token,
-        { errores: {}, valores: {} as never },
-        envio({ whatsapp: `${PREFIJO}024`, horario: "L-V 8am-4pm" }),
-      ),
-    );
+    destinoDe(await enviar(token, envio({ whatsapp: `${PREFIJO}024`, horario: "L-V 8am-4pm" })));
     expect(await prisma.edicionPendiente.count({ where: { negocioId: id } })).toBe(1);
   });
 
@@ -420,9 +389,7 @@ describe("registro-negocio · enviar la edición no toca la ficha pública", () 
       datos.set(clave, valor);
     }
 
-    await urlDeRedireccion(() =>
-      enviarEdicion(token, { errores: {}, valores: {} as never }, datos),
-    );
+    destinoDe(await enviar(token, datos));
 
     const edicion = await prisma.edicionPendiente.findFirstOrThrow({
       where: { negocioId: id },
@@ -445,13 +412,7 @@ describe("registro-negocio · mandar cambios cuando ya hay otros esperando", () 
   // Scenario: aviso al abrir con cambios pendientes
   it("el formulario se prellena con lo último que él mandó y lo avisa", async () => {
     const { token } = await altaPublicadaConEnlace(`${PREFIJO}030`);
-    await urlDeRedireccion(() =>
-      enviarEdicion(
-        token,
-        { errores: {}, valores: {} as never },
-        envio({ whatsapp: `${PREFIJO}030`, horario: "L-D 5am-11pm" }),
-      ),
-    );
+    destinoDe(await enviar(token, envio({ whatsapp: `${PREFIJO}030`, horario: "L-D 5am-11pm" })));
 
     const html = normalizado(await abrir(token));
     expect(html).toContain(AVISO_EDICION_PENDIENTE);
@@ -468,18 +429,13 @@ describe("registro-negocio · mandar cambios cuando ya hay otros esperando", () 
   // Scenario: los cambios nuevos sustituyen a los viejos
   it("el segundo envío reemplaza al primero y reinicia su reloj", async () => {
     const { id, token } = await altaPublicadaConEnlace(`${PREFIJO}032`);
-    const estadoVacio = { errores: {}, valores: {} as never };
 
-    await urlDeRedireccion(() =>
-      enviarEdicion(token, estadoVacio, envio({ whatsapp: `${PREFIJO}032`, horario: "viejo" })),
-    );
+    destinoDe(await enviar(token, envio({ whatsapp: `${PREFIJO}032`, horario: "viejo" })));
     const primera = await prisma.edicionPendiente.findFirstOrThrow({
       where: { negocioId: id },
     });
 
-    await urlDeRedireccion(() =>
-      enviarEdicion(token, estadoVacio, envio({ whatsapp: `${PREFIJO}032`, horario: "nuevo" })),
-    );
+    destinoDe(await enviar(token, envio({ whatsapp: `${PREFIJO}032`, horario: "nuevo" })));
 
     const pendientes = await prisma.edicionPendiente.findMany({
       where: { negocioId: id, estado: "pendiente" },
@@ -564,9 +520,7 @@ describe("registro-negocio · anti-abuso del envío de ediciones", () => {
     const datos = envio({ whatsapp: `${PREFIJO}040` });
     datos.set("sitio_web", "http://spam.example");
 
-    const destino = await urlDeRedireccion(() =>
-      enviarEdicion(token, { errores: {}, valores: {} as never }, datos),
-    );
+    const destino = destinoDe(await enviar(token, datos));
     expect(destino).toBe(`/editar/${token}/gracias`);
     expect(await prisma.edicionPendiente.count({ where: { negocioId: id } })).toBe(0);
   });
@@ -574,23 +528,12 @@ describe("registro-negocio · anti-abuso del envío de ediciones", () => {
   // Scenario: límite por IP
   it("el cuarto envío de la misma hora se rechaza con su literal", async () => {
     const { id, token } = await altaPublicadaConEnlace(`${PREFIJO}041`);
-    const estadoVacio = { errores: {}, valores: {} as never };
 
     for (let intento = 0; intento < 3; intento += 1) {
-      await urlDeRedireccion(() =>
-        enviarEdicion(
-          token,
-          estadoVacio,
-          envio({ whatsapp: `${PREFIJO}041`, horario: `intento ${intento}` }),
-        ),
-      );
+      destinoDe(await enviar(token, envio({ whatsapp: `${PREFIJO}041`, horario: `intento ${intento}` })));
     }
 
-    const estado = await enviarEdicion(
-      token,
-      estadoVacio,
-      envio({ whatsapp: `${PREFIJO}041`, horario: "cuarto" }),
-    );
+    const estado = estadoDe(await enviar(token, envio({ whatsapp: `${PREFIJO}041`, horario: "cuarto" })));
     expect(estado.errores.general).toBe(ERROR_CUPO_EDICION);
 
     const pendiente = await prisma.edicionPendiente.findFirstOrThrow({
@@ -602,13 +545,8 @@ describe("registro-negocio · anti-abuso del envío de ediciones", () => {
   // Scenario: los cupos no se estorban
   it("agotar el cupo de ediciones no consume el de altas del registro", async () => {
     const { token } = await altaPublicadaConEnlace(`${PREFIJO}042`);
-    const estadoVacio = { errores: {}, valores: {} as never };
     for (let intento = 0; intento < 4; intento += 1) {
-      await enviarEdicion(
-        token,
-        estadoVacio,
-        envio({ whatsapp: `${PREFIJO}042`, horario: `intento ${intento}` }),
-      ).catch(() => undefined);
+      await enviar(token, envio({ whatsapp: `${PREFIJO}042`, horario: `intento ${intento}` }));
     }
 
     // El contador de altas del registro no se movió.
@@ -622,13 +560,7 @@ describe("registro-negocio · anti-abuso del envío de ediciones", () => {
 describe("registro-negocio · la edición cubre todos los campos capturables", () => {
   it("guarda la categoría propuesta sin tocar la de la ficha", async () => {
     const { id, token } = await altaPublicadaConEnlace(`${PREFIJO}050`);
-    await urlDeRedireccion(() =>
-      enviarEdicion(
-        token,
-        { errores: {}, valores: {} as never },
-        envio({ whatsapp: `${PREFIJO}050`, categoriaId: String(otraCategoriaId) }),
-      ),
-    );
+    destinoDe(await enviar(token, envio({ whatsapp: `${PREFIJO}050`, categoriaId: String(otraCategoriaId) })));
 
     const edicion = await prisma.edicionPendiente.findFirstOrThrow({
       where: { negocioId: id },

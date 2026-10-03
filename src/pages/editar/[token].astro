@@ -1,0 +1,80 @@
+---
+/**
+ * Modo edición del enlace de gestión, `/editar/<token>` (lo que era
+ * `src/app/(gestion)/editar/[token]/page.tsx`; change
+ * `migrar-enlace-gestion-astro`, Fase 4). Spec `registro-negocio`
+ * (requirements del enlace de gestión) y spec `plataforma-astro`,
+ * requirements de la Fase 4.
+ *
+ * Por petición. Resuelve el token por su HUELLA (`cargarEdicion`, que llama a
+ * `obtenerFormularioDeEdicion`) ANTES de mirar el resultado de la Action: un
+ * token inventado, alterado, regenerado, de una ficha no publicada o borrada,
+ * o un segmento sin forma de token pintan `NoEncontradoDinamico` con estado
+ * 404 —byte a byte la de `/loquesea`—, también en la respuesta a un envío.
+ *
+ * El formulario es el del registro en modo edición, HTML NATIVO
+ * (`FormularioRegistroNativo`): postea a `?_action=editar` de esta misma ruta
+ * (el token va SOLO en la ruta, nunca en un campo) y el middleware corre la
+ * Action. Con éxito responde el 303 a `/editar/<token>/gracias`; con error,
+ * esta misma página vuelve a pintarse en la respuesta al POST con el estado
+ * de la Action, como Next sin JS.
+ *
+ * Fuera de la medición y con la política de referente del grupo:
+ * `TroncoGestion`. El único JavaScript propio es la mejora progresiva de
+ * `src/astro/gestion-cliente.ts`. Si la base no responde, lanza y se
+ * responde la 500.
+ */
+import { actions } from "astro:actions";
+import { createElement } from "react";
+
+import NoEncontradoDinamico from "@/astro/componentes/NoEncontradoDinamico.astro";
+import { METADATOS_EDICION, cargarEdicion } from "@/astro/editar";
+import { AvisoPrivacidadVigente } from "@/components/gestion/aviso-privacidad-vigente";
+import { FormularioRegistroNativo } from "@/components/registro/formulario-registro-nativo";
+import TroncoGestion from "@/layouts/TroncoGestion.astro";
+import { AVISO_EDICION_PENDIENTE, BOTON_ENVIAR_CAMBIOS, FRASE_EDICION, TITULO_EDICION } from "@/lib/gestion/textos";
+
+export const prerender = false;
+
+const pantalla = await cargarEdicion(Astro.params.token, Astro.getActionResult(actions.editar));
+if (pantalla.tipo === "no-encontrado") Astro.response.status = 404;
+// Un elemento de React (no una plantilla de Astro): el formulario lo pinta en el hueco del aviso.
+const aviso = createElement(AvisoPrivacidadVigente);
+---
+
+{
+  pantalla.tipo === "no-encontrado" ? (
+    <NoEncontradoDinamico />
+  ) : (
+    <TroncoGestion metadatos={METADATOS_EDICION}>
+      <section class="flex flex-col gap-6 py-4">
+        <div class="flex flex-col gap-2">
+          <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">{TITULO_EDICION}</h1>
+          <p class="text-tinta-suave">{FRASE_EDICION}</p>
+        </div>
+        {pantalla.tieneEdicionPendiente && (
+          <p role="status" class="rounded-xl border border-tinta p-4 text-sm font-semibold text-tinta">
+            {AVISO_EDICION_PENDIENTE}
+          </p>
+        )}
+        <FormularioRegistroNativo
+          action={actions.editar.toString()}
+          categorias={pantalla.categorias}
+          colonias={pantalla.colonias}
+          estado={pantalla.estado}
+          modo="edicion"
+          aviso={aviso}
+          textoBoton={BOTON_ENVIAR_CAMBIOS}
+        />
+      </section>
+      <script>
+        // La mejora progresiva se baja aparte (`import()`), y solo si el
+        // navegador tiene las tres APIs que usa: sin ellas, el envío es el
+        // nativo. Así además queda como un módulo de `/_astro/` y no en línea.
+        if ("fetch" in window && "FormData" in window && "DOMParser" in window) {
+          void import("@/astro/gestion-cliente").then(({ mejorarFormularioDeEdicion }) => mejorarFormularioDeEdicion(document, window));
+        }
+      </script>
+    </TroncoGestion>
+  )
+}

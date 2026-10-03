@@ -319,9 +319,10 @@ describe("Action registrar · con la bandera encendida (Twilio falso en el proce
 
 describe("tabla de Actions · registrar", () => {
   // 3b-2 (change `migrar-verificacion-sms-astro`): la tabla suma `confirmar` y `reenviar`.
-  // 5a (change `migrar-panel-admin-base-astro`): seis, con entrar y salir del panel.
-  it("seis Actions en la tabla, cada una atada a su ruta", () => {
-    expect(Object.keys(ACCIONES)).toEqual(["reportar", "registrar", "confirmar", "reenviar", "entrar", "salir"]);
+  // Fase 4 (change `migrar-enlace-gestion-astro`, MODIFIED): la tabla suma `editar` → `/editar/[token]` (lo prueba `editar-accion`).
+  // 5a (change `migrar-panel-admin-base-astro`): suma entrar y salir del panel.
+  it("siete Actions en la tabla (Fase 4 suma editar; 5a, entrar y salir), cada una atada a su ruta", () => {
+    expect(Object.keys(ACCIONES)).toEqual(["reportar", "registrar", "confirmar", "reenviar", "editar", "entrar", "salir"]);
     expect(ACCIONES.registrar.ruta).toBe("/registro");
   });
 

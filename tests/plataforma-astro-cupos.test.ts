@@ -207,6 +207,10 @@ describe("cupos · nadie usa clientAddress", () => {
     const registro = readFileSync(path.join(raiz, "src/astro/registro.ts"), "utf8");
     expect(registro).toMatch(/const encabezados = contexto\.request\.headers;[\s\S]*ipDeEncabezados\(encabezados\)/);
     expect(archivosConClientAddress(raiz, ["src/astro/registro.ts", "src/astro/registro-cliente.ts", "src/pages/registro.astro", "src/pages/registro", "src/components/registro"])).toEqual([]);
+    // Fase 4 (change `migrar-enlace-gestion-astro`): la edición, con las cabeceras de la petición.
+    const edicion = readFileSync(path.join(raiz, "src/astro/editar.ts"), "utf8");
+    expect(edicion).toMatch(/ipDeEncabezados\(\s*contexto\.request\.headers\s*\)/);
+    expect(archivosConClientAddress(raiz, ["src/astro/editar.ts", "src/astro/gestion-cliente.ts", "src/pages/editar", "src/layouts/TroncoGestion.astro"])).toEqual([]);
     // 5a (change `migrar-panel-admin-base-astro`): el acceso al panel, con las cabeceras de la petición.
     const acceso = readFileSync(path.join(raiz, "src/astro/panel/acceso.ts"), "utf8");
     expect(acceso).toMatch(/ejecutarAcceso\(\s*formData,\s*contexto\.request\.headers/);

@@ -5,12 +5,14 @@
  *
  * Uso:
  *   node scripts/diff-html.mjs <baseNext> <baseAstro> --datos <json> [--rutas archivo | --solo-3a | --solo-3b | --solo-3b2] [--verificacion encendida|apagada]
+ *   npx tsx scripts/diff-html.mjs <baseNext> <baseAstro> --datos <json> --solo-4   (Fase 4; `DATABASE_URL` la de los dos)
  *   node scripts/diff-html.mjs --capturar-head <baseNext> <directorio>
  *   node scripts/diff-html.mjs --capturar-2b <baseNext> <directorio> --datos <json>
  *   node scripts/diff-html.mjs --capturar-3a <baseNext> <directorio> --datos <json>
  *   npx tsx scripts/diff-html.mjs --capturar-3b <baseNext> <directorio> --datos <json> [--con-envios]
  *   npx tsx scripts/diff-html.mjs --capturar-3b2 <baseNext> <directorio> --datos <json>
  *   node scripts/diff-html.mjs --capturar-3b2-apagada <base> <directorio> <configuracion>
+ *   npx tsx scripts/diff-html.mjs --capturar-4 <baseNext> <directorio> --datos <json> [--con-envios]
  *   npx tsx scripts/diff-html.mjs --capturar-5a <baseNext> <directorio> [--sin-configurar <b>] [--sin-secreto <b>] [--secreto-corto <b>]
  *   npx tsx scripts/diff-html.mjs <baseNext> <baseAstro> --solo-5a [--sin-configurar <bN> <bA>] …   (panel; ver scripts/diff-html/panel.mjs)
  *   npx tsx scripts/diff-html.mjs --capturar-6a <dirNext> <directorio>      (ver `capturar6a`)
@@ -87,6 +89,8 @@ import {
   NORMALIZACIONES_404_DINAMICA,
   NORMALIZACIONES_FORMULARIO,
   NORMALIZACIONES_REGISTRO,
+  DIFERENCIAS_ACEPTADAS_GESTION,
+  sinDiferenciasAceptadasDeGestion,
 } from "./diff-html/nucleo.mjs";
 import {
   enviarFormulario,
@@ -706,6 +710,267 @@ async function capturar3b2Apagada(base, directorio, configuracion) {
 }
 
 /**
+ * El contexto de `recorrerEnvioDe4` contra la base de `DATABASE_URL` (Fase 4).
+ * Siembra las fichas de `tests/gestion-astro.ts` con tokens NUEVOS e instala
+ * el disparador de "el guardado falla". `limpiar()` lo quita todo.
+ */
+async function contextoDe4(datos) {
+  const { default: pg } = await import("pg");
+  const cliente = new pg.Client({ connectionString: process.env.DATABASE_URL });
+  await cliente.connect();
+  const consultar = async (sql, params) => (await cliente.query(sql, params)).rows;
+  const ayudantes = await import("../tests/gestion-astro.ts");
+  await ayudantes.instalarFallaDeGuardado(consultar);
+  let s = await ayudantes.sembrarFichasDe4(consultar, datos);
+  const { generarTokenGestion } = await import("../src/lib/gestion/token.ts");
+  const inventado = generarTokenGestion();
+  const envios = ayudantes.contextoDeEnviosDe4(consultar, () => s, inventado);
+  return {
+    consultar,
+    get sembrado() {
+      return s;
+    },
+    inventado,
+    async resembrar() {
+      s = await ayudantes.sembrarFichasDe4(consultar, datos);
+      envios.nuevos.length = 0;
+    },
+    ctx: envios.ctx,
+    datosDeEnvios: envios.datosDeEnvios,
+    async limpiar() {
+      await ayudantes.borrarFichasDe4(consultar);
+      await ayudantes.quitarFallaDeGuardado(consultar);
+      await cliente.end();
+    },
+  };
+}
+
+/** Bytes (y con gzip -9) del JavaScript que referencia una página: `<script src>` y precargas de módulo. */
+async function pesoDelJavascript(base, html) {
+  const { gzipSync } = await import("node:zlib");
+  const fuentes = [
+    ...new Set(
+      [...html.matchAll(/<script[^>]*\bsrc="([^"]+)"/g), ...html.matchAll(/<link[^>]*rel="(?:modulepreload|preload)"[^>]*as="script"[^>]*href="([^"]+)"/g)]
+        .map((m) => m[1])
+        .filter((src) => !/umami/.test(src)),
+    ),
+  ];
+  let bytes = 0;
+  let gzip = 0;
+  for (const src of fuentes) {
+    const codigo = Buffer.from(await (await fetch(new URL(src, base))).arrayBuffer());
+    bytes += codigo.length;
+    gzip += gzipSync(codigo, { level: 9 }).length;
+  }
+  return { archivos: fuentes.length, bytes, gzip };
+}
+
+/**
+ * Fixtures de la Fase 4 (change `migrar-enlace-gestion-astro`, tasks.md #2):
+ * con la base de `DATABASE_URL` (la que sirve Next, con
+ * `REGISTRO_ENCABEZADO_IP=x-forwarded-for`), siembra las fichas con tokens
+ * nuevos y escribe, SIN NINGÚN TOKEN (`<T…>`):
+ *
+ * - las pantallas de `PANTALLAS_DE_4`;
+ * - por motivo de 404 y por forma de petición: estado, cabeceras útiles, si
+ *   trae `<meta name="referrer">` y si el cuerpo es el de `/loquesea`;
+ * - el peso del JavaScript de `/editar/<T>`;
+ * - con `--con-envios`, el desenlace de cada envío de `enviosDe4` y, si viene
+ *   `datos.baseCaida` (el mismo build de Next con la base inalcanzable), el
+ *   envío con la base caída.
+ *
+ * `datos`: `{ categoriaId, coloniaId, baseCaida? }`.
+ */
+async function capturar4(baseNext, directorio, datos, conEnvios) {
+  mkdirSync(directorio, { recursive: true });
+  const c = await contextoDe4(datos);
+  const escribir = (nombre, contenido) => {
+    const archivo = path.join(directorio, nombre);
+    const limpio = c.ctx.anonimizar(contenido);
+    for (const token of Object.values(c.sembrado.tokens)) if (limpio.includes(token.slice(0, 8))) throw new Error(`un token quedó en ${nombre}`);
+    writeFileSync(archivo, limpio);
+    console.log(`capturado ${archivo}`);
+  };
+  const legible = (html) => `${idsDeCatalogoPorNombre(html).replace(/></g, ">\n<")}\n`;
+  const utiles = ["content-type", "cache-control", "referrer-policy", "x-content-type-options", "x-frame-options", "content-security-policy"];
+  const cabecerasUtiles = (h) => Object.fromEntries(utiles.filter((n) => h.has(n)).map((n) => [n, h.get(n)]));
+  const metaReferrer = (html) => /<meta name="referrer" content="([^"]*)"/.exec(html)?.[1] ?? null;
+  try {
+    const { PANTALLAS_DE_4, motivosDe404 } = await import("./enviar-formulario.mjs");
+    const pantallas = {};
+    for (const [nombre, ficha, sufijo] of PANTALLAS_DE_4) {
+      const token = ficha === "inventado" ? c.inventado : c.sembrado.tokens[ficha];
+      const r = await fetch(new URL(`/editar/${token}${sufijo}`, baseNext), { redirect: "manual" });
+      const html = await r.text();
+      escribir(nombre, legible(limpiarHtml(html)));
+      pantallas[nombre] = { status: r.status, ...cabecerasUtiles(r.headers), metaReferrer: metaReferrer(html), cookies: r.headers.getSetCookie().length };
+    }
+    const loquesea = await (await fetch(new URL("/loquesea", baseNext))).text();
+    const origin = new URL(baseNext).origin;
+    const motivos = {};
+    for (const [nombre, segmento] of [...motivosDe404(c.sembrado.tokens, c.inventado), ["vacio", ""]]) {
+      for (const [forma, metodo, consulta] of [
+        ["GET", "GET", ""],
+        ["HEAD", "HEAD", ""],
+        ["POST-sin-accion", "POST", ""],
+      ]) {
+        const r = await fetch(new URL(`/editar/${segmento}${consulta}`, baseNext), {
+          method: metodo,
+          redirect: "manual",
+          headers: metodo === "POST" ? { origin, "content-type": "application/x-www-form-urlencoded" } : {},
+          body: metodo === "POST" ? "horario=x" : undefined,
+        });
+        const cuerpo = await r.text();
+        motivos[`${forma} ${nombre}`] = {
+          status: r.status,
+          ...cabecerasUtiles(r.headers),
+          cookies: r.headers.getSetCookie().length,
+          metaReferrer: metaReferrer(cuerpo),
+          igualALoquesea: cuerpo === loquesea,
+          documentoDeError: /<html id="__next_error__"/.test(cuerpo),
+        };
+      }
+    }
+    const paginaEditar = await (await fetch(new URL(`/editar/${c.sembrado.tokens.publicada}`, baseNext))).text();
+    const javascript = await pesoDelJavascript(baseNext, paginaEditar);
+    const desenlaces = {};
+    if (conEnvios) {
+      const { enviosDe4, recorrerEnvioDe4 } = await import("./enviar-formulario.mjs");
+      const { jpegDePrueba } = await import("../tests/fotos-fixtures.ts");
+      const foto = { nombre: "foto-ficticia.jpg", tipo: "image/jpeg", bytes: await jpegDePrueba(64, 48) };
+      for (const envio of enviosDe4(c.datosDeEnvios(), foto)) {
+        const resultado = await recorrerEnvioDe4(baseNext, envio, c.ctx);
+        if (resultado.html) escribir(`repintado-${envio.nombre}.html`, legible(limpiarHtml(resultado.html)));
+        desenlaces[envio.nombre] = { ...resultado, html: undefined };
+        console.log(`envío ${envio.nombre}: ${resultado.cadena.map((p) => p.status).join("→")}`);
+      }
+      // Recargar la confirmación dos veces no crea otra edición.
+      const gracias = new URL(`/editar/${c.sembrado.tokens.publicada}/gracias`, baseNext);
+      for (let i = 0; i < 2; i++) await fetch(gracias);
+      desenlaces["recargar-gracias"] = { base: { ediciones: JSON.parse(c.ctx.anonimizar(JSON.stringify(await c.ctx.ediciones(c.sembrado.ids.publicada)))) } };
+      if (datos.baseCaida) {
+        // La pantalla se abre con la base sana y se manda al MISMO build con la base caída.
+        const { leerFormulario, camposAEnviar, cuerpoDelEnvio } = await import("./enviar-formulario.mjs");
+        const urlPagina = new URL(`/editar/${c.sembrado.tokens.publicada}`, baseNext).toString();
+        const formulario = leerFormulario(await (await fetch(urlPagina)).text(), urlPagina);
+        const destino = new URL(new URL(formulario.accion).pathname + new URL(formulario.accion).search, datos.baseCaida);
+        const r = await fetch(destino, {
+          method: "POST",
+          redirect: "manual",
+          body: cuerpoDelEnvio(camposAEnviar(formulario, { horario: "con la base caída" }), formulario.codificacion),
+          headers: { origin: new URL(datos.baseCaida).origin, "x-forwarded-for": "198.51.100.99" },
+        });
+        const html = await r.text();
+        desenlaces["base-caida"] = { status: r.status, ...cabecerasUtiles(r.headers), h1: /<h1[^>]*>([^<]*)</.exec(html)?.[1] ?? null };
+      }
+    }
+    escribir("respuestas.json", `${JSON.stringify({ pantallas, motivos, javascript, desenlaces }, null, 2)}\n`);
+  } finally {
+    await c.limpiar();
+  }
+}
+
+/**
+ * La Fase 4 contra las dos versiones (change `migrar-enlace-gestion-astro`,
+ * tasks.md #14 y #16), con la MISMA base y el mismo entorno
+ * (`REGISTRO_ENCABEZADO_IP=x-forwarded-for` en los dos): siembra las fichas
+ * con tokens nuevos (`tests/gestion-astro.ts`) y compara
+ *
+ * - las pantallas de `PANTALLAS_DE_4` (las de formulario, con
+ *   `NORMALIZACIONES_REGISTRO`);
+ * - cada motivo de `motivosDe404` como 404 dinámica (`NORMALIZACIONES_404_DINAMICA`);
+ * - los envíos de `enviosDe4` (cadena, avisos, errores, valores, base y el
+ *   HTML re-pintado), volviendo a sembrar antes de cada versión;
+ * - con `datos.nextCaida` y `datos.astroCaida` (los mismos builds con la base
+ *   inalcanzable), el envío con la base caída.
+ *
+ * Ninguna normalización nueva. Las diferencias aceptadas
+ * (`DIFERENCIAS_ACEPTADAS_GESTION` y origen ajeno/`null`: Next 500, Astro
+ * 403) se imprimen como `ACEPTADA`. Devuelve las diferencias que quedan.
+ */
+async function compararFase4(baseNext, baseAstro, datos) {
+  const { PANTALLAS_DE_4, motivosDe404, enviosDe4, recorrerEnvioDe4, leerFormulario, camposAEnviar, cuerpoDelEnvio } = await import("./enviar-formulario.mjs");
+  const c = await contextoDe4(datos);
+  const diferencias = [];
+  const cuenta = Object.fromEntries([...NORMALIZACIONES_REGISTRO, ...NORMALIZACIONES_404_DINAMICA, ...DIFERENCIAS_ACEPTADAS_GESTION].map((n) => [n.id, 0]));
+  const anotar = (ids) => ids.forEach((id) => (cuenta[id] += 1));
+  try {
+    const referencia404 = String((await pedir(baseNext, "/a/b/c")).cuerpo);
+    const rutas = [
+      ...PANTALLAS_DE_4.map(([nombre, ficha, sufijo]) => ({ nombre, ruta: `/editar/${ficha === "inventado" ? c.inventado : c.sembrado.tokens[ficha]}${sufijo}`, formulario: sufijo === "" })),
+      ...motivosDe404(c.sembrado.tokens, c.inventado).map(([nombre, segmento]) => ({ nombre: `404 ${nombre}`, ruta: `/editar/${segmento}`, es404: true })),
+    ];
+    for (const { nombre, ruta, formulario, es404 } of rutas) {
+      const [n, a] = await Promise.all([pedir(baseNext, ruta), pedir(baseAstro, ruta)]);
+      const aplicadas = [];
+      const aceptadas = [];
+      const propias = sinDiferenciasAceptadasDeGestion(
+        compararRespuestas(nombre, n, a, {
+          dinamica: true,
+          ...(es404 ? { referencia404, aplicadas } : {}),
+          ...(formulario ? { registro: { urlPagina: new URL(ruta, baseNext).toString(), aplicadas, repintada: false } } : {}),
+        }),
+        aceptadas,
+      );
+      anotar([...aplicadas, ...aceptadas]);
+      console.log(`${propias.length ? "DISTINTA" : aceptadas.length ? "ACEPTADA" : "igual   "} 4 ${nombre} (${n.status}/${a.status})${aplicadas.length ? ` [normalizaciones: ${aplicadas.join(", ")}]` : ""}${aceptadas.length ? ` [aceptadas: ${aceptadas.join(", ")}]` : ""}`);
+      diferencias.push(...propias.map((d) => c.ctx.anonimizar(d)));
+    }
+    const { jpegDePrueba } = await import("../tests/fotos-fixtures.ts");
+    const foto = { nombre: "foto-ficticia.jpg", tipo: "image/jpeg", bytes: await jpegDePrueba(64, 48) };
+    const correr = async (base) => {
+      await c.resembrar();
+      const salida = [];
+      for (const envio of enviosDe4(c.datosDeEnvios(), foto)) salida.push(await recorrerEnvioDe4(base, envio, c.ctx));
+      return salida;
+    };
+    const deNext = await correr(baseNext);
+    const deAstro = await correr(baseAstro);
+    enviosDe4(c.datosDeEnvios(), foto).forEach((envio, i) => {
+      const sinPolitica = (r) => ({ ...r, html: undefined, post: { ...r.post, "referrer-policy": undefined } });
+      const [n, a] = [sinPolitica(deNext[i]), sinPolitica(deAstro[i])];
+      const iguales = JSON.stringify(n) === JSON.stringify(a);
+      const aceptada = !iguales && Boolean(envio.aceptada?.(n.cadena, a.cadena)) && JSON.stringify(n.base) === JSON.stringify(a.base);
+      const politica = deNext[i].post["referrer-policy"] !== deAstro[i].post["referrer-policy"];
+      if (politica && deAstro[i].post["referrer-policy"] === "strict-origin") anotar(["cabecera-referrer-policy"]);
+      let html = [];
+      if (deNext[i].html && deAstro[i].html) {
+        const aplicadas = [];
+        html = compararRespuestas(`POST 4 ${envio.nombre}`, { status: 200, headers: { "content-type": deNext[i].post["content-type"] }, cuerpo: deNext[i].html }, { status: 200, headers: { "content-type": deAstro[i].post["content-type"] }, cuerpo: deAstro[i].html }, {
+          registro: { urlPagina: new URL("/editar/<T>", baseNext).toString(), aplicadas, repintada: true },
+        }).filter((d) => !/ · cabecera /.test(d));
+        anotar(aplicadas);
+      }
+      const estado = iguales && html.length === 0 ? (politica ? "ACEPTADA" : "igual   ") : aceptada && html.length === 0 ? "ACEPTADA" : "DISTINTA";
+      console.log(`${estado} envío 4: ${envio.nombre} (${n.cadena.map((p) => p.status).join("→")} / ${a.cadena.map((p) => p.status).join("→")})`);
+      if (!iguales && !aceptada) diferencias.push(`envío 4 ${envio.nombre}:\n  Next : ${JSON.stringify(n)}\n  Astro: ${JSON.stringify(a)}`);
+      diferencias.push(...html);
+    });
+    if (datos.nextCaida && datos.astroCaida) {
+      const caida = async (base, baseCaida) => {
+        const urlPagina = new URL(`/editar/${c.sembrado.tokens.publicada}`, base).toString();
+        const formulario = leerFormulario(await (await fetch(urlPagina)).text(), urlPagina);
+        const destino = new URL(new URL(formulario.accion).pathname + new URL(formulario.accion).search, baseCaida);
+        const r = await fetch(destino, { method: "POST", redirect: "manual", body: cuerpoDelEnvio(camposAEnviar(formulario, { horario: "con la base caída" }), formulario.codificacion), headers: { origin: new URL(baseCaida).origin } });
+        const cuerpo = await r.text();
+        return { status: r.status, conToken: cuerpo.includes(c.sembrado.tokens.publicada.slice(0, 8)) };
+      };
+      const [n, a] = [await caida(baseNext, datos.nextCaida), await caida(baseAstro, datos.astroCaida)];
+      // El token en el cuerpo de la 500: Astro NUNCA (spec); que Next lo traiga (su documento de error
+      // lleva los parámetros de la ruta) es una diferencia a favor de Astro y se imprime.
+      const igual = n.status === a.status && !a.conToken;
+      console.log(`${igual ? (n.conToken ? "ACEPTADA" : "igual   ") : "DISTINTA"} envío 4: base-caida (${n.status} / ${a.status}; token en el cuerpo: Next ${n.conToken ? "sí" : "no"}, Astro ${a.conToken ? "sí" : "no"})`);
+      if (!igual) diferencias.push(`envío 4 base-caida: Next ${JSON.stringify(n)} · Astro ${JSON.stringify(a)}`);
+    }
+  } finally {
+    await c.limpiar();
+  }
+  console.log("Fase 4 · normalizaciones y diferencias aceptadas aplicadas:");
+  for (const [id, n] of Object.entries(cuenta)) console.log(`- ${id}: ${n}`);
+  return diferencias;
+}
+
+/**
  * ── Tareas programadas (6a; change `migrar-tareas-programadas-astro`,
  * design.md §6; tasks.md #1 y #12) ──
  *
@@ -920,6 +1185,11 @@ async function principal(argumentos) {
     await capturar3b2(argumentos[1], argumentos[2], datos);
     return 0;
   }
+  if (argumentos[0] === "--capturar-4") {
+    if (!datos) throw new Error("--capturar-4 necesita --datos <json>");
+    await capturar4(argumentos[1], argumentos[2], datos, argumentos.includes("--con-envios"));
+    return 0;
+  }
   if (argumentos[0] === "--capturar-3b2-apagada") {
     await capturar3b2Apagada(argumentos[1], argumentos[2], argumentos[3]);
     return 0;
@@ -955,6 +1225,17 @@ async function principal(argumentos) {
   // 3b-2: `--verificacion encendida|apagada` dice cómo corren LAS DOS versiones; `--solo-3b2`, solo esas rutas.
   const verificacion = argumento(argumentos, "--verificacion");
   const solo3b2 = argumentos.includes("--solo-3b2");
+  // Fase 4: `--solo-4`, solo las pantallas, las 404 y los envíos del enlace de gestión.
+  if (argumentos.includes("--solo-4")) {
+    const diferencias4 = await compararFase4(baseNext, baseAstro, datos);
+    if (diferencias4.length) {
+      console.log(`\n${diferencias4.length} diferencias:\n`);
+      for (const d of diferencias4) console.log(`- ${d}`);
+      return 1;
+    }
+    console.log("\nCero diferencias en la Fase 4 (fuera de las normalizaciones declaradas y las diferencias aceptadas impresas).");
+    return 0;
+  }
   let rutas = solo3a
     ? rutas3a(datos, fichaPublicada)
     : solo3b

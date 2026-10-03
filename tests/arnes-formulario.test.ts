@@ -259,4 +259,21 @@ describe("arnés · cookies y desenlace", () => {
     expect((pedidos[1].init.headers as Record<string, string>).cookie).toBe("nu_paso=abc");
     expect(String(pedidos[1].init.body)).toBe("");
   });
+
+  // Fase 4 (change `migrar-enlace-gestion-astro`): el enlace se regenera
+  // mientras el dueño tiene la pantalla abierta.
+  it("`antesDelEnvio` corre después de abrir la página y antes del POST, una sola vez", async () => {
+    const orden: string[] = [];
+    const pedir = async (_url: string | URL | Request, init: RequestInit = {}) => {
+      orden.push(init.method ?? "GET");
+      return init.method === "POST" ? new Response("no", { status: 404 }) : new Response(HTML_NATIVO, { status: 200 });
+    };
+    const resultado = await enviarFormulario({
+      urlPagina: "https://enmirumbo.example/editar/x",
+      pedir: pedir as typeof fetch,
+      antesDelEnvio: async () => void orden.push("regenerar"),
+    });
+    expect(orden).toEqual(["GET", "regenerar", "POST"]);
+    expect(resultado.cadena.map((p) => p.status)).toEqual([200, 404]);
+  });
 });

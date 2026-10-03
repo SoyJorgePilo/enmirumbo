@@ -15,7 +15,11 @@
  *   la descripción y `openGraph` (`postProcessMetadata` de Next);
  * - la imagen de la convención de archivo (`/opengraph-image?<versión>` con
  *   tipo, medidas y texto alternativo) cuando nadie declaró `images`;
- * - canónica, robots, `noindex` en toda 404, `charset`, `viewport` e icono.
+ * - canónica, robots, `noindex` en toda 404, `charset`, `viewport` e icono;
+ * - `referrer` (Fase 4, change `migrar-enlace-gestion-astro`, design.md
+ *   §1.2): la `<meta name="referrer">` que Next pinta para un `metadata.referrer`,
+ *   en su posición (después de la descripción y antes de `robots`). La
+ *   declaran el tronco de gestión y `DocumentoPanel` (5a).
  *
  * La verdad es lo que emite la build de Next: `tests/astro-metadatos.test.ts`
  * compara contra `<head>` capturados de ella.
@@ -145,10 +149,11 @@ export function resolverMetadatos(opciones: OpcionesDeResolucion): Etiqueta[] {
   if (noEncontrado) etiquetas.push(nombre("robots", "noindex"));
   if (titulo) etiquetas.push({ etiqueta: "title", texto: titulo });
   if (descripcion) etiquetas.push(nombre("description", descripcion));
-  // 5a (change `migrar-panel-admin-base-astro`, design.md §5): el panel
-  // declara `referrer`; Next lo pinta aquí, entre la descripción y `robots`.
+  // Fase 4 (`TroncoGestion`) y 5a (`DocumentoPanel`, change
+  // `migrar-panel-admin-base-astro`, design.md §5) declaran `referrer`; Next
+  // lo pinta aquí, entre la descripción y `robots`.
   const referente = pagina.referrer ?? sitio.referrer;
-  if (referente) etiquetas.push(nombre("referrer", String(referente)));
+  if (typeof referente === "string" && referente) etiquetas.push(nombre("referrer", referente));
   if (robots) etiquetas.push(nombre("robots", robots));
   if (canonica) etiquetas.push({ etiqueta: "link", atributos: { rel: "canonical", href: canonica } });
 

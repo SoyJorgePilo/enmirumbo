@@ -43,8 +43,15 @@ avisarSinAlmacenDeFotosUnaVez();
  */
 export const onRequest = defineMiddleware(async (contexto, siguiente) => {
   if (contexto.isPrerendered) return siguiente();
+  // La ruta PEDIDA se lee ANTES de atender: el 403, "como dirección
+  // inexistente" y la 500 son reescrituras y no deben cambiar la política.
+  const urlPedida = contexto.url;
+  const rutaPedida = urlPedida.pathname;
+  const respuesta = await atender(contexto, siguiente);
   // 5a: el referente estricto del panel, antes de que se pongan las globales.
-  return prepararRespuesta(conReferenteDelPanel(contexto.url, await atender(contexto, siguiente)));
+  // Fase 4: `prepararRespuesta` fija `strict-origin` en todo `/editar/`,
+  // pisando lo que venga. Prefijos disjuntos: ninguna pisa a la otra.
+  return prepararRespuesta(conReferenteDelPanel(urlPedida, respuesta), rutaPedida);
 });
 
 async function atender(contexto: APIContext, siguiente: MiddlewareNext): Promise<Response> {

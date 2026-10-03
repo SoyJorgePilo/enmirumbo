@@ -324,6 +324,10 @@ describe("directorio-publico · la página de resultados no es indexable (tasks 
       // metadata (`noindex, nofollow`) vive en este módulo y la página
       // `src/pages/registro/verificar.astro` la usa tal cual.
       join(raiz, "src/astro/verificar.ts"),
+      // El modo edición en Astro (change `migrar-enlace-gestion-astro`): su
+      // metadata (`noindex, nofollow`) vive en este módulo y las dos páginas
+      // de `src/pages/editar/` la usan tal cual.
+      join(raiz, "src/astro/editar.ts"),
     ];
     const paginas = archivosDe(join(raiz, "src/app"))
       .filter(

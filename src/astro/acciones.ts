@@ -22,6 +22,10 @@
  *   (`confirmar` y `reenviar` con la verificación apagada), el manejador NO
  *   se llama —ni el cuerpo, ni la cookie, ni la base, ni el proveedor— y la
  *   respuesta es la misma que su "no encontrado".
+ * - **El destino validado contra la ruta pedida (Fase 4, change
+ *   `migrar-enlace-gestion-astro`, design.md §5):** una entrada puede declarar
+ *   `destinoValido`. `editar` solo obedece `/editar/<el mismo token de la
+ *   ruta>/gracias`; cualquier otro destino es su "no encontrado".
  * - **La pasada de la página de error (O1, design.md §5):** cuando una página
  *   o una Action lanzan, Astro pinta `/500` con la MISMA petición. Ahí no se
  *   ejecuta ninguna Action ni se deja que Astro la ejecute: se sigue a la 500.
@@ -42,6 +46,12 @@ import {
   destinoTrasUnaFalla,
 } from "@/astro/reportar";
 import { DESTINOS_DE_VERIFICAR, RUTA_DE_VERIFICAR, type ResultadoDeVerificar } from "@/astro/verificar";
+import {
+  RUTA_DE_EDITAR,
+  type ResultadoDeEditar,
+  destinoValidoDeEditar,
+  estadoTrasUnaFallaDeEdicion,
+} from "@/astro/editar";
 import { DESTINOS_DEL_ACCESO, RUTA_DE_LA_COLA, RUTA_DEL_ACCESO, type ResultadoDelAcceso } from "@/astro/panel/acceso";
 import { verificacionEncendida } from "@/lib/verificacion/config";
 
@@ -65,7 +75,12 @@ const PATRON_RPC = "/_actions/[...path]";
 const PATRON_ERROR = "/500";
 
 /** El desenlace de cualquier Action de la tabla, cerrado. */
-export type ResultadoDeAccion = ResultadoDeReportar | ResultadoDeRegistrar | ResultadoDeVerificar | ResultadoDelAcceso;
+export type ResultadoDeAccion =
+  | ResultadoDeReportar
+  | ResultadoDeRegistrar
+  | ResultadoDeVerificar
+  | ResultadoDeEditar
+  | ResultadoDelAcceso;
 
 /** Lo que la tabla usa del contexto para decidir tras una falla. */
 type ContextoDeLaTabla = Pick<ContextoDeReportar, "params">;
@@ -79,6 +94,8 @@ type EntradaDeAccion = {
   puedeCorrer?: () => boolean;
   /** Si está, los ÚNICOS destinos de 303 que se obedecen; cualquier otro es "no encontrado". */
   destinos?: ReadonlySet<string>;
+  /** Si está, el destino de un 303 se valida contra la ruta pedida; si no vale, "no encontrado" (Fase 4). */
+  destinoValido?: (ruta: string, contexto: ContextoDeLaTabla) => boolean;
 };
 
 /**
@@ -105,6 +122,13 @@ export const ACCIONES: Readonly<Record<string, EntradaDeAccion>> = Object.freeze
   },
   confirmar: ENTRADA_DE_VERIFICAR,
   reenviar: ENTRADA_DE_VERIFICAR,
+  // Fase 4: sin leer la base si Astro no pudo leer el envío (la página
+  // resuelve el token y pinta la 404 si no abre), y un solo destino posible.
+  editar: {
+    ruta: RUTA_DE_EDITAR,
+    trasFallar: async () => ({ tipo: "repintar" as const, estado: estadoTrasUnaFallaDeEdicion() }),
+    destinoValido: destinoValidoDeEditar,
+  },
   // 5a (change `migrar-panel-admin-base-astro`, design.md §4 y §6): el acceso
   // al panel. Si Astro no pudo leer el envío, a `/admin` sin apartar intento,
   // sin comparar y sin tocar la cookie. La guarda de sesión del panel corre
@@ -158,6 +182,8 @@ export async function resolverAccion(
   if (!esResultado(seguro.data)) return { tipo: "fuera-de-ruta" };
   // La lista cerrada de la entrada, si la tiene (3b-2): otra ruta no se obedece.
   if (entrada.destinos && seguro.data.tipo === "redirigir" && !entrada.destinos.has(seguro.data.ruta)) return { tipo: "no-encontrado" };
+  // El destino contra la ruta pedida (Fase 4): otro token, otra ruta, nada.
+  if (entrada.destinoValido && seguro.data.tipo === "redirigir" && !entrada.destinoValido(seguro.data.ruta, contexto)) return { tipo: "no-encontrado" };
   return seguro.data;
 }
 

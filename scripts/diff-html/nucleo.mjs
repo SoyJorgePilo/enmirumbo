@@ -415,6 +415,44 @@ export function normalizarRegistro(htmlNext, htmlAstro, { urlPagina, aplicadas, 
 }
 
 /**
+ * Las ÚNICAS diferencias ACEPTADAS de la Fase 4 (change
+ * `migrar-enlace-gestion-astro`, design.md §1 y §9; decisión 1 del
+ * fundador). No son normalizaciones: no tocan ningún documento, se reconocen
+ * por su texto EXACTO en la lista de diferencias de `compararRespuestas`, se
+ * quitan de ella y se anotan para imprimirlas. Cualquier otra variante (otro
+ * valor, otra cabecera, otra etiqueta) sigue saliendo como diferencia.
+ */
+export const DIFERENCIAS_ACEPTADAS_GESTION = Object.freeze([
+  {
+    id: "cabecera-referrer-policy",
+    descripcion:
+      "bajo /editar/ Astro manda la cabecera Referrer-Policy: strict-origin (middleware) donde Next manda la global; Next la declara como <meta> en las pantallas del grupo",
+    patron: / · cabecera referrer-policy: «strict-origin-when-cross-origin» ≠ «strict-origin»$/,
+  },
+  {
+    id: "meta-referrer-en-la-404",
+    descripcion:
+      "la 404 de un enlace que no resuelve: Next la pinta dentro del grupo (gestion) con <meta name=referrer content=strict-origin>; Astro pinta la 404 dinámica (byte a byte la de /loquesea) y la política va en la cabecera",
+    patron: / · <meta>: falta en Astro → content=strict-origin name=referrer$/,
+  },
+]);
+
+/**
+ * La lista de diferencias sin las aceptadas de la Fase 4; anota en
+ * `aceptadas` el `id` de cada una que quitó.
+ *
+ * @param {string[]} diferencias
+ * @param {string[]} aceptadas
+ */
+export function sinDiferenciasAceptadasDeGestion(diferencias, aceptadas) {
+  return diferencias.filter((d) => {
+    const aceptada = DIFERENCIAS_ACEPTADAS_GESTION.find((a) => a.patron.test(d));
+    if (aceptada) aceptadas.push(aceptada.id);
+    return !aceptada;
+  });
+}
+
+/**
  * Los `value` numéricos de las opciones de categoría y colonia del formulario
  * de registro, cambiados por `cat:<texto de la opción>` (change
  * `migrar-registro-astro`). Los ids son autoincrementales y dependen de la

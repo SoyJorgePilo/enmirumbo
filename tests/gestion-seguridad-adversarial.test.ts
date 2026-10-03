@@ -1,4 +1,4 @@
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 import { createElement } from "react";
@@ -15,11 +15,6 @@ vi.mock("next/navigation", async () => {
 });
 
 import { seedCatalogos } from "../prisma/seed";
-import EditarPage from "../src/app/(gestion)/editar/[token]/page";
-import GraciasEdicionPage from "../src/app/(gestion)/editar/[token]/gracias/page";
-import LayoutGestion, {
-  metadata as metadataGestion,
-} from "../src/app/(gestion)/layout";
 import DetalleEdicionPage from "../src/app/admin/ediciones/[id]/page";
 import type { PrismaClient } from "../src/generated/prisma/client";
 import {
@@ -62,6 +57,9 @@ import { MENSAJES_ERROR_REGISTRO } from "../src/lib/registro/textos";
 import TroncoPublico from "../src/layouts/TroncoPublico.astro";
 import { pintarPagina } from "./astro-paginas";
 import { crearClientePrueba } from "./db";
+// El modo edición ya se sirve con Astro (change `migrar-enlace-gestion-astro`,
+// tasks.md #15): su página, su confirmación y su tronco.
+import { abrirEdicion as abrirEdicionDeAstro, pintarGraciasEdicion } from "./editar-astro";
 // Las páginas del directorio ya se sirven con Astro (change
 // `migrar-directorio-publico-astro`, tasks.md #15).
 import { mainDeFicha } from "./paginas-directorio";
@@ -124,12 +122,15 @@ async function render(pagina: Promise<React.ReactElement> | React.ReactElement) 
   return renderToStaticMarkup(createElement(() => resuelta));
 }
 
-const abrirEdicion = (token: string) =>
-  render(
-    EditarPage({
-      params: Promise.resolve({ token }),
-    } as Parameters<typeof EditarPage>[0]),
-  );
+/** Un token que no abre: la página de Astro responde la 404 dinámica (antes, `notFound()`). */
+class NoEncontradoDeAstro extends Error {}
+
+/** El documento de `/editar/<token>`; lanza `NoEncontradoDeAstro` si responde 404. */
+const abrirEdicion = async (token: string) => {
+  const { status, html } = await abrirEdicionDeAstro(token);
+  if (status === 404) throw new NoEncontradoDeAstro(html);
+  return html;
+};
 
 /** Publica un negocio ficticio con su enlace de gestión vigente. */
 async function altaPublicadaConEnlace(
@@ -298,7 +299,7 @@ describe("adversarial · el token: formas hostiles del segmento de URL", () => {
     await expect(
       negocioDelToken(prisma, alterado, ESTADO_NEGOCIO_PUBLICADO),
     ).resolves.toBeNull();
-    await expect(abrirEdicion(alterado)).rejects.toBeInstanceOf(NoEncontradoSimulado);
+    await expect(abrirEdicion(alterado)).rejects.toBeInstanceOf(NoEncontradoDeAstro);
   });
 
   it("la huella guardada en la base no sirve como token", async () => {
@@ -309,7 +310,7 @@ describe("adversarial · el token: formas hostiles del segmento de URL", () => {
     await expect(
       negocioDelToken(prisma, huella, ESTADO_NEGOCIO_PUBLICADO),
     ).resolves.toBeNull();
-    await expect(abrirEdicion(huella)).rejects.toBeInstanceOf(NoEncontradoSimulado);
+    await expect(abrirEdicion(huella)).rejects.toBeInstanceOf(NoEncontradoDeAstro);
   });
 
   it("una huella vacía en la fila no abre con un token vacío", async () => {
@@ -337,13 +338,14 @@ describe("adversarial · el token: formas hostiles del segmento de URL", () => {
 
   it("un token que no abre nada tampoco delata nada en el HTML del 404", async () => {
     const { token } = await altaPublicadaConEnlace(`${PREFIJO}004`);
-    // Los tres casos que la spec exige indistinguibles terminan en la MISMA
-    // excepción, que es lo que produce el mismo `not-found.tsx` del sitio.
+    // Los casos que la spec exige indistinguibles terminan en la MISMA 404
+    // dinámica, byte a byte (la de cualquier dirección que no existe).
     const inventado = generarTokenGestion();
     const malFormado = "esto-no-es-un-token";
 
-    await expect(abrirEdicion(inventado)).rejects.toBeInstanceOf(NoEncontradoSimulado);
-    await expect(abrirEdicion(malFormado)).rejects.toBeInstanceOf(NoEncontradoSimulado);
+    await expect(abrirEdicion(inventado)).rejects.toBeInstanceOf(NoEncontradoDeAstro);
+    await expect(abrirEdicion(malFormado)).rejects.toBeInstanceOf(NoEncontradoDeAstro);
+    expect((await abrirEdicionDeAstro(inventado)).html).toBe((await abrirEdicionDeAstro(malFormado)).html);
     // …y el vigente sí abre, para que el test no pase por vacío.
     expect(await abrirEdicion(token)).toContain("Edita tu ficha");
   });
@@ -534,10 +536,10 @@ describe("adversarial · el envío de edición no puede fijar lo que no le toca"
 
     // El atacante inventa saltos a la izquierda para estrenar clave de cupo:
     // el último valor lo pone el proxy y es el que cuenta.
-    const { headers } = await import("next/headers");
-    peticion.encabezados[ENCABEZADO_IP] = `10.0.0.1, 192.0.2.99, ${IP}`;
+    // Las cabeceras de la petición, como las lee el pegamento de Astro
+    // (`ipDeEncabezados(contexto.request.headers)`, `src/astro/editar.ts`).
     const { ipDeEncabezados } = await import("../src/lib/registro/limite-ip");
-    const ip = ipDeEncabezados(await headers());
+    const ip = ipDeEncabezados(new Headers({ [ENCABEZADO_IP]: `10.0.0.1, 192.0.2.99, ${IP}` }));
     expect(ip).toBe(IP);
 
     const resultado = await procesarEdicion(token, envio({ horario: "L-V 11am" }), {
@@ -1105,69 +1107,75 @@ describe("adversarial · la cuarta fuga del token (design.md §4 solo cierra tre
     return codigo.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
   }
 
-  /** Los `layout.tsx` que envuelven a un archivo de página, de dentro a fuera. */
-  function cadenaDeLayouts(archivoDePagina: string): string[] {
-    const layouts: string[] = [];
-    let carpeta = dirname(archivoDePagina);
-    for (;;) {
-      const layout = join(carpeta, "layout.tsx");
-      if (readdirSync(carpeta).includes("layout.tsx")) layouts.push(layout);
-      if (carpeta === RAIZ_APP) break;
-      carpeta = dirname(carpeta);
+  /**
+   * Los troncos `.astro` que envuelven a una página de Astro, de dentro a
+   * fuera: los que importa de `@/layouts/` y, de cada uno, los que importa con
+   * `./X.astro` (change `migrar-enlace-gestion-astro`: en Astro la cadena de
+   * layouts son importaciones, no carpetas).
+   */
+  function cadenaDeTroncos(archivoDePagina: string): string[] {
+    const troncos: string[] = [];
+    const pendientes = [archivoDePagina];
+    while (pendientes.length) {
+      const actual = pendientes.shift()!;
+      const codigo = sinComentarios(readFileSync(actual, "utf8"));
+      for (const [, destino] of codigo.matchAll(/from\s+"((?:@\/layouts\/|\.\/)[\w-]+\.astro)"/g)) {
+        const ruta = destino.startsWith("@/") ? join(RAIZ_APP, "..", destino.slice(2)) : join(dirname(actual), destino);
+        if (!troncos.includes(ruta)) {
+          troncos.push(ruta);
+          pendientes.push(ruta);
+        }
+      }
     }
-    return layouts;
+    return troncos;
   }
 
+  const RAIZ_PAGINAS = join(RAIZ_APP, "..", "pages");
+  const RAIZ_TRONCOS = join(RAIZ_APP, "..", "layouts");
+
   it.each([
-    ["la pantalla del modo edición", join(RAIZ_APP, "(gestion)/editar/[token]/page.tsx")],
-    ["su confirmación", join(RAIZ_APP, "(gestion)/editar/[token]/gracias/page.tsx")],
+    ["la pantalla del modo edición", join(RAIZ_PAGINAS, "editar/[token].astro")],
+    ["su confirmación", join(RAIZ_PAGINAS, "editar/[token]/gracias.astro")],
   ])(
-    "[A1] ningún layout que envuelve a %s inyecta la analítica",
+    "[A1] ningún tronco que envuelve a %s inyecta la analítica",
     (_cual, pagina) => {
-      const cadena = cadenaDeLayouts(pagina);
-      // Que la cadena exista: si el recorrido no encontrara ningún layout,
+      const cadena = cadenaDeTroncos(pagina);
+      // Que la cadena exista: si el recorrido no encontrara ningún tronco,
       // este test pasaría por vacío y no diría nada.
-      expect(cadena).toContain(join(RAIZ_APP, "layout.tsx"));
-      expect(cadena).toContain(join(RAIZ_APP, "(gestion)/layout.tsx"));
-      for (const layout of cadena) {
-        const codigo = sinComentarios(readFileSync(layout, "utf8"));
-        expect(codigo, layout).not.toMatch(/<ScriptAnalitica\b/);
-        expect(codigo, layout).not.toContain("umami");
-        expect(codigo, layout).not.toContain("analitica");
+      expect(cadena).toContain(join(RAIZ_TRONCOS, "DocumentoBase.astro"));
+      expect(cadena).toContain(join(RAIZ_TRONCOS, "TroncoGestion.astro"));
+      for (const tronco of [pagina, ...cadena]) {
+        const codigo = sinComentarios(readFileSync(tronco, "utf8"));
+        expect(codigo, tronco).not.toMatch(/<ScriptAnalitica\b/);
+        expect(codigo, tronco).not.toContain("umami");
+        expect(codigo, tronco).not.toContain("analitica");
       }
     },
   );
 
   it("[A1] la pantalla del modo edición no carga ningún script de terceros", async () => {
     const { token } = await altaPublicadaConEnlace(`${PREFIJO}050`);
-    const pagina = await EditarPage({
-      params: Promise.resolve({ token }),
-    } as Parameters<typeof EditarPage>[0]);
-
-    const html = renderToStaticMarkup(
-      createElement(LayoutGestion, { children: pagina } as never),
-    );
+    const html = await abrirEdicion(token);
 
     expect(html).toContain("Edita tu ficha");
     // Ninguna etiqueta que CARGUE a un tercero: `<script src=…>` es la que
-    // mandaría la URL —y con ella el token— fuera del sitio. Se mira el `src`
-    // y no cualquier `<script>` por lo mismo que el guardián del panel
-    // (`tests/analitica-exclusion-admin.test.ts`): esta pantalla tiene un
-    // `<form>` con Server Action, y React emite un script EN LÍNEA para
-    // reproducir el envío cuando se renderiza fuera del runtime de Next. Ese
-    // no sale del sitio ni lleva la URL a ningún lado.
+    // mandaría la URL —y con ella el token— fuera del sitio. Desde Astro
+    // (change `migrar-enlace-gestion-astro`) la pantalla tiene UN módulo
+    // propio, del mismo origen: la mejora progresiva del formulario (spec
+    // `plataforma-astro`, "Con JavaScript, la edición conserva la experiencia
+    // de hoy sin isla de React"). Antes se exigían cero `src`; ahora, que el
+    // único sea ese módulo y que no salga del sitio.
     expect(html).not.toContain(SRC_ANALITICA);
-    expect([...html.matchAll(/<script\b[^>]*\bsrc=/g)]).toHaveLength(0);
+    const fuentes = [...html.matchAll(/<script\b[^>]*\bsrc="([^"]*)"/g)].map((m) => m[1]);
+    expect(fuentes).toHaveLength(1);
+    expect(fuentes[0]).toMatch(/^\/(?!\/)/);
+    expect(fuentes[0]).toContain("editar");
     expect(html).not.toContain("umami");
     expect(html).not.toContain("data-website-id");
   });
 
-  it("[A1] la confirmación de la edición tampoco, y también lleva el token en la URL", () => {
-    const html = renderToStaticMarkup(
-      createElement(LayoutGestion, {
-        children: createElement(GraciasEdicionPage),
-      } as never),
-    );
+  it("[A1] la confirmación de la edición tampoco, y también lleva el token en la URL", async () => {
+    const html = await pintarGraciasEdicion(generarTokenGestion());
 
     // `/editar/<token>/gracias` es el destino del redirect: la ruta que el
     // navegador tiene delante al medirse sigue llevando el secreto. Aquí no
@@ -1227,8 +1235,9 @@ describe("adversarial · el referente que sale del modo edición (iteración 2)"
     "no-referrer-when-downgrade",
   ];
 
-  it("el layout del grupo declara strict-origin, y ninguna política que mande la ruta", () => {
-    const politica = metadataGestion.referrer;
+  it("el tronco del grupo declara strict-origin, y ninguna política que mande la ruta", () => {
+    const tronco = readFileSync(join(RAIZ_DE_APP, "../layouts/TroncoGestion.astro"), "utf8");
+    const politica = /referrer:\s*"([^"]*)"/.exec(tronco)?.[1];
 
     expect(politica).toBe("strict-origin");
     for (const mala of POLITICAS_QUE_FILTRARIAN_LA_RUTA) {
@@ -1240,21 +1249,23 @@ describe("adversarial · el referente que sale del modo edición (iteración 2)"
     expect(politica).not.toBe("no-referrer");
   });
 
-  it("la política viaja en el LAYOUT, no en cada pantalla suelta", () => {
+  it("la política viaja en el TRONCO, no en cada pantalla suelta", () => {
     // Si estuviera en las páginas, una pantalla nueva del enlace de gestión
     // nacería sin ella y filtraría la ruta el día que alguien la agregue.
-    const layout = readFileSync(join(RAIZ_DE_APP, "(gestion)/layout.tsx"), "utf8");
-    expect(layout).toContain('referrer: "strict-origin"');
+    const tronco = readFileSync(join(RAIZ_DE_APP, "../layouts/TroncoGestion.astro"), "utf8");
+    expect(tronco).toContain('referrer: "strict-origin"');
 
-    for (const pagina of [
-      "(gestion)/editar/[token]/page.tsx",
-      "(gestion)/editar/[token]/gracias/page.tsx",
-    ]) {
-      const codigo = readFileSync(join(RAIZ_DE_APP, pagina), "utf8");
-      const cuerpo = codigo.slice(codigo.lastIndexOf("\nexport const metadata"));
-      expect(cuerpo, pagina).not.toMatch(/referrer:\s*"/);
-      // Lo que sí siguen declarando ellas: no indexarse.
-      expect(cuerpo, pagina).toContain("index: false");
+    for (const pagina of ["editar/[token].astro", "editar/[token]/gracias.astro"]) {
+      const codigo = readFileSync(join(RAIZ_DE_APP, "../pages", pagina), "utf8");
+      expect(codigo, pagina).not.toMatch(/referrer:\s*"/);
+      expect(codigo, pagina).toMatch(/<TroncoGestion metadatos=\{METADATOS_(GRACIAS_)?EDICION\}>/);
+    }
+    // Lo que sí siguen declarando ellas (en `src/astro/editar.ts`): no indexarse.
+    const metadatos = readFileSync(join(RAIZ_DE_APP, "../astro/editar.ts"), "utf8");
+    for (const nombre of ["METADATOS_EDICION", "METADATOS_GRACIAS_EDICION"]) {
+      const declaracion = new RegExp(`export const ${nombre}: MetadatosDePagina = \\{[^\\n]*\\};`).exec(metadatos)?.[0] ?? "";
+      expect(declaracion, nombre).not.toMatch(/referrer:\s*"/);
+      expect(declaracion, nombre).toContain("index: false");
     }
   });
 

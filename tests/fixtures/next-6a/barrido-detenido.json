@@ -1,0 +1,36 @@
+{
+  "instancia": "principal",
+  "estado": "barrido-detenido",
+  "guion": "aceptado",
+  "pasos": [
+    {
+      "nombre": "base vacía y huérfana",
+      "metodo": "GET",
+      "ruta": "/api/tareas/barrer-fotos-huerfanas",
+      "comparar": "exacto",
+      "status": 500,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "content-type": "application/json; charset=utf-8",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+        "x-robots-tag": "noindex, nofollow"
+      },
+      "cuerpo": "eyJiYXJyaWRvIjpmYWxzZSwicmV2aXNhZGFzIjoxLCJodWVyZmFuYXMiOjAsImJvcnJhZGFzIjowLCJlblBlcmlvZG9EZUdyYWNpYSI6MCwiaWdub3JhZGFzIjowLCJub0JvcnJhYmxlcyI6MH0=",
+      "log": [
+        "[fotos] barrido DETENIDO por una salvaguarda: La base no tiene ningún negocio pero el almacén (disco local (<FOTOS_DIR>)) sí tiene fotos: parece la base equivocada (revisa DATABASE_URL y la configuración de fotos). No se borró nada."
+      ],
+      "correo": []
+    }
+  ],
+  "despues": {
+    "fichas": [],
+    "archivos": [
+      "f6a00000000000000000000000000006.ficha.webp",
+      "f6a00000000000000000000000000006.tarjeta.webp"
+    ],
+    "cupos": 0
+  }
+}

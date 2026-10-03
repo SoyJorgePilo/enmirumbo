@@ -303,6 +303,11 @@ describe("directorio-publico · la página de resultados no es indexable (tasks 
       join(raiz, "src/pages/envio-rechazado.astro"),
       join(raiz, "src/app/api/tareas/purgar-rechazados/route.ts"),
       join(raiz, "src/app/api/tareas/barrer-fotos-huerfanas/route.ts"),
+      // Las mismas dos tareas, servidas por Astro (change
+      // `migrar-tareas-programadas-astro`). Las de Next siguen arriba porque
+      // este guardián aún recorre `src/app/`; se van con él en la Fase 6b.
+      join(raiz, "src/pages/api/tareas/purgar-rechazados.ts"),
+      join(raiz, "src/pages/api/tareas/barrer-fotos-huerfanas.ts"),
       // La página de error del servidor de Astro (hallazgo M1 de T-023): sale
       // cuando algo falla, no es contenido.
       join(raiz, "src/pages/500.astro"),

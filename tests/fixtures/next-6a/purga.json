@@ -1,0 +1,175 @@
+{
+  "instancia": "principal",
+  "estado": "purga",
+  "guion": "aceptado",
+  "pasos": [
+    {
+      "nombre": "la purga del día (el cron)",
+      "metodo": "GET",
+      "ruta": "/api/tareas/purgar-rechazados",
+      "comparar": "exacto",
+      "status": 200,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "content-type": "application/json; charset=utf-8",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+        "x-robots-tag": "noindex, nofollow"
+      },
+      "cuerpo": "eyJlbGltaW5hZG9zIjoyLCJmYWxsaWRvcyI6MCwiY3Vwb3NMaW1waWFkb3MiOjEsImF2aXNvIjoibWFuZGFkbyJ9",
+      "log": [
+        "[aviso] avisados 1 pendientes (altas 1, ediciones 0, reportes 0)",
+        "[purga] eliminados 2 registros rechazados con 90 días o más"
+      ],
+      "correo": [
+        {
+          "metodo": "POST",
+          "url": "https://api.resend.com/emails",
+          "autorizacion": "sí",
+          "idempotencyKey": "enmirumbo-pendientes-<fecha>",
+          "userAgent": "EnMiRumbo",
+          "cuerpo": {
+            "from": "EnMiRumbo <avisos@ejemplo.invalid>",
+            "to": [
+              "admin@ejemplo.invalid"
+            ],
+            "subject": "EnMiRumbo: 1 pendiente por revisar",
+            "text": "Hay pendientes en la cola de EnMiRumbo:\n\nAltas nuevas: 1\n\nEntra al panel: https://enmirumbo.example/admin\n\nAcuérdate: la meta es contestarle a cada negocio en menos de 48 horas.\n\nEste aviso lo manda solo el sistema, una vez al día y nada más cuando hay algo esperando."
+          },
+          "respuesta": 200
+        }
+      ]
+    },
+    {
+      "nombre": "segunda corrida del mismo día",
+      "metodo": "GET",
+      "ruta": "/api/tareas/purgar-rechazados",
+      "comparar": "exacto",
+      "status": 200,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "content-type": "application/json; charset=utf-8",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+        "x-robots-tag": "noindex, nofollow"
+      },
+      "cuerpo": "eyJlbGltaW5hZG9zIjowLCJmYWxsaWRvcyI6MCwiY3Vwb3NMaW1waWFkb3MiOjAsImF2aXNvIjoibWFuZGFkbyJ9",
+      "log": [
+        "[aviso] el correo de hoy ya salió con esta misma clave: no se manda otro",
+        "[aviso] avisados 1 pendientes (altas 1, ediciones 0, reportes 0)",
+        "[purga] eliminados 0 registros rechazados con 90 días o más"
+      ],
+      "correo": [
+        {
+          "metodo": "POST",
+          "url": "https://api.resend.com/emails",
+          "autorizacion": "sí",
+          "idempotencyKey": "enmirumbo-pendientes-<fecha>",
+          "userAgent": "EnMiRumbo",
+          "cuerpo": {
+            "from": "EnMiRumbo <avisos@ejemplo.invalid>",
+            "to": [
+              "admin@ejemplo.invalid"
+            ],
+            "subject": "EnMiRumbo: 1 pendiente por revisar",
+            "text": "Hay pendientes en la cola de EnMiRumbo:\n\nAltas nuevas: 1\n\nEntra al panel: https://enmirumbo.example/admin\n\nAcuérdate: la meta es contestarle a cada negocio en menos de 48 horas.\n\nEste aviso lo manda solo el sistema, una vez al día y nada más cuando hay algo esperando."
+          },
+          "respuesta": 409
+        }
+      ]
+    },
+    {
+      "nombre": "GET ?_action=reportar con el secreto",
+      "metodo": "GET",
+      "ruta": "/api/tareas/purgar-rechazados?_action=reportar",
+      "comparar": "exacto",
+      "status": 200,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "content-type": "application/json; charset=utf-8",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+        "x-robots-tag": "noindex, nofollow"
+      },
+      "cuerpo": "eyJlbGltaW5hZG9zIjowLCJmYWxsaWRvcyI6MCwiY3Vwb3NMaW1waWFkb3MiOjAsImF2aXNvIjoibWFuZGFkbyJ9",
+      "log": [
+        "[aviso] el correo de hoy ya salió con esta misma clave: no se manda otro",
+        "[aviso] avisados 1 pendientes (altas 1, ediciones 0, reportes 0)",
+        "[purga] eliminados 0 registros rechazados con 90 días o más"
+      ],
+      "correo": [
+        {
+          "metodo": "POST",
+          "url": "https://api.resend.com/emails",
+          "autorizacion": "sí",
+          "idempotencyKey": "enmirumbo-pendientes-<fecha>",
+          "userAgent": "EnMiRumbo",
+          "cuerpo": {
+            "from": "EnMiRumbo <avisos@ejemplo.invalid>",
+            "to": [
+              "admin@ejemplo.invalid"
+            ],
+            "subject": "EnMiRumbo: 1 pendiente por revisar",
+            "text": "Hay pendientes en la cola de EnMiRumbo:\n\nAltas nuevas: 1\n\nEntra al panel: https://enmirumbo.example/admin\n\nAcuérdate: la meta es contestarle a cada negocio en menos de 48 horas.\n\nEste aviso lo manda solo el sistema, una vez al día y nada más cuando hay algo esperando."
+          },
+          "respuesta": 409
+        }
+      ]
+    },
+    {
+      "nombre": "HEAD con el secreto",
+      "metodo": "HEAD",
+      "ruta": "/api/tareas/purgar-rechazados",
+      "comparar": "exacto",
+      "status": 200,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "content-type": "application/json; charset=utf-8",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+        "x-robots-tag": "noindex, nofollow"
+      },
+      "cuerpo": "",
+      "log": [
+        "[aviso] el correo de hoy ya salió con esta misma clave: no se manda otro",
+        "[aviso] avisados 1 pendientes (altas 1, ediciones 0, reportes 0)",
+        "[purga] eliminados 0 registros rechazados con 90 días o más"
+      ],
+      "correo": [
+        {
+          "metodo": "POST",
+          "url": "https://api.resend.com/emails",
+          "autorizacion": "sí",
+          "idempotencyKey": "enmirumbo-pendientes-<fecha>",
+          "userAgent": "EnMiRumbo",
+          "cuerpo": {
+            "from": "EnMiRumbo <avisos@ejemplo.invalid>",
+            "to": [
+              "admin@ejemplo.invalid"
+            ],
+            "subject": "EnMiRumbo: 1 pendiente por revisar",
+            "text": "Hay pendientes en la cola de EnMiRumbo:\n\nAltas nuevas: 1\n\nEntra al panel: https://enmirumbo.example/admin\n\nAcuérdate: la meta es contestarle a cada negocio en menos de 48 horas.\n\nEste aviso lo manda solo el sistema, una vez al día y nada más cuando hay algo esperando."
+          },
+          "respuesta": 409
+        }
+      ]
+    }
+  ],
+  "despues": {
+    "fichas": [
+      "7719996603:rechazado",
+      "7719996604:rechazado",
+      "7719996605:en_revision"
+    ],
+    "archivos": [],
+    "cupos": 0
+  }
+}

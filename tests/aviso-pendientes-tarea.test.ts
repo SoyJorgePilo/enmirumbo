@@ -1,7 +1,7 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { seedCatalogos } from "../prisma/seed";
-import { GET as purgarRechazadosRuta } from "../src/app/api/tareas/purgar-rechazados/route";
+import { GET as purgarRechazadosRuta } from "../src/pages/api/tareas/purgar-rechazados";
 import type { PrismaClient } from "../src/generated/prisma/client";
 import { CLAVE_AVISO_PREFIJO } from "../src/lib/avisos/dia";
 import { reiniciarAvisoDeCorreoSinConfigurar } from "../src/lib/correo/configuracion";
@@ -29,12 +29,22 @@ const SECRETO = "secreto-de-pruebas-del-aviso-que-no-sirve-en-ningun-lado";
 let prisma: PrismaClient;
 let categoriaId: number;
 
-const pedir = (encabezados: Record<string, string> = {}) =>
-  purgarRechazadosRuta(
-    new Request("https://enmirumbo.example/api/tareas/purgar-rechazados", {
-      headers: encabezados,
-    }),
-  );
+// El endpoint de Astro (change `migrar-tareas-programadas-astro`), con el
+// contexto mínimo que usa: la petición.
+const pedir = async (encabezados: Record<string, string> = {}): Promise<Response> => {
+  const request = new Request("https://enmirumbo.example/api/tareas/purgar-rechazados", {
+    headers: encabezados,
+  });
+  return purgarRechazadosRuta({ request, url: new URL(request.url), params: {} } as never);
+};
+
+/** El 404 vacío de la puerta (`src/astro/tareas.ts`): el mismo que daba el `notFound()` de Next. */
+async function esperarElCuatrocientosCuatro(respuesta: Promise<Response>): Promise<void> {
+  const r = await respuesta;
+  expect(r.status).toBe(404);
+  expect(await r.text()).toBe("");
+  expect(r.headers.get("content-type")).toBeNull();
+}
 
 /** Deja el correo configurado con puras mentiras. */
 function configurarCorreo(): void {
@@ -310,9 +320,7 @@ describe("tarea · sin el secreto no se manda ningún correo", () => {
     await pendienteEnLaCola(`${PREFIJO}070`);
     const proveedor = proveedorDeMentiras();
 
-    await expect(pedir(encabezado ? { authorization: encabezado } : {})).rejects.toThrow(
-      /NEXT_HTTP_ERROR_FALLBACK;404/,
-    );
+    await esperarElCuatrocientosCuatro(pedir(encabezado ? { authorization: encabezado } : {}));
     expect(proveedor.red).not.toHaveBeenCalled();
   });
 
@@ -322,9 +330,7 @@ describe("tarea · sin el secreto no se manda ningún correo", () => {
     await pendienteEnLaCola(`${PREFIJO}071`);
     const proveedor = proveedorDeMentiras();
 
-    await expect(pedir({ authorization: `Bearer ${SECRETO}` })).rejects.toThrow(
-      /NEXT_HTTP_ERROR_FALLBACK;404/,
-    );
+    await esperarElCuatrocientosCuatro(pedir({ authorization: `Bearer ${SECRETO}` }));
     expect(proveedor.red).not.toHaveBeenCalled();
   });
 });

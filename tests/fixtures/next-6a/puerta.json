@@ -1,0 +1,924 @@
+{
+  "instancia": "principal",
+  "estado": "puerta",
+  "guion": "aceptado",
+  "pasos": [
+    {
+      "nombre": "GET /api/tareas/purgar-rechazados · malo 0",
+      "metodo": "GET",
+      "ruta": "/api/tareas/purgar-rechazados",
+      "comparar": "exacto",
+      "status": 404,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY"
+      },
+      "cuerpo": "",
+      "log": [],
+      "correo": []
+    },
+    {
+      "nombre": "GET /api/tareas/purgar-rechazados · malo 1",
+      "metodo": "GET",
+      "ruta": "/api/tareas/purgar-rechazados",
+      "comparar": "exacto",
+      "status": 404,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY"
+      },
+      "cuerpo": "",
+      "log": [],
+      "correo": []
+    },
+    {
+      "nombre": "GET /api/tareas/purgar-rechazados · malo 2",
+      "metodo": "GET",
+      "ruta": "/api/tareas/purgar-rechazados",
+      "comparar": "exacto",
+      "status": 404,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY"
+      },
+      "cuerpo": "",
+      "log": [],
+      "correo": []
+    },
+    {
+      "nombre": "GET /api/tareas/purgar-rechazados · malo 3",
+      "metodo": "GET",
+      "ruta": "/api/tareas/purgar-rechazados",
+      "comparar": "exacto",
+      "status": 404,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY"
+      },
+      "cuerpo": "",
+      "log": [],
+      "correo": []
+    },
+    {
+      "nombre": "GET /api/tareas/purgar-rechazados · malo 4",
+      "metodo": "GET",
+      "ruta": "/api/tareas/purgar-rechazados",
+      "comparar": "exacto",
+      "status": 404,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY"
+      },
+      "cuerpo": "",
+      "log": [],
+      "correo": []
+    },
+    {
+      "nombre": "GET /api/tareas/purgar-rechazados · malo 5",
+      "metodo": "GET",
+      "ruta": "/api/tareas/purgar-rechazados",
+      "comparar": "exacto",
+      "status": 404,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY"
+      },
+      "cuerpo": "",
+      "log": [],
+      "correo": []
+    },
+    {
+      "nombre": "GET /api/tareas/purgar-rechazados · malo 6",
+      "metodo": "GET",
+      "ruta": "/api/tareas/purgar-rechazados",
+      "comparar": "exacto",
+      "status": 404,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY"
+      },
+      "cuerpo": "",
+      "log": [],
+      "correo": []
+    },
+    {
+      "nombre": "GET /api/tareas/purgar-rechazados · malo 7",
+      "metodo": "GET",
+      "ruta": "/api/tareas/purgar-rechazados",
+      "comparar": "exacto",
+      "status": 404,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY"
+      },
+      "cuerpo": "",
+      "log": [],
+      "correo": []
+    },
+    {
+      "nombre": "GET /api/tareas/purgar-rechazados · malo 8",
+      "metodo": "GET",
+      "ruta": "/api/tareas/purgar-rechazados",
+      "comparar": "exacto",
+      "status": 404,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY"
+      },
+      "cuerpo": "",
+      "log": [],
+      "correo": []
+    },
+    {
+      "nombre": "HEAD /api/tareas/purgar-rechazados · malo 0",
+      "metodo": "HEAD",
+      "ruta": "/api/tareas/purgar-rechazados",
+      "comparar": "exacto",
+      "status": 404,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY"
+      },
+      "cuerpo": "",
+      "log": [],
+      "correo": []
+    },
+    {
+      "nombre": "HEAD /api/tareas/purgar-rechazados · malo 1",
+      "metodo": "HEAD",
+      "ruta": "/api/tareas/purgar-rechazados",
+      "comparar": "exacto",
+      "status": 404,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY"
+      },
+      "cuerpo": "",
+      "log": [],
+      "correo": []
+    },
+    {
+      "nombre": "HEAD /api/tareas/purgar-rechazados · malo 2",
+      "metodo": "HEAD",
+      "ruta": "/api/tareas/purgar-rechazados",
+      "comparar": "exacto",
+      "status": 404,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY"
+      },
+      "cuerpo": "",
+      "log": [],
+      "correo": []
+    },
+    {
+      "nombre": "HEAD /api/tareas/purgar-rechazados · malo 3",
+      "metodo": "HEAD",
+      "ruta": "/api/tareas/purgar-rechazados",
+      "comparar": "exacto",
+      "status": 404,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY"
+      },
+      "cuerpo": "",
+      "log": [],
+      "correo": []
+    },
+    {
+      "nombre": "HEAD /api/tareas/purgar-rechazados · malo 4",
+      "metodo": "HEAD",
+      "ruta": "/api/tareas/purgar-rechazados",
+      "comparar": "exacto",
+      "status": 404,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY"
+      },
+      "cuerpo": "",
+      "log": [],
+      "correo": []
+    },
+    {
+      "nombre": "HEAD /api/tareas/purgar-rechazados · malo 5",
+      "metodo": "HEAD",
+      "ruta": "/api/tareas/purgar-rechazados",
+      "comparar": "exacto",
+      "status": 404,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY"
+      },
+      "cuerpo": "",
+      "log": [],
+      "correo": []
+    },
+    {
+      "nombre": "HEAD /api/tareas/purgar-rechazados · malo 6",
+      "metodo": "HEAD",
+      "ruta": "/api/tareas/purgar-rechazados",
+      "comparar": "exacto",
+      "status": 404,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY"
+      },
+      "cuerpo": "",
+      "log": [],
+      "correo": []
+    },
+    {
+      "nombre": "HEAD /api/tareas/purgar-rechazados · malo 7",
+      "metodo": "HEAD",
+      "ruta": "/api/tareas/purgar-rechazados",
+      "comparar": "exacto",
+      "status": 404,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY"
+      },
+      "cuerpo": "",
+      "log": [],
+      "correo": []
+    },
+    {
+      "nombre": "HEAD /api/tareas/purgar-rechazados · malo 8",
+      "metodo": "HEAD",
+      "ruta": "/api/tareas/purgar-rechazados",
+      "comparar": "exacto",
+      "status": 404,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY"
+      },
+      "cuerpo": "",
+      "log": [],
+      "correo": []
+    },
+    {
+      "nombre": "GET /api/tareas/barrer-fotos-huerfanas · malo 0",
+      "metodo": "GET",
+      "ruta": "/api/tareas/barrer-fotos-huerfanas",
+      "comparar": "exacto",
+      "status": 404,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY"
+      },
+      "cuerpo": "",
+      "log": [],
+      "correo": []
+    },
+    {
+      "nombre": "GET /api/tareas/barrer-fotos-huerfanas · malo 1",
+      "metodo": "GET",
+      "ruta": "/api/tareas/barrer-fotos-huerfanas",
+      "comparar": "exacto",
+      "status": 404,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY"
+      },
+      "cuerpo": "",
+      "log": [],
+      "correo": []
+    },
+    {
+      "nombre": "GET /api/tareas/barrer-fotos-huerfanas · malo 2",
+      "metodo": "GET",
+      "ruta": "/api/tareas/barrer-fotos-huerfanas",
+      "comparar": "exacto",
+      "status": 404,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY"
+      },
+      "cuerpo": "",
+      "log": [],
+      "correo": []
+    },
+    {
+      "nombre": "GET /api/tareas/barrer-fotos-huerfanas · malo 3",
+      "metodo": "GET",
+      "ruta": "/api/tareas/barrer-fotos-huerfanas",
+      "comparar": "exacto",
+      "status": 404,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY"
+      },
+      "cuerpo": "",
+      "log": [],
+      "correo": []
+    },
+    {
+      "nombre": "GET /api/tareas/barrer-fotos-huerfanas · malo 4",
+      "metodo": "GET",
+      "ruta": "/api/tareas/barrer-fotos-huerfanas",
+      "comparar": "exacto",
+      "status": 404,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY"
+      },
+      "cuerpo": "",
+      "log": [],
+      "correo": []
+    },
+    {
+      "nombre": "GET /api/tareas/barrer-fotos-huerfanas · malo 5",
+      "metodo": "GET",
+      "ruta": "/api/tareas/barrer-fotos-huerfanas",
+      "comparar": "exacto",
+      "status": 404,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY"
+      },
+      "cuerpo": "",
+      "log": [],
+      "correo": []
+    },
+    {
+      "nombre": "GET /api/tareas/barrer-fotos-huerfanas · malo 6",
+      "metodo": "GET",
+      "ruta": "/api/tareas/barrer-fotos-huerfanas",
+      "comparar": "exacto",
+      "status": 404,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY"
+      },
+      "cuerpo": "",
+      "log": [],
+      "correo": []
+    },
+    {
+      "nombre": "GET /api/tareas/barrer-fotos-huerfanas · malo 7",
+      "metodo": "GET",
+      "ruta": "/api/tareas/barrer-fotos-huerfanas",
+      "comparar": "exacto",
+      "status": 404,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY"
+      },
+      "cuerpo": "",
+      "log": [],
+      "correo": []
+    },
+    {
+      "nombre": "GET /api/tareas/barrer-fotos-huerfanas · malo 8",
+      "metodo": "GET",
+      "ruta": "/api/tareas/barrer-fotos-huerfanas",
+      "comparar": "exacto",
+      "status": 404,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY"
+      },
+      "cuerpo": "",
+      "log": [],
+      "correo": []
+    },
+    {
+      "nombre": "HEAD /api/tareas/barrer-fotos-huerfanas · malo 0",
+      "metodo": "HEAD",
+      "ruta": "/api/tareas/barrer-fotos-huerfanas",
+      "comparar": "exacto",
+      "status": 404,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY"
+      },
+      "cuerpo": "",
+      "log": [],
+      "correo": []
+    },
+    {
+      "nombre": "HEAD /api/tareas/barrer-fotos-huerfanas · malo 1",
+      "metodo": "HEAD",
+      "ruta": "/api/tareas/barrer-fotos-huerfanas",
+      "comparar": "exacto",
+      "status": 404,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY"
+      },
+      "cuerpo": "",
+      "log": [],
+      "correo": []
+    },
+    {
+      "nombre": "HEAD /api/tareas/barrer-fotos-huerfanas · malo 2",
+      "metodo": "HEAD",
+      "ruta": "/api/tareas/barrer-fotos-huerfanas",
+      "comparar": "exacto",
+      "status": 404,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY"
+      },
+      "cuerpo": "",
+      "log": [],
+      "correo": []
+    },
+    {
+      "nombre": "HEAD /api/tareas/barrer-fotos-huerfanas · malo 3",
+      "metodo": "HEAD",
+      "ruta": "/api/tareas/barrer-fotos-huerfanas",
+      "comparar": "exacto",
+      "status": 404,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY"
+      },
+      "cuerpo": "",
+      "log": [],
+      "correo": []
+    },
+    {
+      "nombre": "HEAD /api/tareas/barrer-fotos-huerfanas · malo 4",
+      "metodo": "HEAD",
+      "ruta": "/api/tareas/barrer-fotos-huerfanas",
+      "comparar": "exacto",
+      "status": 404,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY"
+      },
+      "cuerpo": "",
+      "log": [],
+      "correo": []
+    },
+    {
+      "nombre": "HEAD /api/tareas/barrer-fotos-huerfanas · malo 5",
+      "metodo": "HEAD",
+      "ruta": "/api/tareas/barrer-fotos-huerfanas",
+      "comparar": "exacto",
+      "status": 404,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY"
+      },
+      "cuerpo": "",
+      "log": [],
+      "correo": []
+    },
+    {
+      "nombre": "HEAD /api/tareas/barrer-fotos-huerfanas · malo 6",
+      "metodo": "HEAD",
+      "ruta": "/api/tareas/barrer-fotos-huerfanas",
+      "comparar": "exacto",
+      "status": 404,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY"
+      },
+      "cuerpo": "",
+      "log": [],
+      "correo": []
+    },
+    {
+      "nombre": "HEAD /api/tareas/barrer-fotos-huerfanas · malo 7",
+      "metodo": "HEAD",
+      "ruta": "/api/tareas/barrer-fotos-huerfanas",
+      "comparar": "exacto",
+      "status": 404,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY"
+      },
+      "cuerpo": "",
+      "log": [],
+      "correo": []
+    },
+    {
+      "nombre": "HEAD /api/tareas/barrer-fotos-huerfanas · malo 8",
+      "metodo": "HEAD",
+      "ruta": "/api/tareas/barrer-fotos-huerfanas",
+      "comparar": "exacto",
+      "status": 404,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY"
+      },
+      "cuerpo": "",
+      "log": [],
+      "correo": []
+    },
+    {
+      "nombre": "POST /api/tareas/purgar-rechazados · secreto correcto y Origin propio",
+      "metodo": "POST",
+      "ruta": "/api/tareas/purgar-rechazados",
+      "comparar": "otro-metodo",
+      "status": 405,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY"
+      },
+      "cuerpo": "",
+      "log": [],
+      "correo": []
+    },
+    {
+      "nombre": "PUT /api/tareas/purgar-rechazados · secreto correcto y Origin propio",
+      "metodo": "PUT",
+      "ruta": "/api/tareas/purgar-rechazados",
+      "comparar": "otro-metodo",
+      "status": 405,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY"
+      },
+      "cuerpo": "",
+      "log": [],
+      "correo": []
+    },
+    {
+      "nombre": "PATCH /api/tareas/purgar-rechazados · secreto correcto y Origin propio",
+      "metodo": "PATCH",
+      "ruta": "/api/tareas/purgar-rechazados",
+      "comparar": "otro-metodo",
+      "status": 405,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY"
+      },
+      "cuerpo": "",
+      "log": [],
+      "correo": []
+    },
+    {
+      "nombre": "DELETE /api/tareas/purgar-rechazados · secreto correcto y Origin propio",
+      "metodo": "DELETE",
+      "ruta": "/api/tareas/purgar-rechazados",
+      "comparar": "otro-metodo",
+      "status": 405,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY"
+      },
+      "cuerpo": "",
+      "log": [],
+      "correo": []
+    },
+    {
+      "nombre": "OPTIONS /api/tareas/purgar-rechazados · secreto correcto y Origin propio",
+      "metodo": "OPTIONS",
+      "ruta": "/api/tareas/purgar-rechazados",
+      "comparar": "otro-metodo",
+      "status": 204,
+      "headers": {
+        "allow": "GET, HEAD, OPTIONS",
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY"
+      },
+      "cuerpo": "",
+      "log": [],
+      "correo": []
+    },
+    {
+      "nombre": "POST /api/tareas/barrer-fotos-huerfanas · secreto correcto y Origin propio",
+      "metodo": "POST",
+      "ruta": "/api/tareas/barrer-fotos-huerfanas",
+      "comparar": "otro-metodo",
+      "status": 405,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY"
+      },
+      "cuerpo": "",
+      "log": [],
+      "correo": []
+    },
+    {
+      "nombre": "PUT /api/tareas/barrer-fotos-huerfanas · secreto correcto y Origin propio",
+      "metodo": "PUT",
+      "ruta": "/api/tareas/barrer-fotos-huerfanas",
+      "comparar": "otro-metodo",
+      "status": 405,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY"
+      },
+      "cuerpo": "",
+      "log": [],
+      "correo": []
+    },
+    {
+      "nombre": "PATCH /api/tareas/barrer-fotos-huerfanas · secreto correcto y Origin propio",
+      "metodo": "PATCH",
+      "ruta": "/api/tareas/barrer-fotos-huerfanas",
+      "comparar": "otro-metodo",
+      "status": 405,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY"
+      },
+      "cuerpo": "",
+      "log": [],
+      "correo": []
+    },
+    {
+      "nombre": "DELETE /api/tareas/barrer-fotos-huerfanas · secreto correcto y Origin propio",
+      "metodo": "DELETE",
+      "ruta": "/api/tareas/barrer-fotos-huerfanas",
+      "comparar": "otro-metodo",
+      "status": 405,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY"
+      },
+      "cuerpo": "",
+      "log": [],
+      "correo": []
+    },
+    {
+      "nombre": "OPTIONS /api/tareas/barrer-fotos-huerfanas · secreto correcto y Origin propio",
+      "metodo": "OPTIONS",
+      "ruta": "/api/tareas/barrer-fotos-huerfanas",
+      "comparar": "otro-metodo",
+      "status": 204,
+      "headers": {
+        "allow": "GET, HEAD, OPTIONS",
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY"
+      },
+      "cuerpo": "",
+      "log": [],
+      "correo": []
+    },
+    {
+      "nombre": "POST de otro origen con el secreto",
+      "metodo": "POST",
+      "ruta": "/api/tareas/purgar-rechazados",
+      "comparar": "otro-metodo",
+      "status": 405,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY"
+      },
+      "cuerpo": "",
+      "log": [],
+      "correo": []
+    },
+    {
+      "nombre": "POST ?_action=reportar con Origin propio y el secreto",
+      "metodo": "POST",
+      "ruta": "/api/tareas/purgar-rechazados?_action=reportar",
+      "comparar": "otro-metodo",
+      "status": 405,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY"
+      },
+      "cuerpo": "",
+      "log": [],
+      "correo": []
+    },
+    {
+      "nombre": "GET ?_action=reportar sin el secreto",
+      "metodo": "GET",
+      "ruta": "/api/tareas/purgar-rechazados?_action=reportar",
+      "comparar": "exacto",
+      "status": 404,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY"
+      },
+      "cuerpo": "",
+      "log": [],
+      "correo": []
+    },
+    {
+      "nombre": "foto con clave inventada",
+      "metodo": "GET",
+      "ruta": "/api/foto/00000000000000000000000000000000/ficha",
+      "comparar": "exacto",
+      "status": 404,
+      "headers": {
+        "cache-control": "no-store",
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY"
+      },
+      "cuerpo": "",
+      "log": [],
+      "correo": []
+    },
+    {
+      "nombre": "dirección inexistente bajo /api/tareas",
+      "metodo": "GET",
+      "ruta": "/api/tareas/inventada",
+      "comparar": "pagina-404",
+      "status": 404,
+      "headers": {
+        "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+        "content-encoding": "gzip",
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "content-type": "text/html; charset=utf-8",
+        "etag": "\"8jcw6a0q2s8e2\"",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch, Accept-Encoding",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+        "x-nextjs-cache": "HIT",
+        "x-nextjs-prerender": "1, 1",
+        "x-nextjs-stale-time": "300"
+      },
+      "cuerpo": "PCFET0NUWVBFIGh0bWw+PGh0bWwgbGFuZz0iZXMtTVgiIGNsYXNzPSJoLWZ1bGwgYW50aWFsaWFzZWQiPjxoZWFkPjxtZXRhIGNoYXJTZXQ9InV0Zi04Ii8+PG1ldGEgbmFtZT0idmlld3BvcnQiIGNvbnRlbnQ9IndpZHRoPWRldmljZS13aWR0aCwgaW5pdGlhbC1zY2FsZT0xIi8+PGxpbmsgcmVsPSJzdHlsZXNoZWV0IiBocmVmPSIvX25leHQvc3RhdGljL2NodW5rcy8zdHUtbGNyc3RtcGxrLmNzcyIgZGF0YS1wcmVjZWRlbmNlPSJuZXh0Ii8+PGxpbmsgcmVsPSJwcmVsb2FkIiBhcz0ic2NyaXB0IiBmZXRjaFByaW9yaXR5PSJsb3ciIGhyZWY9Ii9fbmV4dC9zdGF0aWMvY2h1bmtzLzJfOWM3MTltZDVfYXguanMiLz48c2NyaXB0IHNyYz0iL19uZXh0L3N0YXRpYy9jaHVua3MvMmM1NDlncDhwLW9lMi5qcyIgYXN5bmM9IiI+PC9zY3JpcHQ+PHNjcmlwdCBzcmM9Ii9fbmV4dC9zdGF0aWMvY2h1bmtzLzAzcjg5ZnR3Ym4taDMuanMiIGFzeW5jPSIiPjwvc2NyaXB0PjxzY3JpcHQgc3JjPSIvX25leHQvc3RhdGljL2NodW5rcy8ycGY1YzE2NXBqMWx1LmpzIiBhc3luYz0iIj48L3NjcmlwdD48c2NyaXB0IHNyYz0iL19uZXh0L3N0YXRpYy9jaHVua3MvdHVyYm9wYWNrLTNseGx2bTd2Y2ZoMTIuanMiIGFzeW5jPSIiPjwvc2NyaXB0PjxzY3JpcHQgc3JjPSIvX25leHQvc3RhdGljL2NodW5rcy8zei00bGJla2l1NXYyLmpzIiBhc3luYz0iIj48L3NjcmlwdD48c2NyaXB0IHNyYz0iL19uZXh0L3N0YXRpYy9jaHVua3MvMHYxaDdjbV9naWZvaS5qcyIgYXN5bmM9IiI+PC9zY3JpcHQ+PG1ldGEgbmFtZT0icm9ib3RzIiBjb250ZW50PSJub2luZGV4Ii8+PHRpdGxlPkVuTWlSdW1ibyDigJQgRW5jdWVudHJhIG5lZ29jaW9zIHkgc2VydmljaW9zIGVuIFRpemF5dWNhPC90aXRsZT48bWV0YSBuYW1lPSJkZXNjcmlwdGlvbiIgY29udGVudD0iRW5jdWVudHJhIG5lZ29jaW9zLCBzZXJ2aWNpb3MgeSBkZXBvcnRlIGVuIFRpemF5dWNhIHkgY29udMOhY3RhbG9zIGRpcmVjdG8gcG9yIFdoYXRzQXBwLiBSZWdpc3RybyBncmF0aXMgcGFyYSBuZWdvY2lvcyBsb2NhbGVzLiIvPjxtZXRhIHByb3BlcnR5PSJvZzp0aXRsZSIgY29udGVudD0iRW5NaVJ1bWJvIOKAlCBFbmN1ZW50cmEgbmVnb2Npb3MgeSBzZXJ2aWNpb3MgZW4gVGl6YXl1Y2EiLz48bWV0YSBwcm9wZXJ0eT0ib2c6ZGVzY3JpcHRpb24iIGNvbnRlbnQ9IkVuY3VlbnRyYSBuZWdvY2lvcywgc2VydmljaW9zIHkgZGVwb3J0ZSBlbiBUaXpheXVjYSB5IGNvbnTDoWN0YWxvcyBkaXJlY3RvIHBvciBXaGF0c0FwcC4gUmVnaXN0cm8gZ3JhdGlzIHBhcmEgbmVnb2Npb3MgbG9jYWxlcy4iLz48bWV0YSBuYW1lPSJ0d2l0dGVyOmNhcmQiIGNvbnRlbnQ9InN1bW1hcnkiLz48bWV0YSBuYW1lPSJ0d2l0dGVyOnRpdGxlIiBjb250ZW50PSJFbk1pUnVtYm8g4oCUIEVuY3VlbnRyYSBuZWdvY2lvcyB5IHNlcnZpY2lvcyBlbiBUaXpheXVjYSIvPjxtZXRhIG5hbWU9InR3aXR0ZXI6ZGVzY3JpcHRpb24iIGNvbnRlbnQ9IkVuY3VlbnRyYSBuZWdvY2lvcywgc2VydmljaW9zIHkgZGVwb3J0ZSBlbiBUaXpheXVjYSB5IGNvbnTDoWN0YWxvcyBkaXJlY3RvIHBvciBXaGF0c0FwcC4gUmVnaXN0cm8gZ3JhdGlzIHBhcmEgbmVnb2Npb3MgbG9jYWxlcy4iLz48bGluayByZWw9Imljb24iIGhyZWY9Ii9mYXZpY29uLmljbz9mYXZpY29uLjJ2b2I2OHRqcXBlamYuaWNvIiBzaXplcz0iMjU2eDI1NiIgdHlwZT0iaW1hZ2UveC1pY29uIi8+PHNjcmlwdCBzcmM9Ii9fbmV4dC9zdGF0aWMvY2h1bmtzLzBjejFkMG12NWdfcTcuanMiIG5vTW9kdWxlPSIiPjwvc2NyaXB0PjwvaGVhZD48Ym9keSBjbGFzcz0iZmxleCBtaW4taC1kdmggZmxleC1jb2wgYmctZm9uZG8gZm9udC1zYW5zIHRleHQtdGludGEiPjxkaXYgaGlkZGVuPSIiPjwhLS0kLS0+PCEtLS8kLS0+PC9kaXY+PGhlYWRlciBjbGFzcz0iYm9yZGVyLWIgYm9yZGVyLWJvcmRlIGJnLWZvbmRvIj48ZGl2IGNsYXNzPSJteC1hdXRvIHctZnVsbCBtYXgtdy0zeGwgcHgtNCBzbTpweC02Ij48YSBjbGFzcz0iaW5saW5lLWZsZXggbWluLWgtMTEgaXRlbXMtY2VudGVyIHB5LTIiIGhyZWY9Ii8iPjxzcGFuIGNsYXNzPSJ0ZXh0LXhsIGZvbnQtYm9sZCB0cmFja2luZy10aWdodCB0ZXh0LXRpbnRhIj5Fbk1pUnVtYm88L3NwYW4+PC9hPjwvZGl2PjwvaGVhZGVyPjxtYWluIGNsYXNzPSJteC1hdXRvIGZsZXggdy1mdWxsIG1heC13LTN4bCBmbGV4LTEgZmxleC1jb2wgcHgtNCBweS04IHNtOnB4LTYiPjxzZWN0aW9uIGNsYXNzPSJmbGV4IGZsZXgtMSBmbGV4LWNvbCBpdGVtcy1jZW50ZXIganVzdGlmeS1jZW50ZXIgZ2FwLTYgcHktMTIgdGV4dC1jZW50ZXIiPjxoMSBjbGFzcz0ibWF4LXctbWQgdGV4dC0yeGwgZm9udC1ib2xkIHRyYWNraW5nLXRpZ2h0IHNtOnRleHQtM3hsIj5ObyBlbmNvbnRyYW1vcyBlc3RhIHDDoWdpbmE8L2gxPjxwIGNsYXNzPSJtYXgtdy1tZCB0ZXh0LXRpbnRhLXN1YXZlIj5BIGxvIG1lam9yIGVsIG5lZ29jaW8geWEgbm8gZXN0w6EgcHVibGljYWRvIG8gbGEgZGlyZWNjacOzbiBxdWVkw7MgbWFsIGVzY3JpdGEuPC9wPjxhIGNsYXNzPSJpbmxpbmUtZmxleCBtaW4taC0xMSBpdGVtcy1jZW50ZXIganVzdGlmeS1jZW50ZXIgcHgtNCB0ZXh0LWJhc2UgZm9udC1zZW1pYm9sZCB0ZXh0LWFjY2lvbi1mdWVydGUgdW5kZXJsaW5lIHVuZGVybGluZS1vZmZzZXQtNCIgaHJlZj0iLyI+SXIgYWwgaW5pY2lvPC9hPjwvc2VjdGlvbj48IS0tJC0tPjwhLS0vJC0tPjwvbWFpbj48Zm9vdGVyIGNsYXNzPSJib3JkZXItdCBib3JkZXItYm9yZGUgYmctc3VwZXJmaWNpZSI+PGRpdiBjbGFzcz0ibXgtYXV0byBmbGV4IHctZnVsbCBtYXgtdy0zeGwgZmxleC1jb2wgZ2FwLTEgcHgtNCBweS02IHRleHQtc20gdGV4dC10aW50YS1zdWF2ZSBzbTpweC02Ij48cCBjbGFzcz0iZm9udC1zZW1pYm9sZCB0ZXh0LXRpbnRhIj5Fbk1pUnVtYm88L3A+PHA+SGVjaG8gcGFyYSBsb3MgdmVjaW5vcyBkZSBUaXpheXVjYSwgSGlkYWxnby48L3A+PG5hdiBhcmlhLWxhYmVsPSJFbmxhY2VzIGxlZ2FsZXMiIGNsYXNzPSJtdC0yIGZsZXggZmxleC13cmFwIGdhcC14LTQiPjxhIGNsYXNzPSJpbmxpbmUtZmxleCBtaW4taC0xMSBpdGVtcy1jZW50ZXIgdGV4dC10aW50YSB1bmRlcmxpbmUgdW5kZXJsaW5lLW9mZnNldC00IiBocmVmPSIvYXZpc28tZGUtcHJpdmFjaWRhZCI+QXZpc28gZGUgcHJpdmFjaWRhZDwvYT48YSBjbGFzcz0iaW5saW5lLWZsZXggbWluLWgtMTEgaXRlbXMtY2VudGVyIHRleHQtdGludGEgdW5kZXJsaW5lIHVuZGVybGluZS1vZmZzZXQtNCIgaHJlZj0iL3Rlcm1pbm9zIj5Uw6lybWlub3MgeSBjb25kaWNpb25lczwvYT48L25hdj48L2Rpdj48L2Zvb3Rlcj48c2NyaXB0IHNyYz0iL19uZXh0L3N0YXRpYy9jaHVua3MvMl85YzcxOW1kNV9heC5qcyIgaWQ9Il9SXyIgYXN5bmM9IiI+PC9zY3JpcHQ+PHNjcmlwdD4oc2VsZi5fX25leHRfZj1zZWxmLl9fbmV4dF9mfHxbXSkucHVzaChbMF0pPC9zY3JpcHQ+PHNjcmlwdD5zZWxmLl9fbmV4dF9mLnB1c2goWzEsIjE6XCIkU3JlYWN0LmZyYWdtZW50XCJcbjI6SVs3OTExOCxbXCIvX25leHQvc3RhdGljL2NodW5rcy8zei00bGJla2l1NXYyLmpzXCJdLFwiXCJdXG4zOklbNzYzOTMsW1wiL19uZXh0L3N0YXRpYy9jaHVua3MvMHYxaDdjbV9naWZvaS5qc1wiXSxcImRlZmF1bHRcIl1cbjQ6SVsxOTgyNCxbXCIvX25leHQvc3RhdGljL2NodW5rcy8wdjFoN2NtX2dpZm9pLmpzXCJdLFwiZGVmYXVsdFwiXVxuNTpJWzUyMDMyLFtcIi9fbmV4dC9zdGF0aWMvY2h1bmtzLzB2MWg3Y21fZ2lmb2kuanNcIl0sXCJPdXRsZXRCb3VuZGFyeVwiXVxuNjpcIiRTcmVhY3Quc3VzcGVuc2VcIlxuOTpJWzUyMDMyLFtcIi9fbmV4dC9zdGF0aWMvY2h1bmtzLzB2MWg3Y21fZ2lmb2kuanNcIl0sXCJWaWV3cG9ydEJvdW5kYXJ5XCJdXG5iOklbNTIwMzIsW1wiL19uZXh0L3N0YXRpYy9jaHVua3MvMHYxaDdjbV9naWZvaS5qc1wiXSxcIk1ldGFkYXRhQm91bmRhcnlcIl1cbmQ6SVs4NTU1NCxbXCIvX25leHQvc3RhdGljL2NodW5rcy8zei00bGJla2l1NXYyLmpzXCJdLFwiZGVmYXVsdFwiLDFdXG46SExbXCIvX25leHQvc3RhdGljL2NodW5rcy8zdHUtbGNyc3RtcGxrLmNzc1wiLFwic3R5bGVcIl1cbjg6WFxuIl0pPC9zY3JpcHQ+PHNjcmlwdD5zZWxmLl9fbmV4dF9mLnB1c2goWzEsIjA6e1wiUFwiOm51bGwsXCJjXCI6W1wiXCIsXCJfbm90LWZvdW5kXCJdLFwicVwiOlwiXCIsXCJpXCI6ZmFsc2UsXCJmXCI6W1tbXCJcIix7XCJjaGlsZHJlblwiOltcIi9fbm90LWZvdW5kXCIse1wiY2hpbGRyZW5cIjpbXCJfX1BBR0VfX1wiLHt9LFwiJHVuZGVmaW5lZFwiLFwiJHVuZGVmaW5lZFwiLDQ2MDhdfSxcIiR1bmRlZmluZWRcIixcIiR1bmRlZmluZWRcIiw0NjA4XX0sXCIkdW5kZWZpbmVkXCIsXCIkdW5kZWZpbmVkXCIsNDYyNF0sW1tcIiRcIixcIiQxXCIsXCJjXCIse1wiY2hpbGRyZW5cIjpbW1tcIiRcIixcImxpbmtcIixcIjBcIix7XCJyZWxcIjpcInN0eWxlc2hlZXRcIixcImhyZWZcIjpcIi9fbmV4dC9zdGF0aWMvY2h1bmtzLzN0dS1sY3JzdG1wbGsuY3NzXCIsXCJwcmVjZWRlbmNlXCI6XCJuZXh0XCIsXCJjcm9zc09yaWdpblwiOlwiJHVuZGVmaW5lZFwiLFwibm9uY2VcIjpcIiR1bmRlZmluZWRcIn1dLFtcIiRcIixcInNjcmlwdFwiLFwic2NyaXB0LTBcIix7XCJzcmNcIjpcIi9fbmV4dC9zdGF0aWMvY2h1bmtzLzN6LTRsYmVraXU1djIuanNcIixcImFzeW5jXCI6dHJ1ZSxcIm5vbmNlXCI6XCIkdW5kZWZpbmVkXCJ9XV0sW1wiJFwiLFwiaHRtbFwiLG51bGwse1wibGFuZ1wiOlwiZXMtTVhcIixcImNsYXNzTmFtZVwiOlwiaC1mdWxsIGFudGlhbGlhc2VkXCIsXCJjaGlsZHJlblwiOltcIiRcIixcImJvZHlcIixudWxsLHtcImNsYXNzTmFtZVwiOlwiZmxleCBtaW4taC1kdmggZmxleC1jb2wgYmctZm9uZG8gZm9udC1zYW5zIHRleHQtdGludGFcIixcImNoaWxkcmVuXCI6W1tcIiRcIixcImhlYWRlclwiLG51bGwse1wiY2xhc3NOYW1lXCI6XCJib3JkZXItYiBib3JkZXItYm9yZGUgYmctZm9uZG9cIixcImNoaWxkcmVuXCI6W1wiJFwiLFwiZGl2XCIsbnVsbCx7XCJjbGFzc05hbWVcIjpcIm14LWF1dG8gdy1mdWxsIG1heC13LTN4bCBweC00IHNtOnB4LTZcIixcImNoaWxkcmVuXCI6W1wiJFwiLFwiJEwyXCIsbnVsbCx7XCJocmVmXCI6XCIvXCIsXCJjbGFzc05hbWVcIjpcImlubGluZS1mbGV4IG1pbi1oLTExIGl0ZW1zLWNlbnRlciBweS0yXCIsXCJjaGlsZHJlblwiOltcIiRcIixcInNwYW5cIixudWxsLHtcImNsYXNzTmFtZVwiOlwidGV4dC14bCBmb250LWJvbGQgdHJhY2tpbmctdGlnaHQgdGV4dC10aW50YVwiLFwiY2hpbGRyZW5cIjpcIkVuTWlSdW1ib1wifV19XX1dfV0sW1wiJFwiLFwibWFpblwiLG51bGwse1wiY2xhc3NOYW1lXCI6XCJteC1hdXRvIGZsZXggdy1mdWxsIG1heC13LTN4bCBmbGV4LTEgZmxleC1jb2wgcHgtNCBweS04IHNtOnB4LTZcIixcImNoaWxkcmVuXCI6W1wiJFwiLFwiJEwzXCIsbnVsbCx7XCJwYXJhbGxlbFJvdXRlcktleVwiOlwiY2hpbGRyZW5cIixcImVycm9yXCI6XCIkdW5kZWZpbmVkXCIsXCJlcnJvclN0eWxlc1wiOlwiJHVuZGVmaW5lZFwiLFwiZXJyb3JTY3JpcHRzXCI6XCIkdW5kZWZpbmVkXCIsXCJ0ZW1wbGF0ZVwiOltcIiRcIixcIiRMNFwiLG51bGwse31dLFwidGVtcGxhdGVTdHlsZXNcIjpcIiR1bmRlZmluZWRcIixcInRlbXBsYXRlU2NyaXB0c1wiOlwiJHVuZGVmaW5lZFwiLFwibm90Rm91bmRcIjpbW1wiJFwiLFwic2VjdGlvblwiLG51bGwse1wiY2xhc3NOYW1lXCI6XCJmbGV4IGZsZXgtMSBmbGV4LWNvbCBpdGVtcy1jZW50ZXIganVzdGlmeS1jZW50ZXIgZ2FwLTYgcHktMTIgdGV4dC1jZW50ZXJcIixcImNoaWxkcmVuXCI6W1tcIiRcIixcImgxXCIsbnVsbCx7XCJjbGFzc05hbWVcIjpcIm1heC13LW1kIHRleHQtMnhsIGZvbnQtYm9sZCB0cmFja2luZy10aWdodCBzbTp0ZXh0LTN4bFwiLFwiY2hpbGRyZW5cIjpcIk5vIGVuY29udHJhbW9zIGVzdGEgcMOhZ2luYVwifV0sW1wiJFwiLFwicFwiLG51bGwse1wiY2xhc3NOYW1lXCI6XCJtYXgtdy1tZCB0ZXh0LXRpbnRhLXN1YXZlXCIsXCJjaGlsZHJlblwiOlwiQSBsbyBtZWpvciBlbCBuZWdvY2lvIHlhIG5vIGVzdMOhIHB1YmxpY2FkbyBvIGxhIGRpcmVjY2nDs24gcXVlZMOzIG1hbCBlc2NyaXRhLlwifV0sW1wiJFwiLFwiJEwyXCIsbnVsbCx7XCJocmVmXCI6XCIvXCIsXCJjbGFzc05hbWVcIjpcImlubGluZS1mbGV4IG1pbi1oLTExIGl0ZW1zLWNlbnRlciBqdXN0aWZ5LWNlbnRlciBweC00IHRleHQtYmFzZSBmb250LXNlbWlib2xkIHRleHQtYWNjaW9uLWZ1ZXJ0ZSB1bmRlcmxpbmUgdW5kZXJsaW5lLW9mZnNldC00XCIsXCJjaGlsZHJlblwiOlwiSXIgYWwgaW5pY2lvXCJ9XV19XSxbXV0sXCJmb3JiaWRkZW5cIjpcIiR1bmRlZmluZWRcIixcInVuYXV0aG9yaXplZFwiOlwiJHVuZGVmaW5lZFwifV19XSxbXCIkXCIsXCJmb290ZXJcIixudWxsLHtcImNsYXNzTmFtZVwiOlwiYm9yZGVyLXQgYm9yZGVyLWJvcmRlIGJnLXN1cGVyZmljaWVcIixcImNoaWxkcmVuXCI6W1wiJFwiLFwiZGl2XCIsbnVsbCx7XCJjbGFzc05hbWVcIjpcIm14LWF1dG8gZmxleCB3LWZ1bGwgbWF4LXctM3hsIGZsZXgtY29sIGdhcC0xIHB4LTQgcHktNiB0ZXh0LXNtIHRleHQtdGludGEtc3VhdmUgc206cHgtNlwiLFwiY2hpbGRyZW5cIjpbW1wiJFwiLFwicFwiLG51bGwse1wiY2xhc3NOYW1lXCI6XCJmb250LXNlbWlib2xkIHRleHQtdGludGFcIixcImNoaWxkcmVuXCI6XCJFbk1pUnVtYm9cIn1dLFtcIiRcIixcInBcIixudWxsLHtcImNoaWxkcmVuXCI6XCJIZWNobyBwYXJhIGxvcyB2ZWNpbm9zIGRlIFRpemF5dWNhLCBIaWRhbGdvLlwifV0sW1wiJFwiLFwibmF2XCIsbnVsbCx7XCJhcmlhLWxhYmVsXCI6XCJFbmxhY2VzIGxlZ2FsZXNcIixcImNsYXNzTmFtZVwiOlwibXQtMiBmbGV4IGZsZXgtd3JhcCBnYXAteC00XCIsXCJjaGlsZHJlblwiOltbXCIkXCIsXCIkTDJcIixudWxsLHtcImhyZWZcIjpcIi9hdmlzby1kZS1wcml2YWNpZGFkXCIsXCJjbGFzc05hbWVcIjpcImlubGluZS1mbGV4IG1pbi1oLTExIGl0ZW1zLWNlbnRlciB0ZXh0LXRpbnRhIHVuZGVybGluZSB1bmRlcmxpbmUtb2Zmc2V0LTRcIixcImNoaWxkcmVuXCI6XCJBdmlzbyBkZSBwcml2YWNpZGFkXCJ9XSxbXCIkXCIsXCIkTDJcIixudWxsLHtcImhyZWZcIjpcIi90ZXJtaW5vc1wiLFwiY2xhc3NOYW1lXCI6XCJpbmxpbmUtZmxleCBtaW4taC0xMSBpdGVtcy1jZW50ZXIgdGV4dC10aW50YSB1bmRlcmxpbmUgdW5kZXJsaW5lLW9mZnNldC00XCIsXCJjaGlsZHJlblwiOlwiVMOpcm1pbm9zIHkgY29uZGljaW9uZXNcIn1dXX1dXX1dfV1dfV19XV19XSx7XCJjaGlsZHJlblwiOltbXCIkXCIsXCIkMVwiLFwiY1wiLHtcImNoaWxkcmVuXCI6W251bGwsW1wiJFwiLFwiJEwzXCIsbnVsbCx7XCJwYXJhbGxlbFJvdXRlcktleVwiOlwiY2hpbGRyZW5cIixcImVycm9yXCI6XCIkdW5kZWZpbmVkXCIsXCJlcnJvclN0eWxlc1wiOlwiJHVuZGVmaW5lZFwiLFwiZXJyb3JTY3JpcHRzXCI6XCIkdW5kZWZpbmVkXCIsXCJ0ZW1wbGF0ZVwiOltcIiRcIixcIiRMNFwiLG51bGwse31dLFwidGVtcGxhdGVTdHlsZXNcIjpcIiR1bmRlZmluZWRcIixcInRlbXBsYXRlU2NyaXB0c1wiOlwiJHVuZGVmaW5lZFwiLFwibm90Rm91bmRcIjpcIiR1bmRlZmluZWRcIixcImZvcmJpZGRlblwiOlwiJHVuZGVmaW5lZFwiLFwidW5hdXRob3JpemVkXCI6XCIkdW5kZWZpbmVkXCJ9XV19XSx7XCJjaGlsZHJlblwiOltbXCIkXCIsXCIkMVwiLFwiY1wiLHtcImNoaWxkcmVuXCI6W1tcIiRcIixcInNlY3Rpb25cIixudWxsLHtcImNsYXNzTmFtZVwiOlwiZmxleCBmbGV4LTEgZmxleC1jb2wgaXRlbXMtY2VudGVyIGp1c3RpZnktY2VudGVyIGdhcC02IHB5LTEyIHRleHQtY2VudGVyXCIsXCJjaGlsZHJlblwiOltbXCIkXCIsXCJoMVwiLG51bGwse1wiY2xhc3NOYW1lXCI6XCJtYXgtdy1tZCB0ZXh0LTJ4bCBmb250LWJvbGQgdHJhY2tpbmctdGlnaHQgc206dGV4dC0zeGxcIixcImNoaWxkcmVuXCI6XCJObyBlbmNvbnRyYW1vcyBlc3RhIHDDoWdpbmFcIn1dLFtcIiRcIixcInBcIixudWxsLHtcImNsYXNzTmFtZVwiOlwibWF4LXctbWQgdGV4dC10aW50YS1zdWF2ZVwiLFwiY2hpbGRyZW5cIjpcIkEgbG8gbWVqb3IgZWwgbmVnb2NpbyB5YSBubyBlc3TDoSBwdWJsaWNhZG8gbyBsYSBkaXJlY2Npw7NuIHF1ZWTDsyBtYWwgZXNjcml0YS5cIn1dLFtcIiRcIixcIiRMMlwiLG51bGwse1wiaHJlZlwiOlwiL1wiLFwiY2xhc3NOYW1lXCI6XCJpbmxpbmUtZmxleCBtaW4taC0xMSBpdGVtcy1jZW50ZXIganVzdGlmeS1jZW50ZXIgcHgtNCB0ZXh0LWJhc2UgZm9udC1zZW1pYm9sZCB0ZXh0LWFjY2lvbi1mdWVydGUgdW5kZXJsaW5lIHVuZGVybGluZS1vZmZzZXQtNFwiLFwiY2hpbGRyZW5cIjpcIklyIGFsIGluaWNpb1wifV1dfV0sbnVsbCxbXCIkXCIsXCIkTDVcIixudWxsLHtcImNoaWxkcmVuXCI6W1wiJFwiLFwiJDZcIixudWxsLHtcIm5hbWVcIjpcIk5leHQuTWV0YWRhdGFPdXRsZXRcIixcImNoaWxkcmVuXCI6XCIkQDdcIn1dfV1dfV0se30sbnVsbCxmYWxzZSxudWxsXX0sbnVsbCxmYWxzZSxcIiQ4XCJdfSxudWxsLGZhbHNlLG51bGxdLFtcIiRcIixcIiQxXCIsXCJoXCIse1wiY2hpbGRyZW5cIjpbW1wiJFwiLFwibWV0YVwiLG51bGwse1wibmFtZVwiOlwicm9ib3RzXCIsXCJjb250ZW50XCI6XCJub2luZGV4XCJ9XSxbXCIkXCIsXCIkTDlcIixudWxsLHtcImNoaWxkcmVuXCI6XCIkTGFcIn1dLFtcIiRcIixcImRpdlwiLG51bGwse1wiaGlkZGVuXCI6dHJ1ZSxcImNoaWxkcmVuXCI6W1wiJFwiLFwiJExiXCIsbnVsbCx7XCJjaGlsZHJlblwiOltcIiRcIixcIiQ2XCIsbnVsbCx7XCJuYW1lXCI6XCJOZXh0Lk1ldGFkYXRhXCIsXCJjaGlsZHJlblwiOlwiJExjXCJ9XX1dfV0sbnVsbF19XSxmYWxzZV1dLFwibVwiOlwiJHVuZGVmaW5lZFwiLFwiR1wiOltcIiRkXCIsW1tcIiRcIixcImxpbmtcIixcIjBcIix7XCJyZWxcIjpcInN0eWxlc2hlZXRcIixcImhyZWZcIjpcIi9fbmV4dC9zdGF0aWMvY2h1bmtzLzN0dS1sY3JzdG1wbGsuY3NzXCIsXCJwcmVjZWRlbmNlXCI6XCJuZXh0XCIsXCJjcm9zc09yaWdpblwiOlwiJHVuZGVmaW5lZFwiLFwibm9uY2VcIjpcIiR1bmRlZmluZWRcIn1dXV0sXCJTXCI6dHJ1ZSxcImhcIjpudWxsLFwiclwiOlwiJHVuZGVmaW5lZFwiLFwic1wiOlwiJHVuZGVmaW5lZFwiLFwiYVwiOlwiJHVuZGVmaW5lZFwiLFwibFwiOlwiJHVuZGVmaW5lZFwiLFwicFwiOlwiJHVuZGVmaW5lZFwiLFwiZFwiOlwiJHVuZGVmaW5lZFwiLFwiYlwiOlwiSWZWdXBpTzc1VEloRVZ3SkZ2T0ktXCJ9XG4iXSk8L3NjcmlwdD48c2NyaXB0PnNlbGYuX19uZXh0X2YucHVzaChbMSwiODpDXG5hOltbXCIkXCIsXCJtZXRhXCIsXCIwXCIse1wiY2hhclNldFwiOlwidXRmLThcIn1dLFtcIiRcIixcIm1ldGFcIixcIjFcIix7XCJuYW1lXCI6XCJ2aWV3cG9ydFwiLFwiY29udGVudFwiOlwid2lkdGg9ZGV2aWNlLXdpZHRoLCBpbml0aWFsLXNjYWxlPTFcIn1dXVxuIl0pPC9zY3JpcHQ+PHNjcmlwdD5zZWxmLl9fbmV4dF9mLnB1c2goWzEsImU6SVszNjAzNixbXCIvX25leHQvc3RhdGljL2NodW5rcy8wdjFoN2NtX2dpZm9pLmpzXCJdLFwiSWNvbk1hcmtcIl1cbjc6bnVsbFxuYzpbW1wiJFwiLFwidGl0bGVcIixcIjBcIix7XCJjaGlsZHJlblwiOlwiRW5NaVJ1bWJvIOKAlCBFbmN1ZW50cmEgbmVnb2Npb3MgeSBzZXJ2aWNpb3MgZW4gVGl6YXl1Y2FcIn1dLFtcIiRcIixcIm1ldGFcIixcIjFcIix7XCJuYW1lXCI6XCJkZXNjcmlwdGlvblwiLFwiY29udGVudFwiOlwiRW5jdWVudHJhIG5lZ29jaW9zLCBzZXJ2aWNpb3MgeSBkZXBvcnRlIGVuIFRpemF5dWNhIHkgY29udMOhY3RhbG9zIGRpcmVjdG8gcG9yIFdoYXRzQXBwLiBSZWdpc3RybyBncmF0aXMgcGFyYSBuZWdvY2lvcyBsb2NhbGVzLlwifV0sW1wiJFwiLFwibWV0YVwiLFwiMlwiLHtcInByb3BlcnR5XCI6XCJvZzp0aXRsZVwiLFwiY29udGVudFwiOlwiRW5NaVJ1bWJvIOKAlCBFbmN1ZW50cmEgbmVnb2Npb3MgeSBzZXJ2aWNpb3MgZW4gVGl6YXl1Y2FcIn1dLFtcIiRcIixcIm1ldGFcIixcIjNcIix7XCJwcm9wZXJ0eVwiOlwib2c6ZGVzY3JpcHRpb25cIixcImNvbnRlbnRcIjpcIkVuY3VlbnRyYSBuZWdvY2lvcywgc2VydmljaW9zIHkgZGVwb3J0ZSBlbiBUaXpheXVjYSB5IGNvbnTDoWN0YWxvcyBkaXJlY3RvIHBvciBXaGF0c0FwcC4gUmVnaXN0cm8gZ3JhdGlzIHBhcmEgbmVnb2Npb3MgbG9jYWxlcy5cIn1dLFtcIiRcIixcIm1ldGFcIixcIjRcIix7XCJuYW1lXCI6XCJ0d2l0dGVyOmNhcmRcIixcImNvbnRlbnRcIjpcInN1bW1hcnlcIn1dLFtcIiRcIixcIm1ldGFcIixcIjVcIix7XCJuYW1lXCI6XCJ0d2l0dGVyOnRpdGxlXCIsXCJjb250ZW50XCI6XCJFbk1pUnVtYm8g4oCUIEVuY3VlbnRyYSBuZWdvY2lvcyB5IHNlcnZpY2lvcyBlbiBUaXpheXVjYVwifV0sW1wiJFwiLFwibWV0YVwiLFwiNlwiLHtcIm5hbWVcIjpcInR3aXR0ZXI6ZGVzY3JpcHRpb25cIixcImNvbnRlbnRcIjpcIkVuY3VlbnRyYSBuZWdvY2lvcywgc2VydmljaW9zIHkgZGVwb3J0ZSBlbiBUaXpheXVjYSB5IGNvbnTDoWN0YWxvcyBkaXJlY3RvIHBvciBXaGF0c0FwcC4gUmVnaXN0cm8gZ3JhdGlzIHBhcmEgbmVnb2Npb3MgbG9jYWxlcy5cIn1dLFtcIiRcIixcImxpbmtcIixcIjdcIix7XCJyZWxcIjpcImljb25cIixcImhyZWZcIjpcIi9mYXZpY29uLmljbz9mYXZpY29uLjJ2b2I2OHRqcXBlamYuaWNvXCIsXCJzaXplc1wiOlwiMjU2eDI1NlwiLFwidHlwZVwiOlwiaW1hZ2UveC1pY29uXCJ9XSxbXCIkXCIsXCIkTGVcIixcIjhcIix7fV1dXG4iXSk8L3NjcmlwdD48L2JvZHk+PC9odG1sPg==",
+      "log": [],
+      "correo": []
+    },
+    {
+      "nombre": "barra final /api/tareas/purgar-rechazados",
+      "metodo": "GET",
+      "ruta": "/api/tareas/purgar-rechazados/",
+      "comparar": "registrar",
+      "status": 308,
+      "headers": {
+        "location": "/api/tareas/purgar-rechazados",
+        "refresh": "0;url=/api/tareas/purgar-rechazados"
+      },
+      "cuerpo": "L2FwaS90YXJlYXMvcHVyZ2FyLXJlY2hhemFkb3M=",
+      "log": [],
+      "correo": []
+    },
+    {
+      "nombre": "barra final /api/tareas/barrer-fotos-huerfanas",
+      "metodo": "GET",
+      "ruta": "/api/tareas/barrer-fotos-huerfanas/",
+      "comparar": "registrar",
+      "status": 308,
+      "headers": {
+        "location": "/api/tareas/barrer-fotos-huerfanas",
+        "refresh": "0;url=/api/tareas/barrer-fotos-huerfanas"
+      },
+      "cuerpo": "L2FwaS90YXJlYXMvYmFycmVyLWZvdG9zLWh1ZXJmYW5hcw==",
+      "log": [],
+      "correo": []
+    }
+  ],
+  "despues": {
+    "fichas": [
+      "7719996601:rechazado"
+    ],
+    "archivos": [
+      "f6a00000000000000000000000000001.ficha.webp",
+      "f6a00000000000000000000000000001.tarjeta.webp",
+      "f6a00000000000000000000000000009.ficha.webp",
+      "f6a00000000000000000000000000009.tarjeta.webp"
+    ],
+    "cupos": 1
+  }
+}

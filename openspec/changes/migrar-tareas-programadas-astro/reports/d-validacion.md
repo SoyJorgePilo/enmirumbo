@@ -91,4 +91,9 @@ Pruebas re-apuntadas, con `expect(` antes → después, según mi conteo: `tarea
 - B3: que el emulador no se caiga con `TRACE`.
 - Los de fases previas que siguen abiertos: M1 de 3b-2 (una ficha borrada más un reenvío escriben cupos) y el `Cache-Control` del `POST ?_action=confirmar` apagado (3b-2, a las enmiendas de 6b).
 
+## CI del PR #39
+
+- **Primera corrida en rojo, sin relación con 6a.** Falló `tests/astro-seguridad-adversarial.test.ts:236` con "el emulador terminó (1)". Ese archivo levanta su propio emulador en un puerto **al azar** (`47 000–47 999`, líneas 241-242), y ese rango choca con los puertos efímeros de Linux. Es la misma colisión que 3b-2 arregló en `tests/salida-astro.ts` pero no en este archivo. Ninguna prueba de 6a corrió antes que él. Al repetir el job: **verde**. Lo sumo a los candidatos a ticket (usar el `puertoLibre()` de `salida-astro`).
+- **El preview de Vercel también falla en #37 y #38**, así que es preexistente. Es coherente con V3 y deja bloqueada la lista humana de preview hasta que el proyecto construya como Astro.
+
 El CI de GitHub Actions tiene que quedar en verde en el PR: esta validación local no lo sustituye. El merge lo hace un humano, y solo después de #37 y #38.

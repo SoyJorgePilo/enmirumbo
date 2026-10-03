@@ -7,6 +7,9 @@
  * corre en el CI (design.md §9); lo que sí corre aquí es su núcleo: el
  * normalizador que quita el ruido de cada marco y el comparador.
  */
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
 import { describe, expect, it } from "vitest";
 
 import {
@@ -409,5 +412,37 @@ describe("diff · normalizaciones del registro (3b-1)", () => {
       const d = compararRespuestas("/registro", respuesta(DOC(REG_NEXT.replace('aria-invalid="true"', 'aria-invalid="false"'))), respuesta(DOC(caso)), reg([]));
       expect(d.length).toBeGreaterThan(0);
     }
+  });
+});
+
+// ── 3b-2 (change `migrar-verificacion-sms-astro`, design.md §12; tasks.md #12) ─
+
+describe("diff · la pantalla del código (3b-2), sin normalizaciones nuevas", () => {
+  const NEXT_VERIFICAR = readFileSync(join(__dirname, "fixtures/next-3b2/con-sitio-url/verificar.html"), "utf8");
+  const URL_VERIFICAR = "https://enmirumbo.example/registro/verificar?error=vencido";
+  /** La misma página, con los dos formularios como los pinta Astro: nativos, sin ocultos. */
+  const ASTRO_VERIFICAR = NEXT_VERIFICAR.replace(/\n<input type="hidden" name="\$ACTION_ID_[^"]+">/g, "")
+    .replace('action="" encType="multipart/form-data" method="POST">\n<div', 'action="?_action=confirmar" method="post">\n<div')
+    .replace('action="" encType="multipart/form-data" method="POST">', 'action="?_action=reenviar" method="post">');
+  const comparar = (astro: string, aplicadas: string[] = []) =>
+    compararRespuestas("/registro/verificar", respuesta(NEXT_VERIFICAR), respuesta(astro), { formulario: { urlPagina: URL_VERIFICAR, aplicadas } });
+
+  it("los dos formularios salen iguales con las dos normalizaciones de 3a, aplicadas en cada uno", () => {
+    expect(ASTRO_VERIFICAR).toContain('action="?_action=reenviar"');
+    const aplicadas: string[] = [];
+    expect(comparar(ASTRO_VERIFICAR, aplicadas)).toEqual([]);
+    expect(aplicadas).toEqual(["atributos-del-form", "campos-action-de-next", "atributos-del-form", "campos-action-de-next"]);
+  });
+
+  it("un oculto de más o un atributo data- en un formulario de Astro salen como diferencia", () => {
+    const conOculto = ASTRO_VERIFICAR.replace('<button type="submit" class="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border', '<input type="hidden" name="negocioId" value="c1"><button type="submit" class="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border');
+    expect(comparar(conOculto).join("\n")).toContain("negocioId");
+    const conData = ASTRO_VERIFICAR.replace('action="?_action=confirmar" method="post"', 'action="?_action=confirmar" method="post" data-astro-reload');
+    expect(comparar(conData).join("\n")).toContain("data-astro-reload");
+  });
+
+  it("si un formulario de Astro postea a otra ruta, se reporta", () => {
+    const otraRuta = ASTRO_VERIFICAR.replace('action="?_action=reenviar"', 'action="/registro?_action=reenviar"');
+    expect(comparar(otraRuta).join("\n")).toMatch(/formulario #1: Next hace POST a \/registro\/verificar y Astro POST a \/registro/);
   });
 });

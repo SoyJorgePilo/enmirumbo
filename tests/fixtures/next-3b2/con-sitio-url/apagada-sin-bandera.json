@@ -1,0 +1,86 @@
+{
+  "GET /registro/verificar": {
+    "status": 404,
+    "content-type": "text/html; charset=utf-8",
+    "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+    "x-content-type-options": "nosniff",
+    "x-frame-options": "DENY",
+    "referrer-policy": "strict-origin-when-cross-origin",
+    "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+    "cookies": 0,
+    "igualALoquesea": false,
+    "documentoDeError": true
+  },
+  "HEAD /registro/verificar": {
+    "status": 404,
+    "content-type": "text/html; charset=utf-8",
+    "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+    "x-content-type-options": "nosniff",
+    "x-frame-options": "DENY",
+    "referrer-policy": "strict-origin-when-cross-origin",
+    "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+    "cookies": 0,
+    "igualALoquesea": false,
+    "documentoDeError": false
+  },
+  "POST /registro/verificar?_action=confirmar": {
+    "status": 404,
+    "content-type": "text/html; charset=utf-8",
+    "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+    "x-content-type-options": "nosniff",
+    "x-frame-options": "DENY",
+    "referrer-policy": "strict-origin-when-cross-origin",
+    "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+    "cookies": 0,
+    "igualALoquesea": false,
+    "documentoDeError": true
+  },
+  "POST /registro/verificar": {
+    "status": 404,
+    "content-type": "text/html; charset=utf-8",
+    "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+    "x-content-type-options": "nosniff",
+    "x-frame-options": "DENY",
+    "referrer-policy": "strict-origin-when-cross-origin",
+    "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+    "cookies": 0,
+    "igualALoquesea": false,
+    "documentoDeError": true
+  },
+  "GET /loquesea": {
+    "status": 404,
+    "content-type": "text/html; charset=utf-8",
+    "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+    "x-content-type-options": "nosniff",
+    "x-frame-options": "DENY",
+    "referrer-policy": "strict-origin-when-cross-origin",
+    "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+    "cookies": 0,
+    "igualALoquesea": false,
+    "documentoDeError": true
+  },
+  "GET /registro/loquesea": {
+    "status": 404,
+    "content-type": "text/html; charset=utf-8",
+    "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+    "x-content-type-options": "nosniff",
+    "x-frame-options": "DENY",
+    "referrer-policy": "strict-origin-when-cross-origin",
+    "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+    "cookies": 0,
+    "igualALoquesea": false,
+    "documentoDeError": false
+  },
+  "GET /a/b/c": {
+    "status": 404,
+    "content-type": "text/html; charset=utf-8",
+    "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+    "x-content-type-options": "nosniff",
+    "x-frame-options": "DENY",
+    "referrer-policy": "strict-origin-when-cross-origin",
+    "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+    "cookies": 0,
+    "igualALoquesea": false,
+    "documentoDeError": false
+  }
+}

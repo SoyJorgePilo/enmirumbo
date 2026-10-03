@@ -20,7 +20,6 @@ import { seedCatalogos } from "../prisma/seed";
 import { sembrarNegociosDemo } from "../prisma/seed-demo";
 import EditarPage from "../src/app/(gestion)/editar/[token]/page";
 import EditarGraciasPage from "../src/app/(gestion)/editar/[token]/gracias/page";
-import RegistroVerificarPage from "../src/app/(publico)/registro/verificar/page";
 import { Footer } from "../src/components/footer";
 import { Header } from "../src/components/header";
 import type { PrismaClient } from "../src/generated/prisma/client";
@@ -35,6 +34,7 @@ import Home from "../src/pages/index.astro";
 // `/registro` y su gracias, de Astro desde 3b-1 (change `migrar-registro-astro`).
 import RegistroGracias from "../src/pages/registro/gracias.astro";
 import Registro from "../src/pages/registro.astro";
+import RegistroVerificar from "../src/pages/registro/verificar.astro";
 import TerminosPage from "../src/pages/terminos.astro";
 import { pintarPagina } from "./astro-paginas";
 import {
@@ -45,7 +45,6 @@ import {
   VARIABLE_TWILIO_SID,
 } from "../src/lib/verificacion/config";
 import { COOKIE_PASO, crearPasoInicial, firmarPaso } from "../src/lib/verificacion/paso";
-import { peticion } from "./admin-mocks";
 import { crearClientePrueba } from "./db";
 // Las páginas del directorio ya se sirven con Astro (change
 // `migrar-directorio-publico-astro`, tasks.md #15).
@@ -200,25 +199,18 @@ beforeAll(async () => {
   process.env[VARIABLE_TWILIO_AUTH_TOKEN] = "token-de-mentiras-000";
   process.env[VARIABLE_TWILIO_SERVICE_SID] = "VA-de-mentiras-000";
   process.env[VARIABLE_SECRETO] = SECRETO_VERIFICACION;
-  peticion.cookies[COOKIE_PASO] = firmarPaso(
-    crearPasoInicial(publicado.id, "7719995099"),
-    SECRETO_VERIFICACION,
-  );
+  const cookiePaso = `${COOKIE_PASO}=${firmarPaso(crearPasoInicial(publicado.id, "7719995099"), SECRETO_VERIFICACION)}`;
   // Con error de código y con el aviso de espera del reenvío: son los dos
-  // estados que agregan texto y por tanto los que pueden desbordar.
-  for (const [nombre, parametros] of [
-    ["verificar", {}],
-    ["verificar-error", { error: "no-coincide" }],
-    ["verificar-espera", { errorReenvio: "espera-reenvio" }],
+  // estados que agregan texto y por tanto los que pueden desbordar. Desde 3b-2
+  // (change `migrar-verificacion-sms-astro`) la pantalla es de Astro.
+  for (const [nombre, consulta] of [
+    ["verificar", ""],
+    ["verificar-error", "?error=no-coincide"],
+    ["verificar-espera", "?errorReenvio=espera-reenvio"],
   ] as const) {
-    pantallas.set(
-      nombre,
-      await render(
-        await RegistroVerificarPage({
-          searchParams: Promise.resolve(parametros),
-        } as unknown as Parameters<typeof RegistroVerificarPage>[0]),
-      ),
-    );
+    const html = await pintarPagina(RegistroVerificar, { ruta: `/registro/verificar${consulta}`, cabeceras: { cookie: cookiePaso } });
+    if (!html.includes("Confirma tu número")) throw new Error(`la pantalla ${nombre} no se pintó`);
+    pantallas.set(nombre, html);
   }
   for (const variable of [
     VARIABLE_BANDERA,
@@ -229,7 +221,6 @@ beforeAll(async () => {
   ]) {
     delete process.env[variable];
   }
-  delete peticion.cookies[COOKIE_PASO];
   pantallas.set(
     "editar",
     await render(

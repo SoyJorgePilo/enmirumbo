@@ -16,7 +16,10 @@
  *   guion sin levantar otro emulador).
  *   - Al pedir: `enviado` (201), `rechazado` (400), `error` (503) o `tarda`
  *     (no contesta nunca; la espera acotada del adaptador la corta).
- *   - Al comprobar: `approved`, `pending` o `404`. Por defecto, `approved`.
+ *   - Al comprobar: `approved`, `pending`, `404`, `error` (503) o `tarda`
+ *     (no contesta; la espera acotada del adaptador la corta). Por defecto,
+ *     `approved`. `error` y `tarda` son de 3b-2 (change
+ *     `migrar-verificacion-sms-astro`, design.md §8).
  * - `TWILIO_FALSO_REGISTRO`: archivo donde se apunta cada llamada al
  *   proveedor, una línea JSON por llamada (ruta y parámetros). Los números de
  *   las pruebas son de la serie ficticia `771999xxxx`.
@@ -42,7 +45,7 @@ const RESPUESTAS_AL_PEDIR = {
 export function leerGuion(texto = "enviado") {
   const [alPedir = "enviado", alComprobar = "approved"] = texto.split(",").map((t) => t.trim());
   if (!["enviado", "rechazado", "error", "tarda"].includes(alPedir)) throw new Error(`guion desconocido al pedir: ${alPedir}`);
-  if (!["approved", "pending", "404"].includes(alComprobar)) throw new Error(`guion desconocido al comprobar: ${alComprobar}`);
+  if (!["approved", "pending", "404", "error", "tarda"].includes(alComprobar)) throw new Error(`guion desconocido al comprobar: ${alComprobar}`);
   return { alPedir, alComprobar };
 }
 
@@ -93,6 +96,8 @@ export function crearFetchFalso(guionFijo, apuntar, original) {
       return json(status, respuesta);
     }
     if (ruta === "/VerificationCheck") {
+      if (guion.alComprobar === "tarda") return sinRespuesta(init.signal);
+      if (guion.alComprobar === "error") return json(503, { message: "Service unavailable" });
       if (guion.alComprobar === "404") return json(404, { message: "Not found" });
       return json(200, { status: guion.alComprobar });
     }

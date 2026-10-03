@@ -92,10 +92,28 @@ function puertoLibre(): Promise<number> {
  * `precargas`: módulos que Node carga antes en el mismo proceso
  * (`node --import`), p. ej. el Twilio falso de `tests/fixtures/twilio-falso.mjs`
  * (change `migrar-registro-astro`, design.md §7).
+ *
+ * El puerto libre se pide y se suelta antes de que el emulador lo tome: en
+ * una corrida completa, otro proceso (o un socket de salida con puerto
+ * efímero) llegó a ganárselo en medio (EADDRINUSE). Solo ese caso se reintenta
+ * con otro puerto (obs. 6 de c-seguridad.md de `migrar-verificacion-sms-astro`).
  */
 export async function levantarEmulador(
   entorno: Record<string, string | undefined> = {},
-  { precargas = [] }: { precargas?: string[] } = {},
+  opciones: { precargas?: string[] } = {},
+): Promise<Emulador> {
+  for (let intento = 1; ; intento++) {
+    try {
+      return await levantarEnUnPuerto(entorno, opciones);
+    } catch (error) {
+      if (intento >= 3 || !(error instanceof Error && error.message.includes("EADDRINUSE"))) throw error;
+    }
+  }
+}
+
+async function levantarEnUnPuerto(
+  entorno: Record<string, string | undefined>,
+  { precargas = [] }: { precargas?: string[] },
 ): Promise<Emulador> {
   const puerto = await puertoLibre();
   // Una variable en `undefined` se QUITA (p. ej. `SITIO_URL` en producción sin URL pública).
@@ -114,14 +132,20 @@ export async function levantarEmulador(
   proceso.stdout!.on("data", (d: Buffer) => (registro += d.toString()));
   proceso.stderr!.on("data", (d: Buffer) => (registro += d.toString()));
   await new Promise<void>((listo, falla) => {
-    const tiempo = setTimeout(() => falla(new Error("el emulador no arrancó")), 30_000);
+    const tiempo = setTimeout(() => {
+      proceso.kill();
+      falla(new Error(`el emulador no arrancó en 30 s:\n${registro.slice(-2000)}`));
+    }, 30_000);
     proceso.stdout!.on("data", (d: Buffer) => {
       if (d.toString().includes("[emulador]")) {
         clearTimeout(tiempo);
         listo();
       }
     });
-    proceso.on("exit", (codigo) => falla(new Error(`el emulador terminó (${codigo}):\n${registro.slice(-2000)}`)));
+    proceso.on("exit", (codigo) => {
+      clearTimeout(tiempo);
+      falla(new Error(`el emulador terminó (${codigo}):\n${registro.slice(-2000)}`));
+    });
   });
   const base = `http://127.0.0.1:${puerto}`;
   return {

@@ -17,6 +17,9 @@ import Home from "../src/pages/index.astro";
 // `/registro` y su gracias, de Astro desde 3b-1 (change `migrar-registro-astro`).
 import RegistroGracias from "../src/pages/registro/gracias.astro";
 import Registro from "../src/pages/registro.astro";
+// La pantalla del código, de Astro desde 3b-2 (change `migrar-verificacion-sms-astro`).
+import RegistroVerificar from "../src/pages/registro/verificar.astro";
+import { COOKIE_PASO, crearPasoInicial, firmarPaso } from "../src/lib/verificacion/paso";
 import TerminosPage from "../src/pages/terminos.astro";
 import { pintarPagina } from "./astro-paginas";
 import { crearClientePrueba } from "./db";
@@ -59,6 +62,7 @@ let htmlFicha = "";
 let htmlHome = "";
 let htmlRegistro = "";
 let htmlGracias = "";
+let htmlVerificar = "";
 let htmlAviso = "";
 let htmlTerminos = "";
 
@@ -134,6 +138,22 @@ beforeAll(async () => {
   htmlRegistro = await pintarPagina(Registro, { ruta: "/registro" });
   // Sin parámetros es la pantalla de siempre, la de la bandera apagada.
   htmlGracias = await pintarPagina(RegistroGracias, { ruta: "/registro/gracias" });
+  // La pantalla del código, con la capacidad encendida y una cookie de paso (ficticia).
+  const secreto = "secreto-ficticio-de-pruebas-de-32-caracteres-o-mas";
+  const encendida = {
+    VERIFICACION_SMS_ACTIVA: "1",
+    VERIFICACION_SMS_SECRETO: secreto,
+    TWILIO_ACCOUNT_SID: "ACtest00000000000000000000000000",
+    TWILIO_AUTH_TOKEN: "token-ficticio-de-pruebas",
+    TWILIO_VERIFY_SERVICE_SID: "VAtest00000000000000000000000000",
+  };
+  Object.assign(process.env, encendida);
+  try {
+    const cookie = `${COOKIE_PASO}=${firmarPaso(crearPasoInicial(id, "7719995099"), secreto)}`;
+    htmlVerificar = await pintarPagina(RegistroVerificar, { ruta: "/registro/verificar", cabeceras: { cookie } });
+  } finally {
+    for (const variable of Object.keys(encendida)) delete process.env[variable];
+  }
   htmlAviso = await pintarPagina(AvisoDePrivacidadPage, { ruta: "/aviso-de-privacidad" });
   htmlTerminos = await pintarPagina(TerminosPage, { ruta: "/terminos" });
 });
@@ -158,6 +178,7 @@ const todasLasPublicas = () =>
     ["ficha", htmlFicha],
     ["registro", htmlRegistro],
     ["gracias", htmlGracias],
+    ["verificar", htmlVerificar],
     ["aviso de privacidad", htmlAviso],
     ["términos", htmlTerminos],
   ] as const;
@@ -170,6 +191,8 @@ describe("analitica · ningún dato del negocio dentro de un atributo (tasks #17
     // Y el HTML sí trae los datos del negocio (si no, la prueba sería vacía).
     expect(htmlFicha).toContain(NEGOCIO.direccion);
     expect(htmlFicha).toContain(NEGOCIO.horario);
+    // Y la pantalla del código se pintó de verdad (no la 404).
+    expect(htmlVerificar).toContain("Confirma tu número");
   });
 
   // Scenario: ningún dato del negocio dentro de un atributo de medición

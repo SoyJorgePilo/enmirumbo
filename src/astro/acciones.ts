@@ -17,6 +17,11 @@
  * - **La excepción del registro (3b-1, design.md §3):** su error no pasa por
  *   un 303. La tabla fija el estado como resultado de la Action y la página
  *   vuelve a pintar el formulario en la misma respuesta, como Next sin JS.
+ * - **La compuerta (3b-2, change `migrar-verificacion-sms-astro`, design.md
+ *   §2.3):** una entrada puede declarar `puedeCorrer`. Si dice que no
+ *   (`confirmar` y `reenviar` con la verificación apagada), el manejador NO
+ *   se llama —ni el cuerpo, ni la cookie, ni la base, ni el proveedor— y la
+ *   respuesta es la misma que su "no encontrado".
  * - **La pasada de la página de error (O1, design.md §5):** cuando una página
  *   o una Action lanzan, Astro pinta `/500` con la MISMA petición. Ahí no se
  *   ejecuta ninguna Action ni se deja que Astro la ejecute: se sigue a la 500.
@@ -36,6 +41,8 @@ import {
   type ResultadoDeReportar,
   destinoTrasUnaFalla,
 } from "@/astro/reportar";
+import { DESTINOS_DE_VERIFICAR, RUTA_DE_VERIFICAR, type ResultadoDeVerificar } from "@/astro/verificar";
+import { verificacionEncendida } from "@/lib/verificacion/config";
 
 /**
  * El `Cache-Control` que manda Next al atender una Server Action (medido en
@@ -57,7 +64,7 @@ const PATRON_RPC = "/_actions/[...path]";
 const PATRON_ERROR = "/500";
 
 /** El desenlace de cualquier Action de la tabla, cerrado. */
-export type ResultadoDeAccion = ResultadoDeReportar | ResultadoDeRegistrar;
+export type ResultadoDeAccion = ResultadoDeReportar | ResultadoDeRegistrar | ResultadoDeVerificar;
 
 /** Lo que la tabla usa del contexto para decidir tras una falla. */
 type ContextoDeLaTabla = Pick<ContextoDeReportar, "params">;
@@ -67,6 +74,21 @@ type EntradaDeAccion = {
   ruta: string;
   /** Destino cuando la Action no llegó a correr (`ActionError` de Astro, con su código). */
   trasFallar: (contexto: ContextoDeLaTabla, codigo: string | undefined) => Promise<ResultadoDeAccion>;
+  /** La compuerta: si dice que no, el manejador no se llama y la respuesta es su "no encontrado". */
+  puedeCorrer?: () => boolean;
+  /** Si está, los ÚNICOS destinos de 303 que se obedecen; cualquier otro es "no encontrado". */
+  destinos?: ReadonlySet<string>;
+};
+
+/**
+ * `confirmar` y `reenviar` (3b-2): con la capacidad apagada no corren, y si
+ * Astro no pudo leer el envío, "no encontrado" sin leer la base (design.md §3).
+ */
+const ENTRADA_DE_VERIFICAR: EntradaDeAccion = {
+  ruta: RUTA_DE_VERIFICAR,
+  trasFallar: async () => ({ tipo: "no-encontrado" as const }),
+  puedeCorrer: () => verificacionEncendida(),
+  destinos: DESTINOS_DE_VERIFICAR,
 };
 
 /** Una entrada por Action. */
@@ -80,6 +102,8 @@ export const ACCIONES: Readonly<Record<string, EntradaDeAccion>> = Object.freeze
       estado: estadoTrasUnaFalla(codigo),
     }),
   },
+  confirmar: ENTRADA_DE_VERIFICAR,
+  reenviar: ENTRADA_DE_VERIFICAR,
 });
 
 function entradaDe(nombre: string): EntradaDeAccion | undefined {
@@ -124,7 +148,10 @@ export async function resolverAccion(
   const entrada = entradaDe(nombre);
   if (!entrada) return { tipo: "fuera-de-ruta" };
   if (seguro.error) return entrada.trasFallar(contexto, codigoDeError(seguro.error));
-  return esResultado(seguro.data) ? seguro.data : { tipo: "fuera-de-ruta" };
+  if (!esResultado(seguro.data)) return { tipo: "fuera-de-ruta" };
+  // La lista cerrada de la entrada, si la tiene (3b-2): otra ruta no se obedece.
+  if (entrada.destinos && seguro.data.tipo === "redirigir" && !entrada.destinos.has(seguro.data.ruta)) return { tipo: "no-encontrado" };
+  return seguro.data;
 }
 
 /** Igual que una dirección que no existe: la 404 de no encontrado, sin ejecutar nada. */
@@ -180,11 +207,17 @@ export async function atenderAcciones(contexto: APIContext, siguiente: Middlewar
     return comoDireccionInexistente(contexto);
   }
 
-  const resultado = await resolverAccion(action.name, await action.handler(), contexto);
+  // La compuerta, ANTES del manejador: con ella cerrada no se lee el cuerpo,
+  // ni la cookie, ni la base, ni se construye el proveedor (3b-2).
+  const resultado =
+    entrada.puedeCorrer && !entrada.puedeCorrer()
+      ? ({ tipo: "no-encontrado" } as const)
+      : await resolverAccion(action.name, await action.handler(), contexto);
   if (resultado.tipo === "redirigir") return respuestaDeRedireccion(resultado.ruta);
   if (resultado.tipo === "no-encontrado") {
-    // La página vuelve a leer la ficha y pinta la 404; con el resultado ya
-    // fijado, Astro no ejecuta la Action otra vez.
+    // La página vuelve a leer la ficha (reportar) o la configuración
+    // (verificar) y pinta la 404; con el resultado ya fijado, Astro no
+    // ejecuta la Action otra vez.
     setActionResult(action.name, serializeActionResult({ data: undefined, error: new ActionError({ code: "NOT_FOUND" }) }));
     return conCacheDeAccion(await pintarSinReleerElCuerpo(contexto, siguiente));
   }

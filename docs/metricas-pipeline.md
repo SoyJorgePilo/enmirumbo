@@ -41,7 +41,7 @@
 | 2026-10-02 | migrar-formularios-publicos-astro (T-024, Fase 3a) | completa (sin etapa A: reutiliza formulario) | 1 (0 altos; 1 medio de Fase 1 no explotable, `it.fails`) | 0 bloqueantes; 1 bajo (O1) a 3b; diff de HTML en cero en 89 rutas; 3 mutaciones reprueban | sí | [#36](https://github.com/SoyJorgePilo/enmirumbo/pull/36) | |
 | 2026-10-02 | migrar-registro-astro (T-024, Fase 3b-1) | completa (sin etapa A: HTML idéntico al de Next) | 1 (0 altos; 2 medios M1/M2 corregidos y medidos) | 0 bloqueantes; 1 bajo V1 (reenvío tras timeout) corregido; diff de HTML en cero en 96 rutas | sí | [#37](https://github.com/SoyJorgePilo/enmirumbo/pull/37) | |
 | 2026-10-02 | migrar-verificacion-sms-astro (T-024, Fase 3b-2) | completa (sin etapa A: pantalla idéntica a Next) | 1 (0 altos; M1 preexistente a ticket, M2 prueba intermitente corregida) | 0 bloqueantes; 2 bajos (arnés, log con base caída); diff de HTML en cero en 109 rutas | sí | pendiente (se abre tras mergear #37) | |
-| 2026-10-02 | migrar-tareas-programadas-astro (T-027, Fase 6a) | completa (sin etapa A: sin pantallas) | 1 (0 altos, 0 medios; 4 bajos) | 0 bloqueantes; B2 corregido por el validador (1 línea del sembrador); diff 6a en cero (89 pasos, 12 aceptadas); 3 mutaciones reprueban; 1 prueba intermitente preexistente | sí | PR_6A | |
+| 2026-10-02 | migrar-tareas-programadas-astro (T-027, Fase 6a) | completa (sin etapa A: sin pantallas) | 1 (0 altos, 0 medios; 4 bajos) | 0 bloqueantes; B2 corregido por el validador (1 línea del sembrador); diff 6a en cero (89 pasos, 12 aceptadas); 3 mutaciones reprueban; 1 prueba intermitente preexistente | sí | [#39](https://github.com/SoyJorgePilo/enmirumbo/pull/39) (borrador) | |
 
 ## Qué mirar cada ~5 corridas
 

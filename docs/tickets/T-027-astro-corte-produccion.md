@@ -6,7 +6,7 @@
 **Referencias PRD:** v2 §10 (técnica reemplazable); ADR-013
 **Depende de:** T-026 y T-021 completo
 **OpenSpec change:** `migrar-tareas-programadas-astro` (mitad 6a: tareas programadas y `secreto.ts` sin Next); la mitad 6b (corte y retiro de Next) va en un change aparte, después de las Fases 4 y 5 y de la evidencia humana del preview
-**PR:** —
+**PR:** [#39](https://github.com/SoyJorgePilo/enmirumbo/pull/39) (6a, borrador apilado sobre #38)
 
 ## Contexto
 

@@ -375,10 +375,17 @@ describe("despliegue · las tareas programadas están declaradas", () => {
     }
   });
 
+  // Desde el change `migrar-tareas-programadas-astro` (T-027, 6a) las sirve
+  // Astro: el endpoint de cada ruta vive en `src/pages/<ruta>.ts`, no se
+  // prerenderiza y tiene su `GET`.
   it("cada ruta declarada en vercel.json existe de verdad", () => {
+    expect(vercel.crons?.length).toBeGreaterThan(0);
     for (const cron of vercel.crons ?? []) {
-      const archivo = path.join(raiz, "src/app", cron.path, "route.ts");
+      const archivo = path.join(raiz, "src/pages", `${cron.path}.ts`);
       expect(() => readFileSync(archivo, "utf8"), cron.path).not.toThrow();
+      const fuente = readFileSync(archivo, "utf8");
+      expect(fuente, cron.path).toMatch(/export const prerender = false;/);
+      expect(fuente, cron.path).toMatch(/export const GET: APIRoute/);
     }
   });
 
@@ -464,12 +471,17 @@ describe("despliegue · el aviso diario de pendientes está documentado", () => 
   });
 
   it("el aviso viaja encima de una tarea que ya existía, sin cron nuevo", () => {
+    // El endpoint de Astro (change `migrar-tareas-programadas-astro`).
     const ruta = readFileSync(
-      path.join(raiz, "src/app/api/tareas/purgar-rechazados/route.ts"),
+      path.join(raiz, "src/pages/api/tareas/purgar-rechazados.ts"),
       "utf8",
     );
     expect(ruta).toContain("avisarPendientes");
-    // Sin ruta propia: el plan del hosting no da para una tercera tarea.
+    // Sin ruta propia: el plan del hosting no da para una tercera tarea, ni
+    // en Astro ni en lo que queda de Next hasta la Fase 6b.
+    expect(() =>
+      readFileSync(path.join(raiz, "src/pages/api/tareas/avisar-pendientes.ts"), "utf8"),
+    ).toThrow();
     expect(() =>
       readFileSync(path.join(raiz, "src/app/api/tareas/avisar-pendientes/route.ts"), "utf8"),
     ).toThrow();

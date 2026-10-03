@@ -1,15 +1,15 @@
 /**
- * Disparo del barrido de fotos sin dueño.
+ * Disparo del barrido de fotos sin dueño, servido por Astro: lo que era
+ * `src/app/api/tareas/barrer-fotos-huerfanas/route.ts` (change
+ * `migrar-tareas-programadas-astro`, design.md §1). Misma ruta, así que el
+ * cron de `vercel.json` no cambia.
  *
  * Spec `despliegue`, requirement "El barrido de fotos huérfanas también corre
  * solo, y se nota cuando no barre" (change `preparar-deploy-produccion`).
  *
- * El barrido existía desde el change `agregar-foto-negocio` como comando de
- * consola (`npm run fotos:barrer-huerfanos`) y con una nota que decía "en
- * producción esto le toca a un cron; queda anotado para T-013". Esto es ese
- * cron: la misma lógica —con sus cuatro salvaguardas— detrás de la misma
- * puerta que la purga, y por las mismas razones (ADR-007: nada exclusivo del
- * hosting; cualquier programador de tareas sirve).
+ * La misma lógica —con sus cuatro salvaguardas— detrás de la misma puerta que
+ * la purga (`src/astro/tareas.ts`), y por las mismas razones (ADR-007: nada
+ * exclusivo del hosting; cualquier programador de tareas sirve).
  *
  * FAIL-CLOSED, y aquí es lo importante: cuando una salvaguarda DETIENE el
  * barrido, la respuesta NO es 200. El comando de consola lo decía con
@@ -18,31 +18,28 @@
  * huérfanas —que son datos personales fuera del alcance del borrado ARCO,
  * PRD §8— se acumularían en silencio para siempre. Un 500 sale en el panel de
  * fallos del cron; un 200 con letra chica, no.
+ *
+ * Métodos: los mismos que la purga (`HEAD` como `GET`; los demás, el 404
+ * vacío).
  */
+import type { APIRoute } from "astro";
+
+import { respuestaDeTareaNoExistente, tareaAutorizada } from "@/astro/tareas";
 import { almacenDeFotos } from "@/lib/fotos/almacen";
 import { barrerFotosHuerfanas } from "@/lib/fotos/huerfanas";
 import { obtenerPrisma } from "@/lib/prisma";
-import {
-  secretoDeTareaCorrecto,
-  VARIABLE_SECRETO_TAREAS,
-} from "@/lib/tareas/secreto";
 
-import { respuestaDeTareaNoExistente } from "../no-existe";
-
-// Lee el almacén y la base en cada petición: nunca se prerenderiza.
-export const dynamic = "force-dynamic";
+// Lee el almacén y la base en cada petición: nunca se prerenderiza. Sin
+// `Cache-Control` propio, como Next (medido).
+export const prerender = false;
 
 const CABECERAS = {
   "Content-Type": "application/json; charset=utf-8",
   "X-Robots-Tag": "noindex, nofollow",
 };
 
-export async function GET(peticion: Request): Promise<Response> {
-  const secreto = (process.env[VARIABLE_SECRETO_TAREAS] ?? "").trim();
-  if (secreto === "") respuestaDeTareaNoExistente();
-  if (!secretoDeTareaCorrecto(peticion.headers.get("authorization"), secreto)) {
-    respuestaDeTareaNoExistente();
-  }
+export const GET: APIRoute = async ({ request }) => {
+  if (!tareaAutorizada(request)) return respuestaDeTareaNoExistente();
 
   let resultado;
   try {
@@ -81,4 +78,10 @@ export async function GET(peticion: Request): Promise<Response> {
     `[fotos] barrido: ${resultado.borradas} huérfanas borradas de ${resultado.revisadas} revisadas`,
   );
   return new Response(JSON.stringify(cuerpo), { status: 200, headers: CABECERAS });
-}
+};
+
+/** `HEAD` como `GET`, como en Next: con el secreto correcto corre el barrido; Astro quita el cuerpo. */
+export const HEAD: APIRoute = (contexto) => GET(contexto);
+
+/** Cualquier otro método: el mismo 404 vacío, sin mirar el secreto (design.md §1.3). */
+export const ALL: APIRoute = () => respuestaDeTareaNoExistente();

@@ -1,0 +1,40 @@
+{
+  "instancia": "principal",
+  "estado": "purga-foto-rota",
+  "guion": "aceptado",
+  "pasos": [
+    {
+      "nombre": "una foto que no se puede borrar",
+      "metodo": "GET",
+      "ruta": "/api/tareas/purgar-rechazados",
+      "comparar": "exacto",
+      "status": 500,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "content-type": "application/json; charset=utf-8",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+        "x-robots-tag": "noindex, nofollow"
+      },
+      "cuerpo": "eyJlbGltaW5hZG9zIjoxLCJmYWxsaWRvcyI6MSwiY3Vwb3NMaW1waWFkb3MiOjAsImF2aXNvIjoic2luLXBlbmRpZW50ZXMifQ==",
+      "log": [
+        "[borrado] no se pudo alcanzar el almacén de fotos, la ficha NO se borró: SystemError",
+        "[purga] un registro rechazado no se pudo eliminar: su foto sigue en un almacén inalcanzable",
+        "[aviso] no hay pendientes en la cola: hoy no sale correo",
+        "[purga] 1 registros rechazados NO se pudieron eliminar (se eliminaron 1)"
+      ],
+      "correo": []
+    }
+  ],
+  "despues": {
+    "fichas": [
+      "7719996601:rechazado"
+    ],
+    "archivos": [
+      "f6a00000000000000000000000000002.ficha.webp"
+    ],
+    "cupos": 0
+  }
+}

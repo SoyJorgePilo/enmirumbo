@@ -1,5 +1,8 @@
 /**
- * Disparo de la purga de registros rechazados a los 90 días (PRD §8).
+ * Disparo de la purga de registros rechazados a los 90 días (PRD §8), servido
+ * por Astro: lo que era `src/app/api/tareas/purgar-rechazados/route.ts`
+ * (change `migrar-tareas-programadas-astro`, design.md §1). Misma ruta, así
+ * que el cron de `vercel.json` no cambia.
  *
  * Spec `despliegue`, requirement "La purga de rechazados se dispara sola en
  * producción"; change `preparar-deploy-produccion`, design.md §7.
@@ -11,8 +14,10 @@
  * encabezado `Authorization`.
  *
  * FAIL-CLOSED: sin secreto configurado, o con uno que no coincide, responde el
- * MISMO 404 que una ruta inexistente y no borra nada. Una ruta que borra
- * registros en bloque no se anuncia.
+ * 404 vacío de `src/astro/tareas.ts` y no borra nada. Una ruta que borra
+ * registros en bloque no se anuncia. La puerta va PRIMERO: antes de construir
+ * el cliente de la base, de tocar el almacén y de leer la configuración del
+ * correo.
  *
  * ESTA TAREA LLEVA ADEMÁS EL AVISO DIARIO DE PENDIENTES (T-020; spec
  * `despliegue`, requirement "El aviso diario de pendientes viaja en la tarea
@@ -23,27 +28,27 @@
  * direcciones**. El aviso se intenta pase lo que pase con la purga —incluso
  * si revienta—, y lo que la purga ya borró queda borrado aunque el correo
  * falle. Encadenarlos convertiría un fallo en dos.
+ *
+ * Métodos (medido en Next de `main`): `HEAD` corre la tarea como `GET` y
+ * Astro le quita el cuerpo. Cualquier otro método responde el mismo 404
+ * vacío sin mirar el secreto (Next daba 405/204, lo que delataba la ruta:
+ * la única diferencia aceptada, decisión del fundador).
  */
+import type { APIRoute } from "astro";
+
+import { respuestaDeTareaNoExistente, tareaAutorizada } from "@/astro/tareas";
 import { avisarPendientes, type EstadoAviso } from "@/lib/avisos/aviso";
 import { almacenDeFotos } from "@/lib/fotos/almacen";
 import { obtenerPrisma } from "@/lib/prisma";
 import { purgarRechazados } from "@/lib/purga/rechazados";
-import {
-  secretoDeTareaCorrecto,
-  VARIABLE_SECRETO_TAREAS,
-} from "@/lib/tareas/secreto";
 
-import { respuestaDeTareaNoExistente } from "../no-existe";
+// Escribe en la base en cada petición: nunca se prerenderiza. Sin
+// `Cache-Control` propio, como Next (medido): la CDN no guarda respuestas de
+// función sin `s-maxage`/`public`.
+export const prerender = false;
 
-// Escribe en la base en cada petición: nunca se prerenderiza ni se cachea.
-export const dynamic = "force-dynamic";
-
-export async function GET(peticion: Request): Promise<Response> {
-  const secreto = (process.env[VARIABLE_SECRETO_TAREAS] ?? "").trim();
-  if (secreto === "") respuestaDeTareaNoExistente();
-  if (!secretoDeTareaCorrecto(peticion.headers.get("authorization"), secreto)) {
-    respuestaDeTareaNoExistente();
-  }
+export const GET: APIRoute = async ({ request }) => {
+  if (!tareaAutorizada(request)) return respuestaDeTareaNoExistente();
 
   // Conteos y nada más: ni nombres, ni WhatsApp, ni motivos de rechazo (spec
   // `modelo-datos`, scenario "el informe no filtra datos personales"). El
@@ -105,4 +110,10 @@ export async function GET(peticion: Request): Promise<Response> {
     status: aviso === "fallido" ? 500 : 200,
     headers: cabeceras,
   });
-}
+};
+
+/** `HEAD` como `GET`, como en Next: con el secreto correcto corre la tarea; Astro quita el cuerpo. */
+export const HEAD: APIRoute = (contexto) => GET(contexto);
+
+/** Cualquier otro método: el mismo 404 vacío, sin mirar el secreto (design.md §1.3). */
+export const ALL: APIRoute = () => respuestaDeTareaNoExistente();

@@ -1,7 +1,7 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { seedCatalogos } from "../prisma/seed";
-import { GET as purgarRechazadosRuta } from "../src/app/api/tareas/purgar-rechazados/route";
+import { GET as purgarRechazadosRuta } from "../src/pages/api/tareas/purgar-rechazados";
 import type { PrismaClient } from "../src/generated/prisma/client";
 import { almacenDeFotos } from "../src/lib/fotos/almacen";
 import { generarClaveFoto, VARIANTES_FOTO } from "../src/lib/fotos/clave";
@@ -198,23 +198,19 @@ describe("purga · qué se lleva y qué no", () => {
 
 /**
  * ITERACIÓN 2 (hallazgo M1 de la etapa C): la ruta ya no fabrica su propio
- * 404 de texto plano —que la distinguía del resto del sitio a simple vista—
- * sino que delega en `notFound()`, la MISMA página 404 de cualquier dirección
- * inventada. `notFound()` funciona lanzando, así que aquí se comprueba que la
- * llamada termina con esa señal y sin haber tocado la base.
+ * 404 de texto plano —que la distinguía del resto del sitio a simple vista—.
+ * En Next delegaba en `notFound()`; en Astro (change
+ * `migrar-tareas-programadas-astro`) devuelve el 404 vacío de
+ * `src/astro/tareas.ts`, el mismo que medía Next: estado 404, cero bytes y
+ * NINGUNA cabecera propia (las de seguridad las pone el middleware). Aquí se
+ * comprueba esa forma exacta, sin haber tocado la base.
  */
 async function respondeComoInexistente(llamada: () => Promise<Response>): Promise<boolean> {
-  try {
-    const respuesta = await llamada();
-    // Si llegara a devolver algo, un 404 propio también sería "no existe",
-    // pero ya no sería indistinguible: se falla a propósito.
-    expect(respuesta.status, "la ruta fabricó su propio 404 en vez de servir el del sitio").toBe(
-      -1,
-    );
-    return false;
-  } catch (error) {
-    return String((error as Error).message).includes("NEXT_HTTP_ERROR_FALLBACK;404");
-  }
+  const respuesta = await llamada();
+  // Un 404 con algo propio (texto, `content-type`, `X-Robots-Tag`) también
+  // sería "no existe", pero ya no sería indistinguible: se falla a propósito.
+  expect([...respuesta.headers], "la ruta fabricó un 404 con cabeceras propias").toEqual([]);
+  return respuesta.status === 404 && (await respuesta.text()) === "";
 }
 
 describe("purga · la ruta que la dispara", () => {
@@ -227,12 +223,13 @@ describe("purga · la ruta que la dispara", () => {
       motivoRechazo: "Motivo ficticio de prueba",
     });
 
-  const pedir = (encabezados: Record<string, string> = {}) =>
-    purgarRechazadosRuta(
-      new Request("https://enmirumbo.example/api/tareas/purgar-rechazados", {
-        headers: encabezados,
-      }),
-    );
+  // El endpoint de Astro, con el contexto mínimo que usa: la petición.
+  const pedir = async (encabezados: Record<string, string> = {}): Promise<Response> => {
+    const request = new Request("https://enmirumbo.example/api/tareas/purgar-rechazados", {
+      headers: encabezados,
+    });
+    return purgarRechazadosRuta({ request, url: new URL(request.url), params: {} } as never);
+  };
 
   // Scenario: sin secreto configurado
   it("sin CRON_SECRET responde como una ruta inexistente y no purga nada", async () => {

@@ -538,13 +538,15 @@ describe("c-seguridad 2b · escape de lo que manda el vecino en la URL", () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe("c-seguridad 2b · ninguna 404 lleva la medición ni datos de la petición", () => {
-  it("dinámicas, global, /404, /registro, sub-rutas y prefijos sueltos: sin script, sin umami y sin eco de la consulta", async () => {
+  // `/registro` dejó de ser una 404 en 3b-1 (change `migrar-registro-astro`):
+  // la 404 que queda en esa zona es `/registro/verificar`, hasta 3b-2.
+  it("dinámicas, global, /404, /registro/verificar, sub-rutas y prefijos sueltos: sin script, sin umami y sin eco de la consulta", async () => {
     for (const ruta of [
       "/loquesea?utm_source=Marcadoreco",
       "/a/b/c?Marcadoreco=1",
       "/404",
       "/404/",
-      "/registro",
+      "/registro/verificar?Marcadoreco=1",
       "/negocio",
       "/negocio/",
       "/api",

@@ -12,7 +12,9 @@
  */
 import { type ChildProcess, execFileSync, spawn } from "node:child_process";
 import { existsSync, readdirSync, statSync, writeFileSync } from "node:fs";
+import { createServer } from "node:net";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 
 const raiz = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
 const marca = path.join(raiz, ".vercel/output/.salida-de-pruebas");
@@ -67,18 +69,43 @@ export type Emulador = {
 };
 
 /**
+ * Un puerto libre que da el sistema (en vez de uno al azar): con varios
+ * emuladores a la vez, el azar llegó a repetir puerto (change
+ * `migrar-registro-astro`).
+ */
+function puertoLibre(): Promise<number> {
+  return new Promise((listo, falla) => {
+    const servidor = createServer();
+    servidor.unref();
+    servidor.on("error", falla);
+    servidor.listen(0, "127.0.0.1", () => {
+      const direccion = servidor.address();
+      const puerto = typeof direccion === "object" && direccion ? direccion.port : 0;
+      servidor.close(() => listo(puerto));
+    });
+  });
+}
+
+/**
  * Levanta el emulador sobre la salida construida, con la base de la suite y el
  * entorno que se pida encima (p. ej. `SITIO_URL`, la medición o `FOTOS_DIR`).
+ * `precargas`: módulos que Node carga antes en el mismo proceso
+ * (`node --import`), p. ej. el Twilio falso de `tests/fixtures/twilio-falso.mjs`
+ * (change `migrar-registro-astro`, design.md §7).
  */
-export async function levantarEmulador(entorno: Record<string, string | undefined> = {}): Promise<Emulador> {
-  const puerto = 48_000 + Math.floor(Math.random() * 1500);
+export async function levantarEmulador(
+  entorno: Record<string, string | undefined> = {},
+  { precargas = [] }: { precargas?: string[] } = {},
+): Promise<Emulador> {
+  const puerto = await puertoLibre();
   // Una variable en `undefined` se QUITA (p. ej. `SITIO_URL` en producción sin URL pública).
   const env: NodeJS.ProcessEnv = { ...entornoDeLaSalida(), DATABASE_URL: process.env.DATABASE_URL ?? "", PORT: String(puerto) };
   for (const [clave, valor] of Object.entries(entorno)) {
     if (valor === undefined) delete env[clave];
     else env[clave] = valor;
   }
-  const proceso: ChildProcess = spawn(process.execPath, [path.join(raiz, "scripts/servir-salida-vercel.mjs")], {
+  const importes = precargas.flatMap((archivo) => ["--import", pathToFileURL(path.resolve(raiz, archivo)).href]);
+  const proceso: ChildProcess = spawn(process.execPath, [...importes, path.join(raiz, "scripts/servir-salida-vercel.mjs")], {
     cwd: raiz,
     env,
     stdio: ["ignore", "pipe", "pipe"],
@@ -94,7 +121,7 @@ export async function levantarEmulador(entorno: Record<string, string | undefine
         listo();
       }
     });
-    proceso.on("exit", (codigo) => falla(new Error(`el emulador terminó (${codigo})`)));
+    proceso.on("exit", (codigo) => falla(new Error(`el emulador terminó (${codigo}):\n${registro.slice(-2000)}`)));
   });
   const base = `http://127.0.0.1:${puerto}`;
   return {

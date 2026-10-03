@@ -5,8 +5,6 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { CATEGORIAS, COLONIAS, seedCatalogos } from "../prisma/seed";
-import RegistroGraciasPage from "../src/app/(publico)/registro/gracias/page";
-import RegistroPage from "../src/app/(publico)/registro/page";
 import { AvisoConsentimiento } from "../src/components/registro/aviso-consentimiento";
 import { BotonEnviar } from "../src/components/registro/boton-enviar";
 import {
@@ -27,12 +25,22 @@ import {
   textoVersionAceptada,
 } from "../src/lib/registro/textos";
 import { VALORES_VACIOS_REGISTRO } from "../src/lib/registro/tipos";
+import RegistroGracias from "../src/pages/registro/gracias.astro";
+import Registro from "../src/pages/registro.astro";
+import { contenidoDelMain, pintarPagina } from "./astro-paginas";
 import { crearClientePrueba } from "./db";
 
 // Spec: registro-negocio · requirements de página, campos, consentimiento,
 // anti-abuso, estados del formulario y "funciona sin JavaScript".
 // Los catálogos vienen de la base de prueba (misma DATABASE_URL), así que
 // esto también prueba el cliente Prisma de aplicación (design.md §6).
+//
+// Desde 3b-1 (change `migrar-registro-astro`) las dos pantallas son las de
+// Astro (`src/pages/registro.astro` y `registro/gracias.astro`), pintadas con
+// la Container API: lo que se compara es lo que hay en `<main>`, que es lo que
+// pintaba la página de Next. El marcado del formulario vive en
+// `cuerpo-formulario-registro.tsx` (compartido por la variante de cliente y la
+// nativa) y el del botón en `boton-enviar-vista.tsx`.
 
 const raiz = join(__dirname, "..");
 const fuente = (ruta: string) => readFileSync(join(raiz, ruta), "utf8");
@@ -45,11 +53,21 @@ const normalizado = (html: string) => html.replace(/\s+/g, " ");
  * comparan contra el mensaje literal del PRD §6.1.
  */
 async function renderGracias(parametros: Record<string, string> = {}): Promise<string> {
-  const resuelta = await RegistroGraciasPage({
-    searchParams: Promise.resolve(parametros),
-  } as unknown as Parameters<typeof RegistroGraciasPage>[0]);
-  return renderToStaticMarkup(createElement(() => resuelta));
+  const consulta = new URLSearchParams(parametros).toString();
+  return contenidoDelMain(await pintarPagina(RegistroGracias, { ruta: `/registro/gracias${consulta ? `?${consulta}` : ""}` }));
 }
+
+/**
+ * El único `<script>` con `src` que puede llevar `/registro`: la mejora
+ * progresiva (design.md §1.3), que en la Container API es el primer y único
+ * script de `src/pages/registro.astro`. Exactamente ese módulo, y uno solo
+ * (c-seguridad 3b-1, observación 2).
+ */
+const esLaMejoraProgresiva = (etiqueta: string) =>
+  /^<script type="module" src="[^"]*\/src\/pages\/registro\.astro\?astro&(amp;)?type=script&(amp;)?index=0&(amp;)?lang\.ts">$/.test(etiqueta);
+
+/** Los `<script>` con `src` de un HTML. */
+const scriptsConSrc = (html: string) => [...html.matchAll(/<script\b[^>]*\bsrc=[^>]*>/g)].map((m) => m[0]);
 
 let htmlRegistro = "";
 
@@ -57,8 +75,7 @@ beforeAll(async () => {
   const prisma = crearClientePrueba();
   await seedCatalogos(prisma);
   await prisma.$disconnect();
-  const pagina = await RegistroPage();
-  htmlRegistro = renderToStaticMarkup(createElement(() => pagina));
+  htmlRegistro = contenidoDelMain(await pintarPagina(Registro, { ruta: "/registro" }));
 });
 
 describe("registro-negocio · cliente Prisma de aplicación (design.md §6)", () => {
@@ -146,7 +163,7 @@ describe("registro-negocio · accesibilidad del formulario", () => {
 
   // Scenario: mobile-first a 390px (área táctil ≥44px = min-h-11 de Tailwind)
   it("los controles tocables reservan al menos 44px", () => {
-    const formulario = fuente("src/components/registro/formulario-registro.tsx");
+    const formulario = fuente("src/components/registro/cuerpo-formulario-registro.tsx");
     const aviso = fuente("src/components/registro/aviso-consentimiento.tsx");
     const boton = fuente("src/lib/estilos-boton.ts");
     // py-3 sobre texto base ⇒ 24 + 12 + 12 = 48px de alto en inputs y selects
@@ -447,10 +464,12 @@ describe("registro-negocio · estado enviando", () => {
   });
 
   it("durante el envío muestra 'Enviando...' y se deshabilita (useFormStatus)", () => {
-    const boton = fuente("src/components/registro/boton-enviar.tsx");
-    expect(boton).toContain("useFormStatus");
-    expect(boton).toMatch(/disabled=\{pending\}/);
-    expect(boton).toMatch(/pending \? "Enviando\.\.\."/);
+    // El estado lo da `useFormStatus` en el botón de cliente; el marcado y el
+    // literal viven en la vista sin hooks que comparte con la variante nativa.
+    expect(fuente("src/components/registro/boton-enviar.tsx")).toContain("useFormStatus");
+    const vista = fuente("src/components/registro/boton-enviar-vista.tsx");
+    expect(vista).toMatch(/disabled=\{pending\}/);
+    expect(vista).toMatch(/pending \? "Enviando\.\.\."/);
   });
 });
 
@@ -458,12 +477,15 @@ describe("registro-negocio · el registro funciona sin JavaScript de cliente", (
   // Scenario: JS acotado al campo del ejemplo
   it('solo el formulario y el botón declaran "use client"', () => {
     const conUseClient = [
-      "src/app/(publico)/registro/page.tsx",
-      "src/app/(publico)/registro/gracias/page.tsx",
+      "src/pages/registro.astro",
+      "src/pages/registro/gracias.astro",
       "src/components/registro/aviso-consentimiento.tsx",
       "src/components/registro/campo-honeypot.tsx",
       "src/components/registro/formulario-registro.tsx",
       "src/components/registro/boton-enviar.tsx",
+      "src/components/registro/formulario-registro-nativo.tsx",
+      "src/components/registro/cuerpo-formulario-registro.tsx",
+      "src/components/registro/boton-enviar-vista.tsx",
     ].filter((ruta) => /["']use client["']/.test(fuente(ruta)));
 
     expect(conUseClient).toEqual([
@@ -472,11 +494,21 @@ describe("registro-negocio · el registro funciona sin JavaScript de cliente", (
     ]);
   });
 
-  // Scenario: envío sin JS · el <form> apunta a la Server Action, no a un fetch
-  it("el envío es un <form> con Server Action, sin onSubmit ni fetch", () => {
+  // Scenario: envío sin JS · el <form> apunta a la Server Action, no a un fetch.
+  // Desde 3b-1 (MODIFIED "El registro funciona sin JavaScript de cliente"): el
+  // <form> que se sirve es nativo y el ÚNICO fetch es el de la mejora
+  // progresiva, a la misma dirección del formulario.
+  it("el envío es un <form> nativo (o con Server Action); el único fetch del registro va a form.action", () => {
     const formulario = fuente("src/components/registro/formulario-registro.tsx");
     expect(formulario).toContain("<form action={accionFormulario}");
     expect(formulario).not.toMatch(/onSubmit|fetch\(|preventDefault/);
+    const nativo = fuente("src/components/registro/formulario-registro-nativo.tsx");
+    expect(nativo).toMatch(/<form method="post" encType="multipart\/form-data" action=\{action\}/);
+    expect(nativo).not.toMatch(/onSubmit|fetch\(|preventDefault/);
+    expect(htmlRegistro).toMatch(/<form[^>]*action="\?_action=registrar"/);
+    const mejora = fuente("src/astro/registro-cliente.ts").replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+    expect(mejora.match(/\bfetch\(/g)).toHaveLength(1);
+    expect(mejora).toMatch(/fetch\(\s*formulario\.action\b/);
   });
 
   // Change `versionar-aviso-privacidad` (tasks.md #27): el campo oculto de la
@@ -502,7 +534,7 @@ describe("registro-negocio · el registro funciona sin JavaScript de cliente", (
 
   // Scenario: el ejemplo cambia al cambiar de categoría (sin borrar lo escrito)
   it("los campos son no controlados: cambiar de categoría no borra lo escrito", () => {
-    const formulario = fuente("src/components/registro/formulario-registro.tsx");
+    const formulario = fuente("src/components/registro/cuerpo-formulario-registro.tsx");
     expect(formulario).toContain('name="queOfreces"');
     expect(formulario).not.toMatch(/value=\{valores\./); // defaultValue, no value
     expect(formulario).toMatch(/placeholder=\{ejemplo\}/);
@@ -530,16 +562,25 @@ describe("registro-negocio · el embudo se mide con vistas, no con eventos", () 
     for (const html of [htmlRegistro, htmlGraciasMedicion]) {
       expect(html).not.toContain("data-umami");
       expect(html).not.toContain("umami");
-      // Tampoco el script: lo pone el layout del grupo público, no la página.
-      expect([...html.matchAll(/<script\b[^>]*\bsrc=/g)]).toHaveLength(0);
     }
+    // Tampoco el script: lo pone el tronco público, no la página. El único
+    // con `src` que trae `/registro` es la mejora progresiva (3b-1), que no
+    // mide nada (lo vigila `registro-mejora-progresiva`); gracias, ninguno.
+    const deRegistro = scriptsConSrc(htmlRegistro);
+    expect(deRegistro).toHaveLength(1);
+    expect(esLaMejoraProgresiva(deRegistro[0]), deRegistro[0]).toBe(true);
+    expect(scriptsConSrc(htmlGraciasMedicion)).toEqual([]);
     for (const ruta of [
-      "src/app/(publico)/registro/page.tsx",
-      "src/app/(publico)/registro/gracias/page.tsx",
+      "src/pages/registro.astro",
+      "src/pages/registro/gracias.astro",
       "src/components/registro/formulario-registro.tsx",
       "src/components/registro/boton-enviar.tsx",
       "src/components/registro/campo-honeypot.tsx",
       "src/components/registro/aviso-consentimiento.tsx",
+      "src/components/registro/formulario-registro-nativo.tsx",
+      "src/components/registro/cuerpo-formulario-registro.tsx",
+      "src/components/registro/boton-enviar-vista.tsx",
+      "src/astro/registro-cliente.ts",
     ]) {
       expect(fuente(ruta), ruta).not.toContain("analitica");
       expect(fuente(ruta), ruta).not.toContain("umami");
@@ -548,13 +589,17 @@ describe("registro-negocio · el embudo se mide con vistas, no con eventos", () 
 
   // Scenario: las URLs del registro no llevan datos
   it("las dos pantallas viven en URLs sin parámetros", () => {
-    // El formulario envía con Server Action (POST a la misma URL) y la página
-    // de gracias es una ruta fija: ninguna de las dos arma una URL con datos.
+    // El formulario envía a la misma URL y la página de gracias es una ruta
+    // fija: ninguna de las dos arma una URL con datos. Sin JS, la dirección
+    // de los errores solo puede llevar el parámetro técnico `_action`
+    // (MODIFIED "Ningún dato del formulario viaja a la medición", 3b-1).
     const formulario = fuente("src/components/registro/formulario-registro.tsx");
     expect(formulario).not.toMatch(/\/registro\?[^"']/);
-    expect(fuente("src/app/(publico)/registro/accion.ts")).toContain(
+    expect(fuente("src/astro/registro.ts")).toContain(
       '"/registro/gracias"',
     );
+    const destino = /<form[^>]*action="([^"]*)"/.exec(htmlRegistro)?.[1];
+    expect(destino).toBe("?_action=registrar");
   });
 });
 

@@ -2,6 +2,8 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
+// `next/*` simulado SOLO para la página del panel que se pinta abajo
+// (`DetalleRegistroAdminPage`): las acciones de verificación ya no lo usan.
 vi.mock("next/headers", async () => {
   const simulado = await import("./admin-mocks");
   return { cookies: simulado.cookies, headers: simulado.headers };
@@ -45,8 +47,8 @@ import { generarTokenGestion, huellaDeToken } from "../src/lib/gestion/token";
 import { ESTADO_NEGOCIO_PUBLICADO } from "../src/lib/negocio";
 import { reiniciarLimitePorIp } from "../src/lib/registro/limite-ip";
 import {
-  ejecutarConfirmacion,
-  ejecutarReenvio,
+  ejecutarConfirmacion as confirmar,
+  ejecutarReenvio as reenviar,
   type DependenciasVerificacion,
 } from "../src/lib/verificacion/acciones";
 import {
@@ -87,7 +89,7 @@ import {
   ETIQUETA_COLA_NUMERO_VERIFICADO_SMS,
   TEXTO_SIN_VERIFICAR_SMS,
 } from "../src/lib/verificacion/textos";
-import { peticion, reiniciarPeticion, urlDeRedireccion } from "./admin-mocks";
+import { cookies, obedecerDestino, peticion, reiniciarPeticion, urlDeRedireccion } from "./admin-mocks";
 import { crearClientePrueba } from "./db";
 import { pintarFicha } from "./paginas-directorio";
 
@@ -152,6 +154,19 @@ function dependencias(cambios: Partial<DependenciasVerificacion> = {}): Dependen
     esHttps: false,
     ...cambios,
   };
+}
+
+/**
+ * Las acciones de verificación ya no dependen de Next (change
+ * `migrar-registro-astro`, design.md §4): reciben el almacén de cookies y
+ * devuelven el destino. Se les da el de la petición simulada y el destino se
+ * obedece como lo hacían `redirect()`/`notFound()`.
+ */
+async function ejecutarConfirmacion(formData: FormData, deps: DependenciasVerificacion | null) {
+  return obedecerDestino(await confirmar(formData, deps, await cookies()));
+}
+async function ejecutarReenvio(deps: DependenciasVerificacion | null) {
+  return obedecerDestino(await reenviar(deps, await cookies()));
 }
 
 const conCodigo = (codigo: string) => {

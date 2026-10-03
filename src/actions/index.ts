@@ -1,5 +1,6 @@
 /**
- * Las Actions del sitio (change `migrar-formularios-publicos-astro`, Fase 3a).
+ * Las Actions del sitio (change `migrar-formularios-publicos-astro`, Fase 3a;
+ * `registrar`, change `migrar-registro-astro`, Fase 3b-1).
  *
  * Cada una corre SOLO por envío de formulario (`?_action=<nombre>`) y SOLO
  * desde la ruta que le asigna la tabla de `src/astro/acciones.ts`: el
@@ -8,15 +9,21 @@
  * que a su vez delega en `src/lib/`.
  *
  * Sin esquema de entrada a propósito: el formulario se valida donde siempre
- * (`crearReporte`), con los mismos mensajes, y un campo de más se ignora.
+ * (`crearReporte`, `procesarRegistro`), con los mismos mensajes, y un campo de
+ * más se ignora.
  */
 import { defineAction } from "astro:actions";
 
+import { registrarDesdeElFormulario } from "@/astro/registro";
 import { reportarDesdeElFormulario } from "@/astro/reportar";
 
 export const server = {
   reportar: defineAction({
     accept: "form",
     handler: (formData, contexto) => reportarDesdeElFormulario(formData, contexto),
+  }),
+  registrar: defineAction({
+    accept: "form",
+    handler: (formData, contexto) => registrarDesdeElFormulario(formData, contexto),
   }),
 };

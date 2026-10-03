@@ -1,6 +1,6 @@
 /**
- * Lo que hacen las dos Server Actions de `/registro/verificar`: leer la cookie
- * de paso, llamar al flujo y decidir a dónde va el dueño (spec
+ * Lo que hacen las dos acciones de `/registro/verificar`: leer la cookie de
+ * paso, llamar al flujo y decidir a dónde va el dueño (spec
  * `registro-negocio` de T-016, tasks.md #11 y #12).
  *
  * Vive aquí y NO en el archivo `"use server"` a propósito: en un módulo con
@@ -8,19 +8,24 @@
  * navegador puede llamar con los argumentos que quiera. Estas funciones
  * reciben sus dependencias —prisma, proveedor, configuración— por parámetro
  * para poder probarlas, y eso es justo lo que no debe ser un endpoint. Los
- * archivos `accion-*.ts` de la ruta son envolturas de tres líneas que arman
+ * archivos `accion-*.ts` de la ruta son envolturas de pocas líneas que arman
  * las dependencias del entorno y llaman aquí.
  *
- * Todo es POST → `redirect` → GET, el patrón sin JavaScript que ya usan el
- * panel y el formulario de reporte: recargar cualquier pantalla no repite
- * ninguna acción ni cuesta un SMS.
+ * SIN NEXT (change `migrar-registro-astro`, design.md §4): las cabeceras y el
+ * almacén de cookies llegan por parámetro, y en vez de lanzar
+ * `redirect()`/`notFound()` se DEVUELVE un destino cerrado
+ * (`DestinoVerificacion`) que traduce quien sirve la petición: los
+ * envoltorios de Next con `redirect`/`notFound`, y Astro con su 303 o su 404.
+ * La lógica, los destinos, los códigos de error, el borrado de la cookie y el
+ * orden son los de antes.
  *
- * Sin cookie de paso válida las dos acciones responden `notFound()`, igual que
- * la página: no se confirma si ese registro existe.
+ * Todo es POST → 303 → GET, el patrón sin JavaScript que ya usan el panel y
+ * el formulario de reporte: recargar cualquier pantalla no repite ninguna
+ * acción ni cuesta un SMS.
+ *
+ * Sin cookie de paso válida las dos acciones responden "no encontrado",
+ * igual que la página: no se confirma si ese registro existe.
  */
-
-import { cookies, headers } from "next/headers";
-import { notFound, redirect } from "next/navigation";
 
 import { ipDeEncabezados } from "@/lib/registro/limite-ip";
 import { obtenerPrisma } from "@/lib/prisma";
@@ -47,16 +52,24 @@ export type DependenciasVerificacion = {
 const RUTA_VERIFICAR = "/registro/verificar";
 const RUTA_GRACIAS = "/registro/gracias";
 
+/** A dónde va el dueño: una ruta del sitio (303) o la página de no encontrado. */
+export type DestinoVerificacion = { tipo: "redirigir"; ruta: string } | { tipo: "no-encontrado" };
+
+const redirigir = (ruta: string): DestinoVerificacion => ({ tipo: "redirigir", ruta });
+const NO_ENCONTRADO: DestinoVerificacion = { tipo: "no-encontrado" };
+
 /**
- * Las dependencias reales, armadas del entorno. Devuelve `null` con la
- * capacidad apagada o mal configurada: entonces las acciones responden como
- * cualquier dirección inventada del sitio.
+ * Las dependencias reales, armadas del entorno y de las cabeceras de la
+ * petición. Devuelve `null` con la capacidad apagada o mal configurada:
+ * entonces las acciones responden como cualquier dirección inventada del
+ * sitio.
  */
-export async function dependenciasDeVerificacion(): Promise<DependenciasVerificacion | null> {
+export async function dependenciasDeVerificacion(
+  encabezados: Headers,
+): Promise<DependenciasVerificacion | null> {
   const configuracion = leerConfiguracionVerificacion();
   if (!configuracion) return null;
 
-  const encabezados = await headers();
   const protocolo = encabezados.get("x-forwarded-proto")?.split(",")[0]?.trim();
 
   const prisma = obtenerPrisma();
@@ -78,8 +91,11 @@ export async function dependenciasDeVerificacion(): Promise<DependenciasVerifica
   };
 }
 
-/** Lo poco que estas funciones necesitan del almacén de cookies de Next. */
-type AlmacenCookies = {
+/**
+ * Lo poco que estas funciones necesitan del almacén de cookies: lo cumplen
+ * `cookies()` de Next y `Astro.cookies` adaptado.
+ */
+export type AlmacenCookies = {
   get(nombre: string): { value: string } | undefined;
   set(nombre: string, valor: string, opciones: Record<string, unknown>): void;
 };
@@ -95,19 +111,19 @@ function borrarPaso(almacen: AlmacenCookies, dependencias: DependenciasVerificac
   });
 }
 
-/** Server Action de "Confirmar mi número". */
+/** "Confirmar mi número". */
 export async function ejecutarConfirmacion(
   formData: FormData,
   dependencias: DependenciasVerificacion | null,
-): Promise<void> {
-  if (!dependencias) notFound();
-  const almacen = (await cookies()) as AlmacenCookies;
+  almacen: AlmacenCookies,
+): Promise<DestinoVerificacion> {
+  if (!dependencias) return NO_ENCONTRADO;
   const paso = leerPaso(
     almacen.get(COOKIE_PASO)?.value,
     dependencias.contexto.secreto,
     dependencias.contexto.ahora,
   );
-  if (!paso) notFound();
+  if (!paso) return NO_ENCONTRADO;
 
   // Lo que llega del formulario es tan hostil como cualquier entrada: un
   // `File` colado en el campo `codigo` no es una cadena y no se le manda a
@@ -126,23 +142,23 @@ export async function ejecutarConfirmacion(
     borrarPaso(almacen, dependencias);
     // `verificado=1` es una bandera de PRESENTACIÓN: sin dato personal, sin
     // identificador y sin el código.
-    redirect(`${RUTA_GRACIAS}?verificado=1`);
+    return redirigir(`${RUTA_GRACIAS}?verificado=1`);
   }
 
   // Una credencial de paso de una ficha que ya no existe no se distingue de
   // una inválida: mismo 404, sin decir si ese registro existe.
-  if (resultado === "sin-ficha") notFound();
+  if (resultado === "sin-ficha") return NO_ENCONTRADO;
 
   // Se acabaron los 5 códigos de este registro. El conteo lo lleva el servidor
   // (hallazgo [C-2]), así que ya no hay cookie que rebobinar para revivirlos.
   if (resultado === "agotado") {
     borrarPaso(almacen, dependencias);
-    redirect(`${RUTA_GRACIAS}?agotado=1`);
+    return redirigir(`${RUTA_GRACIAS}?agotado=1`);
   }
 
   // La cookie no se reescribe: ya no lleva contadores, así que no tiene nada
   // que actualizar. Sigue viva hasta sus 15 minutos.
-  redirect(`${RUTA_VERIFICAR}?error=${ERROR_EN_LA_URL[resultado]}`);
+  return redirigir(`${RUTA_VERIFICAR}?error=${ERROR_EN_LA_URL[resultado]}`);
 }
 
 /**
@@ -157,35 +173,35 @@ const ERROR_EN_LA_URL = {
   "error-proveedor": "proveedor",
 } as const;
 
-/** Server Action de "Reenviar el código". */
+/** "Reenviar el código". */
 export async function ejecutarReenvio(
   dependencias: DependenciasVerificacion | null,
-): Promise<void> {
-  if (!dependencias) notFound();
-  const almacen = (await cookies()) as AlmacenCookies;
+  almacen: AlmacenCookies,
+): Promise<DestinoVerificacion> {
+  if (!dependencias) return NO_ENCONTRADO;
   const paso = leerPaso(
     almacen.get(COOKIE_PASO)?.value,
     dependencias.contexto.secreto,
     dependencias.contexto.ahora,
   );
-  if (!paso) notFound();
+  if (!paso) return NO_ENCONTRADO;
 
   const resultado = await reenviarCodigo(dependencias.prisma, paso, dependencias.contexto);
 
   if (resultado.resultado === "enviado") {
     // Nada que reescribir en la cookie: el reenvío ya quedó apuntado en el
     // servidor. Se vuelve a la pantalla, limpia.
-    redirect(RUTA_VERIFICAR);
+    return redirigir(RUTA_VERIFICAR);
   }
 
-  if (resultado.resultado === "sin-ficha") notFound();
+  if (resultado.resultado === "sin-ficha") return NO_ENCONTRADO;
 
   // Se acabaron los 2 reenvíos: mismo destino y mismo mensaje que agotar los 5
   // intentos de código (requirement "Al agotarse cualquiera de los dos…").
   if (resultado.resultado === "agotado") {
     borrarPaso(almacen, dependencias);
-    redirect(`${RUTA_GRACIAS}?agotado=1`);
+    return redirigir(`${RUTA_GRACIAS}?agotado=1`);
   }
 
-  redirect(`${RUTA_VERIFICAR}?errorReenvio=${resultado.resultado}`);
+  return redirigir(`${RUTA_VERIFICAR}?errorReenvio=${resultado.resultado}`);
 }

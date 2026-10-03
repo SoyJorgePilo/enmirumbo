@@ -796,6 +796,11 @@ del lanzamiento:
 > la prueba de humo (§9) se completan enteros **sin tocar nada de aquí**, y así
 > es como se lanza el sitio. Léela solo cuando quieras encender la
 > verificación, y con el costo delante (T-016 / ADR-011).
+>
+> **En la rama `migracion-astro` (ADR-013) la bandera NO se enciende en ningún
+> entorno hasta mergear 3b-2** (`migrar-verificacion-sms-astro`, T-024): hasta
+> entonces `/registro/verificar` no existe en Astro y el dueño vería una 404
+> después de recibir el SMS.
 
 **Con la bandera apagada —el estado de hoy— el sitio se comporta exactamente
 como el flujo manual del PRD §6.3 y el costo es cero.** El dueño llena el

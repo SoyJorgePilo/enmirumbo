@@ -24,8 +24,8 @@ import {
 import { procesarRegistro } from "../src/lib/registro/procesar";
 import { CAMPO_VERSION_AVISO } from "../src/lib/registro/textos";
 import {
-  ejecutarConfirmacion,
-  ejecutarReenvio,
+  ejecutarConfirmacion as confirmar,
+  ejecutarReenvio as reenviar,
   type DependenciasVerificacion,
 } from "../src/lib/verificacion/acciones";
 import { confirmarCodigo, pedirCodigoParaFicha } from "../src/lib/verificacion/flujo";
@@ -39,8 +39,22 @@ import {
   crearProveedorSimulado,
   type ProveedorSimulado,
 } from "../src/lib/verificacion/proveedor";
-import { NoEncontradoSimulado, peticion, reiniciarPeticion, urlDeRedireccion } from "./admin-mocks";
+import { NoEncontradoSimulado, cookies, obedecerDestino, peticion, reiniciarPeticion, urlDeRedireccion } from "./admin-mocks";
 import { crearClientePrueba } from "./db";
+
+/**
+ * Las acciones de verificación ya no dependen de Next (change
+ * `migrar-registro-astro`, design.md §4): reciben el almacén de cookies y
+ * devuelven el destino. Se les da el de la petición simulada y el destino se
+ * obedece como lo hacían `redirect()`/`notFound()`. El `next/*` simulado de
+ * arriba queda solo para la página de `/registro/verificar` (3b-2).
+ */
+async function ejecutarConfirmacion(formData: FormData, deps: DependenciasVerificacion | null) {
+  return obedecerDestino(await confirmar(formData, deps, await cookies()));
+}
+async function ejecutarReenvio(deps: DependenciasVerificacion | null) {
+  return obedecerDestino(await reenviar(deps, await cookies()));
+}
 
 /**
  * Spec `registro-negocio` (T-016) · suites ADVERSARIAL y de NO FUGA

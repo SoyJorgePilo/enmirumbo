@@ -1,0 +1,38 @@
+---
+/**
+ * Pantalla de gracias del registro (lo que era
+ * `src/app/(publico)/registro/gracias/page.tsx`; change
+ * `migrar-registro-astro`). Destino del 303 tras un registro aceptado:
+ * recargarla no reenvía nada, porque aquí no hay `<form>`. Sin JavaScript
+ * propio y SIN CONSULTAR LA BASE.
+ *
+ * `?verificado=1` y `?agotado=1` son banderas de PRESENTACIÓN (las ponen las
+ * acciones de `/registro/verificar`): solo deciden qué línea EXTRA se pinta
+ * arriba del mensaje de siempre. Se lee solo el PRIMER valor de cada una
+ * (`searchParams.get`, como el `primeraCadena` de Next); cualquier otro valor
+ * se ignora. Con la capacidad apagada nunca llega ninguna de las dos.
+ */
+import TroncoPublico from "@/layouts/TroncoPublico.astro";
+import { MENSAJE_GRACIAS } from "@/lib/registro/textos";
+import { LINEA_CONFIRMACION_NUMERO_GRACIAS, MENSAJE_INTENTOS_AGOTADOS_VERIFICAR } from "@/lib/verificacion/textos";
+
+export const prerender = false;
+
+const verificado = Astro.url.searchParams.get("verificado") === "1";
+const agotado = Astro.url.searchParams.get("agotado") === "1";
+---
+
+<TroncoPublico>
+  <section class="flex flex-1 flex-col items-center justify-center gap-6 py-12 text-center">
+    <div class="flex max-w-md flex-col gap-2">
+      {verificado && <p role="status" class="text-lg font-semibold text-tinta">{LINEA_CONFIRMACION_NUMERO_GRACIAS}</p>}
+      {agotado && <p role="status" class="text-lg font-semibold text-tinta">{MENSAJE_INTENTOS_AGOTADOS_VERIFICAR}</p>}
+      <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">{MENSAJE_GRACIAS}</h1>
+    </div>
+    <a
+      href="/"
+      class="inline-flex min-h-11 items-center justify-center px-4 text-base font-semibold text-accion-fuerte underline underline-offset-4"
+      >Volver al inicio</a
+    >
+  </section>
+</TroncoPublico>

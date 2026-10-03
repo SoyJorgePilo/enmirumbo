@@ -12,6 +12,12 @@
  *    de referente de la página;
  * 4. sigue el 303 a mano, con un `GET` y las cookies que le dejaron.
  *
+ * Desde 3b-1 (change `migrar-registro-astro`, tasks.md #3) también manda
+ * archivos: cada `<input type="file">` va en el multipart con lo que se le
+ * haya elegido (uno o varios) o, como hace el navegador, como una parte vacía
+ * con `filename=""`. Y lee el formulario re-pintado: sus errores por campo y
+ * sus valores.
+ *
  * Funciones puras más `enviarFormulario`, que hace las peticiones. Las prueba
  * `tests/arnes-formulario.test.ts` y las usan las pruebas sobre la build
  * (`tests/plataforma-astro-reportar.test.ts`). Desde la terminal compara
@@ -24,8 +30,9 @@
 import { parse } from "node-html-parser";
 
 /**
- * @typedef {{ nombre: string, valor: string, tipo: string, marcado: boolean }} Campo
+ * @typedef {{ nombre: string, valor: string, tipo: string, marcado: boolean, accept?: string }} Campo
  * @typedef {{ metodo: string, accion: string, codificacion: string, campos: Campo[] }} Formulario
+ * @typedef {{ nombre: string, tipo: string, bytes: Uint8Array | Buffer }} Archivo
  */
 
 /**
@@ -62,7 +69,11 @@ export function leerFormulario(html, urlPagina, indice = 0) {
       campos.push({ nombre, valor: opcion ? (atributo(opcion, "value") ?? opcion.text) : "", tipo: "select", marcado: true });
     } else {
       const tipo = (atributo(nodo, "type") ?? "text").toLowerCase();
-      if (["submit", "button", "reset", "image", "file"].includes(tipo)) continue;
+      if (["submit", "button", "reset", "image"].includes(tipo)) continue;
+      if (tipo === "file") {
+        campos.push({ nombre, valor: "", tipo, marcado: true, accept: atributo(nodo, "accept") ?? "" });
+        continue;
+      }
       const marcable = tipo === "radio" || tipo === "checkbox";
       campos.push({
         nombre,
@@ -75,23 +86,37 @@ export function leerFormulario(html, urlPagina, indice = 0) {
   return { metodo, accion, codificacion, campos };
 }
 
+/** Un archivo como lo manda el navegador: con su nombre y su tipo. */
+function comoFile(archivo) {
+  return new File([archivo.bytes], archivo.nombre, { type: archivo.tipo });
+}
+
 /**
  * Los pares `[nombre, valor]` que manda el navegador, en orden de documento.
  * `elecciones` hace lo que haría el vecino: marca el radio con ese valor o
- * escribe en el campo de texto. `extras` se agregan al final (campos que el
- * formulario NO trae: lo que mandaría alguien a mano).
+ * escribe en el campo de texto. `archivos` es lo que elige en cada campo de
+ * archivo (uno o varios); sin elección, el navegador manda una parte vacía
+ * con `filename=""`. `extras` se agregan al final (campos que el formulario
+ * NO trae: lo que mandaría alguien a mano).
  *
  * @param {Formulario} formulario
  * @param {Record<string, string>} [elecciones]
- * @param {Array<[string, string]>} [extras]
- * @returns {Array<[string, string]>}
+ * @param {Array<[string, string | File]>} [extras]
+ * @param {Record<string, Archivo | Archivo[]>} [archivos]
+ * @returns {Array<[string, string | File]>}
  */
-export function camposAEnviar(formulario, elecciones = {}, extras = []) {
-  /** @type {Array<[string, string]>} */
+export function camposAEnviar(formulario, elecciones = {}, extras = [], archivos = {}) {
+  /** @type {Array<[string, string | File]>} */
   const pares = [];
   for (const campo of formulario.campos) {
     const elegido = Object.hasOwn(elecciones, campo.nombre) ? elecciones[campo.nombre] : undefined;
-    if (campo.tipo === "radio" || campo.tipo === "checkbox") {
+    if (campo.tipo === "file") {
+      // Fuera de multipart no viaja ningún archivo (como hasta 3a).
+      if (formulario.codificacion !== "multipart/form-data") continue;
+      const elegidos = Object.hasOwn(archivos, campo.nombre) ? [archivos[campo.nombre]].flat() : [];
+      if (elegidos.length === 0) pares.push([campo.nombre, new File([], "", { type: "application/octet-stream" })]);
+      for (const archivo of elegidos) pares.push([campo.nombre, comoFile(archivo)]);
+    } else if (campo.tipo === "radio" || campo.tipo === "checkbox") {
       const marcado = elegido === undefined ? campo.marcado : elegido === campo.valor;
       if (marcado) pares.push([campo.nombre, campo.valor]);
     } else {
@@ -102,22 +127,61 @@ export function camposAEnviar(formulario, elecciones = {}, extras = []) {
 }
 
 /**
- * El cuerpo con la codificación que declara el formulario.
+ * El cuerpo con la codificación que declara el formulario. Sin multipart, de
+ * un archivo el navegador solo manda su nombre.
  *
- * @param {Array<[string, string]>} pares
+ * @param {Array<[string, string | File]>} pares
  * @param {string} codificacion
  * @returns {FormData | URLSearchParams}
  */
 export function cuerpoDelEnvio(pares, codificacion) {
   if (codificacion === "multipart/form-data") {
     const datos = new FormData();
-    for (const [nombre, valor] of pares) datos.append(nombre, valor);
+    for (const [nombre, valor] of pares) {
+      if (typeof valor === "string") datos.append(nombre, valor);
+      else datos.append(nombre, valor, valor.name);
+    }
     return datos;
   }
   if (codificacion !== "application/x-www-form-urlencoded") {
     throw new Error(`codificación no soportada por el arnés: ${codificacion}`);
   }
-  return new URLSearchParams(pares);
+  return new URLSearchParams(pares.map(([nombre, valor]) => [nombre, typeof valor === "string" ? valor : valor.name]));
+}
+
+/**
+ * Los errores por campo del formulario re-pintado: el texto de cada
+ * `#<campo>-error` (sin el "⚠" de adelante), en orden de documento.
+ *
+ * @param {string} html
+ * @returns {Record<string, string>}
+ */
+export function erroresDelFormulario(html) {
+  const errores = {};
+  for (const nodo of parse(html).querySelectorAll("[id$='-error']")) {
+    const id = nodo.getAttribute("id") ?? "";
+    const texto = nodo.text.replace(/^\s*⚠\s*/, "").trim();
+    if (texto) errores[id.slice(0, -"-error".length)] = texto;
+  }
+  return errores;
+}
+
+/**
+ * Lo que el formulario re-pintado trae capturado: el valor de cada campo con
+ * nombre (texto, `<select>` elegido, casillas marcadas), sin los ocultos de
+ * Next (`$ACTION_…`) y sin los de archivo, que ningún navegador repuebla.
+ *
+ * @param {string} html
+ * @param {string} urlPagina
+ * @returns {Record<string, string | boolean>}
+ */
+export function valoresDelFormulario(html, urlPagina) {
+  const valores = {};
+  for (const campo of leerFormulario(html, urlPagina).campos) {
+    if (campo.nombre.startsWith("$ACTION_") || campo.tipo === "file") continue;
+    valores[campo.nombre] = campo.tipo === "checkbox" || campo.tipo === "radio" ? campo.marcado : campo.valor;
+  }
+  return valores;
 }
 
 /**
@@ -222,12 +286,14 @@ function sinNulos(cabeceras) {
  *   cabecerasExtra?: Record<string, string | null>,
  *   indice?: number,
  *   pedir?: typeof fetch,
+ *   archivos?: Record<string, Archivo | Archivo[]>,
  * }} opciones
  */
 export async function enviarFormulario({
   urlPagina,
   elecciones = {},
   extras = [],
+  archivos = {},
   frasco = new Frasco(),
   cabecerasExtra = {},
   indice = 0,
@@ -246,7 +312,7 @@ export async function enviarFormulario({
   const pagina = await get(urlPagina);
   const formulario = leerFormulario(pagina.html, urlPagina, indice);
   const politica = pagina.r.headers.get("referrer-policy") ?? undefined;
-  const cuerpo = cuerpoDelEnvio(camposAEnviar(formulario, elecciones, extras), formulario.codificacion);
+  const cuerpo = cuerpoDelEnvio(camposAEnviar(formulario, elecciones, extras, archivos), formulario.codificacion);
   const galleta = frasco.cabecera(formulario.accion);
   const r = await pedir(formulario.accion, {
     method: formulario.metodo,
@@ -327,6 +393,108 @@ export function enviosDe3a(datos) {
       aceptada: (next, astro) => estado(next) === 500 && estado(astro) === 403,
     },
   ];
+}
+
+/** Los WhatsApp (ficticios) de las cuatro fichas que siembran los fixtures y el diff de 3b-1. */
+export const SEMBRADAS_3B = Object.freeze({ publicado: "7719998101", revision: "7719998102", rechazado: "7719998103", verificado: "7719998104" });
+
+/**
+ * Los envíos de 3b-1 que se comparan contra Next (change
+ * `migrar-registro-astro`, tasks.md #2; scenario "mismos desenlaces que
+ * Next"), en el orden en que se capturaron. Cada uno lleva su propio
+ * `x-forwarded-for` (salvo los cuatro del cupo, que comparten IP) y su propio
+ * WhatsApp de la serie ficticia `77199981xx`.
+ *
+ * `datos`: `{ categoriaId, coloniaId }` (ids de la base) y los WhatsApp de las
+ * fichas sembradas `{ publicado, revision, rechazado, verificado }`.
+ * `fotos`: `{ valida, grande, html, svg }` (archivos que genera quien llama).
+ * `aceptada`: la única diferencia admitida (origen ajeno: Next 500, Astro 403).
+ */
+export function enviosDe3b(datos, fotos) {
+  const estado = (resumen) => resumen[1]?.status;
+  const aceptada = (next, astro) => estado(next) === 500 && estado(astro) === 403;
+  let k = 0;
+  const ip = () => ({ "x-forwarded-for": `198.51.100.${++k}` });
+  const valido = (whatsapp, extra = {}) => ({
+    nombre: "Fonda Ficticia Del Arnés",
+    categoriaId: String(datos.categoriaId),
+    whatsapp,
+    coloniaId: String(datos.coloniaId),
+    consentimiento: "on",
+    ...extra,
+  });
+  return [
+    { nombre: "exito-sin-foto", elecciones: valido("7719998111"), cabeceras: ip() },
+    { nombre: "exito-con-foto", elecciones: valido("7719998112"), archivos: { foto: fotos.valida }, cabeceras: ip() },
+    { nombre: "vacio", elecciones: {}, cabeceras: ip() },
+    {
+      nombre: "errores-con-lo-capturado",
+      elecciones: valido("77199981", { queOfreces: "a".repeat(250), direccion: "a un lado de la primaria (ficticia)", entregaADomicilio: "on" }),
+      archivos: { foto: fotos.valida },
+      cabeceras: ip(),
+    },
+    { nombre: "facebook-javascript", elecciones: valido("7719998115", { facebookUrl: "javascript:alert(1)" }), cabeceras: ip() },
+    { nombre: "fijo-con-letras", elecciones: valido("7719998116", { telefonoFijo: "771abc" }), cabeceras: ip() },
+    { nombre: "categoria-fuera", elecciones: valido("7719998117", { categoriaId: "999999" }), cabeceras: ip() },
+    { nombre: "honeypot", elecciones: valido("7719998114", { sitio_web: "http://spam.example" }), archivos: { foto: fotos.grande }, cabeceras: ip() },
+    ...[1, 2, 3, 4].map((i) => ({ nombre: `cupo-${i}`, elecciones: valido(`771999812${i}`), cabeceras: { "x-forwarded-for": "203.0.113.77" } })),
+    { nombre: "duplicado-publicado", elecciones: valido(datos.publicado), cabeceras: ip() },
+    { nombre: "duplicado-revision", elecciones: valido(datos.revision), archivos: { foto: fotos.valida }, cabeceras: ip() },
+    { nombre: "reenvio-rechazado", elecciones: valido(datos.rechazado, { nombre: "Fonda Ficticia Corregida" }), archivos: { foto: fotos.valida }, cabeceras: ip() },
+    { nombre: "reenvio-verificado", elecciones: valido(datos.verificado), cabeceras: ip() },
+    { nombre: "aviso-desfasado", elecciones: valido("7719998118", { avisoVersion: "1" }), cabeceras: ip() },
+    {
+      nombre: "campos-extra",
+      elecciones: valido("7719998113"),
+      extras: /** @type {Array<[string, string]>} */ ([
+        ["estado", "publicado"],
+        ["origen", "admin"],
+        ["fotoClave", "0123456789abcdef0123456789abcdef"],
+        ["nombreNormalizado", "otro nombre"],
+        ["numeroVerificadoEn", "2026-01-01T00:00:00.000Z"],
+        ["destino", "https://evil.example/"],
+        ["destino", "//evil.example"],
+      ]),
+      cabeceras: ip(),
+    },
+    { nombre: "foto-5-5-mb", elecciones: valido("7719998131"), archivos: { foto: fotos.grande }, cabeceras: ip() },
+    { nombre: "foto-html", elecciones: valido("7719998132"), archivos: { foto: fotos.html }, cabeceras: ip() },
+    { nombre: "foto-svg", elecciones: valido("7719998133"), archivos: { foto: fotos.svg }, cabeceras: ip() },
+    { nombre: "sin-origen", elecciones: valido("7719998143"), cabeceras: { ...ip(), origin: null } },
+    { nombre: "origen-ajeno", elecciones: valido("7719998141"), cabeceras: { ...ip(), origin: "https://ajeno.example" }, aceptada },
+    { nombre: "origen-null", elecciones: valido("7719998142"), cabeceras: { ...ip(), origin: "null" }, aceptada },
+  ];
+}
+
+/** El WhatsApp que manda un envío de `enviosDe3b` (para leer lo que dejó en la base). */
+export function whatsappDelEnvio(envio) {
+  return envio.elecciones.whatsapp ?? null;
+}
+
+/** Las pantallas de gracias del scenario "gracias igual a la de hoy" (3b-1). */
+export const PANTALLAS_DE_GRACIAS = [
+  ["gracias.html", "/registro/gracias"],
+  ["gracias-verificado.html", "/registro/gracias?verificado=1"],
+  ["gracias-agotado.html", "/registro/gracias?agotado=1"],
+  ["gracias-ambos.html", "/registro/gracias?verificado=1&agotado=1"],
+  ["gracias-verificado-x.html", "/registro/gracias?verificado=x"],
+  ["gracias-verificado-1-0.html", "/registro/gracias?verificado=1&verificado=0"],
+];
+
+/**
+ * Lo que dejó un envío en la base para ese WhatsApp, sin identificadores ni
+ * fechas: lo que se compara entre Next y Astro (scenario "mismos desenlaces
+ * que Next"). `consultar(sql, params)` devuelve las filas.
+ */
+export async function resumenDeLaBase(consultar, whatsapp) {
+  if (!whatsapp) return null;
+  const [fila] = await consultar(
+    `SELECT nombre, estado, origen, "fotoClave" IS NOT NULL AS "conFoto", "consintioAvisoVersion", "reconsintioAvisoVersion",
+            "numeroVerificadoEn" IS NOT NULL AS verificado, "publicadoEn" IS NOT NULL AS publicado
+       FROM "Negocio" WHERE whatsapp = $1`,
+    [whatsapp],
+  );
+  return fila ?? null;
 }
 
 async function principal(argumentos) {

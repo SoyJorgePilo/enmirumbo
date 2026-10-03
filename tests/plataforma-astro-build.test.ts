@@ -416,15 +416,16 @@ describe("plataforma-astro · 2b sobre la salida construida", () => {
 
   const pedir = (ruta: string) => produccion.pedir(ruta);
 
-  // Scenario "el sitemap no lleva a un 404" (spec `plataforma-astro`, 2b).
-  it("toda URL del sitemap.xml responde 200, salvo /registro (Fase 3)", async () => {
+  // Scenario "el sitemap no lleva a un 404" (spec `plataforma-astro`, 2b;
+  // MODIFIED por 3b-1, change `migrar-registro-astro`: `/registro` incluida).
+  it("toda URL del sitemap.xml responde 200, /registro incluida", async () => {
     const sitemap = await (await pedir("/sitemap.xml")).text();
     const rutas = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => new URL(m[1]).pathname);
     expect(rutas.filter((r) => r.startsWith("/negocio/")).length).toBeGreaterThanOrEqual(10);
     expect(rutas).toContain("/registro");
     for (const ruta of rutas) {
       const r = await pedir(ruta);
-      expect(r.status, ruta).toBe(ruta === "/registro" ? 404 : 200);
+      expect(r.status, ruta).toBe(200);
     }
   });
 

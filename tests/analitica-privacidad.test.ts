@@ -1,14 +1,10 @@
-import { createElement } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { seedCatalogos } from "../prisma/seed";
-import RegistroPage from "../src/app/(publico)/registro/page";
 // Las páginas del directorio ya se sirven con Astro (change
 // `migrar-directorio-publico-astro`, tasks.md #15): lo que pintaban es el
 // contenido de <main> (sin la medición, que aquí no está configurada).
 import { mainDeBuscar, mainDeDestino, mainDeFicha } from "./paginas-directorio";
-import RegistroGraciasPage from "../src/app/(publico)/registro/gracias/page";
 import type { PrismaClient } from "../src/generated/prisma/client";
 import { VARIABLE_SRC, VARIABLE_WEBSITE_ID } from "../src/lib/analitica/config";
 import { datosDeBusqueda } from "../src/lib/busqueda";
@@ -18,6 +14,9 @@ import { construirSegmentoFicha } from "../src/lib/ficha-url";
 // completo, con su layout.
 import AvisoDePrivacidadPage from "../src/pages/aviso-de-privacidad.astro";
 import Home from "../src/pages/index.astro";
+// `/registro` y su gracias, de Astro desde 3b-1 (change `migrar-registro-astro`).
+import RegistroGracias from "../src/pages/registro/gracias.astro";
+import Registro from "../src/pages/registro.astro";
 import TerminosPage from "../src/pages/terminos.astro";
 import { pintarPagina } from "./astro-paginas";
 import { crearClientePrueba } from "./db";
@@ -91,11 +90,6 @@ function atributosDeMedicion(html: string): Array<[string, string]> {
   ]);
 }
 
-async function render(pagina: unknown): Promise<string> {
-  const resuelta = (await pagina) as React.ReactElement;
-  return renderToStaticMarkup(createElement(() => resuelta));
-}
-
 beforeAll(async () => {
   // SIN medición configurada: así se comprueba a la vez que los atributos son
   // marcado inerte y que sin variables no sale ninguna petición externa.
@@ -137,14 +131,9 @@ beforeAll(async () => {
   htmlBuscar = await mainDeBuscar({ q: "cerrajeria adversarial" });
   htmlFicha = await mainDeFicha(construirSegmentoFicha(NEGOCIO.nombre, id));
   htmlHome = await pintarPagina(Home, { ruta: "/" });
-  htmlRegistro = await render(RegistroPage());
-  // `async` desde T-016 (lee `searchParams`); sin parámetros es la pantalla de
-  // siempre, la de la bandera apagada.
-  htmlGracias = await render(
-    RegistroGraciasPage({
-      searchParams: Promise.resolve({}),
-    } as unknown as Parameters<typeof RegistroGraciasPage>[0]),
-  );
+  htmlRegistro = await pintarPagina(Registro, { ruta: "/registro" });
+  // Sin parámetros es la pantalla de siempre, la de la bandera apagada.
+  htmlGracias = await pintarPagina(RegistroGracias, { ruta: "/registro/gracias" });
   htmlAviso = await pintarPagina(AvisoDePrivacidadPage, { ruta: "/aviso-de-privacidad" });
   htmlTerminos = await pintarPagina(TerminosPage, { ruta: "/terminos" });
 });
@@ -238,7 +227,12 @@ describe("analitica · sin configuración no sale nada del sitio (tasks #18)", (
     "la página %s no trae script externo ni el dominio del proveedor",
     (pagina) => {
       const html = Object.fromEntries(todasLasPublicas())[pagina];
-      expect([...html.matchAll(/<script\b[^>]*\bsrc=/g)], pagina).toHaveLength(0);
+      // El único `<script src>` permitido es el módulo PROPIO de la mejora
+      // progresiva de `/registro` (3b-1, design.md §1.3): mismo origen, no mide.
+      const conSrc = [...html.matchAll(/<script\b[^>]*\bsrc="([^"]*)"/g)].map((m) => m[1]);
+      const propios = pagina === "registro" ? conSrc.filter((src) => /^\/(?!\/)[^"]*registro[^"]*$/.test(src) && !/umami/.test(src)) : [];
+      expect(propios.length, pagina).toBeLessThanOrEqual(1);
+      expect(conSrc.filter((src) => !propios.includes(src)), pagina).toHaveLength(0);
       expect(html, pagina).not.toContain("cloud.umami.is");
       expect(html, pagina).not.toContain("data-website-id");
       expect(html, pagina).not.toContain("data-exclude-search");

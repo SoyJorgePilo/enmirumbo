@@ -6,7 +6,6 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { seedCatalogos } from "../prisma/seed";
-import RegistroPage from "../src/app/(publico)/registro/page";
 import { FormularioRegistro } from "../src/components/registro/formulario-registro";
 import {
   ACCEPT_FOTO,
@@ -15,6 +14,8 @@ import {
   TEXTO_POLITICA_FOTO,
 } from "../src/lib/registro/textos";
 import { VALORES_VACIOS_REGISTRO } from "../src/lib/registro/tipos";
+import Registro from "../src/pages/registro.astro";
+import { contenidoDelMain, pintarPagina } from "./astro-paginas";
 import { crearClientePrueba } from "./db";
 
 /**
@@ -39,6 +40,10 @@ import { crearClientePrueba } from "./db";
  * Los textos literales se importan de `textos.ts`, así que si alguien los
  * cambia sin cambiar la spec, `registro-foto.test.ts` lo caza por el otro
  * lado (compara contra los .md) y esto lo caza por el del HTML.
+ *
+ * Desde 3b-1 (change `migrar-registro-astro`) el HTML servido es el de
+ * `src/pages/registro.astro` (formulario nativo), y el marcado del campo vive
+ * en `cuerpo-formulario-registro.tsx`, que comparten las dos variantes.
  */
 
 const raiz = join(__dirname, "..");
@@ -58,8 +63,7 @@ beforeAll(async () => {
   const prisma = crearClientePrueba();
   await seedCatalogos(prisma);
   await prisma.$disconnect();
-  const pagina = await RegistroPage();
-  htmlRegistro = renderToStaticMarkup(createElement(() => pagina));
+  htmlRegistro = contenidoDelMain(await pintarPagina(Registro, { ruta: "/registro" }));
 });
 
 describe("el campo de foto llega al HTML servido", () => {
@@ -75,11 +79,13 @@ describe("el campo de foto llega al HTML servido", () => {
   });
 
   // El archivo solo llega al servidor si viaja en el ÚNICO formulario de la
-  // página. (El `enctype` no se comprueba aquí a propósito: en un formulario
-  // cuya `action` es una función, React lo fija él y sobrescribe el que se
-  // ponga a mano — ver hallazgo M-3 de `reports/c-seguridad.md`.)
+  // página, y ese formulario es multipart (en Next lo fijaba React; en Astro
+  // el formulario nativo lo declara: 3b-1).
   it("el campo de archivo viaja dentro del único formulario de la página", () => {
     expect(htmlRegistro.match(/<form[\s>]/g)).toHaveLength(1);
+    expect(htmlRegistro.slice(htmlRegistro.indexOf("<form"), htmlRegistro.indexOf(">", htmlRegistro.indexOf("<form"))).toLowerCase()).toContain(
+      'enctype="multipart/form-data"',
+    );
     const form = htmlRegistro.slice(
       htmlRegistro.indexOf("<form"),
       htmlRegistro.indexOf("</form>"),
@@ -108,7 +114,7 @@ describe("el campo de foto llega al HTML servido", () => {
 
   it("el campo y su botón reservan área tocable de 44px", () => {
     const formulario = readFileSync(
-      join(raiz, "src/components/registro/formulario-registro.tsx"),
+      join(raiz, "src/components/registro/cuerpo-formulario-registro.tsx"),
       "utf8",
     );
     const bloque = formulario.slice(
@@ -211,7 +217,7 @@ describe("el campo de foto no trajo JavaScript de cliente nuevo", () => {
   // viaja en el envío normal, sin vista previa, recorte ni compresión.
   it("no hay handlers ni previsualización asociados al campo de archivo", () => {
     const formulario = readFileSync(
-      join(raiz, "src/components/registro/formulario-registro.tsx"),
+      join(raiz, "src/components/registro/cuerpo-formulario-registro.tsx"),
       "utf8",
     );
     const bloque = formulario.slice(

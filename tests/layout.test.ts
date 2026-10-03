@@ -56,6 +56,8 @@ import { metadataDelSitio } from "../src/lib/seo/metadata";
 import NotFoundPage from "../src/pages/404.astro";
 import AvisoDePrivacidadPage from "../src/pages/aviso-de-privacidad.astro";
 import Home from "../src/pages/index.astro";
+import RegistroGraciasAstro from "../src/pages/registro/gracias.astro";
+import RegistroAstro from "../src/pages/registro.astro";
 import TerminosPage from "../src/pages/terminos.astro";
 import { peticion, reiniciarPeticion } from "./admin-mocks";
 import { contenidoDelMain, pintarPagina } from "./astro-paginas";
@@ -165,6 +167,9 @@ let htmlListadoFiltrado = "";
 let htmlFicha = "";
 let htmlReportar = "";
 let htmlReportarGracias = "";
+/** `/registro` y su pantalla de gracias, de Astro desde 3b-1. */
+let htmlRegistroAstro = "";
+let htmlRegistroGraciasAstro = "";
 let htmlBuscar = "";
 let htmlBuscarVacio = "";
 let htmlGiro = "";
@@ -247,6 +252,8 @@ beforeAll(async () => {
   segmentoFichaPublicada = construirSegmentoFicha(publicados[0].nombre, publicados[0].id);
   htmlReportar = await pintarReportar(segmentoFichaPublicada);
   htmlReportarGracias = await pintarGracias(segmentoFichaPublicada);
+  htmlRegistroAstro = contenidoDelMain(await pintarPagina(RegistroAstro, { ruta: "/registro" }));
+  htmlRegistroGraciasAstro = contenidoDelMain(await pintarPagina(RegistroGraciasAstro, { ruta: "/registro/gracias" }));
 
   // Página de resultados (change `agregar-buscador`): sus enlaces y el
   // destino de su buscador entran a la misma revisión.
@@ -1094,11 +1101,12 @@ describe("layout-base · sin rastros de la plantilla (scenario 13)", () => {
 // ───────────────────────────────────────────────────────────────────────────
 
 /**
- * Enlaces que esperan a la Fase 3b (T-024): responden la 404. Desde 3a
- * (change `migrar-formularios-publicos-astro`) el reporte ya no es excepción:
- * solo queda `/registro`.
+ * Enlaces que esperan a la Fase 3 (T-024). Desde 3a (change
+ * `migrar-formularios-publicos-astro`) el reporte ya no es excepción, y desde
+ * 3b-1 (change `migrar-registro-astro`) tampoco `/registro`: la lista queda
+ * VACÍA. Se conserva para que el guardián siga diciendo que no hay excepciones.
  */
-const EXCEPCIONES_FASE_3: Array<[RegExp, string]> = [[/^\/registro$/, "formulario de registro (Fase 3b)"]];
+const EXCEPCIONES_FASE_3: Array<[RegExp, string]> = [];
 
 /** Rutas dinámicas de `src/pages/`, en forma de URL (`/[destino]`, …). */
 const rutasDinamicasDeAstro = archivosDe(join(raiz, "src/pages"), [".astro", ".ts"])
@@ -1169,7 +1177,9 @@ describe("plataforma-astro · los enlaces de las páginas migradas resuelven en 
       "/negocio/[ficha]/reportar/gracias",
     ]);
     expect(rutasEstaticasDeAstro).toContain("/buscar");
-    expect(rutasEstaticasDeAstro).not.toContain("/registro");
+    // 3b-1: el registro y su pantalla de gracias son de Astro.
+    expect(rutasEstaticasDeAstro).toContain("/registro");
+    expect(rutasEstaticasDeAstro).toContain("/registro/gracias");
   });
 
   it("home, listados, giro, ficha, /buscar, 404, legales y footer solo enlazan a lo que Astro sirve", () => {
@@ -1203,14 +1213,24 @@ describe("plataforma-astro · los enlaces de las páginas migradas resuelven en 
     expect(problemasDeEnlacesEnAstro('<form action="?_action=reportar"></form>', "/ruta-inventada-xyz")).toHaveLength(1);
   });
 
-  // Scenario "`/registro` es la única excepción".
-  it("acepta /registro solo por estar en la lista de la Fase 3; el reporte ya resuelve en Astro", () => {
+  // Scenario "sin excepciones de fase" (MODIFIED por 3b-1): la lista está
+  // vacía y /registro, su destino y gracias resuelven en Astro.
+  it("sin excepciones de fase: 'Registra tu negocio gratis', el destino del registro, 'Volver al inicio' y los enlaces del aviso resuelven en Astro", () => {
     expect(enlacesDeFase3(htmlFicha)).toEqual([]);
-    expect(enlacesDeFase3(htmlHome)).toEqual(["/registro"]);
-    expect(EXCEPCIONES_FASE_3.map(([patron]) => String(patron))).toEqual([String(/^\/registro$/)]);
-    // Sin la excepción, /registro sería un destino que Astro no sirve; el reporte ya existe.
-    expect(rutaDeAstroExiste("/registro")).toBe(false);
+    expect(enlacesDeFase3(htmlHome)).toEqual([]);
+    expect(EXCEPCIONES_FASE_3).toEqual([]);
+    expect(htmlHome).toMatch(/<a[^>]+href="\/registro"/);
+    expect(rutaDeAstroExiste("/registro")).toBe(true);
+    expect(rutaDeAstroExiste("/registro/gracias")).toBe(true);
     expect(rutaDeAstroExiste(`/negocio/${segmentoFichaPublicada}/reportar`)).toBe(true);
+    expect(htmlRegistroAstro).toContain('action="?_action=registrar"');
+    expect(htmlRegistroAstro).toContain('href="/aviso-de-privacidad"');
+    expect(problemasDeEnlacesEnAstro(htmlHome)).toEqual([]);
+    expect(problemasDeEnlacesEnAstro(htmlRegistroAstro, "/registro")).toEqual([]);
+    expect(problemasDeEnlacesEnAstro(htmlRegistroGraciasAstro, "/registro/gracias")).toEqual([]);
+    expect(htmlRegistroGraciasAstro).toMatch(/<a[^>]+href="\/"[^>]*>Volver al inicio<\/a>/);
+    // Sin la ruta de la página, el destino relativo del registro no cuenta.
+    expect(problemasDeEnlacesEnAstro('<form action="?_action=registrar"></form>', "/ruta-inventada-xyz")).toHaveLength(1);
   });
 
   it("falla con cualquier otro destino que no existe", () => {
@@ -1218,7 +1238,9 @@ describe("plataforma-astro · los enlaces de las páginas migradas resuelven en 
     expect(problemasDeEnlacesEnAstro(`<a href="/negocio/${segmentoFichaPublicada}/reportar/enviado">x</a>`)).toHaveLength(1);
     expect(problemasDeEnlacesEnAstro('<a href="/negocio/negocio-que-no-existe-xyz/reportar">x</a>')).toHaveLength(1);
     expect(problemasDeEnlacesEnAstro("<a href=\"/envio-rechazado\">x</a>")).toHaveLength(1);
-    expect(problemasDeEnlacesEnAstro('<a href="/registro/gracias">x</a>')).toHaveLength(1);
+    // `/registro/gracias` ya existe (3b-1); `/registro/verificar` llega con 3b-2.
+    expect(problemasDeEnlacesEnAstro('<a href="/registro/gracias/otra">x</a>')).toHaveLength(1);
+    expect(problemasDeEnlacesEnAstro('<a href="/registro/verificar">x</a>')).toHaveLength(1);
     expect(problemasDeEnlacesEnAstro('<a href="/negocio/negocio-que-no-existe-xyz">x</a>')).toHaveLength(1);
     expect(problemasDeEnlacesEnAstro('<form action="/buscador-inventado"></form>')).toHaveLength(1);
     expect(problemasDeEnlacesEnAstro('<form action="/buscar"></form>')).toEqual([]);

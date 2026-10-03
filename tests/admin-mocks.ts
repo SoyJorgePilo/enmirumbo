@@ -88,3 +88,17 @@ export async function urlDeRedireccion(
   }
   throw new Error("se esperaba una redirección y no hubo ninguna");
 }
+
+/**
+ * Obedece un destino cerrado (`DestinoVerificacion` de
+ * `src/lib/verificacion/acciones.ts`, change `migrar-registro-astro`,
+ * design.md §4) como lo hacían `redirect()`/`notFound()`: lanza
+ * `RedireccionSimulada` o `NoEncontradoSimulado`. Así las pruebas de las
+ * acciones de verificación conservan sus aserciones sin simular `next/*`.
+ */
+export function obedecerDestino(
+  destino: { tipo: "redirigir"; ruta: string } | { tipo: "no-encontrado" },
+): never {
+  if (destino.tipo === "redirigir") throw new RedireccionSimulada(destino.ruta);
+  throw new NoEncontradoSimulado();
+}

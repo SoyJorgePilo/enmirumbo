@@ -1,0 +1,10 @@
+---
+// Ejemplo para `tests/analitica-exclusion-admin.test.ts` (change
+// `migrar-panel-admin-base-astro`): una página PÚBLICA que (mal) usa el
+// documento del panel para saltarse la medición. El guardián DEBE nombrarla.
+import DocumentoPanel from "../../../src/layouts/DocumentoPanel.astro";
+---
+
+<DocumentoPanel>
+  <p>contenido ficticio</p>
+</DocumentoPanel>

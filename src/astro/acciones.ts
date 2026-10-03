@@ -52,6 +52,7 @@ import {
   destinoValidoDeEditar,
   estadoTrasUnaFallaDeEdicion,
 } from "@/astro/editar";
+import { DESTINOS_DEL_ACCESO, RUTA_DE_LA_COLA, RUTA_DEL_ACCESO, type ResultadoDelAcceso } from "@/astro/panel/acceso";
 import { verificacionEncendida } from "@/lib/verificacion/config";
 
 /**
@@ -74,7 +75,12 @@ const PATRON_RPC = "/_actions/[...path]";
 const PATRON_ERROR = "/500";
 
 /** El desenlace de cualquier Action de la tabla, cerrado. */
-export type ResultadoDeAccion = ResultadoDeReportar | ResultadoDeRegistrar | ResultadoDeVerificar | ResultadoDeEditar;
+export type ResultadoDeAccion =
+  | ResultadoDeReportar
+  | ResultadoDeRegistrar
+  | ResultadoDeVerificar
+  | ResultadoDeEditar
+  | ResultadoDelAcceso;
 
 /** Lo que la tabla usa del contexto para decidir tras una falla. */
 type ContextoDeLaTabla = Pick<ContextoDeReportar, "params">;
@@ -123,6 +129,12 @@ export const ACCIONES: Readonly<Record<string, EntradaDeAccion>> = Object.freeze
     trasFallar: async () => ({ tipo: "repintar" as const, estado: estadoTrasUnaFallaDeEdicion() }),
     destinoValido: destinoValidoDeEditar,
   },
+  // 5a (change `migrar-panel-admin-base-astro`, design.md §4 y §6): el acceso
+  // al panel. Si Astro no pudo leer el envío, a `/admin` sin apartar intento,
+  // sin comparar y sin tocar la cookie. La guarda de sesión del panel corre
+  // ANTES que esta tabla (`src/middleware.ts`).
+  entrar: { ruta: RUTA_DEL_ACCESO, trasFallar: async () => ({ tipo: "redirigir" as const, ruta: RUTA_DEL_ACCESO }), destinos: DESTINOS_DEL_ACCESO },
+  salir: { ruta: RUTA_DE_LA_COLA, trasFallar: async () => ({ tipo: "redirigir" as const, ruta: RUTA_DEL_ACCESO }), destinos: DESTINOS_DEL_ACCESO },
 });
 
 function entradaDe(nombre: string): EntradaDeAccion | undefined {

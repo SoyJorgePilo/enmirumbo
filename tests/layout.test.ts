@@ -21,8 +21,6 @@ vi.mock("next/navigation", async () => {
 
 import { seedCatalogos } from "../prisma/seed";
 import { sembrarNegociosDemo } from "../prisma/seed-demo";
-import ColaAdminPage from "../src/app/admin/cola/page";
-import AccesoAdminPage from "../src/app/admin/page";
 import DetalleRegistroAdminPage from "../src/app/admin/registros/[id]/page";
 import RegistroAprobadoPage from "../src/app/admin/registros/[id]/aprobado/page";
 import { Footer } from "../src/components/footer";
@@ -61,6 +59,7 @@ import RegistroVerificarAstro from "../src/pages/registro/verificar.astro";
 import TerminosPage from "../src/pages/terminos.astro";
 import { peticion, reiniciarPeticion } from "./admin-mocks";
 import { contenidoDelMain, pintarPagina } from "./astro-paginas";
+import { abrirPantallaDelPanel } from "./panel-paginas";
 import { crearClientePrueba } from "./db";
 // Las páginas del directorio ya se sirven con Astro (change
 // `migrar-directorio-publico-astro`, tasks.md #15): lo que pintaban es el
@@ -261,16 +260,13 @@ beforeAll(async () => {
   htmlBuscarVacio = await mainDeBuscar({});
   // Panel: la pantalla de acceso se ve sin sesión; el resto, con una cookie
   // firmada de verdad por el mismo módulo que usa producción.
+  // Desde 5a (change `migrar-panel-admin-base-astro`) el acceso y la cola son
+  // de Astro: lo que pintan dentro de `<main>`.
   reiniciarPeticion();
-  const acceso = await AccesoAdminPage({
-    params: Promise.resolve({}),
-    searchParams: Promise.resolve({}),
-  });
-  htmlAccesoAdmin = renderToStaticMarkup(createElement(() => acceso));
+  htmlAccesoAdmin = await abrirPantallaDelPanel("acceso");
 
   peticion.cookies[NOMBRE_COOKIE_SESION] = crearValorDeSesion(SECRETO_PANEL);
-  const cola = await ColaAdminPage();
-  htmlColaAdmin = renderToStaticMarkup(createElement(() => cola));
+  htmlColaAdmin = await abrirPantallaDelPanel("cola");
 
   const detalle = await DetalleRegistroAdminPage({
     params: Promise.resolve({ id: idsEnRevision[0] }),
@@ -717,8 +713,11 @@ describe("layout-base · enlaces internos y externos de las páginas servidas", 
   // revision-admin · Requirement "El panel no se indexa ni se enlaza desde el
   // sitio público" + "Enlaces internos a rutas existentes…" (tasks.md #24).
   it("las pantallas del panel solo enlazan a rutas del panel que existen", () => {
-    expect(problemasDeEnlaces(htmlAccesoAdmin)).toEqual([]);
-    expect(problemasDeEnlaces(htmlColaAdmin)).toEqual([]);
+    // Desde 5a el acceso y la cola son de Astro: sus formularios postean a
+    // `?_action=` de su propia ruta (como el reporte en 3a).
+    expect(problemasDeEnlaces(htmlAccesoAdmin, "/admin")).toEqual([]);
+    expect(problemasDeEnlaces(htmlColaAdmin, "/admin/cola")).toEqual([]);
+    expect(problemasDeEnlaces(htmlColaAdmin)).toEqual(["action que no es una ruta del sitio: ?_action=salir"]);
     expect(problemasDeEnlaces(htmlDetalleAdmin)).toEqual([]);
     expect(problemasDeEnlaces(htmlAprobadoAdmin)).toEqual([]);
     // Y de verdad hay enlaces que revisar en esas pantallas.
@@ -1170,6 +1169,8 @@ describe("plataforma-astro · los enlaces de las páginas migradas resuelven en 
     // Fase 4 (change `migrar-enlace-gestion-astro`): el modo edición y su confirmación.
     expect(rutasDinamicasDeAstro).toEqual([
       "/[destino]",
+      // 5a: el comodín del panel (la 404 de lo que no existe bajo /admin).
+      "/admin/[...resto]",
       "/api/foto/[clave]/[variante]",
       "/editar/[token]",
       "/editar/[token]/gracias",

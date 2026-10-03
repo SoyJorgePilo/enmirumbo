@@ -211,5 +211,10 @@ describe("cupos · nadie usa clientAddress", () => {
     const edicion = readFileSync(path.join(raiz, "src/astro/editar.ts"), "utf8");
     expect(edicion).toMatch(/ipDeEncabezados\(\s*contexto\.request\.headers\s*\)/);
     expect(archivosConClientAddress(raiz, ["src/astro/editar.ts", "src/astro/gestion-cliente.ts", "src/pages/editar", "src/layouts/TroncoGestion.astro"])).toEqual([]);
+    // 5a (change `migrar-panel-admin-base-astro`): el acceso al panel, con las cabeceras de la petición.
+    const acceso = readFileSync(path.join(raiz, "src/astro/panel/acceso.ts"), "utf8");
+    expect(acceso).toMatch(/ejecutarAcceso\(\s*formData,\s*contexto\.request\.headers/);
+    expect(readFileSync(path.join(raiz, "src/lib/admin/entrar.ts"), "utf8")).toMatch(/ipDeEncabezados\(encabezados\)/);
+    expect(archivosConClientAddress(raiz, ["src/astro/panel", "src/pages/admin", "src/lib/admin"])).toEqual([]);
   });
 });

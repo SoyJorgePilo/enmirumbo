@@ -1,5 +1,6 @@
-import { readFileSync, readdirSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -14,8 +15,6 @@ vi.mock("next/navigation", async () => {
 });
 
 import { seedCatalogos } from "../prisma/seed";
-import ColaAdminPage from "../src/app/admin/cola/page";
-import NegociosAdminPage from "../src/app/admin/negocios/page";
 import { aprobarRegistroAccion } from "../src/app/admin/registros/[id]/accion-aprobar";
 import { borrarRegistroAccion } from "../src/app/admin/registros/[id]/accion-borrar";
 import { despublicarRegistroAccion } from "../src/app/admin/registros/[id]/accion-despublicar";
@@ -55,6 +54,7 @@ import { procesarRegistro } from "../src/lib/registro/procesar";
 import { MENSAJES_ERROR_REGISTRO } from "../src/lib/registro/textos";
 import { peticion, reiniciarPeticion, urlDeRedireccion } from "./admin-mocks";
 import { crearClientePrueba } from "./db";
+import { pantallaComoNext } from "./panel-paginas";
 // Las páginas del directorio ya se sirven con Astro (change
 // `migrar-directorio-publico-astro`, tasks.md #15).
 import { mainDeDestino, mainDeFicha } from "./paginas-directorio";
@@ -264,8 +264,8 @@ describe("adversarial · entrada hostil del formulario público pintada en el pa
       { prisma, ip: IP },
     );
     conSesion();
-    const { default: ColaAdminPage } = await import("../src/app/admin/cola/page");
-    const html = sinScriptsDeReact(await render(ColaAdminPage() as Promise<React.ReactElement>));
+    // Desde 5a, la cola de Astro (lo que pinta dentro de `<main>`).
+    const html = sinScriptsDeReact(await pantallaComoNext("cola"));
 
     expect(html).not.toContain("<script");
     expect(html).not.toContain('onerror="');
@@ -603,17 +603,25 @@ describe("adversarial · POST directo a la acción de aprobar con ids inventados
 // ── 5. La guarda va ANTES de tocar datos, no en cualquier línea ──────────────
 
 describe("adversarial · la guarda se invoca antes de leer o escribir nada", () => {
+  /**
+   * Desde 5a (change `migrar-panel-admin-base-astro`) el acceso, la entrada,
+   * la salida, el layout, la cola, el listado y el comodín los sirve Astro,
+   * pero el código de Next sigue en el árbol hasta T-027: el guardián recorre
+   * TODO `src/app/admin/` (raíz incluida, también `cola/` y `negocios/`) y,
+   * además, `src/pages/admin/` y `src/astro/panel/` (M1 de la etapa C: al
+   * recortar el recorrido a "lo que sigue en Next", un archivo nuevo en la
+   * raíz con Prisma y sin guarda pasaba en verde).
+   */
   const EXCEPCIONES = [
+    // Envoltorios de 5a (design.md §2.3): delegan en `src/lib/admin/entrar.ts`
+    // y no tocan datos del negocio (se comprueba abajo, no se da por hecho).
     "src/app/admin/page.tsx",
     "src/app/admin/accion-acceso.ts",
     "src/app/admin/accion-salir.ts",
     // Layout del panel (change `agregar-analitica-cookieless`): no renderiza
-    // contenido ni accede a datos; solo declara la política de referente y
-    // deja pasar a sus hijos, que sí exigen sesión cada uno.
+    // contenido ni accede a datos; solo declara la política de referente.
     "src/app/admin/layout.tsx",
-    // Ruta comodín del panel: solo llama a `notFound()` para que las URLs
-    // inexistentes de /admin también hereden esa política (O-1). No lee ni
-    // escribe nada, y responde 404 igual para todos, con o sin sesión.
+    // Ruta comodín del panel: solo llama a `notFound()` (O-1).
     "src/app/admin/[...resto]/page.tsx",
     // Exige sesión igual, pero sin redirigir: sin ella responde el mismo 404
     // que el sitio público (spec `revision-admin`, scenario "la foto del
@@ -626,17 +634,29 @@ describe("adversarial · la guarda se invoca antes de leer o escribir nada", () 
     return readdirSync(dir, { withFileTypes: true }).flatMap((entrada) => {
       const ruta = join(dir, entrada.name);
       if (entrada.isDirectory()) return archivosDe(ruta);
-      return /\.tsx?$/.test(entrada.name) ? [ruta] : [];
+      return /\.(tsx?|astro)$/.test(entrada.name) ? [ruta] : []; // `.astro`: el panel en Astro (5a)
     });
   }
 
-  const archivos = archivosDe(join(raiz, "src/app/admin")).map((ruta) =>
-    ruta.slice(raiz.length + 1),
-  );
+  /** Los archivos de `dir` (relativo a `arbol`), con la ruta relativa al árbol. */
+  function relativosDe(arbol: string, dir: string): string[] {
+    const absoluto = join(arbol, dir);
+    if (!existsSync(absoluto)) return [];
+    return archivosDe(absoluto).map((ruta) => ruta.slice(arbol.length + 1));
+  }
+
+  const archivos = relativosDe(raiz, "src/app/admin");
+
+  /** Las páginas y endpoints del panel en Astro, y sus excepciones (no tocan datos: el acceso y el comodín). */
+  const PAGINAS_ASTRO = relativosDe(raiz, "src/pages/admin");
+  const EXCEPCIONES_ASTRO = ["src/pages/admin/index.astro", "src/pages/admin/[...resto].astro"];
 
   /** Todo lo que lee o escribe datos del negocio dentro del cuerpo del módulo. */
   const ACCESOS_A_DATOS = [
     "obtenerPrisma()",
+    // El cliente usado directo (`prisma.negocio.update(…)`), sin pasar por
+    // una consulta de `src/lib/admin/` (M1 de la etapa C de 5a).
+    "prisma.",
     "obtenerRegistroParaPanel(",
     "obtenerColaDeRevision(",
     // Listado "Todos los negocios" (change `agregar-listado-gestion-panel`).
@@ -661,12 +681,23 @@ describe("adversarial · la guarda se invoca antes de leer o escribir nada", () 
     "regenerarEnlaceDeGestion(",
   ];
 
-  it("en cada ruta y acción, `requerirSesionAdmin()` aparece antes del primer acceso a datos", () => {
-    for (const ruta of archivos) {
-      if (EXCEPCIONES.includes(ruta)) continue;
-      const codigo = readFileSync(join(raiz, ruta), "utf8");
-      // Solo el cuerpo: los `import` de arriba nombran las mismas funciones.
-      const cuerpo = codigo.slice(codigo.lastIndexOf("\nimport "));
+  /** Cuerpo de un módulo de Next: los `import` de arriba nombran las mismas funciones. */
+  const cuerpoDeNext = (codigo: string) => codigo.slice(codigo.lastIndexOf("\nimport "));
+  /** Cuerpo de una página o endpoint de Astro; sin `prerender`, el archivo entero (falla cerrado). */
+  function cuerpoDeAstro(codigo: string): string {
+    const inicio = codigo.indexOf("export const prerender");
+    return inicio === -1 ? codigo : codigo.slice(inicio);
+  }
+
+  /** Lo que sigue en Next: `requerirSesionAdmin()` antes del primer acceso; las excepciones, sin datos. */
+  function revisarGuardaDeNext(arbol: string, rutas: string[]): void {
+    for (const ruta of rutas) {
+      const cuerpo = cuerpoDeNext(readFileSync(join(arbol, ruta), "utf8"));
+      if (EXCEPCIONES.includes(ruta)) {
+        if (ruta.includes("/foto/")) continue; // su propio `it`, abajo
+        for (const acceso of ACCESOS_A_DATOS) expect(cuerpo, `${ruta} toca ${acceso}`).not.toContain(acceso);
+        continue;
+      }
       const guarda = cuerpo.indexOf("await requerirSesionAdmin();");
       expect(guarda, `${ruta} no llama a la guarda`).toBeGreaterThan(-1);
 
@@ -676,6 +707,117 @@ describe("adversarial · la guarda se invoca antes de leer o escribir nada", () 
         expect(posicion, `${ruta} usa ${acceso} antes de la guarda`).toBeGreaterThan(guarda);
       }
     }
+  }
+
+  /**
+   * El panel en Astro: cada página o endpoint de `src/pages/admin/` llama a
+   * `exigirSesionAdmin(…)` Y devuelve su respuesta antes del primer acceso
+   * (llamarla sin el `return` no protege nada); el acceso y el comodín no
+   * tocan datos; y `src/astro/panel/` (guardia, Actions de acceso,
+   * metadatos) no toca datos del negocio en absoluto.
+   */
+  function revisarGuardaDeAstro(arbol: string, paginas: string[]): void {
+    for (const ruta of paginas) {
+      const cuerpo = cuerpoDeAstro(readFileSync(join(arbol, ruta), "utf8"));
+      if (EXCEPCIONES_ASTRO.includes(ruta)) {
+        for (const acceso of ACCESOS_A_DATOS) expect(cuerpo, `${ruta} toca ${acceso}`).not.toContain(acceso);
+        continue;
+      }
+      const guarda = cuerpo.search(/const (\w+) = exigirSesionAdmin\(\w+\);\s*if \(\1\) return \1;/);
+      expect(guarda, `${ruta} no llama a la guarda (o no devuelve su respuesta)`).toBeGreaterThan(-1);
+      for (const acceso of ACCESOS_A_DATOS) {
+        const posicion = cuerpo.indexOf(acceso);
+        if (posicion === -1) continue;
+        expect(posicion, `${ruta} usa ${acceso} antes de la guarda`).toBeGreaterThan(guarda);
+      }
+    }
+    for (const ruta of relativosDe(arbol, "src/astro/panel")) {
+      const cuerpo = readFileSync(join(arbol, ruta), "utf8");
+      for (const acceso of ACCESOS_A_DATOS) expect(cuerpo, `${ruta} toca ${acceso}`).not.toContain(acceso);
+    }
+  }
+
+  it("en cada ruta y acción, `requerirSesionAdmin()` aparece antes del primer acceso a datos", () => {
+    // Todo `src/app/admin/` mientras exista (se retira en T-027), raíz incluida.
+    for (const ruta of ["src/app/admin/accion-acceso.ts", "src/app/admin/cola/page.tsx", "src/app/admin/negocios/page.tsx"]) {
+      expect(archivos).toContain(ruta);
+    }
+    revisarGuardaDeNext(raiz, archivos);
+  });
+
+  it("en cada página del panel en Astro, `exigirSesionAdmin(Astro)` aparece antes del primer acceso a datos", () => {
+    expect(PAGINAS_ASTRO.length).toBeGreaterThanOrEqual(4);
+    expect(relativosDe(raiz, "src/astro/panel").length).toBeGreaterThanOrEqual(1);
+    revisarGuardaDeAstro(raiz, PAGINAS_ASTRO);
+  });
+
+  /**
+   * Las mutaciones de la etapa C (M1), como prueba permanente: cada una en un
+   * árbol desechable, y el guardián tiene que reprobarla. El control positivo
+   * (una página bien guardada) confirma que no reprueba por cualquier cosa.
+   */
+  describe("el guardián reprueba una ruta o acción nueva que toca datos sin la guarda", () => {
+    const ACCION_SIN_GUARDA = [
+      '"use server";',
+      'import { obtenerPrisma } from "@/lib/prisma";',
+      "",
+      "export async function accionNueva(id: number): Promise<void> {",
+      "  const prisma = obtenerPrisma();",
+      '  await prisma.negocio.update({ where: { id }, data: { estado: "publicado" } });',
+      "}",
+    ].join("\n");
+    const paginaAstro = (guarda: string) =>
+      [
+        "---",
+        'import { exigirSesionAdmin } from "@/astro/panel/guardia";',
+        'import { obtenerPrisma } from "@/lib/prisma";',
+        "",
+        "export const prerender = false;",
+        "",
+        guarda,
+        'await obtenerPrisma().negocio.update({ where: { id: 1 }, data: { estado: "publicado" } });',
+        "---",
+        "<p>hecho</p>",
+      ].join("\n");
+
+    const arboles: string[] = [];
+    function arbolCon(ruta: string, contenido: string): string {
+      const arbol = mkdtempSync(join(tmpdir(), "guardian-guarda-"));
+      arboles.push(arbol);
+      mkdirSync(dirname(join(arbol, ruta)), { recursive: true });
+      writeFileSync(join(arbol, ruta), contenido);
+      return arbol;
+    }
+    afterAll(() => {
+      for (const arbol of arboles) rmSync(arbol, { recursive: true, force: true });
+    });
+
+    it.each([
+      ["una acción en la raíz de src/app/admin/", "src/app/admin/accion-nueva.ts"],
+      ["una acción en la cola de Next", "src/app/admin/cola/accion-nueva.ts"],
+      ["una acción en el listado de Next", "src/app/admin/negocios/accion-nueva.ts"],
+    ])("Next: %s con Prisma y sin guarda", (_caso, ruta) => {
+      const arbol = arbolCon(ruta, ACCION_SIN_GUARDA);
+      const rutas = relativosDe(arbol, "src/app/admin");
+      expect(rutas).toEqual([ruta]);
+      expect(() => revisarGuardaDeNext(arbol, rutas)).toThrow(ruta);
+    });
+
+    it.each([
+      ["una página sin guarda", "src/pages/admin/nueva.astro", paginaAstro("")],
+      ["una página que llama a la guarda e ignora su respuesta", "src/pages/admin/nueva.astro", paginaAstro("exigirSesionAdmin(Astro);")],
+      ["un endpoint sin guarda", "src/pages/admin/nueva.ts", ACCION_SIN_GUARDA.replace('"use server";', "export const prerender = false;")],
+      ["un módulo de src/astro/panel con Prisma", "src/astro/panel/accion-nueva.ts", ACCION_SIN_GUARDA],
+    ])("Astro: %s", (_caso, ruta, contenido) => {
+      const arbol = arbolCon(ruta, contenido);
+      expect(() => revisarGuardaDeAstro(arbol, relativosDe(arbol, "src/pages/admin"))).toThrow(ruta);
+    });
+
+    it("control: una página de Astro con la guarda devuelta antes de la base no reprueba", () => {
+      const ruta = "src/pages/admin/nueva.astro";
+      const arbol = arbolCon(ruta, paginaAstro("const sinSesion = exigirSesionAdmin(Astro);\nif (sinSesion) return sinSesion;"));
+      expect(() => revisarGuardaDeAstro(arbol, relativosDe(arbol, "src/pages/admin"))).not.toThrow();
+    });
   });
 
   it("la ruta de fotos del panel resuelve la sesión antes de tocar la base", () => {
@@ -741,6 +883,9 @@ describe("adversarial · la guarda se invoca antes de leer o escribir nada", () 
   it("ninguna pantalla ni acción del panel lee la huella del enlace de gestión", () => {
     const fuentes = [
       ...archivosDe(join(raiz, "src/app/admin")),
+      // 5a: el panel en Astro entra a la misma regla.
+      ...archivosDe(join(raiz, "src/pages/admin")),
+      ...archivosDe(join(raiz, "src/astro/panel")),
       ...archivosDe(join(raiz, "src/components/admin")),
       ...archivosDe(join(raiz, "src/lib/admin")),
     ];
@@ -757,6 +902,9 @@ describe("adversarial · la guarda se invoca antes de leer o escribir nada", () 
     ];
     const fuentes = [
       ...archivosDe(join(raiz, "src/app/admin")),
+      // 5a: el panel en Astro entra a la misma regla.
+      ...archivosDe(join(raiz, "src/pages/admin")),
+      ...archivosDe(join(raiz, "src/astro/panel")),
       ...archivosDe(join(raiz, "src/components/admin")),
       ...archivosDe(join(raiz, "src/lib/admin")),
     ].filter((ruta) => !permitidos.includes(ruta));
@@ -773,6 +921,9 @@ describe("adversarial · la guarda se invoca antes de leer o escribir nada", () 
   it("ninguna pantalla del panel arma una URL de edición", () => {
     const fuentes = [
       ...archivosDe(join(raiz, "src/app/admin")),
+      // 5a: el panel en Astro entra a la misma regla.
+      ...archivosDe(join(raiz, "src/pages/admin")),
+      ...archivosDe(join(raiz, "src/astro/panel")),
       ...archivosDe(join(raiz, "src/components/admin")),
       ...archivosDe(join(raiz, "src/lib/admin")),
     ];
@@ -1399,7 +1550,7 @@ describe("adversarial · reportes del panel sin cookie de sesión", () => {
   it("la cola no revela ni el nombre del reportado ni su conteo", async () => {
     const { negocioId } = await conReportePendiente();
 
-    const destino = await urlDeRedireccion(() => ColaAdminPage());
+    const destino = await urlDeRedireccion(() => pantallaComoNext("cola"));
 
     expect(destino).toBe("/admin");
     expect(destino).not.toContain(negocioId);
@@ -1524,13 +1675,8 @@ describe("adversarial · el listado del panel bajo entrada hostil", () => {
     return creado.id;
   }
 
-  const abrirListado = (searchParams: Record<string, string | string[]> = {}) =>
-    render(
-      NegociosAdminPage({
-        params: Promise.resolve({}),
-        searchParams: Promise.resolve(searchParams),
-      } as never) as Promise<React.ReactElement>,
-    );
+  /** "Todos los negocios" de Astro (5a): lo que pinta dentro de `<main>`; sin sesión, la redirección simulada. */
+  const abrirListado = (searchParams: Record<string, string | string[]> = {}) => pantallaComoNext("negocios", searchParams);
 
   /** Querystrings manoseados que un curioso con sesión sí puede teclear. */
   const QUERYSTRINGS_HOSTILES: Array<[string, Record<string, string | string[]>]> = [
@@ -1579,10 +1725,11 @@ describe("adversarial · el listado del panel bajo entrada hostil", () => {
 
     const despues = await prisma.negocio.findUniqueOrThrow({ where: { id } });
     expect(despues).toEqual(antes);
-    // La pantalla tampoco sabe escribir: no hay ninguna Server Action ahí.
-    const codigo = readFileSync(join(raiz, "src/app/admin/negocios/page.tsx"), "utf8");
+    // La pantalla tampoco sabe escribir: no hay ninguna Action ahí (5a: Astro).
+    const codigo = readFileSync(join(raiz, "src/pages/admin/negocios.astro"), "utf8");
     expect(codigo).not.toContain("use server");
     expect(codigo).not.toContain("action=");
+    expect(codigo).not.toContain("astro:actions");
     expect(codigo).not.toContain("prisma.negocio.update");
   });
 

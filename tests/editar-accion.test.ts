@@ -196,8 +196,10 @@ describe("Action editar · desenlaces", () => {
 });
 
 describe("tabla de Actions · editar (MODIFIED de 3a)", () => {
-  it("cinco Actions en la tabla; editar atada a /editar/[token]", () => {
-    expect(Object.keys(ACCIONES)).toEqual(["reportar", "registrar", "confirmar", "reenviar", "editar"]);
+  // 5a (change `migrar-panel-admin-base-astro`) suma entrar y salir del panel.
+  it("siete Actions en la tabla; editar atada a /editar/[token], sin compuerta", () => {
+    expect(Object.keys(ACCIONES)).toEqual(["reportar", "registrar", "confirmar", "reenviar", "editar", "entrar", "salir"]);
+    expect(ACCIONES.editar.puedeCorrer).toBeUndefined();
     expect(ACCIONES.editar.ruta).toBe("/editar/[token]");
     expect(RUTA_DE_EDITAR).toBe("/editar/[token]");
   });

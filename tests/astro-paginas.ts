@@ -53,15 +53,22 @@ export async function pintarPagina(pagina: ComponenteAstro, opciones: OpcionesDe
 
 /**
  * La respuesta completa (estado y documento) de una página: lo que necesitan
- * las rutas que responden 404 pintando la página de no encontrado (2b).
+ * las rutas que responden 404 pintando la página de no encontrado (2b). Desde
+ * 5a también el `Location` y el `Cache-Control` (la redirección del panel sin
+ * sesión).
  */
 export async function pintarRespuesta(
   pagina: ComponenteAstro,
   opciones: OpcionesDePintado = {},
-): Promise<{ status: number; html: string }> {
+): Promise<{ status: number; html: string; location: string | null; cacheControl: string | null }> {
   const c = await contenedorAstro();
   const respuesta = await c.renderToResponse(pagina, opcionesDelContenedor(opciones));
-  return { status: respuesta.status, html: await respuesta.text() };
+  return {
+    status: respuesta.status,
+    html: await respuesta.text(),
+    location: respuesta.headers.get("location"),
+    cacheControl: respuesta.headers.get("cache-control"),
+  };
 }
 
 /** Lo que hay DENTRO de `<main …>…</main>` (lo que pintaba la página en Next). */

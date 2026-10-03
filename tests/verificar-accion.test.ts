@@ -301,9 +301,12 @@ describe("Actions confirmar y reenviar · desenlaces", () => {
 });
 
 describe("tabla de Actions · confirmar y reenviar", () => {
-  it("cuatro Actions; confirmar y reenviar atadas a /registro/verificar, con la compuerta de la capacidad", () => {
-    // Fase 4 (change `migrar-enlace-gestion-astro`, MODIFIED): la tabla suma `editar` → `/editar/[token]` (lo prueba `editar-accion`).
-    expect(Object.keys(ACCIONES)).toEqual(["reportar", "registrar", "confirmar", "reenviar", "editar"]);
+  // Fase 4 (change `migrar-enlace-gestion-astro`, MODIFIED): la tabla suma `editar` → `/editar/[token]` (lo prueba `editar-accion`).
+  // 5a (change `migrar-panel-admin-base-astro`): siete, con entrar y salir del panel (sin compuerta).
+  it("siete Actions; confirmar y reenviar atadas a /registro/verificar, con la compuerta de la capacidad", () => {
+    expect(Object.keys(ACCIONES)).toEqual(["reportar", "registrar", "confirmar", "reenviar", "editar", "entrar", "salir"]);
+    expect(ACCIONES.entrar.puedeCorrer).toBeUndefined();
+    expect(ACCIONES.salir.puedeCorrer).toBeUndefined();
     for (const nombre of ["confirmar", "reenviar"]) {
       expect(ACCIONES[nombre].ruta).toBe("/registro/verificar");
       expect(ACCIONES[nombre].puedeCorrer?.()).toBe(false);

@@ -1,0 +1,101 @@
+---
+/**
+ * "Todos los negocios" (lo que era `src/app/admin/negocios/page.tsx`; change
+ * `migrar-panel-admin-base-astro`, Fase 5a). Spec `revision-admin`,
+ * requirement "Vista 'Todos los negocios' con el estado a la vista y entrada
+ * al detalle"; spec `plataforma-astro`, "La cola y 'Todos los negocios'
+ * responden desde Astro el mismo HTML que Next".
+ *
+ * Solo lectura: filtrar, cambiar de página y abrir un detalle son enlaces.
+ * La guarda va ANTES de leer nada. `estado` y `pagina` se leen como los lee
+ * Next (repetidos no valen) y su normalización nunca lanza: un parámetro
+ * manoseado cae al valor por defecto. El corte (25 renglones) lo hace la
+ * consulta.
+ */
+import { exigirSesionAdmin } from "@/astro/panel/guardia";
+import { METADATOS_NEGOCIOS } from "@/astro/panel/metadatos";
+import { parametroComoNext } from "@/astro/panel/parametros";
+import { FiltrosListadoNegocios } from "@/components/admin/filtros-listado-negocios";
+import { PaginacionListadoNegocios } from "@/components/admin/paginacion-listado-negocios";
+import { RenglonListadoNegocio } from "@/components/admin/renglon-listado-negocio";
+import DocumentoPanel from "@/layouts/DocumentoPanel.astro";
+import { obtenerListadoDeNegocios } from "@/lib/admin/consultas";
+import { FILTRO_TODOS, PORPAGINA_LISTADO, normalizarFiltroEstado, normalizarPagina } from "@/lib/admin/listado-parametros";
+import {
+  TEXTO_FILTRO_SIN_RESULTADOS,
+  TEXTO_LISTADO_VACIO,
+  TEXTO_NEGOCIOS_ENCABEZADO,
+  TEXTO_VOLVER_A_LA_COLA,
+  textoConteoNegociosListado,
+} from "@/lib/admin/textos";
+import { obtenerPrisma } from "@/lib/prisma";
+
+export const prerender = false;
+
+const sinSesion = exigirSesionAdmin(Astro);
+if (sinSesion) return sinSesion;
+
+const filtroActivo = normalizarFiltroEstado(parametroComoNext(Astro.url, "estado"));
+const paginaPedida = normalizarPagina(parametroComoNext(Astro.url, "pagina"));
+
+const { registros, total } = await obtenerListadoDeNegocios(obtenerPrisma(), {
+  estado: filtroActivo,
+  pagina: paginaPedida,
+  porPagina: PORPAGINA_LISTADO,
+});
+
+// Una `pagina` más allá de la última no es error: se ve la lista vacía y "Ver
+// más nuevos" para regresar. `totalPaginas` nunca baja de 1.
+const totalPaginas = Math.max(1, Math.ceil(total / PORPAGINA_LISTADO));
+const paginaActual = Math.min(paginaPedida, totalPaginas);
+const fueraDeRango = paginaPedida > totalPaginas;
+
+// Los dos textos de vacío hablan de LA LISTA (miran `total`): una página más
+// allá de la última no pinta ninguno (la salida es "Ver más nuevos").
+const hayFiltro = filtroActivo !== FILTRO_TODOS;
+const listaVacia = total === 0;
+---
+
+<DocumentoPanel metadatos={METADATOS_NEGOCIOS}>
+  <section class="flex flex-col gap-6 py-4">
+    <div class="flex items-start justify-between gap-4">
+      <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">{TEXTO_NEGOCIOS_ENCABEZADO}</h1>
+    </div>
+
+    <p class="text-sm font-semibold text-tinta-suave">{textoConteoNegociosListado(total)}</p>
+
+    <FiltrosListadoNegocios filtroActivo={filtroActivo} />
+
+    {listaVacia && <p class="text-tinta-suave">{hayFiltro ? TEXTO_FILTRO_SIN_RESULTADOS : TEXTO_LISTADO_VACIO}</p>}
+
+    {
+      registros.length > 0 && (
+        <ul class="flex flex-col gap-3">
+          {registros.map((registro) => (
+            <li>
+              <RenglonListadoNegocio {...registro} />
+            </li>
+          ))}
+        </ul>
+      )
+    }
+
+    {
+      (totalPaginas > 1 || fueraDeRango) && (
+        <PaginacionListadoNegocios
+          filtroActivo={filtroActivo}
+          paginaActual={paginaActual}
+          totalPaginas={totalPaginas}
+          fueraDeRango={fueraDeRango}
+        />
+      )
+    }
+
+    <a
+      href="/admin/cola"
+      class="inline-flex min-h-11 w-fit items-center text-base font-semibold text-accion-fuerte underline underline-offset-4"
+    >
+      {TEXTO_VOLVER_A_LA_COLA}
+    </a>
+  </section>
+</DocumentoPanel>

@@ -1,0 +1,50 @@
+---
+// fuera de la medición: es el documento del panel de revisión, que abre datos personales de registros no publicados; nunca se mide (spec `layout-base`, "El panel del admin y el modo edición quedan fuera de la medición"; design.md §5 del change `migrar-panel-admin-base-astro`).
+/**
+ * Documento de TODA pantalla del panel en Astro (change
+ * `migrar-panel-admin-base-astro`, Fase 5a, design.md §5): lo que eran
+ * `src/app/admin/layout.tsx` (el referente estricto) y la `metadata` de no
+ * indexación de cada página de Next.
+ *
+ * Envuelve a `DocumentoBase` (mismo header, footer y hoja de estilos que el
+ * layout raíz de Next) y NO a `TroncoPublico`: el panel queda fuera de la
+ * medición POR CONSTRUCCIÓN. Ninguna página de `src/pages/admin/` puede usar
+ * el tronco medido (lo vigilan los guardianes de la medición).
+ *
+ * Fija dos cosas que una página no puede cambiar:
+ *
+ * - `<meta name="referrer" content="strict-origin">` en el `<head>`: oculta
+ *   la ruta (`/admin/registros/<id>`) cuando el admin sale del panel por el
+ *   logo o un enlace del pie, sin que el navegador mande `Origin: null` en
+ *   los POST: con `no-referrer` la regla de origen rechaza el envío de cada
+ *   Action (en Next abortaba la Server Action) y el panel deja de funcionar
+ *   sin JavaScript (T-010, T-014). `same-origin` no sirve: la fuga es del
+ *   mismo origen. Además el
+ *   middleware pone la cabecera `Referrer-Policy: strict-origin` en toda
+ *   respuesta bajo `/admin` (decisión 1 del fundador).
+ * - `noindex, nofollow` en las pantallas. En la 404 del comodín
+ *   (`noEncontrado`), el `noindex` que Next pone en toda 404, sin más
+ *   (medido: `tests/fixtures/next-5a/comodin-*.html`).
+ */
+import type { MetadatosDePagina } from "@/astro/metadatos";
+
+import DocumentoBase from "./DocumentoBase.astro";
+
+interface Props {
+  /** Metadatos propios de la pantalla (su título). El referente y el robots los fija este documento. */
+  metadatos?: MetadatosDePagina;
+  /** La 404 del panel (`NoEncontradoDelPanel`). */
+  noEncontrado?: boolean;
+}
+
+const { metadatos = {}, noEncontrado = false } = Astro.props;
+const delPanel: MetadatosDePagina = {
+  ...metadatos,
+  robots: noEncontrado ? undefined : { index: false, follow: false },
+  referrer: "strict-origin",
+};
+---
+
+<DocumentoBase metadatos={delPanel} noEncontrado={noEncontrado}>
+  <slot />
+</DocumentoBase>

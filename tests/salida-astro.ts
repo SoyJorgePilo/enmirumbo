@@ -11,7 +11,7 @@
  * se construye igual que el CI: sin base alcanzable y sin `SITIO_URL`.
  */
 import { type ChildProcess, execFileSync, spawn } from "node:child_process";
-import { existsSync, readdirSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, linkSync, mkdirSync, mkdtempSync, readdirSync, readlinkSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { createServer } from "node:net";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
@@ -58,6 +58,40 @@ export function construirSiHaceFalta(): void {
     const e = error as { stderr?: Buffer; stdout?: Buffer };
     throw new Error(`\`astro build\` falló:\n${e.stdout?.toString() ?? ""}\n${e.stderr?.toString() ?? ""}`);
   }
+}
+
+/**
+ * Una copia propia de la salida para un emulador, con enlaces duros (no copia
+ * bytes: 600 archivos en milisegundos). `astro build` VACÍA `.vercel/output` y
+ * la vuelve a escribir: un emulador que sirviera la original cargaba sus trozos
+ * diferidos de una carpeta vacía o con otros nombres y respondía 500
+ * (`ERR_MODULE_NOT_FOUND`), o terminaba con código 1 si arrancaba a media
+ * reconstrucción (O6 de c-seguridad de `migrar-panel-admin-base-astro`). Los
+ * enlaces conservan los archivos que el build borra. Vive en `.vercel/` (mismo
+ * disco, fuera de lo que el build vacía, ignorado por git).
+ */
+function copiaDeLaSalida(): string {
+  const carpeta = path.join(raiz, ".vercel/salidas-de-pruebas");
+  mkdirSync(carpeta, { recursive: true });
+  const copia = mkdtempSync(path.join(carpeta, "emulador-"));
+  const enlazar = (origen: string, destino: string): void => {
+    for (const entrada of readdirSync(origen, { withFileTypes: true })) {
+      const de = path.join(origen, entrada.name);
+      const a = path.join(destino, entrada.name);
+      if (entrada.isDirectory()) {
+        mkdirSync(a);
+        enlazar(de, a);
+      } else if (entrada.isSymbolicLink()) symlinkSync(readlinkSync(de), a);
+      else linkSync(de, a);
+    }
+  };
+  try {
+    enlazar(path.join(raiz, ".vercel/output"), copia);
+  } catch (error) {
+    rmSync(copia, { recursive: true, force: true });
+    throw new Error(`no se pudo copiar \`.vercel/output\` (¿se está reconstruyendo en otro proceso?): ${String(error)}`);
+  }
+  return copia;
 }
 
 export type Emulador = {
@@ -122,6 +156,12 @@ async function levantarEnUnPuerto(
     if (valor === undefined) delete env[clave];
     else env[clave] = valor;
   }
+  // Quien pasa su propia salida (`SALIDA_VERCEL`) la cuida él; si no, una copia propia.
+  const copia = "SALIDA_VERCEL" in entorno ? undefined : copiaDeLaSalida();
+  if (copia) env.SALIDA_VERCEL = copia;
+  const borrarCopia = () => {
+    if (copia) rmSync(copia, { recursive: true, force: true });
+  };
   const importes = precargas.flatMap((archivo) => ["--import", pathToFileURL(path.resolve(raiz, archivo)).href]);
   const proceso: ChildProcess = spawn(process.execPath, [...importes, path.join(raiz, "scripts/servir-salida-vercel.mjs")], {
     cwd: raiz,
@@ -144,6 +184,7 @@ async function levantarEnUnPuerto(
     });
     proceso.on("exit", (codigo) => {
       clearTimeout(tiempo);
+      borrarCopia();
       falla(new Error(`el emulador terminó (${codigo}):\n${registro.slice(-2000)}`));
     });
   });
@@ -152,6 +193,9 @@ async function levantarEnUnPuerto(
     base,
     pedir: (ruta, init = {}) => fetch(`${base}${ruta}`, { redirect: "manual", ...init }),
     registro: () => registro,
-    detener: () => proceso.kill(),
+    detener: () => {
+      proceso.kill();
+      borrarCopia();
+    },
   };
 }

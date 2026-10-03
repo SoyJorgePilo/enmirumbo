@@ -2,7 +2,8 @@
  * Las Actions del sitio (change `migrar-formularios-publicos-astro`, Fase 3a;
  * `registrar`, change `migrar-registro-astro`, Fase 3b-1; `confirmar` y
  * `reenviar`, change `migrar-verificacion-sms-astro`, Fase 3b-2; `editar`,
- * change `migrar-enlace-gestion-astro`, Fase 4).
+ * change `migrar-enlace-gestion-astro`, Fase 4; `entrar` y `salir`, change
+ * `migrar-panel-admin-base-astro`, Fase 5a).
  *
  * Cada una corre SOLO por envío de formulario (`?_action=<nombre>`) y SOLO
  * desde la ruta que le asigna la tabla de `src/astro/acciones.ts`: el
@@ -20,6 +21,7 @@
 import { defineAction } from "astro:actions";
 
 import { editarDesdeElFormulario } from "@/astro/editar";
+import { entrarDesdeElFormulario, salirDesdeElFormulario } from "@/astro/panel/acceso";
 import { registrarDesdeElFormulario } from "@/astro/registro";
 import { reportarDesdeElFormulario } from "@/astro/reportar";
 import { confirmarDesdeElFormulario, reenviarDesdeElFormulario } from "@/astro/verificar";
@@ -45,5 +47,14 @@ export const server = {
   editar: defineAction({
     accept: "form",
     handler: (formData, contexto) => editarDesdeElFormulario(formData, contexto),
+  }),
+  // 5a (change `migrar-panel-admin-base-astro`): el acceso al panel.
+  entrar: defineAction({
+    accept: "form",
+    handler: (formData, contexto) => entrarDesdeElFormulario(formData, contexto),
+  }),
+  salir: defineAction({
+    accept: "form",
+    handler: (_formData, contexto) => salirDesdeElFormulario(contexto),
   }),
 };

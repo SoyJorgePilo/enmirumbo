@@ -4,79 +4,16 @@
  * Server Action del acceso al panel (spec `revision-admin`, requirement
  * "Acceso al panel con contraseña única de entorno y sesión firmada").
  *
- * Es deliberadamente delgada: la comparación en tiempo constante vive en
- * `src/lib/admin/acceso.ts`, la firma de la sesión en
- * `src/lib/admin/sesion.ts` y el fail-safe en `src/lib/admin/config.ts`.
- *
- * NADA de lo que pasa por aquí —ni la contraseña configurada, ni la que se
- * intentó, ni el valor de la cookie— se escribe en el log. Los mensajes de
- * error viajan por la URL como un código corto (`?error=…`) y la pantalla de
- * acceso los traduce a los textos literales de la spec.
+ * Envoltorio de Next (change `migrar-panel-admin-base-astro`, design.md
+ * §2.3): la lógica —fail-safe, límite de intentos, comparación, cookie— vive
+ * en `src/lib/admin/entrar.ts`, sin Next, y la comparte la Action `entrar` de
+ * Astro. Aquí solo se traduce el destino a `redirect()`. Se retira en T-027.
  */
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
-import {
-  apartarIntentoDeAcceso,
-  avisarSiElLimiteDeAccesoNoAplica,
-  contrasenaCorrecta,
-} from "@/lib/admin/acceso";
-import { leerConfiguracionPanel, motivoSinConfigurar } from "@/lib/admin/config";
-import { RUTA_ACCESO_ADMIN, RUTA_COLA_ADMIN, sirviendoPorHttps } from "@/lib/admin/guarda";
-import {
-  NOMBRE_COOKIE_SESION,
-  crearValorDeSesion,
-  opcionesCookieSesion,
-} from "@/lib/admin/sesion";
-import { ipDeEncabezados } from "@/lib/registro/limite-ip";
+import { ejecutarAcceso } from "@/lib/admin/entrar";
 
 export async function entrarAlPanel(formData: FormData): Promise<void> {
-  const configuracion = leerConfiguracionPanel();
-  if (!configuracion) {
-    // El detalle de qué falta se queda SOLO en el log del servidor: a quien
-    // está afuera no se le dice si falta la contraseña o el secreto.
-    console.warn(`[panel] acceso imposible, ${motivoSinConfigurar()}`);
-    redirect(RUTA_ACCESO_ADMIN);
-  }
-
-  const encabezados = await headers();
-  // Misma política endurecida que el cupo del formulario público (T-003): solo
-  // se confía en el encabezado que declara el despliegue, y de él se toma el
-  // último salto, que es el que agrega el proxy más cercano. Si no hay IP
-  // atribuible, el límite no aplica y se dice en el log (no en silencio).
-  const ip = ipDeEncabezados(encabezados);
-  avisarSiElLimiteDeAccesoNoAplica(ip);
-
-  // El intento se aparta ANTES de comparar, y en un solo paso atómico: si la
-  // procedencia agotó su margen, ni la contraseña correcta abre el panel
-  // dentro de la ventana. Preguntar primero y apuntar después deja una ventana
-  // por la que se cuelan las peticiones simultáneas, que es exactamente lo que
-  // hace una herramienta de fuerza bruta.
-  //
-  // Se apunta SIEMPRE, no solo cuando la contraseña falla: el atacante controla
-  // cuántas veces prueba, no si acierta, y contar solo los fallos le regala un
-  // intento gratis por cada acierto. Al admin que teclea bien a la primera no
-  // le cuesta nada: entra y la ventana se olvida sola.
-  const hayMargen = await apartarIntentoDeAcceso(ip, configuracion.secreto);
-  if (!hayMargen) {
-    console.warn("[panel] acceso rechazado: demasiados intentos desde esta procedencia");
-    redirect(`${RUTA_ACCESO_ADMIN}?error=intentos`);
-  }
-
-  const enviado = formData.get("contrasena");
-  const intento = typeof enviado === "string" ? enviado : "";
-
-  if (!contrasenaCorrecta(intento, configuracion.contrasena)) {
-    console.warn("[panel] acceso rechazado: contraseña incorrecta");
-    redirect(`${RUTA_ACCESO_ADMIN}?error=incorrecta`);
-  }
-
-  const almacen = await cookies();
-  almacen.set(
-    NOMBRE_COOKIE_SESION,
-    crearValorDeSesion(configuracion.secreto),
-    opcionesCookieSesion(await sirviendoPorHttps()),
-  );
-
-  redirect(RUTA_COLA_ADMIN);
+  redirect((await ejecutarAcceso(formData, await headers(), await cookies())).ruta);
 }

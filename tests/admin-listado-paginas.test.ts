@@ -2,18 +2,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("next/headers", async () => {
-  const simulado = await import("./admin-mocks");
-  return { cookies: simulado.cookies, headers: simulado.headers };
-});
-vi.mock("next/navigation", async () => {
-  const simulado = await import("./admin-mocks");
-  return { redirect: simulado.redirect, notFound: simulado.notFound };
-});
-
 import { seedCatalogos } from "../prisma/seed";
-import ColaAdminPage from "../src/app/admin/cola/page";
-import NegociosAdminPage, { metadata as metadataNegocios } from "../src/app/admin/negocios/page";
 import { FiltrosListadoNegocios } from "../src/components/admin/filtros-listado-negocios";
 import { PaginacionListadoNegocios } from "../src/components/admin/paginacion-listado-negocios";
 import { RenglonListadoNegocio } from "../src/components/admin/renglon-listado-negocio";
@@ -44,8 +33,9 @@ import {
   textoConteoNegociosListado,
   textoPaginaDe,
 } from "../src/lib/admin/textos";
-import { peticion, reiniciarPeticion, urlDeRedireccion } from "./admin-mocks";
+import { peticion, reiniciarPeticion } from "./admin-mocks";
 import { crearClientePrueba } from "./db";
+import { abrirPantallaDelPanel, respuestaDelPanel, urlDeRedireccionDelPanel } from "./panel-paginas";
 
 // Spec: revision-admin (change `agregar-listado-gestion-panel`) · Requirements
 // de la vista, del filtro, de la paginación, de la entrada desde la cola y de
@@ -94,19 +84,12 @@ function conSesion() {
   peticion.cookies[NOMBRE_COOKIE_SESION] = crearValorDeSesion(SECRETO);
 }
 
-async function render(pagina: Promise<React.ReactElement> | React.ReactElement) {
-  const resuelta = await pagina;
-  return renderToStaticMarkup(createElement(() => resuelta));
-}
-
-/** Abre `/admin/negocios` con el querystring que se le dé. */
-const abrirListado = (searchParams: Record<string, string | string[]> = {}) =>
-  render(
-    NegociosAdminPage({
-      params: Promise.resolve({}),
-      searchParams: Promise.resolve(searchParams),
-    } as unknown as Parameters<typeof NegociosAdminPage>[0]),
-  );
+/**
+ * Abre `/admin/negocios` (la página de Astro, change
+ * `migrar-panel-admin-base-astro`) con el querystring que se le dé; devuelve
+ * lo que pinta dentro de `<main>`.
+ */
+const abrirListado = (searchParams: Record<string, string | string[]> = {}) => abrirPantallaDelPanel("negocios", searchParams);
 
 async function alta(datos: {
   nombre: string;
@@ -357,9 +340,7 @@ describe("revision-admin · el listado hereda el acceso del panel", () => {
       diasAtras: 1,
     });
 
-    const destino = await urlDeRedireccion(() =>
-      abrirListado(searchParams as Record<string, string | string[]>),
-    );
+    const destino = await urlDeRedireccionDelPanel("negocios", searchParams as Record<string, string | string[]>);
     expect(destino).toBe("/admin");
     expect(destino).not.toContain("Refaccionaria");
     expect(destino).not.toContain("negocio");
@@ -367,7 +348,7 @@ describe("revision-admin · el listado hereda el acceso del panel", () => {
 
   it("una cookie manipulada vale lo mismo que ninguna", async () => {
     peticion.cookies[NOMBRE_COOKIE_SESION] = `${Date.now() + 100000}.firma-inventada`;
-    expect(await urlDeRedireccion(() => abrirListado())).toBe("/admin");
+    expect(await urlDeRedireccionDelPanel("negocios")).toBe("/admin");
   });
 
   // Scenario: listado con el panel sin configurar
@@ -378,7 +359,7 @@ describe("revision-admin · el listado hereda el acceso del panel", () => {
       delete process.env[variable];
       try {
         conSesion();
-        expect(await urlDeRedireccion(() => abrirListado())).toBe("/admin");
+        expect(await urlDeRedireccionDelPanel("negocios")).toBe("/admin");
       } finally {
         process.env[variable] = guardada;
       }
@@ -386,8 +367,10 @@ describe("revision-admin · el listado hereda el acceso del panel", () => {
   );
 
   // Scenario: el listado no se indexa ni se enlaza
-  it("declara noindex, nofollow", () => {
-    expect(metadataNegocios.robots).toEqual({ index: false, follow: false });
+  it("declara noindex, nofollow", async () => {
+    conSesion();
+    const { documento } = await respuestaDelPanel("negocios");
+    expect(documento).toContain('<meta name="robots" content="noindex, nofollow">');
   });
 
   // Scenario: sin JS de cliente propio
@@ -396,13 +379,14 @@ describe("revision-admin · el listado hereda el acceso del panel", () => {
     const { join } = await import("node:path");
     const raiz = join(__dirname, "..");
     for (const ruta of [
-      "src/app/admin/negocios/page.tsx",
+      "src/pages/admin/negocios.astro",
       "src/components/admin/renglon-listado-negocio.tsx",
       "src/components/admin/filtros-listado-negocios.tsx",
       "src/components/admin/paginacion-listado-negocios.tsx",
       "src/lib/admin/listado-parametros.ts",
     ]) {
       expect(readFileSync(join(raiz, ruta), "utf8"), ruta).not.toContain("use client");
+      expect(readFileSync(join(raiz, ruta), "utf8"), ruta).not.toMatch(/\sclient:[a-z]+/);
     }
   });
 });
@@ -769,7 +753,7 @@ describe("revision-admin · la cola enlaza al listado y no cambia en nada más",
   // Scenario: entrar al listado desde la cola
   it("la cola ofrece 'Ver todos los negocios' hacia el listado sin filtro", async () => {
     await sembrar(2);
-    const html = normalizado(await render(ColaAdminPage()));
+    const html = normalizado(await abrirPantallaDelPanel("cola"));
     expect(html).toContain(TEXTO_VER_TODOS_LOS_NEGOCIOS);
     expect(html).toContain('href="/admin/negocios"');
     expect(html).not.toContain('href="/admin/negocios?');
@@ -786,7 +770,7 @@ describe("revision-admin · la cola enlaza al listado y no cambia en nada más",
       estado: "publicado",
     });
 
-    const html = normalizado(await render(ColaAdminPage()));
+    const html = normalizado(await abrirPantallaDelPanel("cola"));
     expect(html).toContain("Registros por revisar");
     expect(html.indexOf("Ficticio viejo")).toBeLessThan(html.indexOf("Ficticio nuevo"));
     // La cola sigue siendo solo pendientes: el publicado no se coló.

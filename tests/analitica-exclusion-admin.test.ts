@@ -19,12 +19,9 @@ vi.mock("next/navigation", async () => {
 import { seedCatalogos } from "../prisma/seed";
 import { sembrarNegociosDemo } from "../prisma/seed-demo";
 import LayoutPublico from "../src/app/(publico)/layout";
-import LayoutPanel, { metadata as metadataPanel } from "../src/app/admin/layout";
-import ColaAdminPage, { metadata as metadataCola } from "../src/app/admin/cola/page";
-import NegociosAdminPage, {
-  metadata as metadataNegocios,
-} from "../src/app/admin/negocios/page";
-import AccesoAdminPage, { metadata as metadataAcceso } from "../src/app/admin/page";
+import { METADATOS_ACCESO, METADATOS_COLA, METADATOS_NEGOCIOS } from "../src/astro/panel/metadatos";
+import DocumentoPanel from "../src/layouts/DocumentoPanel.astro";
+import ComodinDelPanel from "../src/pages/admin/[...resto].astro";
 import DetalleRegistroAdminPage, {
   metadata as metadataDetalle,
 } from "../src/app/admin/registros/[id]/page";
@@ -44,7 +41,9 @@ import {
 import { VARIABLE_SRC, VARIABLE_WEBSITE_ID } from "../src/lib/analitica/config";
 import { NOMBRE_COOKIE_SESION, crearValorDeSesion } from "../src/lib/admin/sesion";
 import { peticion, reiniciarPeticion } from "./admin-mocks";
+import { pintarPagina, pintarRespuesta } from "./astro-paginas";
 import { crearClientePrueba } from "./db";
+import { respuestaDelPanel } from "./panel-paginas";
 
 // Spec: layout-base · requirement "El panel del admin queda fuera de la
 // medición" (tasks.md #8). La exclusión es estructural: el script lo inyecta
@@ -96,21 +95,16 @@ beforeAll(async () => {
     } as never),
   );
 
+  // Desde 5a (change `migrar-panel-admin-base-astro`) el acceso, la cola y el
+  // listado son de Astro: se mira el DOCUMENTO entero que sirven.
   reiniciarPeticion();
-  htmlAdmin.acceso = await render(
-    AccesoAdminPage({ params: Promise.resolve({}), searchParams: Promise.resolve({}) }),
-  );
+  htmlAdmin.acceso = (await respuestaDelPanel("acceso")).documento;
 
   peticion.cookies[NOMBRE_COOKIE_SESION] = crearValorDeSesion(SECRETO_PANEL);
-  htmlAdmin.cola = await render(ColaAdminPage());
+  htmlAdmin.cola = (await respuestaDelPanel("cola")).documento;
   // El listado "Todos los negocios" (change `agregar-listado-gestion-panel`)
   // es una pantalla más del panel: tampoco puede colar medición.
-  htmlAdmin.negocios = await render(
-    NegociosAdminPage({
-      params: Promise.resolve({}),
-      searchParams: Promise.resolve({}),
-    } as never),
-  );
+  htmlAdmin.negocios = (await respuestaDelPanel("negocios")).documento;
   htmlAdmin.detalle = await render(
     DetalleRegistroAdminPage({
       params: Promise.resolve({ id: enRevision.id }),
@@ -182,6 +176,10 @@ describe("layout-base · el panel del admin queda fuera de la medición (tasks #
     // Sube con cada pantalla nueva del panel: 7 desde el listado "Todos los
     // negocios" (change `agregar-listado-gestion-panel`, tasks.md #11).
     expect(paginasBajo(join(raiz, "src/app/admin")).length).toBeGreaterThanOrEqual(7);
+    // 5a: las del panel en Astro tampoco usan el tronco medido.
+    const deAstro = archivosDe(join(raiz, "src/pages/admin"));
+    expect(deAstro.length).toBeGreaterThanOrEqual(4);
+    for (const pagina of deAstro) expect(readFileSync(pagina, "utf8"), pagina).not.toMatch(/TroncoPublico|ScriptAnalitica/);
   });
 
   it("el script se renderiza desde un único archivo, y es el layout del grupo", () => {
@@ -215,15 +213,17 @@ describe("layout-base · el panel del admin queda fuera de la medición (tasks #
 
   // El panel SÍ tiene layout propio desde el hallazgo A-1 (corta el
   // referente). Lo que importa es que ese layout no cuele medición.
-  it("el layout del panel no renderiza el script ni ningún atributo de evento", () => {
-    const layoutPanel = readFileSync(join(raiz, "src/app/admin/layout.tsx"), "utf8");
+  // Desde 5a el documento del panel es `DocumentoPanel.astro` (lo que era
+  // `src/app/admin/layout.tsx`): envuelve al documento base, no al tronco.
+  it("el layout del panel no renderiza el script ni ningún atributo de evento", async () => {
+    const layoutPanel = readFileSync(join(raiz, "src/layouts/DocumentoPanel.astro"), "utf8");
     expect(layoutPanel).not.toContain("ScriptAnalitica");
     expect(layoutPanel).not.toContain("umami");
-    expect(renderToStaticMarkup(
-      createElement(LayoutPanel, {
-        children: createElement("p", null, "pantalla del panel"),
-      } as never),
-    )).toBe("<p>pantalla del panel</p>");
+    expect(layoutPanel).not.toMatch(/<TroncoPublico\b/);
+    const html = await pintarPagina(DocumentoPanel, { ruta: "/admin", slots: { default: "<p>pantalla del panel</p>" } });
+    expect(html).toContain("<p>pantalla del panel</p>");
+    expect(html).not.toMatch(/<script\b/);
+    expect(html).not.toContain("umami");
   });
 });
 
@@ -250,11 +250,17 @@ describe("layout-base · el panel del admin queda fuera de la medición (tasks #
 //   es el elegido (además no manda referente al bajar de https a http).
 // ───────────────────────────────────────────────────────────────────────────
 
-/** Pantallas del panel con la metadata que exporta cada una. */
+/**
+ * La política del documento del panel en Astro (`DocumentoPanel.astro`, 5a):
+ * la que fija para TODA pantalla, sin que una página pueda cambiarla.
+ */
+const POLITICA_DEL_PANEL = /referrer: "([^"]*)"/.exec(readFileSync(join(raiz, "src/layouts/DocumentoPanel.astro"), "utf8"))?.[1];
+
+/** Pantallas del panel con la metadata que exporta cada una (las de 5a, la de Astro). */
 const PANTALLAS_DEL_PANEL = {
-  acceso: metadataAcceso,
-  cola: metadataCola,
-  negocios: metadataNegocios,
+  acceso: METADATOS_ACCESO,
+  cola: METADATOS_COLA,
+  negocios: METADATOS_NEGOCIOS,
   detalle: metadataDetalle,
   aprobado: metadataAprobado,
   rechazado: metadataRechazado,
@@ -268,7 +274,7 @@ const PANTALLAS_DEL_PANEL = {
  * el HTML servido de las seis pantallas (con sesión firmada) al implementar.
  */
 function metaReferrerServida(metadataPagina: { referrer?: unknown }): string {
-  const politica = metadataPagina.referrer ?? metadataPanel.referrer;
+  const politica = metadataPagina.referrer ?? POLITICA_DEL_PANEL;
   return `<meta name="referrer" content="${String(politica)}">`;
 }
 
@@ -290,8 +296,14 @@ const POLITICAS_PROHIBIDAS = [
 
 describe("layout-base · el panel no filtra sus URLs por el referente (A-1/A-2)", () => {
   it("el layout del panel declara una política que oculta la ruta y conserva el Origin", () => {
-    expect(POLITICAS_ACEPTABLES).toContain(metadataPanel.referrer);
-    expect(POLITICAS_PROHIBIDAS).not.toContain(metadataPanel.referrer);
+    expect(POLITICAS_ACEPTABLES).toContain(POLITICA_DEL_PANEL);
+    expect(POLITICAS_PROHIBIDAS).not.toContain(POLITICA_DEL_PANEL);
+  });
+
+  // 5a: lo que de verdad se sirve —el `<head>` de las pantallas de Astro—, no
+  // solo la regla de herencia.
+  it.each(["acceso", "cola", "negocios"])("el documento servido de la pantalla %s lleva la meta", (pantalla) => {
+    expect(htmlAdmin[pantalla]).toContain(`<meta name="referrer" content="${POLITICA_DEL_PANEL}">`);
   });
 
   it.each(Object.keys(PANTALLAS_DEL_PANEL))(
@@ -301,7 +313,7 @@ describe("layout-base · el panel no filtra sus URLs por el referente (A-1/A-2)"
         pantalla as keyof typeof PANTALLAS_DEL_PANEL
       ] as { referrer?: unknown };
       expect(metaReferrerServida(metadataPagina)).toBe(
-        `<meta name="referrer" content="${metadataPanel.referrer}">`,
+        `<meta name="referrer" content="${POLITICA_DEL_PANEL}">`,
       );
       // Ninguna pantalla puede cambiar la política por su cuenta: o no la
       // define (y hereda la del layout), o define una de las aceptables.
@@ -310,6 +322,10 @@ describe("layout-base · el panel no filtra sus URLs por el referente (A-1/A-2)"
   );
 
   it("las páginas del panel no cambian la política en su código", () => {
+    // 5a: en Astro la fija solo `DocumentoPanel.astro`; ninguna página la declara.
+    for (const ruta of archivosDe(join(raiz, "src/pages/admin"))) {
+      expect(readFileSync(ruta, "utf8"), ruta).not.toMatch(/referrer/);
+    }
     for (const ruta of archivosDe(join(raiz, "src/app/admin"))) {
       const codigo = readFileSync(ruta, "utf8");
       const declaraciones = [...codigo.matchAll(/referrer:\s*"([^"]*)"/g)].map((m) => m[1]);
@@ -373,8 +389,9 @@ describe("layout-base · el panel no filtra sus URLs por el referente (A-1/A-2)"
 
   it("el panel deja escrito por qué el valor no es intercambiable", () => {
     // Sin el motivo al lado, el siguiente que pase "endurece" a `no-referrer`
-    // y vuelve a romper el panel sin JavaScript.
-    const layoutPanel = readFileSync(join(raiz, "src/app/admin/layout.tsx"), "utf8");
+    // y vuelve a romper el panel sin JavaScript. Desde 5a, en el documento
+    // del panel de Astro.
+    const layoutPanel = readFileSync(join(raiz, "src/layouts/DocumentoPanel.astro"), "utf8");
     expect(layoutPanel).toContain("Origin: null");
     expect(layoutPanel).toContain("Server Action");
     expect(layoutPanel).toContain("sin JavaScript");
@@ -383,25 +400,30 @@ describe("layout-base · el panel no filtra sus URLs por el referente (A-1/A-2)"
   // O-1: una URL inexistente bajo /admin también lleva un identificador de
   // registro (`/admin/registros/<id>/loquesea`). Antes respondía 404 sin
   // pasar por el layout del panel, así que salía sin política.
-  it("las URLs inexistentes del panel también quedan bajo la política", () => {
-    const comodin = join(raiz, "src/app/admin/[...resto]/page.tsx");
+  // Desde 5a el comodín es `src/pages/admin/[...resto].astro`, dentro del
+  // documento del panel (`NoEncontradoDelPanel`).
+  it("las URLs inexistentes del panel también quedan bajo la política", async () => {
+    const comodin = join(raiz, "src/pages/admin/[...resto].astro");
     expect(existsSync(comodin), "falta la ruta comodín del panel").toBe(true);
     const codigo = readFileSync(comodin, "utf8");
     // Responde 404 de verdad (no una pantalla 200 disfrazada)…
-    expect(codigo).toContain("notFound()");
+    expect(codigo).toContain("Astro.response.status = 404");
     // …y no enseña, lee ni escribe nada.
     expect(codigo).not.toContain("obtenerPrisma");
     expect(codigo).not.toContain("@/lib/admin/consultas");
-    expect(codigo).not.toContain("return"); // no pinta ninguna pantalla
+    expect(codigo).not.toContain("return"); // no pinta ninguna pantalla propia
+    const { status, html } = await pintarRespuesta(ComodinDelPanel, { ruta: "/admin/registros/c5aficticio000000000000001/loquesea" });
+    expect(status).toBe(404);
+    expect(html).toContain(`<meta name="referrer" content="${POLITICA_DEL_PANEL}">`);
   });
 
   it("la ruta comodín del panel no puede pisar una pantalla real", () => {
-    // En Next el segmento estático le gana al comodín, pero si alguien
-    // moviera el comodín hacia arriba se comería el sitio entero.
-    const comodines = archivosDe(join(raiz, "src/app"))
+    // El segmento estático le gana al comodín, pero si alguien moviera el
+    // comodín hacia arriba se comería el sitio entero.
+    const comodines = archivosDe(join(raiz, "src/pages"))
       .filter((ruta) => ruta.includes("[..."))
       .map((ruta) => ruta.slice(raiz.length));
-    expect(comodines).toEqual(["/src/app/admin/[...resto]/page.tsx"]);
+    expect(comodines).toEqual(["/src/pages/admin/[...resto].astro"]);
   });
 
   it("la política es del panel, no del sitio: lo público no la hereda", () => {
@@ -510,7 +532,12 @@ const EXCLUSIONES_DE_ASTRO: Array<[string, string]> = [
   // Change `migrar-directorio-publico-astro` (2b, design.md §1): la 404 de
   // `/[destino]` y `/negocio/[ficha]`. Las URLs de fichas no publicadas llevan
   // el nombre del negocio; hoy tampoco se miden.
+  // Change `migrar-panel-admin-base-astro` (5a, design.md §5): la 404 del
+  // panel y el documento del panel. Toda página de `src/pages/admin/` queda
+  // fuera POR este documento (no por una lista de páginas).
+  ["src/astro/componentes/NoEncontradoDelPanel.astro", "la 404 del panel (O-1; 5a)"],
   ["src/astro/componentes/NoEncontradoDinamico.astro", "la 404 de las rutas dinámicas (alternativa B, M-1)"],
+  ["src/layouts/DocumentoPanel.astro", "el documento de toda pantalla del panel (5a)"],
   // Change `migrar-enlace-gestion-astro` (Fase 4, design.md §2): el tronco de
   // las pantallas del enlace de gestión. La ruta ES la credencial de la ficha
   // y el tracker manda el `pathname` (hallazgo ALTO 1 de T-014).
@@ -525,6 +552,12 @@ function usaTroncoDeGestion(ruta: string, fuente: string): boolean {
   return ruta.startsWith(`${CARPETA_DE_GESTION}/`) && /<TroncoGestion\b/.test(fuente);
 }
 
+/** El documento del panel (y su 404): solo valen dentro de `src/pages/admin/`. */
+const DOCUMENTO_DEL_PANEL = /<DocumentoPanel\b|<NoEncontradoDelPanel\b/;
+
+/** ¿La página es del panel? (primer segmento `admin` bajo la carpeta de páginas) */
+const esPaginaDelPanel = (rutaPages: string, ruta: string) => ruta.slice(rutaPages.length + 1).split("/")[0] === "admin";
+
 /**
  * Componentes `.astro` de `rutaAstro` que pintan un DOCUMENTO (usan
  * `DocumentoBase` o abren `<html>`) sin el tronco y sin decir por qué (2b:
@@ -536,23 +569,12 @@ export function componentesAstroSinMotivo(rutaAstro: string): string[] {
     .filter((ruta) => ruta.endsWith(".astro"))
     .filter((ruta) => {
       const fuente = readFileSync(ruta, "utf8");
-      if (!/<DocumentoBase\b|<html\b/.test(fuente)) return false;
+      if (!/<DocumentoBase\b|<DocumentoPanel\b|<html\b/.test(fuente)) return false;
       if (/<TroncoPublico\b/.test(fuente)) return false;
       const frontmatter = fuente.split("---")[1] ?? "";
-      return !(/<DocumentoBase\b/.test(fuente) && MOTIVO_DE_EXCLUSION.test(frontmatter));
+      return !(/<DocumentoBase\b|<DocumentoPanel\b/.test(fuente) && MOTIVO_DE_EXCLUSION.test(frontmatter));
     })
     .map((ruta) => ruta.slice(raiz.length + 1));
-}
-
-/** Troncos de `src/layouts/` que pintan el documento sin el tronco medido (Fase 4: `TroncoGestion`). */
-function troncosFueraDeLaMedicion(): string[] {
-  return archivosDe(join(raiz, "src/layouts"))
-    .filter((ruta) => ruta.endsWith(".astro"))
-    .filter((ruta) => {
-      const fuente = readFileSync(ruta, "utf8");
-      // `TroncoPublico` también envuelve al documento, pero pinta la medición.
-      return /<DocumentoBase\b/.test(fuente) && !/<ScriptAnalitica\b/.test(fuente);
-    });
 }
 
 /** Componentes `.astro` de `src/astro/` que pintan un documento fuera del tronco. */
@@ -561,7 +583,24 @@ function documentosDeSrcAstro(): string[] {
     .filter((ruta) => ruta.endsWith(".astro"))
     .filter((ruta) => {
       const fuente = readFileSync(ruta, "utf8");
-      return /<DocumentoBase\b|<html\b/.test(fuente) && !/<TroncoPublico\b/.test(fuente);
+      return /<DocumentoBase\b|<DocumentoPanel\b|<html\b/.test(fuente) && !/<TroncoPublico\b/.test(fuente);
+    });
+}
+
+/**
+ * Documentos de `src/layouts/` que envuelven al documento base fuera de la
+ * medición. Une los dos criterios: el de 5a (todo layout con `DocumentoBase`
+ * que no sea `TroncoPublico`: el del panel) y el de la Fase 4 (todo layout con
+ * `DocumentoBase` sin `ScriptAnalitica`: el de gestión). Así ni un segundo
+ * tronco medido ni un `TroncoPublico` que perdiera el script pasan callados.
+ */
+function documentosDeLayouts(): string[] {
+  return archivosDe(join(raiz, "src/layouts"))
+    .filter((ruta) => ruta.endsWith(".astro"))
+    .filter((ruta) => {
+      const fuente = readFileSync(ruta, "utf8");
+      if (!/<DocumentoBase\b/.test(fuente)) return false;
+      return !ruta.endsWith("/TroncoPublico.astro") || !/<ScriptAnalitica\b/.test(fuente);
     });
 }
 
@@ -575,6 +614,8 @@ export function paginasAstroSinMotivo(rutaPages: string): string[] {
       if (/<TroncoPublico\b/.test(fuente)) return false;
       // Fase 4: una pantalla del enlace con el tronco de gestión (el motivo vive en el tronco).
       if (usaTroncoDeGestion(ruta, fuente)) return false;
+      // 5a: el panel queda fuera por su documento, que declara el motivo; fuera de `admin/` no vale.
+      if (esPaginaDelPanel(rutaPages, ruta) && DOCUMENTO_DEL_PANEL.test(fuente)) return false;
       return !(/<DocumentoBase\b/.test(fuente) && MOTIVO_DE_EXCLUSION.test(frontmatter));
     })
     .map((ruta) => ruta.slice(raiz.length + 1));
@@ -589,13 +630,17 @@ describe("plataforma-astro · la medición sigue siendo una propiedad de la estr
   });
 
   it("las páginas fuera del tronco son exactamente las exclusiones declaradas, y existen", () => {
+    const delPanel = paginas.filter((ruta) => esPaginaDelPanel(join(raiz, "src/pages"), ruta));
+    // 5a: cada pantalla del panel usa el documento del panel (o su 404), y por eso no es una exclusión suelta.
+    expect(delPanel.length).toBeGreaterThanOrEqual(4);
+    for (const ruta of delPanel) expect(readFileSync(ruta, "utf8"), ruta).toMatch(DOCUMENTO_DEL_PANEL);
     const fuera = [
       ...paginas.filter((ruta) => {
         const fuente = readFileSync(ruta, "utf8");
-        return !/<TroncoPublico\b/.test(fuente) && !usaTroncoDeGestion(ruta, fuente);
+        return !delPanel.includes(ruta) && !/<TroncoPublico\b/.test(fuente) && !usaTroncoDeGestion(ruta, fuente);
       }),
       ...documentosDeSrcAstro(),
-      ...troncosFueraDeLaMedicion(),
+      ...documentosDeLayouts(),
     ].map((ruta) => ruta.slice(raiz.length + 1));
     expect(fuera).toEqual(EXCLUSIONES_DE_ASTRO.map(([ruta]) => ruta));
     for (const [ruta, porque] of EXCLUSIONES_DE_ASTRO) {
@@ -653,7 +698,11 @@ describe("plataforma-astro · la medición sigue siendo una propiedad de la estr
   it("un componente de src/astro con el documento base y sin motivo reprueba, y se nombra", () => {
     const ejemplo = join(raiz, "tests/fixtures/paginas-sin-motivo");
     // `sin-layout.astro` es un fragmento (no pinta documento): en `src/astro/` eso es un componente normal.
-    expect(componentesAstroSinMotivo(ejemplo)).toEqual(["tests/fixtures/paginas-sin-motivo/sin-motivo.astro"]);
+    // 5a: el documento del panel sin motivo, también.
+    expect(componentesAstroSinMotivo(ejemplo)).toEqual([
+      "tests/fixtures/paginas-sin-motivo/con-documento-del-panel.astro",
+      "tests/fixtures/paginas-sin-motivo/sin-motivo.astro",
+    ]);
   });
 
   it("una página con el documento base y sin motivo reprueba, y se nombra", () => {
@@ -662,6 +711,8 @@ describe("plataforma-astro · la medición sigue siendo una propiedad de la estr
     expect(paginasAstroSinMotivo(ejemplo)).toEqual([
       "tests/fixtures/paginas-sin-motivo/sin-motivo.astro",
       "tests/fixtures/paginas-sin-motivo/sin-layout.astro",
+      // 5a: una página pública con el documento del panel no se salta la medición.
+      "tests/fixtures/paginas-sin-motivo/con-documento-del-panel.astro",
     ].sort());
   });
 

@@ -18,8 +18,8 @@
  * - canónica, robots, `noindex` en toda 404, `charset`, `viewport` e icono;
  * - `referrer` (Fase 4, change `migrar-enlace-gestion-astro`, design.md
  *   §1.2): la `<meta name="referrer">` que Next pinta para un `metadata.referrer`,
- *   en su posición (después de la descripción y antes de `robots`). Solo la
- *   declara el tronco de gestión.
+ *   en su posición (después de la descripción y antes de `robots`). La
+ *   declaran el tronco de gestión y `DocumentoPanel` (5a).
  *
  * La verdad es lo que emite la build de Next: `tests/astro-metadatos.test.ts`
  * compara contra `<head>` capturados de ella.
@@ -149,6 +149,9 @@ export function resolverMetadatos(opciones: OpcionesDeResolucion): Etiqueta[] {
   if (noEncontrado) etiquetas.push(nombre("robots", "noindex"));
   if (titulo) etiquetas.push({ etiqueta: "title", texto: titulo });
   if (descripcion) etiquetas.push(nombre("description", descripcion));
+  // Fase 4 (`TroncoGestion`) y 5a (`DocumentoPanel`, change
+  // `migrar-panel-admin-base-astro`, design.md §5) declaran `referrer`; Next
+  // lo pinta aquí, entre la descripción y `robots`.
   const referente = pagina.referrer ?? sitio.referrer;
   if (typeof referente === "string" && referente) etiquetas.push(nombre("referrer", referente));
   if (robots) etiquetas.push(nombre("robots", robots));

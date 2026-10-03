@@ -223,14 +223,20 @@ describe("gestión · el token no sale por ningún canal", () => {
 describe("gestión · la política de referente del grupo y la medición", () => {
   it("strict-origin en las siete formas de respuesta; la <meta> en las 200; la global en / y /loquesea", async () => {
     const T = s.tokens.envios;
-    const formas: Array<[string, Promise<Response>, boolean]> = [
-      ["GET /editar/T", conSitio.pedir(`/editar/${T}`), true],
-      ["GET /editar/T/gracias", conSitio.pedir(`/editar/${T}/gracias`), true],
-      ["GET /editar/<inventado>", conSitio.pedir(`/editar/${"Z".repeat(43)}`), false],
-      ["303", conSitio.pedir(`/editar/${T}?_action=editar`, postEdicion(conSitio, "envios", { horario: "forma 303" }, { "x-forwarded-for": "198.51.100.62" })), false],
-      ["200 con errores", conSitio.pedir(`/editar/${T}?_action=editar`, postEdicion(conSitio, "envios", { whatsapp: "1" }, { "x-forwarded-for": "198.51.100.63" })), true],
-      ["403", conSitio.pedir(`/editar/${T}?_action=editar`, postEdicion(conSitio, "envios", {}, { origin: "https://ajeno.example" })), false],
-      ["500", caida.pedir(`/editar/${T}?_action=editar`, postEdicion(caida, "envios")), false],
+    // Una petición a la vez (antes salían las siete juntas): con PGlite
+    // (`prisma dev`) el pool de la función multiplexa UNA sesión y dos envíos
+    // simultáneos mezclan el protocolo ("bind message supplies N parameters,
+    // but prepared statement \"\" requires 0") → la 500 de una lectura sana. Lo
+    // que se mide aquí son cabeceras y `<meta>` por forma, no concurrencia
+    // (la ráfaga real vive en `plataforma-astro-gestion-envio`, con PostgreSQL).
+    const formas: Array<[string, () => Promise<Response>, boolean]> = [
+      ["GET /editar/T", () => conSitio.pedir(`/editar/${T}`), true],
+      ["GET /editar/T/gracias", () => conSitio.pedir(`/editar/${T}/gracias`), true],
+      ["GET /editar/<inventado>", () => conSitio.pedir(`/editar/${"Z".repeat(43)}`), false],
+      ["303", () => conSitio.pedir(`/editar/${T}?_action=editar`, postEdicion(conSitio, "envios", { horario: "forma 303" }, { "x-forwarded-for": "198.51.100.62" })), false],
+      ["200 con errores", () => conSitio.pedir(`/editar/${T}?_action=editar`, postEdicion(conSitio, "envios", { whatsapp: "1" }, { "x-forwarded-for": "198.51.100.63" })), true],
+      ["403", () => conSitio.pedir(`/editar/${T}?_action=editar`, postEdicion(conSitio, "envios", {}, { origin: "https://ajeno.example" })), false],
+      ["500", () => caida.pedir(`/editar/${T}?_action=editar`, postEdicion(caida, "envios")), false],
     ];
     const esperados: Record<string, number> = {
       "GET /editar/T": 200,
@@ -241,8 +247,8 @@ describe("gestión · la política de referente del grupo y la medición", () =>
       "403": 403,
       "500": 500,
     };
-    for (const [nombre, promesa, conMeta] of formas) {
-      const r = await promesa;
+    for (const [nombre, pedir, conMeta] of formas) {
+      const r = await pedir();
       expect(r.status, nombre).toBe(esperados[nombre]);
       expect(r.headers.get("referrer-policy"), nombre).toBe("strict-origin");
       const html = await r.text();

@@ -6,7 +6,7 @@
 **Referencias PRD:** v2 §10 (técnica reemplazable); ADR-013
 **Depende de:** T-025
 **OpenSpec change:** `migrar-panel-admin-base-astro` (5a, en review). Propuestos, sin especificar: `migrar-panel-admin-detalle-astro` (5b), `migrar-panel-admin-acciones-ficha-astro` (5c), `migrar-panel-admin-ediciones-astro` (5d)
-**PR:** —
+**PR:** [#42](https://github.com/SoyJorgePilo/enmirumbo/pull/42) (5a, borrador apilado sobre #38)
 
 ## Contexto
 

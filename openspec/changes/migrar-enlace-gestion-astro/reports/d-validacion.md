@@ -99,4 +99,4 @@
   - la regla de la CDN para las formas de B-1;
   - el M1 de 3b-2 (tope de códigos no atómico).
 
-El CI de GitHub Actions debe quedar en verde en el PR; esta validación local no lo sustituye. El merge lo hace un humano, después de #37 y #38.
+**PR [#41](https://github.com/SoyJorgePilo/enmirumbo/pull/41) (borrador):** el check `ci` de GitHub Actions pasó (4m36s). El check `Vercel` falla igual que en #37, #38 y #39: es el `vercel.json` sin `framework: astro`, que corrige #40 (allí pasa). La tarea 19 (preview) espera a #40. El CI de GitHub Actions debe quedar en verde en el PR; esta validación local no lo sustituye. El merge lo hace un humano, después de #37 y #38.

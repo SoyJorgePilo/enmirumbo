@@ -16,6 +16,7 @@ import {
   cuerpoDelEnvio,
   enviarFormulario,
   erroresDelFormulario,
+  indiceDelBoton,
   leerFormulario,
   leerSetCookie,
   resumenDelDesenlace,
@@ -59,6 +60,19 @@ describe("arnés · leer el formulario", () => {
   it("sin method es GET, y sin formulario lanza", () => {
     expect(leerFormulario("<form><input name=q></form>", "https://enmirumbo.example/").metodo).toBe("GET");
     expect(() => leerFormulario("<p>sin formulario</p>", "https://enmirumbo.example/")).toThrow();
+  });
+
+  // 3b-2 (change `migrar-verificacion-sms-astro`, tasks.md #3): la pantalla del
+  // código tiene DOS formularios; el vecino elige uno por el botón que toca.
+  it("elige el formulario por el texto de su botón; sin ese botón lanza", () => {
+    const html = `<form action="?_action=confirmar" method="post"><input name="codigo"><button type="submit">Confirmar mi número</button></form>
+      <form action="?_action=reenviar" method="post"><button type="submit">Reenviar el código</button></form>`;
+    expect(indiceDelBoton(html, "Confirmar mi número")).toBe(0);
+    expect(indiceDelBoton(html, "Reenviar el código")).toBe(1);
+    expect(() => indiceDelBoton(html, "Otro botón")).toThrow(/botón/);
+    expect(leerFormulario(html, "https://enmirumbo.example/registro/verificar?error=vencido", indiceDelBoton(html, "Reenviar el código")).accion).toBe(
+      "https://enmirumbo.example/registro/verificar?_action=reenviar",
+    );
   });
 });
 
@@ -227,5 +241,22 @@ describe("arnés · cookies y desenlace", () => {
       location: "/negocio/x/reportar?error=motivo",
       cookies: [{ nombre: "nu", httponly: "", "max-age": "120", path: "/negocio/x/reportar" }],
     });
+  });
+
+  it("con `boton` envía el formulario de ese botón y lleva la cookie del frasco (3b-2)", async () => {
+    const html = `<form action="?_action=confirmar" method="post"><input name="codigo"><button>Confirmar mi número</button></form>
+      <form action="?_action=reenviar" method="post"><button>Reenviar el código</button></form>`;
+    const pedidos: Array<{ url: string; init: RequestInit }> = [];
+    const pedir = async (url: string | URL | Request, init: RequestInit = {}) => {
+      pedidos.push({ url: String(url), init });
+      if (init.method === "POST") return new Response(null, { status: 303, headers: { location: "/registro/verificar" } });
+      return new Response(html, { status: 200 });
+    };
+    const frasco = new Frasco();
+    frasco.guardar(["nu_paso=abc; Path=/registro/verificar; Max-Age=900; HttpOnly"]);
+    await enviarFormulario({ urlPagina: "https://enmirumbo.example/registro/verificar", boton: "Reenviar el código", frasco, pedir: pedir as typeof fetch });
+    expect(pedidos[1].url).toBe("https://enmirumbo.example/registro/verificar?_action=reenviar");
+    expect((pedidos[1].init.headers as Record<string, string>).cookie).toBe("nu_paso=abc");
+    expect(String(pedidos[1].init.body)).toBe("");
   });
 });

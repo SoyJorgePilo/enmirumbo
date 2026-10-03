@@ -230,8 +230,10 @@ describe("tabla de Actions · fallas antes del manejador", () => {
 
   // 3b-1 (change `migrar-registro-astro`, MODIFIED "Cada Action corre solo…"):
   // la tabla suma `registrar` → `/registro` (lo prueba `registrar-accion`).
-  it("la tabla tiene exactamente reportar y registrar, cada una atada a su ruta", () => {
-    expect(Object.keys(ACCIONES)).toEqual(["reportar", "registrar"]);
+  // 3b-2 (change `migrar-verificacion-sms-astro`): suma `confirmar` y
+  // `reenviar` → `/registro/verificar` (lo prueba `verificar-accion`).
+  it("la tabla tiene exactamente reportar, registrar, confirmar y reenviar, cada una atada a su ruta", () => {
+    expect(Object.keys(ACCIONES)).toEqual(["reportar", "registrar", "confirmar", "reenviar"]);
     expect(ACCIONES.reportar.ruta).toBe("/negocio/[ficha]/reportar");
   });
 });

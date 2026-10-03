@@ -5,7 +5,7 @@ import path from "node:path";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { seedCatalogos } from "../prisma/seed";
-import { GET as barrerFotosHuerfanasRuta } from "../src/app/api/tareas/barrer-fotos-huerfanas/route";
+import { GET as barrerFotosHuerfanasRuta } from "../src/pages/api/tareas/barrer-fotos-huerfanas";
 import type { PrismaClient } from "../src/generated/prisma/client";
 import { directorioDeFotos } from "../src/lib/fotos/almacen";
 import { generarClaveFoto } from "../src/lib/fotos/clave";
@@ -30,12 +30,14 @@ const SECRETO = "otro-secreto-de-pruebas-que-no-sirve-en-ningun-lado";
 let prisma: PrismaClient;
 let categoriaId: number;
 
-const pedir = (encabezados: Record<string, string> = {}) =>
-  barrerFotosHuerfanasRuta(
-    new Request("https://enmirumbo.example/api/tareas/barrer-fotos-huerfanas", {
-      headers: encabezados,
-    }),
-  );
+// El endpoint de Astro (change `migrar-tareas-programadas-astro`), con el
+// contexto mínimo que usa: la petición.
+const pedir = async (encabezados: Record<string, string> = {}): Promise<Response> => {
+  const request = new Request("https://enmirumbo.example/api/tareas/barrer-fotos-huerfanas", {
+    headers: encabezados,
+  });
+  return barrerFotosHuerfanasRuta({ request, url: new URL(request.url), params: {} } as never);
+};
 
 /**
  * Deja en el almacén una foto que no es de ninguna ficha, con fecha vieja: el
@@ -84,12 +86,14 @@ describe("tareas · la puerta del barrido de fotos huérfanas", () => {
     ["sin el prefijo Bearer", SECRETO, SECRETO],
   ])("%s responde como una ruta que no existe", async (_caso, configurado, encabezado) => {
     if (configurado) process.env.CRON_SECRET = configurado;
-    // ITERACIÓN 2 (hallazgo M1): la ruta ya no fabrica un 404 propio de texto
-    // plano —que la delataba frente a cualquier dirección inventada— sino que
-    // delega en `notFound()`, que lanza y sirve LA página 404 del sitio.
-    await expect(pedir(encabezado ? { authorization: encabezado } : {})).rejects.toThrow(
-      /NEXT_HTTP_ERROR_FALLBACK;404/,
-    );
+    // ITERACIÓN 2 (hallazgo M1): la ruta no fabrica un 404 propio de texto
+    // plano —que la delataba frente a cualquier dirección inventada—. En Astro
+    // (change `migrar-tareas-programadas-astro`) es el 404 vacío de
+    // `src/astro/tareas.ts`: el mismo que daba el `notFound()` de Next.
+    const respuesta = await pedir(encabezado ? { authorization: encabezado } : {});
+    expect(respuesta.status).toBe(404);
+    expect(await respuesta.text()).toBe("");
+    expect(respuesta.headers.get("content-type")).toBeNull();
   });
 
   it("con el secreto correcto barre y responde 200 con puros conteos", async () => {
@@ -170,7 +174,8 @@ describe("tareas · el 404 de una tarea no se distingue del de las demás rutas"
    *   ruta que existe y no encuentra → 0 bytes, sin `content-type`
    *
    * Ninguna ruta de este sistema puede emitir el primero (no hay forma de
-   * renderizar esa página desde un Route Handler). Lo que se exige es que
+   * renderizar esa página desde un Route Handler de Next ni desde un endpoint
+   * de Astro). Lo que se exige es que
    * emita el segundo SIN NADA SUYO ENCIMA. Antes de la iteración 2 emitía
    * `Not Found` en texto plano con un `X-Robots-Tag` propio: un escáner
    * separaba las dos rutas de tareas del resto del sitio en una sola pasada.
@@ -178,9 +183,12 @@ describe("tareas · el 404 de una tarea no se distingue del de las demás rutas"
   it("responde igual que la ruta pública de fotos cuando el archivo no está", async () => {
     process.env.CRON_SECRET = SECRETO;
 
-    await expect(pedir({ authorization: "Bearer equivocado" })).rejects.toThrow(
-      /NEXT_HTTP_ERROR_FALLBACK;404/,
-    );
+    const respuesta = await pedir({ authorization: "Bearer equivocado" });
+    expect(respuesta.status).toBe(404);
+    expect(await respuesta.text()).toBe("");
+    expect(respuesta.headers.get("content-type")).toBeNull();
+    // Sin cabeceras propias: las cuatro de seguridad las pone el middleware.
+    expect([...respuesta.headers]).toEqual([]);
 
     // Y la ruta pública de fotos, con una clave que no existe, hace lo mismo:
     // es el 404 "normal" de este sistema, y es al que hay que parecerse.
@@ -201,8 +209,8 @@ describe("tareas · el 404 de una tarea no se distingue del de las demás rutas"
     // Guardián barato: si alguien vuelve a escribir un `new Response("Not
     // Found", …)` en una ruta de tareas, esto lo dice.
     for (const ruta of [
-      "../src/app/api/tareas/purgar-rechazados/route.ts",
-      "../src/app/api/tareas/barrer-fotos-huerfanas/route.ts",
+      "../src/pages/api/tareas/purgar-rechazados.ts",
+      "../src/pages/api/tareas/barrer-fotos-huerfanas.ts",
       "../src/lib/tareas/secreto.ts",
     ]) {
       const fuente = readFileSync(new URL(ruta, import.meta.url), "utf8");

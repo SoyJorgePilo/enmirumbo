@@ -29,10 +29,11 @@ import { almacenDeFotos } from "@/lib/fotos/almacen";
 import { obtenerPrisma } from "@/lib/prisma";
 import { purgarRechazados } from "@/lib/purga/rechazados";
 import {
-  respuestaDeTareaNoExistente,
   secretoDeTareaCorrecto,
   VARIABLE_SECRETO_TAREAS,
 } from "@/lib/tareas/secreto";
+
+import { respuestaDeTareaNoExistente } from "../no-existe";
 
 // Escribe en la base en cada petición: nunca se prerenderiza ni se cachea.
 export const dynamic = "force-dynamic";

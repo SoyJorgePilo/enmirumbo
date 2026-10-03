@@ -570,9 +570,10 @@ describe("plataforma-astro · la medición sigue siendo una propiedad de la estr
   });
 
   // 3b-1 (change `migrar-registro-astro`): las dos pantallas del registro
-  // son el embudo del PRD §10; se miden con sus vistas, como en Next.
-  it("/registro y /registro/gracias van dentro del tronco medido y no son exclusiones", () => {
-    for (const ruta of ["src/pages/registro.astro", "src/pages/registro/gracias.astro"]) {
+  // son el embudo del PRD §10; se miden con sus vistas, como en Next. 3b-2
+  // (change `migrar-verificacion-sms-astro`) suma la pantalla del código.
+  it("/registro, /registro/gracias y /registro/verificar van dentro del tronco medido y no son exclusiones", () => {
+    for (const ruta of ["src/pages/registro.astro", "src/pages/registro/gracias.astro", "src/pages/registro/verificar.astro"]) {
       expect(readFileSync(join(raiz, ruta), "utf8"), ruta).toMatch(/<TroncoPublico\b/);
       expect(EXCLUSIONES_DE_ASTRO.map(([r]) => r), ruta).not.toContain(ruta);
     }

@@ -1,0 +1,123 @@
+{
+  "instancia": "base-caida",
+  "estado": "vacio",
+  "guion": "aceptado",
+  "pasos": [
+    {
+      "nombre": "secreto malo 0",
+      "metodo": "GET",
+      "ruta": "/api/tareas/purgar-rechazados",
+      "comparar": "exacto",
+      "status": 404,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY"
+      },
+      "cuerpo": "",
+      "log": [],
+      "correo": []
+    },
+    {
+      "nombre": "secreto malo 1",
+      "metodo": "GET",
+      "ruta": "/api/tareas/purgar-rechazados",
+      "comparar": "exacto",
+      "status": 404,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY"
+      },
+      "cuerpo": "",
+      "log": [],
+      "correo": []
+    },
+    {
+      "nombre": "secreto malo 2",
+      "metodo": "GET",
+      "ruta": "/api/tareas/purgar-rechazados",
+      "comparar": "exacto",
+      "status": 404,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY"
+      },
+      "cuerpo": "",
+      "log": [],
+      "correo": []
+    },
+    {
+      "nombre": "secreto malo 3",
+      "metodo": "GET",
+      "ruta": "/api/tareas/purgar-rechazados",
+      "comparar": "exacto",
+      "status": 404,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY"
+      },
+      "cuerpo": "",
+      "log": [],
+      "correo": []
+    },
+    {
+      "nombre": "la purga con la base caída",
+      "metodo": "GET",
+      "ruta": "/api/tareas/purgar-rechazados",
+      "comparar": "exacto",
+      "status": 500,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "content-type": "application/json; charset=utf-8",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+        "x-robots-tag": "noindex, nofollow"
+      },
+      "cuerpo": "eyJlcnJvciI6Ik5vIHNlIHB1ZG8gY29tcGxldGFyIGxhIHB1cmdhLiIsImF2aXNvIjoiZmFsbGlkbyJ9",
+      "log": [
+        "[purga] no se pudo completar: PrismaClientKnownRequestError",
+        "[aviso] no se pudo preparar el aviso del día: PrismaClientKnownRequestError"
+      ],
+      "correo": []
+    },
+    {
+      "nombre": "el barrido con la base caída",
+      "metodo": "GET",
+      "ruta": "/api/tareas/barrer-fotos-huerfanas",
+      "comparar": "exacto",
+      "status": 500,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "content-type": "application/json; charset=utf-8",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+        "x-robots-tag": "noindex, nofollow"
+      },
+      "cuerpo": "eyJiYXJyaWRvIjpmYWxzZX0=",
+      "log": [
+        "[fotos] el barrido de huérfanas falló: PrismaClientKnownRequestError"
+      ],
+      "correo": []
+    }
+  ],
+  "despues": {
+    "fichas": [],
+    "archivos": [],
+    "cupos": 0
+  }
+}

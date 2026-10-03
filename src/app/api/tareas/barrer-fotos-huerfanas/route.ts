@@ -23,10 +23,11 @@ import { almacenDeFotos } from "@/lib/fotos/almacen";
 import { barrerFotosHuerfanas } from "@/lib/fotos/huerfanas";
 import { obtenerPrisma } from "@/lib/prisma";
 import {
-  respuestaDeTareaNoExistente,
   secretoDeTareaCorrecto,
   VARIABLE_SECRETO_TAREAS,
 } from "@/lib/tareas/secreto";
+
+import { respuestaDeTareaNoExistente } from "../no-existe";
 
 // Lee el almacén y la base en cada petición: nunca se prerenderiza.
 export const dynamic = "force-dynamic";

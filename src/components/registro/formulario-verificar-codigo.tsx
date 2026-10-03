@@ -26,11 +26,22 @@ const TEXTO_ERROR_REENVIO: Record<ErrorReenvioVerificar, string> = {
   cupo: TEXTO_CUPO_IP_CODIGOS,
 };
 
+/**
+ * El `action` de cada `<form>`: la Server Action de Next (una función) o, en
+ * Astro, la URL de su Action (`"?_action=confirmar"`), a la que el formulario
+ * postea de forma nativa (change `migrar-verificacion-sms-astro`, design.md
+ * §1.3; el mismo cambio que 3a hizo en `FormularioReporte`).
+ */
+type AccionDelFormulario = string | ((formData: FormData) => void | Promise<void>);
+
+/** `method="post"` solo con una URL: con una función, el HTML de Next no cambia. */
+const metodoDe = (accion: AccionDelFormulario) => (typeof accion === "string" ? "post" : undefined);
+
 export type FormularioVerificarCodigoProps = {
-  /** Server Action de `accion-confirmar.ts`, lista para el `action` del form. */
-  accionConfirmar: (formData: FormData) => void | Promise<void>;
-  /** Server Action de `accion-reenviar.ts`. */
-  accionReenviar: (formData: FormData) => void | Promise<void>;
+  /** `accion-confirmar.ts` (Next) o `actions.confirmar.toString()` (Astro). */
+  accionConfirmar: AccionDelFormulario;
+  /** `accion-reenviar.ts` (Next) o `actions.reenviar.toString()` (Astro). */
+  accionReenviar: AccionDelFormulario;
   errorCodigo?: ErrorFormularioVerificar;
   errorReenvio?: ErrorReenvioVerificar;
 };
@@ -52,7 +63,7 @@ export function FormularioVerificarCodigo({
 }: FormularioVerificarCodigoProps) {
   return (
     <div className="flex flex-col gap-6">
-      <form action={accionConfirmar} className="flex flex-col gap-3">
+      <form action={accionConfirmar} method={metodoDe(accionConfirmar)} className="flex flex-col gap-3">
         <div className="flex flex-col gap-1.5">
           <label htmlFor="codigo" className="text-sm font-semibold text-tinta">
             {ETIQUETA_CODIGO_VERIFICAR}
@@ -79,7 +90,7 @@ export function FormularioVerificarCodigo({
         </button>
       </form>
 
-      <form action={accionReenviar} className="flex flex-col gap-2">
+      <form action={accionReenviar} method={metodoDe(accionReenviar)} className="flex flex-col gap-2">
         {errorReenvio && (
           <p role="alert" className="text-sm font-semibold text-tinta">
             ⚠ {TEXTO_ERROR_REENVIO[errorReenvio]}

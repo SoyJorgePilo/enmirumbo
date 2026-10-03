@@ -472,10 +472,13 @@ describe("iteración 2 · las cabeceras globales y la del panel", () => {
     // `strict-origin` no manda ruta ni siquiera dentro del propio sitio;
     // `strict-origin-when-cross-origin` sí la manda en el mismo origen.
     expect(POLITICA_DE_REFERENTE).toBe("strict-origin-when-cross-origin");
-    const layout = await import("node:fs").then((fs) =>
-      fs.readFileSync("src/app/admin/layout.tsx", "utf8"),
-    );
+    // Desde 5a (change `migrar-panel-admin-base-astro`): el documento del
+    // panel de Astro y la cabecera que pone el middleware en todo /admin.
+    const fs = await import("node:fs");
+    const layout = fs.readFileSync("src/layouts/DocumentoPanel.astro", "utf8");
     expect(layout).toMatch(/referrer:\s*"strict-origin"/);
+    const guardia = fs.readFileSync("src/astro/panel/guardia.ts", "utf8");
+    expect(guardia).toMatch(/headers\.set\("referrer-policy", "strict-origin"\)/);
   });
 
   it("toda respuesta lleva las cuatro cabeceras, con su valor exacto", async () => {

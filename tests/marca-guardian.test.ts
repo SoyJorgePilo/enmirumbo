@@ -13,7 +13,8 @@ import {
 import { NOMBRE_DEL_SITIO, TITULO_DEL_SITIO } from "../src/lib/seo/metadata";
 // `/buscar` ya se sirve con Astro (change `migrar-directorio-publico-astro`).
 import { TITULO_BUSCAR } from "../src/astro/buscar";
-import { TITULO_PANEL } from "../src/app/admin/page";
+// 5a (change `migrar-panel-admin-base-astro`): el título del panel lo sirve Astro.
+import { TITULO_PANEL } from "../src/astro/panel/metadatos";
 
 /**
  * Spec: layout-base · requirement "Ninguna superficie del sitio nombra la
@@ -228,5 +229,12 @@ describe("layout-base · las páginas legales y el panel usan la marca vigente e
     expect(texto).toContain("EnMiRumbo");
     expect(texto).not.toMatch(/necesitouno/i);
     expect(texto).not.toMatch(/EnMiRumbo\s+Tizayuca/i);
+  });
+
+  // Mientras la pantalla de Next exista (se retira en T-027), su título y el
+  // de Astro no pueden divergir.
+  it("el título del panel de Astro es el mismo que el de Next", () => {
+    const deNext = /export const TITULO_PANEL = "([^"]+)";/.exec(readFileSync(join(__dirname, "../src/app/admin/page.tsx"), "utf8"))?.[1];
+    expect(deNext).toBe(TITULO_PANEL);
   });
 });

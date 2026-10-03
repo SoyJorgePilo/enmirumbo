@@ -1,21 +1,11 @@
-import { readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import { createElement } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("next/headers", async () => {
-  const simulado = await import("./admin-mocks");
-  return { cookies: simulado.cookies, headers: simulado.headers };
-});
-vi.mock("next/navigation", async () => {
-  const simulado = await import("./admin-mocks");
-  return { redirect: simulado.redirect, notFound: simulado.notFound };
-});
-
-import { entrarAlPanel } from "../src/app/admin/accion-acceso";
-import { salirDelPanel } from "../src/app/admin/accion-salir";
-import AccesoAdminPage from "../src/app/admin/page";
+// Sin simular `next/*` (change `migrar-panel-admin-base-astro`, design.md
+// §2.3): la lógica vive en `src/lib/admin/entrar.ts`, sin Next, y se prueba
+// directo; la pantalla es la de Astro.
+import AccesoAdmin from "../src/pages/admin/index.astro";
 import { reiniciarIntentosDeAcceso, INTENTOS_ACCESO_POR_VENTANA } from "../src/lib/admin/acceso";
 import {
   LONGITUD_MINIMA_SECRETO,
@@ -23,6 +13,8 @@ import {
   VARIABLE_SECRETO_SESION,
   reiniciarAvisoDeConfiguracion,
 } from "../src/lib/admin/config";
+import { ejecutarAcceso, ejecutarSalida } from "../src/lib/admin/entrar";
+import type { AlmacenCookiesPanel } from "../src/lib/admin/peticion";
 import {
   DURACION_SESION_MS,
   NOMBRE_COOKIE_SESION,
@@ -38,12 +30,14 @@ import {
   MENSAJE_SESION_CERRADA,
 } from "../src/lib/admin/textos";
 import { VARIABLE_ENCABEZADO_IP } from "../src/lib/registro/limite-ip";
-import { peticion, reiniciarPeticion, urlDeRedireccion } from "./admin-mocks";
+import { pintarRespuesta } from "./astro-paginas";
 
 // Spec: revision-admin · Requirements "Acceso al panel con contraseña única de
 // entorno y sesión firmada", "Sin contraseña configurada el panel no abre
 // (fail-safe)" y "Toda pantalla y toda acción del panel exigen sesión válida"
-// (tasks.md #8, #9, #10, #11).
+// (tasks.md #8, #9, #10, #11). Desde 5a (change `migrar-panel-admin-base-astro`)
+// la lógica se prueba en `ejecutarAcceso`/`ejecutarSalida` y la pantalla es la
+// de Astro (`src/pages/admin/index.astro`).
 
 const raiz = join(__dirname, "..");
 const CONTRASENA = "contrasena-de-prueba-nada-real";
@@ -69,6 +63,20 @@ const envio = (contrasena: string) => {
   return formData;
 };
 
+/** Un almacén de cookies como el de Next o el de Astro, que anota lo que se pone. */
+type Puesta = { nombre: string; valor: string; opciones: Record<string, unknown> };
+function almacenFalso(): AlmacenCookiesPanel & { puestas: Puesta[] } {
+  const puestas: Puesta[] = [];
+  return {
+    puestas,
+    get: () => undefined,
+    set: (nombre, valor, opciones) => void puestas.push({ nombre, valor, opciones: { ...opciones } }),
+  };
+}
+
+/** Cabeceras de la petición: la IP declarada (y lo que se agregue). */
+let encabezados: Headers;
+
 beforeAll(() => configurarPanel());
 
 afterAll(() => {
@@ -78,29 +86,27 @@ afterAll(() => {
 
 beforeEach(async () => {
   configurarPanel();
-  reiniciarPeticion();
   await reiniciarIntentosDeAcceso();
-  peticion.encabezados["x-forwarded-for"] = IP;
+  encabezados = new Headers({ "x-forwarded-for": IP });
 });
 
 afterEach(() => vi.restoreAllMocks());
 
-async function renderAcceso(searchParams: Record<string, string> = {}) {
-  const pagina = await AccesoAdminPage({
-    params: Promise.resolve({}),
-    searchParams: Promise.resolve(searchParams),
-  });
-  return renderToStaticMarkup(createElement(() => pagina));
+/** La pantalla de acceso de Astro, con esos parámetros (y la cookie, si se da). */
+async function renderAcceso(parametros: Record<string, string> = {}, cookie?: string) {
+  const consulta = new URLSearchParams(parametros).toString();
+  const { html } = await pintarRespuesta(AccesoAdmin, { ruta: `/admin${consulta ? `?${consulta}` : ""}`, cabeceras: cookie ? { cookie } : {} });
+  return html;
 }
 
 describe("revision-admin · entrar al panel", () => {
   // Scenario: entrar al panel con la contraseña correcta
   it("con la contraseña correcta crea la cookie de sesión y lleva a la cola", async () => {
-    const destino = await urlDeRedireccion(() => entrarAlPanel(envio(CONTRASENA)));
-    expect(destino).toBe("/admin/cola");
+    const almacen = almacenFalso();
+    expect(await ejecutarAcceso(envio(CONTRASENA), encabezados, almacen)).toEqual({ tipo: "redirigir", ruta: "/admin/cola" });
 
-    expect(peticion.puestas).toHaveLength(1);
-    const [cookie] = peticion.puestas;
+    expect(almacen.puestas).toHaveLength(1);
+    const [cookie] = almacen.puestas;
     expect(cookie.nombre).toBe(NOMBRE_COOKIE_SESION);
     expect(cookie.opciones).toMatchObject({
       httpOnly: true,
@@ -116,36 +122,37 @@ describe("revision-admin · entrar al panel", () => {
   });
 
   it("marca la cookie como Secure cuando el proxy declara HTTPS", async () => {
-    peticion.encabezados["x-forwarded-proto"] = "https";
-    await urlDeRedireccion(() => entrarAlPanel(envio(CONTRASENA)));
-    expect(peticion.puestas[0].opciones.secure).toBe(true);
+    encabezados.set("x-forwarded-proto", "https");
+    const almacen = almacenFalso();
+    await ejecutarAcceso(envio(CONTRASENA), encabezados, almacen);
+    expect(almacen.puestas[0].opciones.secure).toBe(true);
   });
 
   // Scenario: contraseña equivocada
   it("con otra contraseña no crea sesión y vuelve con el error", async () => {
-    const destino = await urlDeRedireccion(() => entrarAlPanel(envio("otra-cosa")));
-    expect(destino).toBe("/admin?error=incorrecta");
-    expect(peticion.puestas).toEqual([]);
+    const almacen = almacenFalso();
+    expect(await ejecutarAcceso(envio("otra-cosa"), encabezados, almacen)).toEqual({ tipo: "redirigir", ruta: "/admin?error=incorrecta" });
+    expect(almacen.puestas).toEqual([]);
 
     const html = await renderAcceso({ error: "incorrecta" });
     expect(normalizado(html)).toContain(ERROR_CONTRASENA_INCORRECTA);
   });
 
   it("un envío sin campo de contraseña se trata como contraseña equivocada", async () => {
-    const destino = await urlDeRedireccion(() => entrarAlPanel(new FormData()));
-    expect(destino).toBe("/admin?error=incorrecta");
-    expect(peticion.puestas).toEqual([]);
+    const almacen = almacenFalso();
+    expect(await ejecutarAcceso(new FormData(), encabezados, almacen)).toEqual({ tipo: "redirigir", ruta: "/admin?error=incorrecta" });
+    expect(almacen.puestas).toEqual([]);
   });
 
   // Scenario: intentos repetidos
   it("tras agotar los intentos, ni la contraseña correcta entra", async () => {
     for (let i = 0; i < INTENTOS_ACCESO_POR_VENTANA; i += 1) {
-      await urlDeRedireccion(() => entrarAlPanel(envio("otra-cosa")));
+      await ejecutarAcceso(envio("otra-cosa"), encabezados, almacenFalso());
     }
 
-    const destino = await urlDeRedireccion(() => entrarAlPanel(envio(CONTRASENA)));
-    expect(destino).toBe("/admin?error=intentos");
-    expect(peticion.puestas).toEqual([]);
+    const almacen = almacenFalso();
+    expect(await ejecutarAcceso(envio(CONTRASENA), encabezados, almacen)).toEqual({ tipo: "redirigir", ruta: "/admin?error=intentos" });
+    expect(almacen.puestas).toEqual([]);
 
     const html = await renderAcceso({ error: "intentos" });
     expect(normalizado(html)).toContain(ERROR_DEMASIADOS_INTENTOS);
@@ -160,14 +167,16 @@ describe("revision-admin · entrar al panel", () => {
       });
     }
 
-    await urlDeRedireccion(() => entrarAlPanel(envio("intento-fallido-secreto")));
-    await urlDeRedireccion(() => entrarAlPanel(envio(CONTRASENA)));
+    const almacen = almacenFalso();
+    await ejecutarAcceso(envio("intento-fallido-secreto"), encabezados, almacen);
+    await ejecutarAcceso(envio(CONTRASENA), encabezados, almacen);
 
     const todo = escrito.join("\n");
     expect(todo).not.toContain(CONTRASENA);
     expect(todo).not.toContain("intento-fallido-secreto");
     expect(todo).not.toContain(SECRETO);
-    for (const cookie of peticion.puestas) {
+    expect(todo).not.toContain(IP);
+    for (const cookie of almacen.puestas) {
       expect(todo).not.toContain(cookie.valor);
     }
   });
@@ -194,7 +203,7 @@ describe("revision-admin · el límite de acceso avisa cuando no aplica", () => 
     const escrito = espiarAvisos();
 
     for (let i = 0; i < 4; i += 1) {
-      await urlDeRedireccion(() => entrarAlPanel(envio("otra-cosa")));
+      await ejecutarAcceso(envio("otra-cosa"), encabezados, almacenFalso());
     }
 
     const avisos = escrito.filter((linea) => linea.includes("INACTIVO"));
@@ -205,10 +214,10 @@ describe("revision-admin · el límite de acceso avisa cuando no aplica", () => 
 
   it("con el encabezado declarado pero un último salto que no es IP, también avisa", async () => {
     process.env[VARIABLE_ENCABEZADO_IP] = "x-forwarded-for";
-    peticion.encabezados["x-forwarded-for"] = "198.51.100.200, no-soy-una-ip";
+    encabezados.set("x-forwarded-for", "198.51.100.200, no-soy-una-ip");
     const escrito = espiarAvisos();
 
-    await urlDeRedireccion(() => entrarAlPanel(envio("otra-cosa")));
+    await ejecutarAcceso(envio("otra-cosa"), encabezados, almacenFalso());
 
     expect(escrito.filter((linea) => linea.includes("INACTIVO"))).toHaveLength(1);
   });
@@ -217,29 +226,54 @@ describe("revision-admin · el límite de acceso avisa cuando no aplica", () => 
     const escrito = espiarAvisos();
 
     for (let i = 0; i < INTENTOS_ACCESO_POR_VENTANA; i += 1) {
-      await urlDeRedireccion(() => entrarAlPanel(envio("otra-cosa")));
+      await ejecutarAcceso(envio("otra-cosa"), encabezados, almacenFalso());
     }
 
     expect(escrito.filter((linea) => linea.includes("INACTIVO"))).toEqual([]);
-    expect(await urlDeRedireccion(() => entrarAlPanel(envio(CONTRASENA)))).toBe(
-      "/admin?error=intentos",
-    );
+    expect(await ejecutarAcceso(envio(CONTRASENA), encabezados, almacenFalso())).toEqual({ tipo: "redirigir", ruta: "/admin?error=intentos" });
+  });
+
+  it("la IP es el ÚLTIMO valor del encabezado: rotar el primero no da más intentos", async () => {
+    for (let i = 0; i < INTENTOS_ACCESO_POR_VENTANA; i += 1) {
+      await ejecutarAcceso(envio("otra-cosa"), new Headers({ "x-forwarded-for": `198.51.100.${i}, ${IP}` }), almacenFalso());
+    }
+    expect(await ejecutarAcceso(envio(CONTRASENA), new Headers({ "x-forwarded-for": `198.51.100.99, ${IP}` }), almacenFalso())).toEqual({
+      tipo: "redirigir",
+      ruta: "/admin?error=intentos",
+    });
   });
 });
 
 describe("revision-admin · salir del panel", () => {
   // Scenario: salir del panel
   it("caduca la cookie con los mismos atributos y avisa que cerró sesión", async () => {
-    const destino = await urlDeRedireccion(() => salirDelPanel());
-    expect(destino).toBe("/admin?salida=1");
+    const almacen = almacenFalso();
+    expect(ejecutarSalida(encabezados, almacen)).toEqual({ tipo: "redirigir", ruta: "/admin?salida=1" });
 
-    const [cookie] = peticion.puestas;
+    const [cookie] = almacen.puestas;
     expect(cookie.nombre).toBe(NOMBRE_COOKIE_SESION);
     expect(cookie.valor).toBe("");
-    expect(cookie.opciones).toMatchObject({ maxAge: 0, path: RUTA_COOKIE_SESION });
+    expect(cookie.opciones).toMatchObject({ maxAge: 0, path: RUTA_COOKIE_SESION, httpOnly: true, sameSite: "lax" });
 
     const html = await renderAcceso({ salida: "1" });
     expect(normalizado(html)).toContain(MENSAJE_SESION_CERRADA);
+  });
+});
+
+// Los envoltorios de Next (`src/app/admin/accion-*.ts`) ya no se importan
+// (spec, "misma dureza": ninguna prueba importa las piezas de 5a de Next); su
+// tipo lo revisa `npm run typecheck` y su cuerpo, esta lectura.
+describe("revision-admin · los envoltorios de Next delegan sin cambiar nada", () => {
+  it("los envoltorios no tienen lógica propia: solo traducen el destino", () => {
+    const acceso = readFileSync(join(raiz, "src/app/admin/accion-acceso.ts"), "utf8");
+    const salir = readFileSync(join(raiz, "src/app/admin/accion-salir.ts"), "utf8");
+    expect(acceso).toMatch(/redirect\(\(await ejecutarAcceso\(formData, await headers\(\), await cookies\(\)\)\)\.ruta\)/);
+    expect(salir).toMatch(/redirect\(ejecutarSalida\(await headers\(\), await cookies\(\)\)\.ruta\)/);
+    for (const codigo of [acceso, salir]) {
+      for (const prohibido of ["apartarIntentoDeAcceso", "contrasenaCorrecta", "crearValorDeSesion", "console."]) {
+        expect(codigo).not.toContain(prohibido);
+      }
+    }
   });
 });
 
@@ -250,6 +284,7 @@ describe("revision-admin · fail-safe sin configuración", () => {
   it.each([
     ["sin contraseña", () => delete process.env[VARIABLE_CONTRASENA]],
     ["sin secreto", () => delete process.env[VARIABLE_SECRETO_SESION]],
+    ["con un secreto de 31", () => (process.env[VARIABLE_SECRETO_SESION] = "k".repeat(LONGITUD_MINIMA_SECRETO - 1))],
   ])("%s, la pantalla lo dice sin decir qué falta y sin campo de contraseña", async (
     _caso,
     quitar,
@@ -270,17 +305,20 @@ describe("revision-admin · fail-safe sin configuración", () => {
   it("con la contraseña correcta pero sin secreto no se crea ninguna sesión", async () => {
     process.env[VARIABLE_CONTRASENA] = CONTRASENA;
 
-    const destino = await urlDeRedireccion(() => entrarAlPanel(envio(CONTRASENA)));
-    expect(destino).toBe("/admin");
-    expect(peticion.puestas).toEqual([]);
+    const almacen = almacenFalso();
+    expect(await ejecutarAcceso(envio(CONTRASENA), encabezados, almacen)).toEqual({ tipo: "redirigir", ruta: "/admin" });
+    expect(almacen.puestas).toEqual([]);
 
     const html = await renderAcceso();
     expect(normalizado(html)).toContain(MENSAJE_PANEL_NO_DISPONIBLE);
   });
 
-  it("sin configuración, ni una cookie bien firmada abre el panel", () => {
+  it("sin configuración, ni una cookie bien firmada abre el panel", async () => {
     const valor = crearValorDeSesion(SECRETO);
     expect(haySesionValida(valor)).toBe(false);
+    // Tampoco en la pantalla: no redirige a la cola, pinta "no disponible".
+    const html = await renderAcceso({}, `${NOMBRE_COOKIE_SESION}=${valor}`);
+    expect(normalizado(html)).toContain(MENSAJE_PANEL_NO_DISPONIBLE);
   });
 
   /**
@@ -302,31 +340,54 @@ describe("revision-admin · fail-safe sin configuración", () => {
     // Y sigue diciendo QUÉ falta: el detalle es para el log, no para la respuesta.
     expect(avisos[0]).toContain(VARIABLE_CONTRASENA);
   });
+
+  it("entrar sin configuración deja el motivo en el log, sin la contraseña, y no aparta intento", async () => {
+    const escrito: string[] = [];
+    vi.spyOn(console, "warn").mockImplementation((...args: unknown[]) => {
+      escrito.push(args.map(String).join(" "));
+    });
+    await ejecutarAcceso(envio(CONTRASENA), encabezados, almacenFalso());
+    expect(escrito).toEqual([expect.stringContaining("[panel] acceso imposible, falta configurar:")]);
+    expect(escrito.join("\n")).not.toContain(CONTRASENA);
+  });
+});
+
+describe("revision-admin · la pantalla de acceso con sesión", () => {
+  it("con una sesión vigente redirige (307) a la cola, como Next", async () => {
+    const { status, html } = await pintarRespuesta(AccesoAdmin, {
+      ruta: "/admin",
+      cabeceras: { cookie: `${NOMBRE_COOKIE_SESION}=${crearValorDeSesion(SECRETO)}` },
+    });
+    expect(status).toBe(307);
+    expect(html).not.toContain("<input");
+  });
 });
 
 // design.md §3: la disciplina de llamar a la guarda es una propiedad
 // verificable del código, no la memoria de quien programa.
 describe("revision-admin · toda ruta y toda acción del panel invocan la guarda", () => {
+  function archivosDe(dir: string): string[] {
+    return readdirSync(dir, { withFileTypes: true }).flatMap((entrada) => {
+      const ruta = join(dir, entrada.name);
+      if (entrada.isDirectory()) return archivosDe(ruta);
+      return /\.tsx?$/.test(entrada.name) ? [ruta] : [];
+    });
+  }
+
   /**
-   * Las únicas excepciones, y por qué: la pantalla de acceso ES el destino de
-   * la guarda (pedirle sesión sería un bucle), la acción de salir solo caduca
-   * una cookie del propio navegador, y el layout del panel —agregado por el
-   * change `agregar-analitica-cookieless` para cortar el referente— no
-   * renderiza contenido ni lee nada: solo declara metadata y deja pasar a sus
-   * hijos, que sí exigen sesión cada uno. La quinta es la ruta comodín que
-   * responde 404 a cualquier URL del panel que no existe (observación O-1):
-   * no hay nada que proteger detrás de una ruta inexistente, y pedir sesión
-   * para decir "no existe" delataría más de lo que oculta. El test comprueba
-   * además que ninguna de las excepciones toca la base ni las consultas del
-   * panel.
+   * Lo que sigue en Next (detalle, ediciones, fotos, borrado: Fases 5b–5d).
+   * Lo que ya sirve Astro —la carpeta de `src/app/admin/` que tiene su página
+   * en `src/pages/admin/`, y los archivos sueltos de la raíz, que reemplaza
+   * `src/pages/admin/index.astro`— lo vigila la disciplina de Astro de abajo
+   * (design.md §1.5, punto 4).
    */
-  const EXCEPCIONES = [
-    "src/app/admin/page.tsx",
-    "src/app/admin/accion-acceso.ts",
-    "src/app/admin/accion-salir.ts",
-    "src/app/admin/layout.tsx",
-    "src/app/admin/[...resto]/page.tsx",
-  ];
+  const enAstro = (carpeta: string) => existsSync(join(raiz, "src/pages/admin", `${carpeta}.astro`));
+  const carpetasDeNext = readdirSync(join(raiz, "src/app/admin"), { withFileTypes: true })
+    .filter((e) => e.isDirectory() && !enAstro(e.name))
+    .map((e) => e.name);
+  const archivos = carpetasDeNext
+    .flatMap((carpeta) => archivosDe(join(raiz, "src/app/admin", carpeta)))
+    .map((ruta) => ruta.slice(raiz.length + 1));
 
   /**
    * La ruta que sirve las fotos del panel también exige sesión, pero NO puede
@@ -338,26 +399,16 @@ describe("revision-admin · toda ruta y toda acción del panel invocan la guarda
    */
   const GUARDA_SIN_REDIRECCION = ["src/app/admin/foto/[clave]/[variante]/route.ts"];
 
-  function archivosDe(dir: string): string[] {
-    return readdirSync(dir, { withFileTypes: true }).flatMap((entrada) => {
-      const ruta = join(dir, entrada.name);
-      if (entrada.isDirectory()) return archivosDe(ruta);
-      return /\.tsx?$/.test(entrada.name) ? [ruta] : [];
-    });
-  }
-
-  const archivos = archivosDe(join(raiz, "src/app/admin")).map((ruta) =>
-    ruta.slice(raiz.length + 1),
-  );
-
-  it("hay rutas y acciones que vigilar", () => {
+  it("hay rutas y acciones que vigilar, en Next y en Astro", () => {
     expect(archivos.length).toBeGreaterThanOrEqual(7);
-    for (const excepcion of EXCEPCIONES) expect(archivos).toContain(excepcion);
+    expect(carpetasDeNext).toEqual(expect.arrayContaining(["registros", "ediciones", "foto"]));
+    // Lo que ya sirve Astro no se vigila dos veces.
+    for (const carpeta of ["cola", "negocios", "[...resto]"]) expect(carpetasDeNext).not.toContain(carpeta);
   });
 
-  it("cada archivo del panel llama a requerirSesionAdmin() antes de nada", () => {
+  it("cada archivo del panel que sigue en Next llama a requerirSesionAdmin() antes de nada", () => {
     for (const ruta of archivos) {
-      if (EXCEPCIONES.includes(ruta) || GUARDA_SIN_REDIRECCION.includes(ruta)) continue;
+      if (GUARDA_SIN_REDIRECCION.includes(ruta)) continue;
       const codigo = readFileSync(join(raiz, ruta), "utf8");
       expect(codigo, ruta).toContain("await requerirSesionAdmin();");
     }
@@ -384,13 +435,39 @@ describe("revision-admin · toda ruta y toda acción del panel invocan la guarda
     }
   });
 
-  it("las excepciones no leen ni escriben nada de la base", () => {
-    for (const ruta of EXCEPCIONES) {
+  /**
+   * Astro (design.md §1.5, punto 4): cada página de `src/pages/admin/` llama
+   * a `exigirSesionAdmin(Astro)` antes del primer acceso a datos. Las únicas
+   * excepciones —el acceso (es la puerta), el comodín (no hay nada que
+   * proteger) y el pegamento de entrar y salir (solo tocan la cookie)— no
+   * tocan la base.
+   */
+  const PAGINAS_ASTRO = readdirSync(join(raiz, "src/pages/admin"), { recursive: true, withFileTypes: true })
+    .filter((e) => e.isFile())
+    .map((e) => join(e.parentPath, e.name).slice(raiz.length + 1));
+  const EXCEPCIONES_ASTRO = ["src/pages/admin/index.astro", "src/pages/admin/[...resto].astro", "src/astro/panel/acceso.ts"];
+  const ACCESOS_A_DATOS = ["obtenerPrisma", "prisma.", "@/lib/admin/consultas", "@/lib/admin/transiciones", "@/lib/admin/reportes"];
+
+  it("cada página de Astro del panel llama a exigirSesionAdmin antes del primer acceso a datos y no confía en locals", () => {
+    expect(PAGINAS_ASTRO.length).toBeGreaterThanOrEqual(4);
+    for (const ruta of PAGINAS_ASTRO) {
+      if (EXCEPCIONES_ASTRO.includes(ruta)) continue;
       const codigo = readFileSync(join(raiz, ruta), "utf8");
-      expect(codigo, ruta).not.toContain("obtenerPrisma");
-      expect(codigo, ruta).not.toContain("prisma.");
-      expect(codigo, ruta).not.toContain("@/lib/admin/consultas");
-      expect(codigo, ruta).not.toContain("@/lib/admin/transiciones");
+      const guarda = codigo.indexOf("exigirSesionAdmin(Astro)");
+      expect(guarda, ruta).toBeGreaterThan(-1);
+      for (const dato of ["obtenerPrisma(", "await "]) {
+        const primero = codigo.indexOf(dato, codigo.indexOf("export const prerender"));
+        if (primero !== -1) expect(guarda, `${ruta}: ${dato}`).toBeLessThan(primero);
+      }
+      expect(codigo, ruta).not.toMatch(/locals\.sesion/);
+    }
+  });
+
+  it("las excepciones no leen ni escriben nada de la base", () => {
+    for (const ruta of EXCEPCIONES_ASTRO) {
+      expect(existsSync(join(raiz, ruta)), ruta).toBe(true);
+      const codigo = readFileSync(join(raiz, ruta), "utf8");
+      for (const dato of ACCESOS_A_DATOS) expect(codigo, `${ruta}: ${dato}`).not.toContain(dato);
     }
   });
 });

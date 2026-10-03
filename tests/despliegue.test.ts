@@ -586,11 +586,17 @@ describe("despliegue · toda respuesta lleva las cabeceras de seguridad", () => 
    * la analítica reenvía los referentes del mismo origen (PRD §8, LFPDPPP).
    */
   it("la política del panel sobrevive a la cabecera global", () => {
+    // Desde 5a (change `migrar-panel-admin-base-astro`) el documento del
+    // panel es de Astro, y además el middleware pone la cabecera estricta en
+    // toda respuesta bajo /admin sin que la global la pise
+    // (`prepararRespuesta` no pisa una cabecera que ya venga).
     const layoutPanel = readFileSync(
-      new URL("../src/app/admin/layout.tsx", import.meta.url),
+      new URL("../src/layouts/DocumentoPanel.astro", import.meta.url),
       "utf8",
     );
     expect(layoutPanel).toMatch(/referrer:\s*"strict-origin"/);
+    const middleware = readFileSync(new URL("../src/middleware.ts", import.meta.url), "utf8");
+    expect(middleware).toMatch(/prepararRespuesta\(conReferenteDelPanel\(/);
     // Y la global es la laxa a propósito: dentro del sitio manda la ruta
     // completa, que es justo lo que el panel no puede permitirse.
     expect(POLITICA_DE_REFERENTE).toBe("strict-origin-when-cross-origin");

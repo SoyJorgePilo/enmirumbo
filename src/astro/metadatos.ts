@@ -145,6 +145,10 @@ export function resolverMetadatos(opciones: OpcionesDeResolucion): Etiqueta[] {
   if (noEncontrado) etiquetas.push(nombre("robots", "noindex"));
   if (titulo) etiquetas.push({ etiqueta: "title", texto: titulo });
   if (descripcion) etiquetas.push(nombre("description", descripcion));
+  // 5a (change `migrar-panel-admin-base-astro`, design.md §5): el panel
+  // declara `referrer`; Next lo pinta aquí, entre la descripción y `robots`.
+  const referente = pagina.referrer ?? sitio.referrer;
+  if (referente) etiquetas.push(nombre("referrer", String(referente)));
   if (robots) etiquetas.push(nombre("robots", robots));
   if (canonica) etiquetas.push({ etiqueta: "link", atributos: { rel: "canonical", href: canonica } });
 

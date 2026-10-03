@@ -1,9 +1,11 @@
 import type { APIContext, MiddlewareNext } from "astro";
+import { getActionContext } from "astro:actions";
 import { defineMiddleware } from "astro:middleware";
 
 import { RUTA_DE_RESPUESTAS_DEL_MIDDLEWARE, atenderAcciones } from "@/astro/acciones";
 import { prepararRespuesta } from "@/astro/cabeceras";
 import { envioDeOtroOrigen } from "@/astro/origen";
+import { conReferenteDelPanel, guardiaDelPanel } from "@/astro/panel/guardia";
 import { avisarSinAlmacenDeFotosUnaVez } from "@/lib/fotos/almacen";
 import { avisarSinBaseDeDatosUnaVez } from "@/lib/prisma";
 import { avisarSinUrlSitioUnaVez } from "@/lib/sitio";
@@ -41,7 +43,8 @@ avisarSinAlmacenDeFotosUnaVez();
  */
 export const onRequest = defineMiddleware(async (contexto, siguiente) => {
   if (contexto.isPrerendered) return siguiente();
-  return prepararRespuesta(await atender(contexto, siguiente));
+  // 5a: el referente estricto del panel, antes de que se pongan las globales.
+  return prepararRespuesta(conReferenteDelPanel(contexto.url, await atender(contexto, siguiente)));
 });
 
 async function atender(contexto: APIContext, siguiente: MiddlewareNext): Promise<Response> {
@@ -51,5 +54,10 @@ async function atender(contexto: APIContext, siguiente: MiddlewareNext): Promise
     contexto.locals.envioRechazado = true;
     return contexto.rewrite(RUTA_DE_RESPUESTAS_DEL_MIDDLEWARE);
   }
+  // 5a (change `migrar-panel-admin-base-astro`, design.md §1.3): la guarda de
+  // sesión del panel, DESPUÉS del origen y ANTES de la tabla de Actions: sin
+  // sesión, ninguna Action del panel (salvo entrar y salir) llega a leer el cuerpo.
+  const sinSesion = guardiaDelPanel(contexto, getActionContext(contexto).action?.name);
+  if (sinSesion) return sinSesion;
   return atenderAcciones(contexto, siguiente);
 }

@@ -12,7 +12,6 @@ vi.mock("next/navigation", async () => {
 });
 
 import { seedCatalogos } from "../prisma/seed";
-import ColaAdminPage from "../src/app/admin/cola/page";
 import { marcarReporteAtendidoAccion } from "../src/app/admin/registros/[id]/accion-marcar-reporte-atendido";
 import DetalleRegistroAdminPage from "../src/app/admin/registros/[id]/page";
 import type { PrismaClient } from "../src/generated/prisma/client";
@@ -37,6 +36,7 @@ import {
 } from "../src/lib/admin/textos";
 import { ETIQUETA_MOTIVO_REPORTE } from "../src/lib/reportes/motivos";
 import { peticion, reiniciarPeticion, urlDeRedireccion } from "./admin-mocks";
+import { pantallaComoNext } from "./panel-paginas";
 import { crearClientePrueba } from "./db";
 
 // Spec: revision-admin (delta del change `agregar-boton-reportar`) ·
@@ -78,7 +78,8 @@ async function render(pagina: Promise<React.ReactElement> | React.ReactElement) 
   return renderToStaticMarkup(createElement(() => resuelta));
 }
 
-const abrirCola = () => render(ColaAdminPage());
+/** La cola de Astro (5a, change `migrar-panel-admin-base-astro`): lo que pinta dentro de `<main>`. */
+const abrirCola = () => pantallaComoNext("cola");
 
 const abrirDetalle = (id: string, searchParams: Record<string, string> = {}) =>
   render(

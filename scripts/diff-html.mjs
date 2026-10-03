@@ -11,6 +11,8 @@
  *   npx tsx scripts/diff-html.mjs --capturar-3b <baseNext> <directorio> --datos <json> [--con-envios]
  *   npx tsx scripts/diff-html.mjs --capturar-3b2 <baseNext> <directorio> --datos <json>
  *   node scripts/diff-html.mjs --capturar-3b2-apagada <base> <directorio> <configuracion>
+ *   npx tsx scripts/diff-html.mjs --capturar-5a <baseNext> <directorio> [--sin-configurar <b>] [--sin-secreto <b>] [--secreto-corto <b>]
+ *   npx tsx scripts/diff-html.mjs <baseNext> <baseAstro> --solo-5a [--sin-configurar <bN> <bA>] …   (panel; ver scripts/diff-html/panel.mjs)
  *   npx tsx scripts/diff-html.mjs --capturar-6a <dirNext> <directorio>      (ver `capturar6a`)
  *   npx tsx scripts/diff-html.mjs --solo-6a <dirNext>
  *
@@ -874,6 +876,28 @@ async function principal(argumentos) {
     await capturarHead(argumentos[1], argumentos[2]);
     return 0;
   }
+  // 5a (change `migrar-panel-admin-base-astro`): el panel, sin `--datos` (siembra lo suyo).
+  if (argumentos.includes("--solo-5a")) {
+    const [baseNext, baseAstro] = argumentos;
+    const incompletos = {};
+    for (const nombre of ["sin-configurar", "sin-secreto", "secreto-corto"]) {
+      const i = argumentos.indexOf(`--${nombre}`);
+      if (i !== -1) incompletos[nombre] = [argumentos[i + 1], argumentos[i + 2]];
+    }
+    const { compararPanel } = await import("./diff-html/panel.mjs");
+    const diferencias = await compararPanel(baseNext, baseAstro, {
+      incompletos,
+      normalizacionesFormulario: NORMALIZACIONES_FORMULARIO,
+      normalizaciones404: NORMALIZACIONES_404_DINAMICA,
+    });
+    if (diferencias.length > 0) {
+      console.log(`\n${diferencias.length} diferencias:\n`);
+      for (const d of diferencias) console.log(`- ${d}`);
+      return 1;
+    }
+    console.log("\nCero diferencias en el panel (5a), fuera de las aceptadas.");
+    return 0;
+  }
   if (argumentos[0] === "--capturar-6a") {
     await capturar6a(path.resolve(argumentos[1]), argumentos[2]);
     return 0;
@@ -898,6 +922,14 @@ async function principal(argumentos) {
   }
   if (argumentos[0] === "--capturar-3b2-apagada") {
     await capturar3b2Apagada(argumentos[1], argumentos[2], argumentos[3]);
+    return 0;
+  }
+  // 5a (change `migrar-panel-admin-base-astro`): el panel, en `scripts/diff-html/panel.mjs`.
+  if (argumentos[0] === "--capturar-5a") {
+    const { capturar5a } = await import("./diff-html/panel.mjs");
+    const bases = { configurado: argumentos[1] };
+    for (const nombre of ["sin-configurar", "sin-secreto", "secreto-corto"]) bases[nombre] = argumento(argumentos, `--${nombre}`);
+    await capturar5a(bases, argumentos[2]);
     return 0;
   }
   if (argumentos[0] === "--capturar-2b") {

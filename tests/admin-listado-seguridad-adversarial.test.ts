@@ -4,15 +4,6 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("next/headers", async () => {
-  const simulado = await import("./admin-mocks");
-  return { cookies: simulado.cookies, headers: simulado.headers };
-});
-vi.mock("next/navigation", async () => {
-  const simulado = await import("./admin-mocks");
-  return { redirect: simulado.redirect, notFound: simulado.notFound };
-});
-
 /**
  * El cliente que recibe la PANTALLA queda instrumentado.
  *
@@ -65,7 +56,6 @@ vi.mock("../src/lib/prisma", async () => {
 });
 
 import { seedCatalogos } from "../prisma/seed";
-import NegociosAdminPage from "../src/app/admin/negocios/page";
 import { RenglonListadoNegocio } from "../src/components/admin/renglon-listado-negocio";
 import type { PrismaClient } from "../src/generated/prisma/client";
 import {
@@ -83,7 +73,9 @@ import {
 } from "../src/lib/admin/listado-parametros";
 import { DURACION_SESION_MS, NOMBRE_COOKIE_SESION, crearValorDeSesion } from "../src/lib/admin/sesion";
 import * as moduloPrisma from "../src/lib/prisma";
-import { peticion, reiniciarPeticion, urlDeRedireccion } from "./admin-mocks";
+import { parametroComoNext } from "../src/astro/panel/parametros";
+import { peticion, reiniciarPeticion } from "./admin-mocks";
+import { abrirPantallaDelPanel, urlDeRedireccionDelPanel } from "./panel-paginas";
 
 // Spec: revision-admin (change `agregar-listado-gestion-panel`) · etapa C.
 //
@@ -131,19 +123,12 @@ function conSesion() {
   peticion.cookies[NOMBRE_COOKIE_SESION] = crearValorDeSesion(SECRETO);
 }
 
-async function render(pagina: Promise<React.ReactElement> | React.ReactElement) {
-  const resuelta = await pagina;
-  return renderToStaticMarkup(createElement(() => resuelta));
-}
-
-/** Abre `/admin/negocios` con el querystring que se le dé, tal cual. */
-const abrirListado = (searchParams: Record<string, unknown> = {}) =>
-  render(
-    NegociosAdminPage({
-      params: Promise.resolve({}),
-      searchParams: Promise.resolve(searchParams),
-    } as unknown as Parameters<typeof NegociosAdminPage>[0]),
-  );
+/**
+ * Abre `/admin/negocios` (la página de Astro, change
+ * `migrar-panel-admin-base-astro`) con el querystring que se le dé, tal cual
+ * lo mandaría el navegador; devuelve lo que pinta dentro de `<main>`.
+ */
+const abrirListado = (searchParams: Record<string, string | string[]> = {}) => abrirPantallaDelPanel("negocios", searchParams);
 
 let sembrados = 0;
 
@@ -228,7 +213,7 @@ describe("adversarial · sin sesión, el listado no toca la base ni una vez", ()
     await alta({ nombre: "Tortillería Ficticia La Espiga", diasAtras: 1 });
     llamadas.length = 0;
 
-    expect(await urlDeRedireccion(() => abrirListado(searchParams))).toBe("/admin");
+    expect(await urlDeRedireccionDelPanel("negocios", searchParams as Record<string, string | string[]>)).toBe("/admin");
     expect(llamadas).toEqual([]);
   });
 
@@ -237,7 +222,7 @@ describe("adversarial · sin sesión, el listado no toca la base ni una vez", ()
     llamadas.length = 0;
 
     peticion.cookies[NOMBRE_COOKIE_SESION] = crearValorDeSesion(OTRO_SECRETO);
-    expect(await urlDeRedireccion(() => abrirListado())).toBe("/admin");
+    expect(await urlDeRedireccionDelPanel("negocios")).toBe("/admin");
     expect(llamadas).toEqual([]);
   });
 
@@ -247,7 +232,7 @@ describe("adversarial · sin sesión, el listado no toca la base ni una vez", ()
 
     const vencida = new Date(Date.now() - DURACION_SESION_MS - 1000);
     peticion.cookies[NOMBRE_COOKIE_SESION] = crearValorDeSesion(SECRETO, vencida);
-    expect(await urlDeRedireccion(() => abrirListado())).toBe("/admin");
+    expect(await urlDeRedireccionDelPanel("negocios")).toBe("/admin");
     expect(llamadas).toEqual([]);
   });
 
@@ -262,7 +247,7 @@ describe("adversarial · sin sesión, el listado no toca la base ni una vez", ()
         conSesion();
         delete process.env[variable];
         llamadas.length = 0;
-        expect(await urlDeRedireccion(() => abrirListado())).toBe("/admin");
+        expect(await urlDeRedireccionDelPanel("negocios")).toBe("/admin");
         expect(llamadas).toEqual([]);
       } finally {
         process.env[variable] = guardada;
@@ -339,7 +324,7 @@ describe("adversarial · lo que la pantalla le pide a la base", () => {
     ["página repetida", { pagina: ["7", "8"] }],
     ["estado inventado", { estado: "despublicado" }],
   ])("%s: la base recibe take=25 y un skip dentro del entero", async (_caso, searchParams) => {
-    await abrirListado(searchParams);
+    await abrirListado(searchParams as Record<string, string | string[]>);
 
     const consulta = llamadas.find((llamada) => llamada.metodo === "findMany");
     expect(consulta).toBeDefined();
@@ -490,14 +475,22 @@ describe("adversarial · tipos que el runtime podría entregar aunque el tipo di
     expect(normalizarPagina(valor as string | string[] | undefined)).toBe(1);
   });
 
+  // Desde 5a (change `migrar-panel-admin-base-astro`) la pantalla lee la URL
+  // con `parametroComoNext`, que solo entrega texto, un arreglo de textos o
+  // nada: un objeto no puede llegar. Lo que sí llega de la URL —el parámetro
+  // repetido, el arreglo que deja pasar a `publicado` dentro— no se cuela.
   it("ni el envoltorio String ni el objeto con toString se cuelan hasta la base", async () => {
     conSesion();
     await sembrar(2, "publicado");
     await sembrar(2, "rechazado");
 
     for (const valor of [new String("publicado"), { toString: () => "publicado" }]) {
+      expect(normalizarFiltroEstado(valor as unknown as string)).toBe(FILTRO_TODOS);
+    }
+    for (const repetido of [["publicado", "publicado"], ["publicado", "rechazado", "publicado"]]) {
+      expect(parametroComoNext(new URL(`https://enmirumbo.example/admin/negocios?${repetido.map((e) => `estado=${e}`).join("&")}`), "estado")).toEqual(repetido);
       llamadas.length = 0;
-      const html = await abrirListado({ estado: valor });
+      const html = await abrirListado({ estado: repetido });
       for (const llamada of llamadas) expect(llamada.args.where).toEqual({});
       expect(html).toContain("4 negocios en esta lista");
     }
@@ -568,7 +561,8 @@ describe("adversarial · una ficha con contenido hostil guardado", () => {
   // exactamente una, y no está en ninguno de los archivos de este change.
   it("ningún archivo del listado inyecta HTML crudo", () => {
     for (const ruta of [
-      "src/app/admin/negocios/page.tsx",
+      "src/pages/admin/negocios.astro",
+      "src/astro/panel/parametros.ts",
       "src/components/admin/renglon-listado-negocio.tsx",
       "src/components/admin/filtros-listado-negocios.tsx",
       "src/components/admin/paginacion-listado-negocios.tsx",
@@ -577,6 +571,8 @@ describe("adversarial · una ficha con contenido hostil guardado", () => {
     ]) {
       const codigo = readFileSync(join(RAIZ, ruta), "utf8");
       expect(codigo, ruta).not.toContain("dangerouslySetInnerHTML");
+      // La misma vía en Astro (5a).
+      expect(codigo, ruta).not.toContain("set:html");
       expect(codigo, ruta).not.toContain("$queryRaw");
       expect(codigo, ruta).not.toContain("$executeRaw");
     }

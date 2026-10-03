@@ -1,0 +1,1153 @@
+{
+  "pantallas": {
+    "acceso.html": {
+      "ruta": "/admin",
+      "status": 200,
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "csp": true,
+      "cookies": [],
+      "metaDeReferente": true
+    },
+    "acceso-error-incorrecta.html": {
+      "ruta": "/admin?error=incorrecta",
+      "status": 200,
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "csp": true,
+      "cookies": [],
+      "metaDeReferente": true
+    },
+    "acceso-error-intentos.html": {
+      "ruta": "/admin?error=intentos",
+      "status": 200,
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "csp": true,
+      "cookies": [],
+      "metaDeReferente": true
+    },
+    "acceso-error-x.html": {
+      "ruta": "/admin?error=x",
+      "status": 200,
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "csp": true,
+      "cookies": [],
+      "metaDeReferente": true
+    },
+    "acceso-error-x-y-intentos.html": {
+      "ruta": "/admin?error=x&error=intentos",
+      "status": 200,
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "csp": true,
+      "cookies": [],
+      "metaDeReferente": true
+    },
+    "acceso-salida.html": {
+      "ruta": "/admin?salida=1",
+      "status": 200,
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "csp": true,
+      "cookies": [],
+      "metaDeReferente": true
+    },
+    "acceso-sin-configurar.html": {
+      "ruta": "/admin",
+      "status": 200,
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "csp": true,
+      "cookies": [],
+      "metaDeReferente": true
+    },
+    "acceso-sin-secreto.html": {
+      "ruta": "/admin",
+      "status": 200,
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "csp": true,
+      "cookies": [],
+      "metaDeReferente": true
+    },
+    "acceso-secreto-corto.html": {
+      "ruta": "/admin",
+      "status": 200,
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "csp": true,
+      "cookies": [],
+      "metaDeReferente": true
+    },
+    "a-b-c.html": {
+      "ruta": "/a/b/c",
+      "status": 404,
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "csp": true,
+      "cookies": [],
+      "metaDeReferente": false
+    },
+    "cola-vacia.html": {
+      "ruta": "/admin/cola",
+      "status": 200,
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "csp": true,
+      "cookies": [],
+      "metaDeReferente": true
+    },
+    "negocios-vacio.html": {
+      "ruta": "/admin/negocios",
+      "status": 200,
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "csp": true,
+      "cookies": [],
+      "metaDeReferente": true
+    },
+    "cola.html": {
+      "ruta": "/admin/cola",
+      "status": 200,
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "csp": true,
+      "cookies": [],
+      "metaDeReferente": true
+    },
+    "negocios.html": {
+      "ruta": "/admin/negocios",
+      "status": 200,
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "csp": true,
+      "cookies": [],
+      "metaDeReferente": true
+    },
+    "negocios-estado-publicado.html": {
+      "ruta": "/admin/negocios?estado=publicado",
+      "status": 200,
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "csp": true,
+      "cookies": [],
+      "metaDeReferente": true
+    },
+    "negocios-estado-rechazado.html": {
+      "ruta": "/admin/negocios?estado=rechazado",
+      "status": 200,
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "csp": true,
+      "cookies": [],
+      "metaDeReferente": true
+    },
+    "negocios-estado-en_revision.html": {
+      "ruta": "/admin/negocios?estado=en_revision",
+      "status": 200,
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "csp": true,
+      "cookies": [],
+      "metaDeReferente": true
+    },
+    "negocios-estado-xyz.html": {
+      "ruta": "/admin/negocios?estado=xyz",
+      "status": 200,
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "csp": true,
+      "cookies": [],
+      "metaDeReferente": true
+    },
+    "negocios-estado-vacio.html": {
+      "ruta": "/admin/negocios?estado=",
+      "status": 200,
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "csp": true,
+      "cookies": [],
+      "metaDeReferente": true
+    },
+    "negocios-estado-repetido.html": {
+      "ruta": "/admin/negocios?estado=rechazado&estado=publicado",
+      "status": 200,
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "csp": true,
+      "cookies": [],
+      "metaDeReferente": true
+    },
+    "negocios-pagina-2.html": {
+      "ruta": "/admin/negocios?pagina=2",
+      "status": 200,
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "csp": true,
+      "cookies": [],
+      "metaDeReferente": true
+    },
+    "negocios-pagina-99.html": {
+      "ruta": "/admin/negocios?pagina=99",
+      "status": 200,
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "csp": true,
+      "cookies": [],
+      "metaDeReferente": true
+    },
+    "negocios-pagina-0.html": {
+      "ruta": "/admin/negocios?pagina=0",
+      "status": 200,
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "csp": true,
+      "cookies": [],
+      "metaDeReferente": true
+    },
+    "negocios-pagina--3.html": {
+      "ruta": "/admin/negocios?pagina=-3",
+      "status": 200,
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "csp": true,
+      "cookies": [],
+      "metaDeReferente": true
+    },
+    "negocios-pagina-dos.html": {
+      "ruta": "/admin/negocios?pagina=dos",
+      "status": 200,
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "csp": true,
+      "cookies": [],
+      "metaDeReferente": true
+    },
+    "negocios-pagina-repetida.html": {
+      "ruta": "/admin/negocios?pagina=2&pagina=3",
+      "status": 200,
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "csp": true,
+      "cookies": [],
+      "metaDeReferente": true
+    },
+    "comodin-1.html": {
+      "ruta": "/admin/x",
+      "status": 404,
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "csp": true,
+      "cookies": [],
+      "metaDeReferente": true
+    },
+    "comodin-1-con-sesion.html": {
+      "ruta": "/admin/x",
+      "status": 404,
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "csp": true,
+      "cookies": [],
+      "metaDeReferente": true
+    },
+    "comodin-2.html": {
+      "ruta": "/admin/a/b/c",
+      "status": 404,
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "csp": true,
+      "cookies": [],
+      "metaDeReferente": true
+    },
+    "comodin-2-con-sesion.html": {
+      "ruta": "/admin/a/b/c",
+      "status": 404,
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "csp": true,
+      "cookies": [],
+      "metaDeReferente": true
+    },
+    "comodin-3.html": {
+      "ruta": "/admin/registros/c5aficticio000000000000001/loquesea",
+      "status": 404,
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "csp": true,
+      "cookies": [],
+      "metaDeReferente": true
+    },
+    "comodin-3-con-sesion.html": {
+      "ruta": "/admin/registros/c5aficticio000000000000001/loquesea",
+      "status": 404,
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "csp": true,
+      "cookies": [],
+      "metaDeReferente": true
+    }
+  },
+  "sinSesion": {
+    "Action guardada (aprobar) sin sesión": {
+      "status": 303,
+      "location": "/admin",
+      "cache-control": "no-cache, no-store, max-age=0, must-revalidate",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "csp": true,
+      "cookies": []
+    },
+    "GET /admin/cola": {
+      "status": 307,
+      "location": "/admin",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "csp": true,
+      "cookies": []
+    },
+    "HEAD /admin/cola": {
+      "status": 307,
+      "location": "/admin",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "csp": true,
+      "cookies": []
+    },
+    "POST /admin/cola": {
+      "status": 307,
+      "location": "/admin",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "csp": true,
+      "cookies": []
+    },
+    "PUT /admin/cola": {
+      "status": 307,
+      "location": "/admin",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "csp": true,
+      "cookies": []
+    },
+    "DELETE /admin/cola": {
+      "status": 307,
+      "location": "/admin",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "csp": true,
+      "cookies": []
+    },
+    "GET /admin/negocios": {
+      "status": 307,
+      "location": "/admin",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "csp": true,
+      "cookies": []
+    },
+    "HEAD /admin/negocios": {
+      "status": 307,
+      "location": "/admin",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "csp": true,
+      "cookies": []
+    },
+    "POST /admin/negocios": {
+      "status": 307,
+      "location": "/admin",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "csp": true,
+      "cookies": []
+    },
+    "PUT /admin/negocios": {
+      "status": 307,
+      "location": "/admin",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "csp": true,
+      "cookies": []
+    },
+    "DELETE /admin/negocios": {
+      "status": 307,
+      "location": "/admin",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "csp": true,
+      "cookies": []
+    },
+    "GET /admin/negocios?estado=publicado&pagina=2": {
+      "status": 307,
+      "location": "/admin",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "csp": true,
+      "cookies": []
+    },
+    "HEAD /admin/negocios?estado=publicado&pagina=2": {
+      "status": 307,
+      "location": "/admin",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "csp": true,
+      "cookies": []
+    },
+    "POST /admin/negocios?estado=publicado&pagina=2": {
+      "status": 307,
+      "location": "/admin",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "csp": true,
+      "cookies": []
+    },
+    "PUT /admin/negocios?estado=publicado&pagina=2": {
+      "status": 307,
+      "location": "/admin",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "csp": true,
+      "cookies": []
+    },
+    "DELETE /admin/negocios?estado=publicado&pagina=2": {
+      "status": 307,
+      "location": "/admin",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "csp": true,
+      "cookies": []
+    },
+    "GET /admin/cola (firma-alterada)": {
+      "status": 307,
+      "location": "/admin",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "csp": true,
+      "cookies": []
+    },
+    "GET /admin/cola (otro-secreto)": {
+      "status": 307,
+      "location": "/admin",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "csp": true,
+      "cookies": []
+    },
+    "GET /admin/cola (vencida)": {
+      "status": 307,
+      "location": "/admin",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "csp": true,
+      "cookies": []
+    },
+    "GET /admin/cola (no-canonica)": {
+      "status": 307,
+      "location": "/admin",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "csp": true,
+      "cookies": []
+    },
+    "GET /admin/cola (dieciseis-digitos)": {
+      "status": 307,
+      "location": "/admin",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "csp": true,
+      "cookies": []
+    },
+    "GET /admin/cola (vigente, sin-configurar)": {
+      "status": 307,
+      "location": "/admin",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "csp": true,
+      "cookies": []
+    },
+    "GET /admin/cola (vigente, sin-secreto)": {
+      "status": 307,
+      "location": "/admin",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "csp": true,
+      "cookies": []
+    },
+    "GET /admin/cola (vigente, secreto-corto)": {
+      "status": 307,
+      "location": "/admin",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "csp": true,
+      "cookies": []
+    },
+    "GET /admin (con sesión)": {
+      "status": 307,
+      "location": "/admin/cola",
+      "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "content-type": "text/html; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "csp": true,
+      "cookies": []
+    }
+  },
+  "envios": {
+    "entrar-correcta": {
+      "cadena": [
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        },
+        {
+          "metodo": "POST",
+          "status": 303,
+          "location": "/admin/cola",
+          "cookies": [
+            {
+              "nombre": "nu_panel",
+              "httponly": "",
+              "max-age": "28800",
+              "path": "/admin",
+              "samesite": "lax",
+              "secure": ""
+            }
+          ]
+        },
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        }
+      ],
+      "post": {
+        "status": 303,
+        "location": "/admin/cola",
+        "cache-control": "no-cache, no-store, max-age=0, must-revalidate",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "csp": true,
+        "cookies": [
+          {
+            "nombre": "nu_panel",
+            "httponly": "",
+            "max-age": "28800",
+            "path": "/admin",
+            "samesite": "lax",
+            "secure": ""
+          }
+        ]
+      },
+      "intentos": 1
+    },
+    "entrar-equivocada": {
+      "cadena": [
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        },
+        {
+          "metodo": "POST",
+          "status": 303,
+          "location": "/admin?error=incorrecta",
+          "cookies": []
+        },
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        }
+      ],
+      "post": {
+        "status": 303,
+        "location": "/admin?error=incorrecta",
+        "cache-control": "no-cache, no-store, max-age=0, must-revalidate",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "csp": true,
+        "cookies": []
+      },
+      "intentos": 1
+    },
+    "entrar-vacia": {
+      "cadena": [
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        },
+        {
+          "metodo": "POST",
+          "status": 303,
+          "location": "/admin?error=incorrecta",
+          "cookies": []
+        },
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        }
+      ],
+      "post": {
+        "status": 303,
+        "location": "/admin?error=incorrecta",
+        "cache-control": "no-cache, no-store, max-age=0, must-revalidate",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "csp": true,
+        "cookies": []
+      },
+      "intentos": 1
+    },
+    "entrar-10000": {
+      "cadena": [
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        },
+        {
+          "metodo": "POST",
+          "status": 303,
+          "location": "/admin?error=incorrecta",
+          "cookies": []
+        },
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        }
+      ],
+      "post": {
+        "status": 303,
+        "location": "/admin?error=incorrecta",
+        "cache-control": "no-cache, no-store, max-age=0, must-revalidate",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "csp": true,
+        "cookies": []
+      },
+      "intentos": 1
+    },
+    "margen-1": {
+      "cadena": [
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        },
+        {
+          "metodo": "POST",
+          "status": 303,
+          "location": "/admin?error=incorrecta",
+          "cookies": []
+        },
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        }
+      ],
+      "post": {
+        "status": 303,
+        "location": "/admin?error=incorrecta",
+        "cache-control": "no-cache, no-store, max-age=0, must-revalidate",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "csp": true,
+        "cookies": []
+      },
+      "intentos": 1
+    },
+    "margen-2": {
+      "cadena": [
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        },
+        {
+          "metodo": "POST",
+          "status": 303,
+          "location": "/admin?error=incorrecta",
+          "cookies": []
+        },
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        }
+      ],
+      "post": {
+        "status": 303,
+        "location": "/admin?error=incorrecta",
+        "cache-control": "no-cache, no-store, max-age=0, must-revalidate",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "csp": true,
+        "cookies": []
+      },
+      "intentos": 2
+    },
+    "margen-3": {
+      "cadena": [
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        },
+        {
+          "metodo": "POST",
+          "status": 303,
+          "location": "/admin?error=incorrecta",
+          "cookies": []
+        },
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        }
+      ],
+      "post": {
+        "status": 303,
+        "location": "/admin?error=incorrecta",
+        "cache-control": "no-cache, no-store, max-age=0, must-revalidate",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "csp": true,
+        "cookies": []
+      },
+      "intentos": 3
+    },
+    "margen-4": {
+      "cadena": [
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        },
+        {
+          "metodo": "POST",
+          "status": 303,
+          "location": "/admin?error=incorrecta",
+          "cookies": []
+        },
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        }
+      ],
+      "post": {
+        "status": 303,
+        "location": "/admin?error=incorrecta",
+        "cache-control": "no-cache, no-store, max-age=0, must-revalidate",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "csp": true,
+        "cookies": []
+      },
+      "intentos": 4
+    },
+    "margen-5": {
+      "cadena": [
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        },
+        {
+          "metodo": "POST",
+          "status": 303,
+          "location": "/admin?error=incorrecta",
+          "cookies": []
+        },
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        }
+      ],
+      "post": {
+        "status": 303,
+        "location": "/admin?error=incorrecta",
+        "cache-control": "no-cache, no-store, max-age=0, must-revalidate",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "csp": true,
+        "cookies": []
+      },
+      "intentos": 5
+    },
+    "margen-6": {
+      "cadena": [
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        },
+        {
+          "metodo": "POST",
+          "status": 303,
+          "location": "/admin?error=intentos",
+          "cookies": []
+        },
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        }
+      ],
+      "post": {
+        "status": 303,
+        "location": "/admin?error=intentos",
+        "cache-control": "no-cache, no-store, max-age=0, must-revalidate",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "csp": true,
+        "cookies": []
+      },
+      "intentos": 5
+    },
+    "sin-configurar": {
+      "cadena": [
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        },
+        {
+          "metodo": "POST",
+          "status": 303,
+          "location": "/admin",
+          "cookies": []
+        },
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        }
+      ],
+      "post": {
+        "status": 303,
+        "location": "/admin",
+        "cache-control": "no-cache, no-store, max-age=0, must-revalidate",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "csp": true,
+        "cookies": []
+      },
+      "intentos": 0
+    },
+    "salir-con-sesion": {
+      "cadena": [
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        },
+        {
+          "metodo": "POST",
+          "status": 303,
+          "location": "/admin?salida=1",
+          "cookies": [
+            {
+              "nombre": "nu_panel",
+              "httponly": "",
+              "max-age": "0",
+              "path": "/admin",
+              "samesite": "lax",
+              "secure": ""
+            }
+          ]
+        },
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        }
+      ],
+      "post": {
+        "status": 303,
+        "location": "/admin?salida=1",
+        "cache-control": "no-cache, no-store, max-age=0, must-revalidate",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "csp": true,
+        "cookies": [
+          {
+            "nombre": "nu_panel",
+            "httponly": "",
+            "max-age": "0",
+            "path": "/admin",
+            "samesite": "lax",
+            "secure": ""
+          }
+        ]
+      },
+      "intentos": 0,
+      "atras": {
+        "status": 307,
+        "location": "/admin"
+      }
+    },
+    "salir-sin-sesion": {
+      "cadena": [
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        },
+        {
+          "metodo": "POST",
+          "status": 303,
+          "location": "/admin?salida=1",
+          "cookies": [
+            {
+              "nombre": "nu_panel",
+              "httponly": "",
+              "max-age": "0",
+              "path": "/admin",
+              "samesite": "lax",
+              "secure": ""
+            }
+          ]
+        },
+        {
+          "metodo": "GET",
+          "status": 200,
+          "location": null,
+          "cookies": []
+        }
+      ],
+      "post": {
+        "status": 303,
+        "location": "/admin?salida=1",
+        "cache-control": "no-cache, no-store, max-age=0, must-revalidate",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "csp": true,
+        "cookies": [
+          {
+            "nombre": "nu_panel",
+            "httponly": "",
+            "max-age": "0",
+            "path": "/admin",
+            "samesite": "lax",
+            "secure": ""
+          }
+        ]
+      },
+      "intentos": 0
+    }
+  }
+}

@@ -254,11 +254,16 @@ describe("privacidad · los reportes solo se leen desde el panel", () => {
       ...archivosDe(join(raiz, "src/components")).filter(
         (ruta) => !ruta.startsWith(join(raiz, "src/components/admin")),
       ),
-      // Las superficies públicas de Astro (change `migrar-lectura-publica-astro`).
-      ...archivosDe(join(raiz, "src/pages")),
+      // Las superficies públicas de Astro (change `migrar-lectura-publica-astro`);
+      // `src/pages/admin/` es el panel (change `migrar-panel-admin-base-astro`).
+      ...archivosDe(join(raiz, "src/pages")).filter(
+        (ruta) => !ruta.startsWith(join(raiz, "src/pages/admin")),
+      ),
       ...archivosDe(join(raiz, "src/layouts")),
     ];
     expect(publicas.length).toBeGreaterThanOrEqual(10);
+    // Y el panel de Astro sí es quien lo lee (la cola).
+    expect(readFileSync(join(raiz, "src/pages/admin/cola.astro"), "utf8")).toContain("@/lib/admin/reportes");
 
     for (const ruta of publicas) {
       const fuente = readFileSync(ruta, "utf8");

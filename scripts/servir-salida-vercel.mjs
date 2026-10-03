@@ -103,12 +103,14 @@ async function resolver(peticion) {
 http
   .createServer(async (req, res) => {
     const conCuerpo = !["GET", "HEAD"].includes(req.method ?? "GET");
-    const peticion = new Request(`http://${req.headers.host}${req.url}`, {
-      method: req.method,
-      headers: Object.entries(req.headers).flatMap(([k, v]) => (Array.isArray(v) ? v.map((x) => [k, x]) : [[k, v ?? ""]])),
-      ...(conCuerpo ? { body: Readable.toWeb(req), duplex: "half" } : {}),
-    });
     try {
+      // Dentro del `try`: `new Request` lanza ante métodos que `fetch` prohíbe
+      // (`TRACE`, `CONNECT`) y eso tumbaba el proceso (O6 de c-seguridad de 5a).
+      const peticion = new Request(`http://${req.headers.host}${req.url}`, {
+        method: req.method,
+        headers: Object.entries(req.headers).flatMap(([k, v]) => (Array.isArray(v) ? v.map((x) => [k, x]) : [[k, v ?? ""]])),
+        ...(conCuerpo ? { body: Readable.toWeb(req), duplex: "half" } : {}),
+      });
       const respuesta = await resolver(peticion);
       const cabeceras = {};
       respuesta.headers.forEach((valor, nombre) => {

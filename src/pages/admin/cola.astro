@@ -1,0 +1,73 @@
+---
+/**
+ * Cola de revisión (lo que era `src/app/admin/cola/page.tsx`; change
+ * `migrar-panel-admin-base-astro`, Fase 5a). Spec `revision-admin`,
+ * requirements "Cola de revisión con los registros pendientes, más antiguos
+ * primero" y "La cola avisa qué negocios tienen reportes sin atender"; spec
+ * `plataforma-astro`, "La cola y 'Todos los negocios' responden desde Astro
+ * el mismo HTML que Next".
+ *
+ * La guarda va ANTES de tocar la base (defensa en profundidad: el middleware
+ * ya respondió la redirección sin sesión): sin sesión válida no se lee ni un
+ * registro. "Salir" es un formulario nativo hacia la Action `salir` de esta
+ * misma ruta. Los componentes son los de siempre, pintados en el servidor,
+ * sin directiva de cliente.
+ */
+import { actions } from "astro:actions";
+
+import { exigirSesionAdmin } from "@/astro/panel/guardia";
+import { METADATOS_COLA } from "@/astro/panel/metadatos";
+import { BotonSalir } from "@/components/admin/boton-salir";
+import { SeccionNegociosReportados } from "@/components/admin/negocios-reportados";
+import { TarjetaCola } from "@/components/admin/tarjeta-cola";
+import DocumentoPanel from "@/layouts/DocumentoPanel.astro";
+import { contarAtrasados, obtenerColaDeRevision } from "@/lib/admin/consultas";
+import { FILTRO_TODOS, hrefListadoDeNegocios } from "@/lib/admin/listado-parametros";
+import { obtenerNegociosReportados } from "@/lib/admin/reportes";
+import { TEXTO_COLA_ENCABEZADO, TEXTO_COLA_VACIA, TEXTO_VER_TODOS_LOS_NEGOCIOS, textoConteoAtrasados } from "@/lib/admin/textos";
+import { obtenerPrisma } from "@/lib/prisma";
+
+export const prerender = false;
+
+const sinSesion = exigirSesionAdmin(Astro);
+if (sinSesion) return sinSesion;
+
+const prisma = obtenerPrisma();
+const [cola, negociosReportados] = await Promise.all([obtenerColaDeRevision(prisma), obtenerNegociosReportados(prisma)]);
+const atrasados = contarAtrasados(cola);
+---
+
+<DocumentoPanel metadatos={METADATOS_COLA}>
+  <section class="flex flex-col gap-6 py-4">
+    <div class="flex items-start justify-between gap-4">
+      <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">{TEXTO_COLA_ENCABEZADO}</h1>
+      <BotonSalir action={actions.salir.toString()} />
+    </div>
+
+    <a
+      href={hrefListadoDeNegocios(FILTRO_TODOS, 1)}
+      class="inline-flex min-h-11 w-fit items-center text-sm font-semibold text-accion-fuerte underline underline-offset-4"
+    >
+      {TEXTO_VER_TODOS_LOS_NEGOCIOS}
+    </a>
+
+    {atrasados > 0 && <p class="text-sm font-semibold text-tinta">{textoConteoAtrasados(atrasados)}</p>}
+
+    {
+      cola.length === 0 ? (
+        <p class="text-tinta-suave">{TEXTO_COLA_VACIA}</p>
+      ) : (
+        <ul class="flex flex-col gap-3">
+          {cola.map((registro) => (
+            <li>
+              <TarjetaCola {...registro} />
+            </li>
+          ))}
+        </ul>
+      )
+    }
+
+    {/* Debajo de "Registros por revisar", invisible sin pendientes. */}
+    {negociosReportados.length > 0 && <SeccionNegociosReportados negocios={negociosReportados} />}
+  </section>
+</DocumentoPanel>

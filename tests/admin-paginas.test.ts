@@ -18,10 +18,6 @@ import RegistroAprobadoPage from "../src/app/admin/registros/[id]/aprobado/page"
 import DetalleRegistroAdminPage from "../src/app/admin/registros/[id]/page";
 import RegistroRechazadoPage from "../src/app/admin/registros/[id]/rechazado/page";
 import RegistroYaResueltoPage from "../src/app/admin/registros/[id]/ya-resuelto/page";
-import ColaAdminPage from "../src/app/admin/cola/page";
-import { metadata as metadataAcceso } from "../src/app/admin/page";
-import { metadata as metadataCola } from "../src/app/admin/cola/page";
-import { metadata as metadataNegocios } from "../src/app/admin/negocios/page";
 import { metadata as metadataDetalle } from "../src/app/admin/registros/[id]/page";
 import { metadata as metadataAprobado } from "../src/app/admin/registros/[id]/aprobado/page";
 import { metadata as metadataRechazado } from "../src/app/admin/registros/[id]/rechazado/page";
@@ -63,6 +59,7 @@ import {
 } from "../src/lib/admin/textos";
 import { construirSegmentoFicha } from "../src/lib/ficha-url";
 import { crearClientePrueba } from "./db";
+import { pantallaComoNext, respuestaDelPanel } from "./panel-paginas";
 import {
   NoEncontradoSimulado,
   peticion,
@@ -225,7 +222,7 @@ afterEach(() => vi.restoreAllMocks());
 
 describe("revision-admin · sin sesión no se abre ni se toca nada", () => {
   const paginas: Array<[string, () => Promise<unknown>]> = [
-    ["la cola", () => ColaAdminPage()],
+    ["la cola", () => pantallaComoNext("cola")],
     [
       "el detalle de un registro que existe",
       () =>
@@ -263,7 +260,7 @@ describe("revision-admin · sin sesión no se abre ni se toca nada", () => {
 
   it("una cookie manipulada vale lo mismo que ninguna", async () => {
     peticion.cookies[NOMBRE_COOKIE_SESION] = `${Date.now() + 100000}.firma-inventada`;
-    expect(await urlDeRedireccion(() => ColaAdminPage())).toBe("/admin");
+    expect(await urlDeRedireccion(() => pantallaComoNext("cola"))).toBe("/admin");
   });
 
   // Scenario: aprobar sin sesión
@@ -331,7 +328,7 @@ describe("revision-admin · cola de revisión con sesión", () => {
 
   // Scenario: orden de la cola + Scenario: registro atrasado
   it("encabeza, lista lo pendiente con su entrada a Revisar y marca los atrasados", async () => {
-    const html = normalizado(await render(ColaAdminPage()));
+    const html = normalizado(await pantallaComoNext("cola"));
 
     expect(html).toContain(TEXTO_COLA_ENCABEZADO);
     expect(html).toContain(DATOS_COMPLETOS.nombre);
@@ -347,7 +344,7 @@ describe("revision-admin · cola de revisión con sesión", () => {
   });
 
   it("el indicador de atraso se lee como texto, no como color", async () => {
-    const html = await render(ColaAdminPage());
+    const html = await pantallaComoNext("cola");
     const indicador = html.slice(html.indexOf(TEXTO_INDICADOR_ATRASADO) - 200);
     expect(indicador).toContain(TEXTO_INDICADOR_ATRASADO);
     // El único adorno del indicador es decorativo para el lector de pantalla.
@@ -357,7 +354,7 @@ describe("revision-admin · cola de revisión con sesión", () => {
   // Scenario: cola vacía
   it("sin pendientes muestra el texto de todo al día", async () => {
     await prisma.negocio.deleteMany({ where: { estado: "en_revision" } });
-    const html = normalizado(await render(ColaAdminPage()));
+    const html = normalizado(await pantallaComoNext("cola"));
     expect(html).toContain(TEXTO_COLA_VACIA);
     expect(html).not.toContain(TEXTO_REVISAR);
   });
@@ -721,7 +718,7 @@ describe("revision-admin · el log del servidor no guarda datos personales", () 
       });
     }
 
-    await render(ColaAdminPage());
+    await pantallaComoNext("cola");
     await render(
       DetalleRegistroAdminPage({
         params: Promise.resolve({ id: idCompleto }),
@@ -755,12 +752,23 @@ describe("revision-admin · el log del servidor no guarda datos personales", () 
 
 // Scenario: metadata de no indexación
 describe("revision-admin · el panel no se indexa", () => {
+  // 5a (change `migrar-panel-admin-base-astro`): el acceso, la cola y "Todos
+  // los negocios" son de Astro; se mira el documento que sirven.
   it.each([
-    ["acceso", metadataAcceso],
-    ["cola", metadataCola],
+    ["acceso", "acceso", false],
+    ["cola", "cola", true],
     // Change `agregar-listado-gestion-panel`: la pantalla nueva entra a la
     // misma lista, no a una suya (tasks.md #11).
-    ["todos los negocios", metadataNegocios],
+    ["todos los negocios", "negocios", true],
+  ] as const)("la pantalla de %s declara noindex, nofollow", async (_caso, pantalla, conCookie) => {
+    reiniciarPeticion();
+    if (conCookie) conSesion();
+    const { status, documento } = await respuestaDelPanel(pantalla);
+    expect(status).toBe(200);
+    expect(documento).toContain('<meta name="robots" content="noindex, nofollow">');
+  });
+
+  it.each([
     ["detalle", metadataDetalle],
     ["aprobado", metadataAprobado],
     ["rechazado", metadataRechazado],

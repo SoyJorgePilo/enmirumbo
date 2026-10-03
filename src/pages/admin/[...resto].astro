@@ -1,0 +1,28 @@
+---
+/**
+ * Cualquier URL bajo `/admin` que no sea una pantalla del panel (lo que era
+ * `src/app/admin/[...resto]/page.tsx`; observación O-1 de
+ * `agregar-analitica-cookieless`; change `migrar-panel-admin-base-astro`,
+ * design.md §1.4).
+ *
+ * Responde la 404 de no encontrado DENTRO del documento del panel, así que
+ * hereda su política de referente: un `/admin/registros/<id>/loquesea`
+ * tecleado a mano lleva el identificador de un registro y no puede
+ * entregarlo como referente al salir hacia lo público (PRD §8, LFPDPPP).
+ *
+ * No lee nada —ni la cookie, ni la petición, ni la base— y responde igual con
+ * sesión y sin ella: no hay nada que proteger detrás de una ruta que no existe
+ * y pedir sesión para decir "no existe" delataría más de lo que oculta. La
+ * guarda del middleware le da la política `no-existe`.
+ *
+ * Mientras 5b y 5d no lleguen, también atrapa `/admin/registros/<id>` y
+ * `/admin/ediciones/<id>` (estado intermedio de la rama, proposal.md).
+ */
+import NoEncontradoDelPanel from "@/astro/componentes/NoEncontradoDelPanel.astro";
+
+export const prerender = false;
+
+Astro.response.status = 404;
+---
+
+<NoEncontradoDelPanel />

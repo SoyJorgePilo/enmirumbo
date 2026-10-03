@@ -1,11 +1,11 @@
 # T-025 · Enlace de gestión en Astro (Fase 4)
 
-**Estado:** pendiente <!-- pendiente | en-spec | en-desarrollo | en-review | hecho -->
+**Estado:** en-desarrollo <!-- pendiente | en-spec | en-desarrollo | en-review | hecho -->
 **Prioridad:** P1
 **Épica:** E9 (docs/backlog.md)
 **Referencias PRD:** v2 §10 (técnica reemplazable); ADR-013
 **Depende de:** T-024
-**OpenSpec change:** —
+**OpenSpec change:** `migrar-enlace-gestion-astro`
 **PR:** —
 
 ## Contexto

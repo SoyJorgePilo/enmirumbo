@@ -1,11 +1,11 @@
 # T-027 · Corte a producción y retiro de Next (Fase 6)
 
-**Estado:** pendiente <!-- pendiente | en-spec | en-desarrollo | en-review | hecho -->
+**Estado:** en-desarrollo <!-- pendiente | en-spec | en-desarrollo | en-review | hecho -->
 **Prioridad:** P1
 **Épica:** E9 (docs/backlog.md)
 **Referencias PRD:** v2 §10 (técnica reemplazable); ADR-013
 **Depende de:** T-026 y T-021 completo
-**OpenSpec change:** —
+**OpenSpec change:** `migrar-tareas-programadas-astro` (mitad 6a: tareas programadas y `secreto.ts` sin Next); la mitad 6b (corte y retiro de Next) va en un change aparte, después de las Fases 4 y 5 y de la evidencia humana del preview
 **PR:** —
 
 ## Contexto
